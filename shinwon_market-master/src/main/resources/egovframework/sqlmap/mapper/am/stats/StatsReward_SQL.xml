@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="StatsReward">
+
+    <!-- 통계 > 리워드통계 쿠폰통계 -->
+    <select id="selectRewardStatsCouponDate" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+        /* StatsMember.selectRewardStatsCouponDate */
+        WITH CPN1 AS (
+            SELECT
+                SUBSTR(OM.ORD_MST_ORD_DT,1,8) AS ORDER_DATE,
+                CCM.CMPG_ID,
+                OP.ORD_PRD_DC_COUPON_NO,
+                OP.ORD_PRD_DC_COUPON
+            FROM
+                T_ORD_MST OM, T_ORD_PRD OP, T_PRD_MST PM, T_CRM_CPN_MEM CCM
+            WHERE 1=1
+            AND OM.ORD_MST_ORD_DT BETWEEN REPLACE(#{searchStartDate},'-','')||'000000' AND REPLACE(#{searchEndDate},'-','')||'235959'
+            AND OM.ORD_MST_CD = OP.ORD_ORD_MST_CD
+            AND OP.ORD_PRD_ORD_STATE = #{OST_FIX}
+            AND OP.ORD_PRD_DC_COUPON_NO IS NOT NULL
+            AND OP.ORD_PRD_MST_CD = PM.PRD_MST_CD
+            AND OP.ORD_PRD_DC_COUPON_NO = CCM.CUPO_NO
+            <if test="searchCampaignType != null and searchCampaignType != '' and searchCampaign != null and searchCampaign != ''">
+                <if test="searchCampaignType.equals('ID'.toString())">
+                     AND CCM.CMPG_ID=#{searchCampaign} 
+                </if>
+                <if test="searchCampaignType.equals('NM'.toString())">
+                     AND CCM.CMPG_NM LIKE '%'||#{searchCampaign}||'%' 
+                </if>
+            </if>
+        )
+        SELECT
+            ORDER_DATE,
+            TOT_CMPG_ID,
+            CMPG_ID,
+            CMPG_NM,
+            BRAND_CD,
+            VALD_TRM_FROM, VALD_TRM_TO,
+            CUPO_KIND, DECODE(CUPO_KIND,'M','%','원') AS CUPO_KIND_NM,
+            ADD_DISC,
+            CUPO_TOTAL_CNT,
+            CUPO_TOTAL_AMT,
+            CUPO_ISSUE_CNT,
+            CUPO_USED_CNT,
+            ORD_CUPO_USED_CNT,
+            CUPO_DC_AMT
+        FROM (
+            SELECT
+                ORDER_DATE,
+                CMPG_ID AS ORDER_CMPG_ID,
+                COUNT(DISTINCT ORD_PRD_DC_COUPON_NO) AS ORD_CUPO_USED_CNT,
+                SUM(ORD_PRD_DC_COUPON) AS CUPO_DC_AMT
+            FROM
+                CPN1
+            GROUP BY
+                ORDER_DATE, CMPG_ID
+            ),
+            (
+            SELECT
+                ORDER_DATE AS TOT_ORDER_DATE,
+                COUNT(DISTINCT CMPG_ID) AS TOT_CMPG_ID
+            FROM
+                CPN1
+            GROUP BY
+                ORDER_DATE
+            ),
+            (
+            SELECT
+                CMPG_ID, 
+                CMPG_NM, 
+                BRAND_CD, 
+                VALD_TRM_FROM, 
+                VALD_TRM_TO,
+                CUPO_KIND,
+                ADD_DISC, 
+                COUNT(CUPO_NO) AS CUPO_TOTAL_CNT,
+                SUM(DECODE(CUPO_KIND,'M',0,ADD_DISC)) AS CUPO_TOTAL_AMT,
+                SUM(CASE WHEN CS_ID IS NOT NULL THEN 1 ELSE 0 END) AS CUPO_ISSUE_CNT,
+                SUM(CASE WHEN CUPO_USED = 'Y' THEN 1 ELSE 0 END) AS CUPO_USED_CNT
+            FROM T_CRM_CPN_MEM CCM
+            WHERE 1=1
+            <if test="searchCampaignType != null and searchCampaignType != '' and searchCampaign != null and searchCampaign != ''">
+                <if test="searchCampaignType.equals('ID'.toString())">
+                     AND CCM.CMPG_ID=#{searchCampaign} 
+                </if>
+                <if test="searchCampaignType.equals('NM'.toString())">
+                     AND CCM.CMPG_NM LIKE '%'||#{searchCampaign}||'%' 
+                </if>
+            </if>
+            GROUP BY
+                CMPG_ID, CMPG_NM, BRAND_CD, CUPO_KIND, ADD_DISC, 
+                BASE_SELL_OBJ, VALD_TRM_FROM, VALD_TRM_TO, REGI_DATE
+            ORDER BY 
+                VALD_TRM_FROM DESC, VALD_TRM_TO DESC, CMPG_ID ASC
+            )
+        WHERE 1=1
+        AND ORDER_DATE = TOT_ORDER_DATE
+        AND ORDER_CMPG_ID = CMPG_ID
+        ORDER BY
+            ORDER_DATE
+    </select>
+</mapper>

@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="PcMyFavorite">
+
+	<select id="selectFirstDepthCtg" parameterType="HashMap" resultType="HashMap">
+		SELECT 
+		PRD_CTG_IDX, 
+		PRD_CTG_NM, 
+		PRD_CTG_LEVEL, 
+		PRD_CTG_UP_IDX, 
+		PRD_CTG_TOP_IDX 
+		FROM T_PRD_CTG 
+		WHERE PRD_CTG_LEVEL= 1
+	</select>
+	
+	<select id="selectSecondDepthCtg" parameterType="HashMap" resultType="HashMap">
+		SELECT 
+		PRD_CTG_IDX, 
+		PRD_CTG_NM, 
+		PRD_CTG_LEVEL, 
+		PRD_CTG_UP_IDX, 
+		PRD_CTG_TOP_IDX 
+		FROM T_PRD_CTG 
+		WHERE PRD_CTG_LEVEL= 2 AND PRD_CTG_UP_IDX = #{PRD_CTG_IDX}
+	</select>
+
+
+	<select id="selectMyFavoriteList" parameterType="HashMap" resultType="HashMap">
+	<![CDATA[
+		SELECT DISTINCT 
+		       PRD_CTG_NM1||' > '||PRD_CTG_NM2 AS CTG
+		      ,MEM_CTG_IDX
+		      ,PRD_CTG_IDX_L2
+		FROM T_MEM_CTG
+		WHERE MEM_CTG_MEM_ID=#{MEM_MST_MEM_ID}
+		AND ROWNUM<11
+		AND MEM_CTG_DEL_YN='N'
+	]]>	
+	</select>
+
+	
+	<insert id="myPageInertCtgAjax" parameterType="HashMap">
+	INSERT INTO T_MEM_CTG
+	(
+	    MEM_CTG_IDX
+	  , MEM_CTG_MEM_ID
+	  , PRD_CTG_IDX_L1
+	  , PRD_CTG_NM1
+	  , PRD_CTG_IDX_L2
+	  , PRD_CTG_NM2
+	  , MEM_CTG_DEL_YN
+	  , MEM_CTG_REG_DT
+	  , MEM_CTG_REG_IP
+	  , MEM_CTG_REG_ID
+	  , MEM_CTG_UPD_DT
+	  , MEM_CTG_UPD_IP
+	  , MEM_CTG_UPD_ID
+	  )
+	VALUES
+	(
+	   SEQ_MEM_CTG_IDX.NEXTVAL
+	  , #{MEM_MST_MEM_ID}
+	  , #{PRD_CTG_IDX_L1}
+	  ,	(SELECT 
+		 PRD_CTG_NM 
+		 FROM T_PRD_CTG 
+		 WHERE PRD_CTG_IDX=#{PRD_CTG_IDX_L1}
+		AND ROWNUM=1
+		)
+	  , #{PRD_CTG_IDX_L2}
+	  ,	(SELECT 
+		 PRD_CTG_NM 
+		 FROM T_PRD_CTG 
+		 WHERE PRD_CTG_IDX=#{PRD_CTG_IDX_L2}
+		AND ROWNUM=1
+		)
+	  , 'N'
+	  , TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS')
+	  , ''
+	  , #{MEM_MST_MEM_ID}
+	  , TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS')
+	  , ''
+	  , #{MEM_MST_MEM_ID}
+	  )
+
+	</insert>
+	<update id="myPageDelCtgAjax" parameterType="HashMap">
+	UPDATE T_MEM_CTG
+	SET MEM_CTG_DEL_YN ='Y'
+	WHERE MEM_CTG_IDX=#{MEM_CTG_IDX}
+	</update>
+	
+</mapper>

@@ -1,0 +1,365 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="StatsMember">
+
+    <!-- 통계 > 회원통계 일자별 가입 통계 -->
+    <select id="selectMemberJoinDate" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+        /* StatsMember.selectMemberJoinDate */
+        SELECT  NVL(MEMB_JOIN_DE,'총 회원수') MEMB_JOIN_DE
+             ,  NVL(TOTAL,0) TOTAL
+             ,  NVL(M1,0) M1, NVL(M2,0) M2, NVL(M3,0) M3, NVL(M4,0) M4, NVL(M5,0) M5, NVL(M6,0) M6, NVL(M9,0) M9, NVL(M0,0) M0
+             ,  NVL(W1,0) W1, NVL(W2,0) W2, NVL(W3,0) W3, NVL(W4,0) W4, NVL(W5,0) W5, NVL(W6,0) W6, NVL(W9,0) W9, NVL(W0,0) W0 
+             ,  NVL(ETC,0) ETC
+        FROM
+        (
+            SELECT TO_CHAR(TO_DATE(MEMB_JOIN_DE,'YYYYMMDD'),'YYYY-MM-DD')  MEMB_JOIN_DE 
+                 , NVL(SEX_DIV,'A') SEX_DIV  
+                 , NVL(AGE_BOUND,0)  AGE_BOUND
+                 , COUNT(0) JOIN_CNT
+            FROM 
+            (
+               SELECT 
+                      <![CDATA[
+                      CASE  WHEN TO_CHAR(SYSDATE,'YYYY')+1 - SUBSTR(BITH_DAY,0,4)   IS NULL THEN 9
+                            WHEN TO_CHAR(SYSDATE,'YYYY')+1 - SUBSTR(BITH_DAY,0,4)  < 20 THEN 1
+                            WHEN TO_CHAR(SYSDATE,'YYYY')+1 - SUBSTR(BITH_DAY,0,4)  < 30 THEN 2
+                            WHEN TO_CHAR(SYSDATE,'YYYY')+1 - SUBSTR(BITH_DAY,0,4)  < 40 THEN 3
+                            WHEN TO_CHAR(SYSDATE,'YYYY')+1 - SUBSTR(BITH_DAY,0,4)  < 50 THEN 4
+                            WHEN TO_CHAR(SYSDATE,'YYYY')+1 - SUBSTR(BITH_DAY,0,4)  < 60 THEN 5
+                            WHEN TO_CHAR(SYSDATE,'YYYY')+1 - SUBSTR(BITH_DAY,0,4)  > 59 THEN 6
+                      END AGE_BOUND  
+                      ]]>
+                     , SEX_DIV
+                     , MEMB_JOIN_DE
+                FROM TSM_CUST 
+                WHERE
+                SEX_DIV IN ('M','W')
+                AND SCSS_YN='N'
+                <if test="searchJoinPath != null and searchJoinPath != ''">
+                AND JOIN_PATH = #searchJoinPath#
+                </if>
+                AND MEMB_JOIN_DE BETWEEN #{searchStartDe} AND #{searchEndDe}
+              UNION ALL
+              SELECT 9 AGE_BOUND
+                   , 'N' SEX_DIV
+                   , MEMB_JOIN_DE
+                FROM TSM_CUST 
+                WHERE
+                SEX_DIV NOT IN  ('M','W')
+                AND SCSS_YN='N'
+                <if test="searchJoinPath != null and searchJoinPath != ''">
+                AND JOIN_PATH = #{searchJoinPath}
+                </if>
+                AND MEMB_JOIN_DE BETWEEN #{searchStartDe} AND #{searchEndDe}
+            )
+            GROUP BY CUBE(MEMB_JOIN_DE, SEX_DIV,AGE_BOUND )
+        )
+        PIVOT(
+             SUM(JOIN_CNT) 
+             For  (SEX_DIV,AGE_BOUND) in ( ('A',0) TOTAL 
+                                           , ('M',1) AS M1, ('M',2) AS M2, ('M',3) AS M3, ('M',4) AS M4 , ('M',5) AS M5, ('M',6) AS M6, ('M',9) AS M9 ,('M',0) AS M0 
+                                           , ('W',1) AS W1, ('W',2) AS W2, ('W',3) AS W3, ('W',4) AS W4 , ('W',5) AS W5, ('W',6) AS W6, ('W',9) AS W9 ,('W',0) AS W0 
+                                           , ('N',9) ETC 
+                                         )
+        ) 
+        ORDER BY MEMB_JOIN_DE DESC NULLS FIRST
+    </select>
+
+    <!-- ERP 가입경로 -->
+    <select id="selectErpJoinPath" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+        /* StatsMember.selectErpJoinPath */
+        SELECT
+            COMP_CD,
+            CD_ID,
+            CMON_CD,
+            CMON_CD_NM,
+            SORT_ORD
+        FROM TCT_CMON_CD_D
+        WHERE CD_ID = #{CODE}
+        AND COMP_CD = #{COMP_CD}
+        AND USE_YN = 'Y'
+        ORDER BY SORT_ORD ASC
+    </select>
+    
+    
+    <!-- 통계 > 회원통계 지역별 통계 -->
+    <select id="selectMemberOrderArea" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+        /* StatsMember.selectMemberOrderArea */
+        SELECT CMON_CD_NM AREA_NM
+             ,  NVL(TOTAL,0) TOTAL
+             ,  NVL(M1,0) M1, NVL(M2,0) M2, NVL(M3,0) M3, NVL(M4,0) M4, NVL(M5,0) M5, NVL(M6,0) M6, NVL(M9,0) M9, NVL(M0,0) M0
+             ,  NVL(W1,0) W1, NVL(W2,0) W2, NVL(W3,0) W3, NVL(W4,0) W4, NVL(W5,0) W5, NVL(W6,0) W6, NVL(W9,0) W9, NVL(W0,0) W0 
+             ,  NVL(ETC,0) ETC
+        FROM
+            (
+            SELECT CMON_CD , CMON_CD_NM, SORT_ORD
+              FROM ${erpCommonLinkNm}.TCT_CMON_CD_D
+            WHERE COMP_CD = #{compCd}
+              AND CD_ID = #{comAreaCd}
+              AND USE_YN = 'Y'
+              AND REFR_VAL_1 = '1'
+            ) TCCD
+       LEFT OUTER JOIN 
+            (      
+              SELECT  *
+               FROM
+                (
+                   SELECT AREA_CD
+                        , NVL(SEX_DIV,'A') SEX_DIV  
+                        , NVL(AGE_BOUND,0)  AGE_BOUND
+                        , COUNT(0) JOIN_CNT
+                    FROM 
+                    (
+                       SELECT 
+                       <![CDATA[
+                             CASE  WHEN TO_CHAR(SYSDATE,'YYYY')+1 - SUBSTR(BITH_DAY,0,4)   IS NULL THEN 9
+                                   WHEN TO_CHAR(SYSDATE,'YYYY')+1 - SUBSTR(BITH_DAY,0,4)  < 20 THEN 1
+                                   WHEN TO_CHAR(SYSDATE,'YYYY')+1 - SUBSTR(BITH_DAY,0,4)  < 30 THEN 2
+                                   WHEN TO_CHAR(SYSDATE,'YYYY')+1 - SUBSTR(BITH_DAY,0,4)  < 40 THEN 3
+                                   WHEN TO_CHAR(SYSDATE,'YYYY')+1 - SUBSTR(BITH_DAY,0,4)  < 50 THEN 4
+                                   WHEN TO_CHAR(SYSDATE,'YYYY')+1 - SUBSTR(BITH_DAY,0,4)  < 60 THEN 5
+                                   WHEN TO_CHAR(SYSDATE,'YYYY')+1 - SUBSTR(BITH_DAY,0,4)  > 59 THEN 6
+                             END AGE_BOUND 
+                          ]]> 
+                          , SEX_DIV
+                          , AREA_CD
+                        FROM TSM_CUST TC
+                        JOIN (
+                              SELECT DISTINCT ORD_MST_MEMBER_NO ,ORD_MST_ERP_COMP_CD
+                              FROM T_ORD_MST
+                              WHERE ORD_MST_MEMBER_NO IS NOT NULL
+                               AND SUBSTR(ORD_MST_ORD_DT, 0,8) BETWEEN #{searchStartDe} AND #{searchEndDe}
+                             )  TOM
+                         ON TC.CUST_NO = TOM.ORD_MST_MEMBER_NO
+                        AND TC.COMP_CD = TOM.ORD_MST_ERP_COMP_CD
+                       WHERE COMP_CD = #{compCd}
+                        AND SEX_DIV IN ('M','W')
+                        AND SCSS_YN='N'
+                        AND AREA_CD IS NOT NULL
+                      UNION ALL
+                      SELECT 9 AGE_BOUND
+                           , 'N' SEX_DIV
+                           , AREA_CD
+                        FROM TSM_CUST TC
+                        JOIN (
+                              SELECT DISTINCT ORD_MST_MEMBER_NO ,ORD_MST_ERP_COMP_CD
+                              FROM T_ORD_MST
+                              WHERE ORD_MST_MEMBER_NO IS NOT NULL
+                               AND SUBSTR(ORD_MST_ORD_DT, 0,8) BETWEEN #{searchStartDe} AND #{searchEndDe}
+                             )  TOM
+                         ON TC.CUST_NO = TOM.ORD_MST_MEMBER_NO
+                        AND TC.COMP_CD = TOM.ORD_MST_ERP_COMP_CD
+                       WHERE COMP_CD = #{compCd}
+                        AND SEX_DIV NOT IN  ('M','W')
+                        AND SCSS_YN='N'
+                        AND AREA_CD IS NOT NULL
+                    )
+                    GROUP BY CUBE(AREA_CD, SEX_DIV,AGE_BOUND ) HAVING AREA_CD IS NOT NULL
+                )
+                PIVOT(
+                     SUM(JOIN_CNT) 
+                     For  (SEX_DIV,AGE_BOUND) in ( ('A',0) TOTAL 
+                                                   , ('M',1) AS M1, ('M',2) AS M2, ('M',3) AS M3, ('M',4) AS M4 , ('M',5) AS M5, ('M',6) AS M6, ('M',9) AS M9 ,('M',0) AS M0 
+                                                   , ('W',1) AS W1, ('W',2) AS W2, ('W',3) AS W3, ('W',4) AS W4 , ('W',5) AS W5, ('W',6) AS W6, ('W',9) AS W9 ,('W',0) AS W0 
+                                                   , ('N',9) ETC 
+                                                 )
+                         ) 
+             )TC
+      ON TCCD.CMON_CD = TC.AREA_CD
+      ORDER BY TCCD.SORT_ORD
+    </select>
+
+    <!-- 통계 > 회원통계 주문금액별 통계 -->
+    <select id="selectMemberOrderPrice" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+        /* StatsMember.selectMemberOrderPrice */
+        <![CDATA[
+        SELECT  (SELECT CMN_COM_NM  
+                   FROM T_CMM_COM 
+                  WHERE CMN_COM_UP_IDX = 642 
+                    AND CMN_COM_USE_YN = 'Y' 
+                    AND CMN_COM_ETC1 = ORD_MST_BRAND_CD  ) BRAND_NM
+             ,  NVL(TOTAL,0) TOTAL
+             ,  NVL(M1,0) M1, NVL(M2,0) M2, NVL(M3,0) M3, NVL(M4,0) M4, NVL(M5,0) M5, NVL(M6,0) M6, NVL(M9,0) M9, NVL(M0,0) M0
+             ,  NVL(W1,0) W1, NVL(W2,0) W2, NVL(W3,0) W3, NVL(W4,0) W4, NVL(W5,0) W5, NVL(W6,0) W6, NVL(W9,0) W9, NVL(W0,0) W0 
+             ,  NVL(ETC,0) ETC
+        FROM
+            (
+             SELECT ORD_MST_BRAND_CD
+                  , NVL(SEX_DIV,'A') SEX_DIV  
+                  , NVL(AGE_BOUND,0)  AGE_BOUND
+                  , SUM(ORDER_PRICE) ORDER_PRICE
+             FROM 
+             (
+                SELECT 
+                     CASE  WHEN TO_CHAR(SYSDATE,'YYYY')+1 - SUBSTR(BITH_DAY,0,4)   IS NULL THEN 9
+                         WHEN TO_CHAR(SYSDATE,'YYYY')+1 - SUBSTR(BITH_DAY,0,4)  < 20 THEN 1
+                         WHEN TO_CHAR(SYSDATE,'YYYY')+1 - SUBSTR(BITH_DAY,0,4)  < 30 THEN 2
+                         WHEN TO_CHAR(SYSDATE,'YYYY')+1 - SUBSTR(BITH_DAY,0,4)  < 40 THEN 3
+                         WHEN TO_CHAR(SYSDATE,'YYYY')+1 - SUBSTR(BITH_DAY,0,4)  < 50 THEN 4
+                         WHEN TO_CHAR(SYSDATE,'YYYY')+1 - SUBSTR(BITH_DAY,0,4)  < 60 THEN 5
+                         WHEN TO_CHAR(SYSDATE,'YYYY')+1 - SUBSTR(BITH_DAY,0,4)  > 59 THEN 6
+                      END AGE_BOUND  
+                     , SEX_DIV
+                     , ORD_MST_BRAND_CD
+                     , ORDER_PRICE
+                 FROM TSM_CUST TC
+                 JOIN (
+                        SELECT ORD_MST_BRAND_CD,  ORD_MST_MEMBER_NO, ORD_MST_ERP_COMP_CD,  SUM(ORDER_PRICE) ORDER_PRICE
+                        FROM 
+                            (
+                                SELECT ORD_MST_BRAND_CD
+                                     , ORD_MST_CD
+                                     , ORD_MST_MEMBER_NO
+                                     , ORD_MST_ERP_COMP_CD
+                                     , SUM(ORD_PRD_ORD_PRC) ORDER_PRICE
+                                FROM T_ORD_MST TOM, T_ORD_PRD TOP
+                                WHERE TOM.ORD_MST_CD = TOP.ORD_ORD_MST_CD
+                                AND TOM.ORD_MST_MEMBER_NO IS NOT NULL
+                                AND TOM.ORD_MST_PAY_DT <> '00000000000000' /* 결제대기 상태인 주문은 나오지 않는다 */
+                                AND TOP.ORD_PRD_ORD_STATE IN
+                                        ( /* 408 : 배송완료 */
+                                            405, 406, 407, 408, 431, 435, 1664, 1665, 1666, 1667, 1668, 1669, 421, 424, 1671
+                                        )
+                                AND SUBSTR(ORD_MST_ORD_DT, 0,8)   BETWEEN  #{searchStartDe} AND #{searchEndDe}
+                                GROUP BY ORD_MST_BRAND_CD, ORD_MST_CD, ORD_MST_MEMBER_NO ,ORD_MST_ERP_COMP_CD
+                            ) OD
+                        WHERE ORDER_PRICE BETWEEN #{searchStartPrice} AND #{searchEndPrice}
+                        GROUP BY ORD_MST_BRAND_CD , ORD_MST_MEMBER_NO, ORD_MST_ERP_COMP_CD
+                     ) TOM
+                  ON TC.CUST_NO = TOM.ORD_MST_MEMBER_NO
+                 AND TC.COMP_CD = TOM.ORD_MST_ERP_COMP_CD
+                 WHERE COMP_CD =  #{compCd}
+                 AND SEX_DIV IN ('M','W')
+                 AND SCSS_YN='N'
+               UNION ALL
+               SELECT 9 AGE_BOUND
+                    , 'N' SEX_DIV
+                    , ORD_MST_BRAND_CD
+                    , ORDER_PRICE
+                 FROM TSM_CUST TC
+                 JOIN (
+                        SELECT ORD_MST_BRAND_CD,  ORD_MST_MEMBER_NO, ORD_MST_ERP_COMP_CD,  SUM(ORDER_PRICE) ORDER_PRICE
+                        FROM 
+                            (
+                                SELECT ORD_MST_BRAND_CD
+                                     , ORD_MST_CD
+                                     , ORD_MST_MEMBER_NO
+                                     , ORD_MST_ERP_COMP_CD
+                                     , SUM(ORD_PRD_ORD_PRC) ORDER_PRICE
+                                FROM T_ORD_MST TOM, T_ORD_PRD TOP
+                                WHERE TOM.ORD_MST_CD = TOP.ORD_ORD_MST_CD
+                                AND TOM.ORD_MST_MEMBER_NO IS NOT NULL
+                                AND TOM.ORD_MST_PAY_DT <> '00000000000000' /* 결제대기 상태인 주문은 나오지 않는다 */
+                                AND TOP.ORD_PRD_ORD_STATE IN
+                                        ( /* 408 : 배송완료 */
+                                            405, 406, 407, 408, 431, 435, 1664, 1665, 1666, 1667, 1668, 1669, 421, 424, 1671
+                                        )
+                                AND SUBSTR(ORD_MST_ORD_DT, 0,8)   BETWEEN  #{searchStartDe} AND #{searchEndDe}
+                                GROUP BY ORD_MST_BRAND_CD, ORD_MST_CD, ORD_MST_MEMBER_NO ,ORD_MST_ERP_COMP_CD
+                            ) OD
+                        WHERE ORDER_PRICE BETWEEN #{searchStartPrice} AND #{searchEndPrice}
+                        GROUP BY ORD_MST_BRAND_CD , ORD_MST_MEMBER_NO, ORD_MST_ERP_COMP_CD
+                     ) TOM
+                 ON TC.CUST_NO = TOM.ORD_MST_MEMBER_NO
+                 AND TC.COMP_CD = TOM.ORD_MST_ERP_COMP_CD
+                 WHERE COMP_CD =  #{compCd}
+                 AND SEX_DIV NOT IN  ('M','W')
+                 AND SCSS_YN='N'
+             )
+             GROUP BY CUBE(ORD_MST_BRAND_CD, SEX_DIV,AGE_BOUND ) HAVING ORD_MST_BRAND_CD IS NOT NULL
+         )
+         PIVOT(
+              SUM(ORDER_PRICE) 
+              For  (SEX_DIV,AGE_BOUND) in ( ('A',0) TOTAL 
+                                            , ('M',1) AS M1, ('M',2) AS M2, ('M',3) AS M3, ('M',4) AS M4 , ('M',5) AS M5, ('M',6) AS M6, ('M',9) AS M9 ,('M',0) AS M0 
+                                            , ('W',1) AS W1, ('W',2) AS W2, ('W',3) AS W3, ('W',4) AS W4 , ('W',5) AS W5, ('W',6) AS W6, ('W',9) AS W9 ,('W',0) AS W0 
+                                            , ('N',9) ETC 
+                                          )
+                  ) 
+         ]]> 
+    </select>
+
+    <!-- 통계 > 회원통계 구매율 통계 -->
+    <select id="selectMemberOrderRate" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+        /* StatsMember.selectMemberOrderRate */
+        <![CDATA[
+        SELECT ORDER_TYPE 
+             ,  CASE WHEN ORDER_TYPE = 1 THEN '회원'
+                     WHEN ORDER_TYPE = 2 THEN '비회원'
+                     ELSE '전체'
+                END ORDER_DIV
+             ,  SUM(CUST_CNT) CUST_CNT
+             ,  SUM(ORDER_CNT) ORDER_CNT
+             ,  SUM(CUST_RATE) CUST_RATE
+             ,  SUM(ORDER_RATE) ORDER_RATE
+             ,  ROUND(AVG(AVG_CNT)) AVG_CNT
+        FROM
+            (
+                SELECT ORDER_TYPE
+                     ,  CUST_CNT
+                     ,  ORDER_CNT
+                     ,  TOT_CNT
+                     ,  TOT_ORDER
+                     ,  ROUND((CUST_CNT / TOT_CNT) * 100) AS CUST_RATE
+                     ,  ROUND((ORDER_CNT / TOT_ORDER ) * 100) AS ORDER_RATE
+                     ,  AVG_CNT
+                FROM
+                     (
+                        SELECT ORDER_TYPE
+                              ,  COUNT(ORDER_CUST)  CUST_CNT
+                              ,  SUM(ORDER_CNT) ORDER_CNT
+                              ,  ROUND(AVG(ORDER_CNT)) AVG_CNT
+                         FROM
+                             (
+                             SELECT ORDER_TYPE, ORDER_CUST
+                                  , COUNT(DISTINCT ORD_MST_CD) ORDER_CNT
+                               FROM
+                                     (
+                                        SELECT ORD_MST_CD
+                                            , CASE WHEN  TOM.ORD_MST_MEMBER_NO IS NOT NULL THEN 1
+                                                   ELSE  2
+                                              END AS  ORDER_TYPE
+                                            , CASE WHEN  TOM.ORD_MST_MEMBER_NO IS NOT NULL THEN ORD_MST_MEMBER_NO
+                                                   ELSE  ORD_MST_ORD_NM
+                                               END AS  ORDER_CUST
+                                          FROM T_ORD_MST TOM, T_ORD_PRD TOP
+                                          WHERE TOM.ORD_MST_CD = TOP.ORD_ORD_MST_CD
+                                          AND TOM.ORD_MST_PAY_DT <> '00000000000000' /* 결제대기 상태인 주문은 나오지 않는다 */
+                                          AND TOP.ORD_PRD_ORD_STATE IN
+                                                ( /* 408 : 배송완료 */
+                                                    405, 406, 407, 408, 431, 435, 1664, 1665, 1666, 1667, 1668, 1669, 421, 424, 1671
+                                                )
+                                          AND SUBSTR(ORD_MST_ORD_DT, 0,8)   BETWEEN  #{searchStartDe} AND #{searchEndDe}
+                                        )
+                                GROUP BY ORDER_TYPE, ORDER_CUST
+                                 )    
+                            GROUP BY ORDER_TYPE
+                      ) OM
+                CROSS JOIN
+                      (
+                        SELECT COUNT(DISTINCT TOT_CUST) TOT_CNT
+                             ,  COUNT(DISTINCT ORD_MST_CD) TOT_ORDER
+                          FROM
+                              (
+                                 SELECT 
+                                        ORD_MST_CD
+                                        , CASE WHEN  TOM.ORD_MST_MEMBER_NO IS NOT NULL THEN ORD_MST_MEMBER_NO
+                                                  ELSE  ORD_MST_ORD_NM
+                                         END AS  TOT_CUST
+                                  FROM T_ORD_MST TOM, T_ORD_PRD TOP
+                                  WHERE TOM.ORD_MST_CD = TOP.ORD_ORD_MST_CD
+                                  AND TOM.ORD_MST_PAY_DT <> '00000000000000' /* 결제대기 상태인 주문은 나오지 않는다 */
+                                  AND TOP.ORD_PRD_ORD_STATE IN
+                                        ( /* 408 : 배송완료 */
+                                            405, 406, 407, 408, 431, 435, 1664, 1665, 1666, 1667, 1668, 1669, 421, 424, 1671
+                                        )
+                                  AND SUBSTR(ORD_MST_ORD_DT, 0,8)   BETWEEN  #{searchStartDe} AND #{searchEndDe}
+                               )
+                       )TOM
+                ) DT
+        GROUP BY ROLLUP(ORDER_TYPE)
+         ]]> 
+    </select>
+
+  
+</mapper>

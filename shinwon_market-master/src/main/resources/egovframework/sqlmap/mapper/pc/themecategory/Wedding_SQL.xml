@@ -1,0 +1,308 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="PcWedding">
+    
+    <sql id="mgzWhere">
+        <if test="searchKeyword != null and searchKeyword != ''">
+            AND ((MGZ.MGZ_MST_TITLE LIKE '%' || #{searchKeyword} || '%') OR (MGZ.MGZ_MST_CTS LIKE '%' || #{searchKeyword} || '%'))
+            AND MGZ.MGZ_MST_CTG = #{searchMgzMstCtg}
+            AND MGZ.MGZ_MST_THM_CTG1 = #{searchMgzMstThmCtg1} 
+        </if>
+
+        <if test="searchKeyword != null and searchKeyword != ''">
+            <if test="searchMgzMstCtg != null and searchMgzMstCtg != ''">
+                AND MGZ.MGZ_MST_CTG = #{searchMgzMstCtg}
+            </if>
+            <if test="searchMgzMstThmCtg1 != null and searchMgzMstThmCtg1 != ''">
+                AND MGZ.MGZ_MST_THM_CTG1 = #{searchMgzMstThmCtg1}
+            </if>
+            <if test="searchMgzMstThmCtg2 != null and searchMgzMstThmCtg2 != ''">
+                AND MGZ.MGZ_MST_THM_CTG2 = #{searchMgzMstThmCtg2}
+            </if>
+            <if test="searchMgzMstThmCtg3 != null and searchMgzMstThmCtg3 != ''">
+                AND MGZ.MGZ_MST_THM_CTG3 = #{searchMgzMstThmCtg3}
+            </if>
+        </if>
+
+        <if test="MGZ_MST_KID != null and MGZ_MST_KID != ''">
+            AND MGZ.MGZ_MST_KID = #MGZ_MST_KID#
+        </if>
+    </sql>
+    
+    <resultMap id="resultWeddingInfo" type="hashMap">
+        <result property="MGZ_MST_IDX" column="MGZ_MST_IDX"/>
+        <result property="MGZ_MST_CTG" column="MGZ_MST_CTG"/>
+        <result property="MGZ_MST_CTG_NM" column="MGZ_MST_CTG_NM"/>
+        <result property="MGZ_MST_THM_CTG1" column="MGZ_MST_THM_CTG1"/>
+        <result property="MGZ_MST_THM_CTG2" column="MGZ_MST_THM_CTG2"/>
+        <result property="MGZ_MST_THM_CTG3" column="MGZ_MST_THM_CTG3"/>
+        <result property="MGZ_MST_TITLE" column="MGZ_MST_TITLE"/>
+        <result property="MGZ_MST_REG_DT" column="MGZ_MST_REG_DT"/> 
+        <result property="MGZ_MST_REG_NM" column="MGZ_MST_REG_NM"/>
+        <result property="MGZ_MST_YN" column="MGZ_MST_YN"/>
+        <result property="MGZ_MST_CTS" column="MGZ_MST_CTS" jdbcType="CLOB" javaType="java.lang.String"/>
+        <result property="CMM_FLE_SAVE_PATH" column="CMM_FLE_SAVE_PATH" />
+        <result property="MGZ_MST_CPY" column="MGZ_MST_CPY" />
+        <result property="MGZ_MST_THM_CTG1_NM" column="MGZ_MST_THM_CTG1_NM" />
+        <result property="MGZ_MST_THM_CTG2_NM" column="MGZ_MST_THM_CTG2_NM" />
+        <result property="MGZ_MST_THM_CTG3_NM" column="MGZ_MST_THM_CTG3_NM" /> 
+        <result property="MGZ_MST_KID" column="MGZ_MST_KID" />
+    </resultMap>
+    
+        
+    <select id="selectGuide2DepList" parameterType="HashMap" resultType="HashMap">
+        /* PcWedding.selectGuide2DepList */
+    
+        SELECT CMN_COM_IDX
+             , CMN_COM_NM
+             , CMN_COM_UP_IDX
+             , CMN_COM_TOP_IDX
+          FROM T_CMM_COM
+         WHERE CMN_COM_UP_IDX = #{CMN_COM_UP_IDX} 
+           AND CMN_COM_USE_YN   = 'Y'
+         ORDER BY CMN_COM_SORT ASC
+    </select>
+    
+    <select id="selectThemeGuideContentsListCount" parameterType="HashMap" resultType="Integer">
+        /* PcWedding.selectThemeGuideContentsListCount */
+        
+        SELECT COUNT(MGZ.MGZ_MST_IDX)
+          FROM T_MGZ_MST MGZ      
+         WHERE MGZ.MGZ_MST_YN   = 'Y' 
+            <include refid="mgzWhere"/>
+    </select>
+    
+    <select id="selectThemeGuideContentsList"  parameterType="HashMap" resultMap="resultWeddingInfo">
+        /* PcWedding.selectThemeGuideContentsList */
+        
+        SELECT S2.*            
+          FROM (   SELECT ROWNUM AS RNUM
+                        , S1.* 
+                     FROM
+                    (   SELECT MGZ.MGZ_MST_IDX
+                             , MGZ.MGZ_MST_CTG
+                             , (SELECT CMN_COM_NM FROM T_CMM_COM WHERE CMN_COM_IDX =  MGZ.MGZ_MST_CTG) AS MGZ_MST_CTG_NM
+                             , (SELECT CMN_COM_NM FROM T_CMM_COM WHERE CMN_COM_IDX =  MGZ.MGZ_MST_THM_CTG1) AS MGZ_MST_THM_CTG1_NM
+                             , (SELECT CMN_COM_NM FROM T_CMM_COM WHERE CMN_COM_IDX =  MGZ.MGZ_MST_THM_CTG2) AS MGZ_MST_THM_CTG2_NM
+                             , (SELECT CMN_COM_NM FROM T_CMM_COM WHERE CMN_COM_IDX =  MGZ.MGZ_MST_THM_CTG3) AS MGZ_MST_THM_CTG3_NM
+                             , (SELECT CMN_COM_NM FROM T_CMM_COM WHERE CMN_COM_IDX =  MGZ.MGZ_MST_GBN) AS MGZ_MST_GBN
+                             , MGZ.MGZ_MST_TITLE
+                             , MGZ.MGZ_MST_REG_DT
+                             , (SELECT ADM_MST_NM FROM T_ADM_MST WHERE ADM_MST_ID = MGZ.MGZ_MST_REG_ID) AS MGZ_MST_REG_NM
+                             , MGZ.MGZ_MST_YN  
+                             , MGZ.MGZ_MST_CTS       
+                             , (SELECT CMM_FLE_ATT_PATH || CMM_FLE_SYS_NM FROM T_CMM_FLE WHERE CMM_FLE_TB_NM = 'T_MGZ_MST' AND CMM_FLE_USE_YN = 'Y' AND CMM_FLE_TB_TYPE = #{DSP_MST_ENV} AND CMM_FLE_TB_PK = MGZ.MGZ_MST_IDX AND ROWNUM = 1 ) AS CMM_FLE_SAVE_PATH
+                             , MGZ.MGZ_MST_THM_CTG1
+                             , MGZ.MGZ_MST_THM_CTG2
+                             , MGZ.MGZ_MST_THM_CTG3     
+                             , CASE
+                                    WHEN MGZ_MST_KID = 'T' AND VSIZE(MGZ_MST_CPY) > 90 THEN SUBSTRB(MGZ_MST_CPY, 0, 88)||'..'
+                                    WHEN MGZ_MST_KID = 'S' AND VSIZE(MGZ_MST_CPY) > 70 THEN SUBSTRB(MGZ_MST_CPY, 0, 68)||'..'
+                                    WHEN MGZ_MST_KID = 'M' AND VSIZE(MGZ_MST_CPY) > 70 THEN SUBSTRB(MGZ_MST_CPY, 0, 68)||'..'
+                                ELSE MGZ_MST_CPY
+                                END MGZ_MST_CPY      
+                             , MGZ_MST_KID
+                          FROM T_MGZ_MST MGZ                             
+                         WHERE MGZ.MGZ_MST_YN   = 'Y'
+                            <include refid="mgzWhere"/>
+                         ORDER BY 
+                         <if test="orderType != null and orderType.equals('visit'.toString())">
+                            MGZ.MGZ_MST_CNT DESC,
+                         </if>
+                                MGZ.MGZ_MST_REG_DT DESC
+                    ) S1 
+            ) S2 
+        WHERE S2.RNUM BETWEEN #{startNum} AND #{endNum}
+    </select>
+    
+    <select id="selectWeddingContenInfo" parameterType="hashMap" resultMap="resultWeddingInfo">
+    /* PcWedding.selectWeddingContenInfo */
+    
+        SELECT MGZ.MGZ_MST_IDX
+             , MGZ.MGZ_MST_CTG
+             , (SELECT CMN_COM_NM FROM T_CMM_COM WHERE CMN_COM_IDX =  MGZ.MGZ_MST_CTG) AS MGZ_MST_CTG_NM
+             , (SELECT CMN_COM_NM FROM T_CMM_COM WHERE CMN_COM_IDX =  MGZ.MGZ_MST_THM_CTG1) AS MGZ_MST_THM_CTG1_NM
+             , (SELECT CMN_COM_NM FROM T_CMM_COM WHERE CMN_COM_IDX =  MGZ.MGZ_MST_THM_CTG2) AS MGZ_MST_THM_CTG2_NM
+             , (SELECT CMN_COM_NM FROM T_CMM_COM WHERE CMN_COM_IDX =  MGZ.MGZ_MST_THM_CTG3) AS MGZ_MST_THM_CTG3_NM
+             , (SELECT CMN_COM_NM FROM T_CMM_COM WHERE CMN_COM_IDX =  MGZ.MGZ_MST_GBN) AS MGZ_MST_GBN
+             , MGZ.MGZ_MST_TITLE
+             , MGZ.MGZ_MST_REG_DT
+             , (SELECT ADM_MST_NM FROM T_ADM_MST WHERE ADM_MST_ID = MGZ.MGZ_MST_REG_ID) AS MGZ_MST_REG_NM
+             , MGZ.MGZ_MST_YN  
+             , MGZ.MGZ_MST_CTS       
+             , (SELECT CMM_FLE_ATT_PATH || CMM_FLE_SYS_NM FROM T_CMM_FLE WHERE CMM_FLE_TB_NM = 'T_MGZ_MST' AND CMM_FLE_USE_YN = 'Y' AND CMM_FLE_TB_TYPE = 'P' AND CMM_FLE_TB_PK = MGZ.MGZ_MST_IDX AND ROWNUM = 1 ) AS CMM_FLE_SAVE_PATH
+             , MGZ.MGZ_MST_SRS         
+             , MGZ_MST_THM_CTG1
+             , MGZ_MST_THM_CTG2
+             , MGZ_MST_THM_CTG3
+             , MGZ_MST_CPY
+             , MGZ_MST_KID
+          FROM T_MGZ_MST MGZ                             
+         WHERE MGZ.MGZ_MST_IDX = #{MGZ_MST_IDX}
+           AND MGZ_MST_YN   = 'Y'
+    </select>
+    
+    <select id="selectGuide3DepList" parameterType="hashMap" resultType="hashMap">
+        /* PcWedding.selectGuide3DepList */
+         
+        SELECT COM2.CMN_COM_IDX
+             , COM2.CMN_COM_NM
+             , COM2.CMN_COM_UP_IDX
+             , COM2.CMN_COM_TOP_IDX
+          FROM T_CMM_COM COM1
+             , T_CMM_COM COM2
+         WHERE COM1.CMN_COM_IDX = COM2.CMN_COM_UP_IDX
+           AND COM1.CMN_COM_UP_IDX = #{CMN_COM_UP_IDX}
+           AND COM1.CMN_COM_USE_YN  = 'Y'
+           AND COM2.CMN_COM_USE_YN  = 'Y'
+         ORDER BY COM1.CMN_COM_SORT ASC, COM2.CMN_COM_SORT ASC              
+    </select>
+    
+    <select id="selectProductList" parameterType="hashMap" resultType="hashMap">
+         /* PcWedding.selectProductList */
+         
+        SELECT S1.*
+          FROM( 
+            SELECT DSP.DSP_MST_IDX
+                 , DSP.CMN_COM_IDX
+                 , DSP.DSP_MST_REG_DT
+                 , DSP.DSP_MST_SRT
+                 , DSP.DSP_MST_TXT
+                 , PRD.PRD_MST_CD
+                 , PRD.PRD_MST_SEL_STATE
+                 , PRD.PRD_MST_DPL_STATE
+                 , PRD.PRD_MST_PRC
+                 , FN_PRD_MST_DSP_PRC(PRD.PRD_MST_CD, #{DSP_MST_ENV}) AS PRD_MST_DSP_PRC
+                 , FN_PRODUCT_IMG(PRD.PRD_MST_CD, #{THUMBNAIL_SIZE}) AS PRD_IMAGE
+                 , FN_GET_PRODUCT_NM(PRD.PRD_MST_CD,34) AS PRD_MST_NM
+                 ,(
+                    SELECT COUNT(0) 
+                    FROM T_PRD_OPT AS PRP
+                    WHERE PRP.PRD_MST_CD = PRD.PRD_MST_CD 
+                    AND PRP.PRD_OPT_EST_YN = 'Y' 
+                    AND EXISTS (
+                                SELECT COUNT(*)
+                                FROM T_OPT_DTL AS OPD
+                                WHERE OPD.PRD_OPT_IDX = PRP.PRD_OPT_IDX
+                                AND OPD.OPT_DTL_USE_YN = 'Y'
+                                AND TO_CHAR(SYSDATE,'YYYYMMDDHH24MI') BETWEEN OPD.OPT_DTL_ST_DT||'000000' AND OPD.OPT_DTL_ED_DT||'235959' 
+                                )
+                    ) AS PRD_MST_OPT_EST_CNT
+                 , PRD.PRD_MST_SEL_CNT
+              FROM T_DSP_MST DSP
+                 , T_PRD_MST PRD
+             WHERE DSP.PRD_MST_CD = PRD.PRD_MST_CD
+               AND PRD.PRD_MST_DPL_STATE    = 'Y'
+               AND DSP.CMN_COM_IDX  = #{CMN_COM_IDX}
+               AND DSP_MST_ENV      = #{DSP_MST_ENV}
+               AND PRD.PRD_MST_SEL_CNT  > 0     /* 재고 유무 */
+               AND PRD.PRD_MST_SEL_STATE = 'I'  /* 판매 가능 상태 */
+               AND PRD.PRD_MST_APV_STATE = 'A' /* 승인 상태 */
+               <if test="MENU != null and MENU.equals('CLEAN'.toString())">
+               AND PRD.PRD_MST_IVB_YN       = 'Y'
+               </if>
+               <if test="PRD_MST_CNL_PC_YN != null and PRD_MST_CNL_PC_YN != ''">
+               AND PRD.PRD_MST_CNL_PC_YN    = 'Y'
+               </if>
+               <if test="PRD_MST_CNL_MB_YN != null and PRD_MST_CNL_MB_YN != ''">
+               AND PRD.PRD_MST_CNL_MB_YN    = 'Y'
+               </if>
+             ORDER BY DSP.DSP_MST_SRT ASC
+                    , DSP.DSP_MST_REG_DT DESC
+                    , DSP.PRD_MST_CD ASC     
+            ) S1                    
+    </select>
+    
+    <select id="selectThemeBannerList" parameterType="hashMap" resultType="hashMap">
+        /* PcWedding.selectThemeBannerList */
+        
+        SELECT S1.*
+          FROM (
+                SELECT ROWNUM RNUM
+                     , BM.BNR_MST_IDX 
+                     , BM.BNR_MST_TITLE 
+                     , BM.CMN_COM_IDX 
+                     , BM.BNR_MST_ST_DT
+                     , BM.BNR_MST_ST_HH 
+                     , BM.BNR_MST_ST_MM 
+                     , BM.BNR_MST_ED_DT 
+                     , BM.BNR_MST_ED_HH 
+                     , BM.BNR_MST_ED_MM
+                     , BM.BNR_MST_USE_YN 
+                     , BM.BNR_MST_REG_DT 
+                     , BM.BNR_MST_REG_IP 
+                     , BM.BNR_MST_REG_ID 
+                     , FL.CMM_FLE_ATT_PATH
+                     , FL.CMM_FLE_SYS_NM
+                     , BM.BNR_MST_MIL_ADD
+                     , BM.BNR_MST_GFT
+                  FROM T_BNR_MST BM
+                     , T_CMM_FLE FL
+                 WHERE BM.BNR_MST_IDX = FL.CMM_FLE_TB_PK(+)
+                   AND FL.CMM_FLE_TB_NM(+) = #{CMM_FLE_TB_NM}
+                   AND CMN_COM_IDX = #{CMN_COM_IDX}
+                   AND FL.CMM_FLE_USE_YN(+) ='Y'
+                   AND BM.BNR_MST_ENV = #{DSP_MST_ENV}
+                   AND SYSDATE BETWEEN TO_DATE(BM.BNR_MST_ST_DT||BM.BNR_MST_ST_HH||BM.BNR_MST_ST_MM||'00','yyyymmddhh24miss') AND TO_DATE(BM.BNR_MST_ED_DT||BM.BNR_MST_ED_HH||BM.BNR_MST_ED_MM||'59','yyyymmddhh24miss')
+                 ORDER BY BM.BNR_MST_REG_DT DESC
+                ) S1
+         WHERE S1.RNUM  = 1     
+    </select>   
+    
+    <select id="selectThemeCateProductList" resultType="hashMap" parameterType="hashMap">
+        /* PcWedding.selectThemeCateProductList */
+        
+         SELECT ROWNUM AS RNK 
+              , PD.PRD_MST_CD 
+              , PM.PRD_MST_NM 
+              , PM.PRD_MST_PRC
+              , PM.PRD_MST_SCH_PRC
+              , PD.PRD_MGZ_SEQ
+              , FN_PRODUCT_LIST_PRICE(PD.PRD_MST_CD, #{DSP_MST_ENV}, #{MEM_MST_MEM_ID}) AS PRD_MST_PRICE
+              , FN_PRODUCT_IMG(PD.PRD_MST_CD, #THUMBNAIL_SIZE#) AS PRD_IMAGE 
+           FROM T_PRD_MGZ PD
+              , T_PRD_MST PM
+          WHERE PD.PRD_MST_CD = PM.PRD_MST_CD
+            AND MGZ_MST_IDX = #{MGZ_MST_IDX}
+          ORDER BY PD.PRD_MGZ_SEQ
+    </select>
+    
+    <insert id="qnaReqAjax" parameterType="hashMap">
+        /* PcWedding.qnaReqAjax */
+        
+        INSERT
+          INTO T_MGZ_QNA(     MGZ_QNA_IDX
+                            , MGZ_MST_IDX
+                            , MGZ_QNA_QST
+                            , MGZ_QNA_ANR_YN
+                            , MGZ_QNA_YN
+                            , MGZ_QNA_CNT
+                            , MGZ_QNA_REG_DT
+                            , MGZ_QNA_REG_IP
+                            , MGZ_QNA_REG_ID
+                        )
+        VALUES          (     SEQ_MGZ_QNA_IDX.NEXTVAL
+                            , #{MGZ_MST_IDX}
+                            , #{MGZ_QNA_QST}
+                            , 'N'
+                            , 'Y'
+                            , 0
+                            , TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS')
+                            , #{remote_addr}
+                            , #{MEM_MST_MEM_ID}
+                        )
+    </insert>
+    
+    <select id="selectCodeInfo" parameterType="hashMap" resultType="hashMap">
+        /* PcWedding.selectCodeInfo */
+        
+        SELECT CMN_COM_IDX
+             , CMN_COM_NM
+             , CMN_COM_UP_IDX
+             , CMN_COM_TOP_IDX
+          FROM T_CMM_COM
+         WHERE CMN_COM_IDX = #{CMN_COM_IDX}  
+           AND CMN_COM_USE_YN   = 'Y'            
+    </select>
+</mapper>

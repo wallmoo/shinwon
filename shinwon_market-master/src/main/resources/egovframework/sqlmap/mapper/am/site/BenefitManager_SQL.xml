@@ -1,0 +1,198 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="BenefitManager">
+	<!-- 관리자 > 시스템 관리 > 추가혜택 관리 > 조건절  -->
+    <sql id="BenefitManagerWhere">
+        <if test="searchBenefitNm != null and searchBenefitNm != ''">
+            AND BNF_MST_NM LIKE '%' || UPPER(#{searchBenefitNm}) || '%'
+        </if>
+        <if test="searchBenefitUseYn != null and searchBenefitUseYn != ''">
+            AND BNF_MST_USE_YN = #{searchBenefitUseYn}
+        </if>
+		<if test="searchBenefitStDt != null and searchBenefitStDt != '' and searchBenefitEdDt != null and searchBenefitEdDt != ''">
+            <![CDATA[
+                AND BNF_MST_ST_DT >= REPLACE(#{searchBenefitStDt}, '-', '')
+                AND BNF_MST_ED_DT <= REPLACE(#{searchBenefitEdDt}, '-', '')
+            ]]>
+        </if>
+    </sql>
+
+	<!-- 관리자 > 시스템 관리 > 추가혜택 관리 목록 갯수 -->
+	<select id="selectBenefitManagerListCount" parameterType="HashMap" resultType="Integer">
+		/* BenefitManager.selectBenefitManagerListCount */
+		SELECT
+			COUNT(1)
+		FROM
+			T_BNF_MST
+		WHERE 	
+			1=1
+			<include refid="BenefitManagerWhere"/>
+	</select>
+	
+	<!-- 관리자 > 사이트 관리 > 추가혜택 관리 목록 -->
+	<select id="selectBenefitManagerList" parameterType="HashMap" resultType="HashMap">
+		/* BenefitManager.selectBenefitManagerList */
+		SELECT
+			S2.*
+		FROM
+		(
+			SELECT
+				ROWNUM AS RNUM,
+				S1.*
+			FROM
+			(
+				SELECT		
+					BNF_MST_IDX,
+				    BNF_MST_NM,
+				    BNF_MST_USE_YN,
+				    BNF_MST_ST_DT,
+                    BNF_MST_ST_HH,
+                    BNF_MST_ST_MM,
+                    BNF_MST_ED_DT,
+                    BNF_MST_ED_HH,
+                    BNF_MST_ED_MM,
+                    BNF_MST_REG_DT
+				FROM T_BNF_MST
+				WHERE
+					1=1
+					<include refid="BenefitManagerWhere"/>
+				ORDER BY BNF_MST_REG_DT DESC
+			) S1			
+		) S2
+        <if test="startNum != null and startNum != '' and endNum != null and endNum != ''">
+            WHERE 
+                S2.RNUM BETWEEN #{startNum} AND #{endNum}
+        </if>
+	</select>
+	
+	<!-- 관리자 > 시스템관리 > 추가혜택 관리 등록 -->
+	<insert id="insertBenefitManager" parameterType="HashMap">
+        <selectKey resultType="Integer" keyProperty="BNF_MST_IDX" order="BEFORE">
+            SELECT SEQ_BNF_MST_IDX.NEXTVAL AS BNF_MST_IDX FROM DUAL
+        </selectKey>
+		/* BenefitManager.insertBenefitManager */
+		INSERT INTO
+			T_BNF_MST
+			(
+                BNF_MST_IDX,
+				BNF_MST_NM,
+				BNF_MST_USE_YN,
+                BNF_MST_ST_DT,
+                BNF_MST_ST_HH,
+                BNF_MST_ST_MM,
+                BNF_MST_ED_DT,
+                BNF_MST_ED_HH,
+                BNF_MST_ED_MM,
+				BNF_MST_REG_DT,
+				BNF_MST_REG_ID,
+				BNF_MST_REG_IP
+			)
+		VALUES
+			(
+				#{BNF_MST_IDX},
+                #{BNF_MST_NM},
+				#{BNF_MST_USE_YN},
+                REPLACE(#{BNF_MST_ST_DT}, '-', ''),
+                #{BNF_MST_ST_HH},
+                #{BNF_MST_ST_MM},
+                REPLACE(#{BNF_MST_ED_DT}, '-', ''),
+                #{BNF_MST_ED_HH},
+                #{BNF_MST_ED_MM},
+                TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+                #{BNF_MST_REG_ID},
+                #{BNF_MST_REG_IP}
+			)
+	</insert>
+    
+	<!-- 관리자 > 시스템관리 > 추가혜택 정보 등록 -->
+    <insert id="insertDetailBenefitManager" parameterType="HashMap">
+        /* BenefitManager.insertDetailBenefitManager */
+        <selectKey resultType="Integer" keyProperty="BNF_DTL_IDX" order="BEFORE">
+            SELECT SEQ_BNF_DTL_IDX.NEXTVAL AS BNF_DTL_IDX FROM DUAL
+        </selectKey>
+        INSERT INTO
+            T_BNF_DTL
+            (
+                BNF_DTL_IDX,
+                BNF_MST_IDX,
+                BNF_DTL_DPL_USE_YN,
+                BNF_DTL_NM,
+                BNF_DTL_DESC
+            )
+        VALUES
+            (
+                #{BNF_DTL_IDX},
+                #{BNF_MST_IDX},
+                #{BNF_DTL_DPL_USE_YN},
+                #{BNF_DTL_NM},
+                #{BNF_DTL_DESC}
+            )
+    </insert>
+    
+	<!-- 관리자 > 시스템 관리 > 추가혜택 관리 기본 정보 -->
+	<select id="selectBenefitManagerInfo" parameterType="HashMap" resultType="HashMap">
+		/* BenefitManager.selectBenefitManagerInfo */
+		SELECT
+		    BNF_MST_IDX,
+            BNF_MST_NM,
+            BNF_MST_USE_YN,
+            BNF_MST_ST_DT,
+            BNF_MST_ST_HH,
+            BNF_MST_ST_MM,
+            BNF_MST_ED_DT,
+            BNF_MST_ED_HH,
+            BNF_MST_ED_MM,
+			BNF_MST_REG_DT,
+			BNF_MST_REG_ID,
+			BNF_MST_REG_IP
+		FROM 
+			T_BNF_MST
+		WHERE
+			BNF_MST_IDX = #{BNF_MST_IDX} 
+	</select>
+	
+	<!-- 관리자 > 시스템 관리 > 추가혜택 관리 상세 -->
+	<select id="selectBenefitManagerDetail" parameterType="HashMap" resultType="HashMap">
+		/* BenefitManager.selectBenefitManagerDetail */
+		SELECT
+			TBD.BNF_DTL_IDX,
+			TBD.BNF_MST_IDX,
+			TBD.BNF_DTL_NM,
+			TBD.BNF_DTL_DESC,
+			TBD.BNF_DTL_DPL_USE_YN
+		FROM 
+			T_BNF_MST TVM, T_BNF_DTL TBD
+		WHERE
+			TVM.BNF_MST_IDX = #{BNF_MST_IDX}
+			AND TVM.BNF_MST_IDX = TBD.BNF_MST_IDX
+	</select>
+	
+	<!-- 관리자 > 시스템 관리 > 추가혜택 정보 수정-->
+	<update id="updateBenefitManager" parameterType="HashMap">
+		/* BenefitManager.updateBenefitManager */
+		UPDATE 
+			T_BNF_MST
+		SET
+            BNF_MST_NM = #{BNF_MST_NM},
+            BNF_MST_USE_YN = #{BNF_MST_USE_YN},
+            BNF_MST_ST_DT = REPLACE(#{BNF_MST_ST_DT}, '-', ''),
+            BNF_MST_ST_HH = #{BNF_MST_ST_HH},
+            BNF_MST_ST_MM = #{BNF_MST_ST_MM},
+            BNF_MST_ED_DT = REPLACE(#{BNF_MST_ED_DT}, '-', ''),
+            BNF_MST_ED_HH = #{BNF_MST_ED_HH},
+            BNF_MST_ED_MM = #{BNF_MST_ED_MM},
+            BNF_MST_UPD_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+            BNF_MST_UPD_IP = #{BNF_MST_UPD_IP},
+            BNF_MST_UPD_ID = #{BNF_MST_UPD_ID}
+		WHERE 
+			BNF_MST_IDX = #{BNF_MST_IDX}
+	</update>
+    
+    <!-- 관리자 > 시스템 관리 > 기획전관리 상품구성 삭제 -->
+    <delete id="deleteBenefitDetail" parameterType="HashMap">
+        /* BenefitManager.deleteBenefitDetail */
+        DELETE FROM T_BNF_DTL WHERE BNF_MST_IDX = #{BNF_MST_IDX}
+    </delete>
+	
+</mapper>

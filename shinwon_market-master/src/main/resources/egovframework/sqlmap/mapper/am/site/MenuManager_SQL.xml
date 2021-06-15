@@ -1,0 +1,292 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="MenuManager">
+    <sql id="menuManagerWhere"> 
+        <if test="ADM_MNU_LEVEL != null and ADM_MNU_LEVEL != ''">
+            AND ADM_MNU_LEVEL = #{ADM_MNU_LEVEL}
+        </if>
+        <if test="ADM_MNU_UP_IDX != null and ADM_MNU_UP_IDX != ''">
+            AND ADM_MNU_UP_IDX = #{ADM_MNU_UP_IDX}
+        </if>        
+        <if test="ADM_MNU_TOP_IDX != null and ADM_MNU_TOP_IDX != ''">
+            AND ADM_MNU_TOP_IDX = #{ADM_MNU_TOP_IDX}
+        </if>
+        <if test="searchAdmMnuNm != null and searchAdmMnuNm != ''">
+            AND ADM_MNU_NM LIKE '%' || #{searchAdmMnuNm} || '%'
+        </if>
+        <if test="searchAdmMnuNm != null and searchAdmMnuOnYN != ''">
+            AND ADM_MNU_ON_YN = #{searchAdmMnuOnYN}
+        </if>
+    </sql>
+    
+    <!-- 관리자 > 사이트 관리 > 메뉴관리 > 목록 갯수 -->
+    <select id="selectMenuManagerListCount" parameterType="HashMap" resultType="Integer">
+        /* MenuManager.selectMenuManagerListCount */
+        SELECT
+            COUNT(ADM_MNU_IDX) 
+        FROM
+            T_ADM_MNU 
+        WHERE
+            ADM_MNU_USE_YN = 'Y'
+            <include refid="menuManagerWhere"/>
+    </select>
+    
+    <!-- 관리자 > 사이트 관리 > 메뉴관리 > 목록 -->
+    <select id="selectMenuManagerList" parameterType="HashMap" resultType="HashMap">
+        /* MenuManager.selectMenuManagerList */
+        SELECT
+            S2.*,
+            (   SELECT
+                    COUNT(ADM_MNU_IDX) 
+                FROM
+                    T_ADM_MNU 
+                WHERE
+                    ADM_MNU_UP_IDX = S2.ADM_MNU_IDX 
+            )
+            AS ADM_MNU_CHILD_CNT,
+            <if test="ADM_AUT_MST_IDX != null and ADM_AUT_MST_IDX != ''">
+            (
+            SELECT
+                CASE 
+                    WHEN COUNT(0)  > 0 THEN 'Y'
+                    ELSE 'N'
+                END
+            FROM
+                T_ADM_AUT
+            WHERE
+                ADM_AUT_MST_IDX = #{ADM_AUT_MST_IDX}
+                AND ADM_ADM_MNU_IDX = S2.ADM_MNU_IDX 
+            )AS ADM_MNU_CHECK_YN,
+            </if>
+            LAG(S2.ADM_MNU_IDX , 1, -1) OVER(ORDER BY S2.RNUM ASC) AS PREV_ADM_MNU_IDX,
+            LAG(S2.ADM_MNU_LEVEL , 1, -1) OVER(ORDER BY S2.RNUM ASC) AS PREV_ADM_MNU_LEVEL,
+            LEAD(S2.ADM_MNU_LEVEL , 1, 0) OVER(ORDER BY S2.RNUM ASC) AS NEXT_ADM_MNU_LEVEL
+        FROM
+            (   SELECT
+                    ROWNUM AS RNUM,
+                    S1.* 
+                FROM
+                    (   SELECT
+                            ADM_MNU_IDX,
+                            ADM_MNU_NM,
+                            ADM_MNU_LEVEL,
+                            ADM_MNU_UP_IDX,
+                            ADM_MNU_TOP_IDX,
+                            ADM_MNU_URL,
+                            ADM_MNU_AUTH_URL,
+                            ADM_MNU_ON_YN,
+                            ADM_MNU_SORT,
+                            ADM_MNU_MEMEO,
+                            ADM_MNU_USE_YN,
+                            ADM_MNU_REG_DT,
+                            ADM_MNU_REG_IP,
+                            ADM_MNU_REG_ID,
+                            ADM_MNU_UPD_DT,
+                            ADM_MNU_UPD_IP,
+                            ADM_MNU_UPD_ID 
+                        FROM
+                            T_ADM_MNU 
+                        WHERE
+                            ADM_MNU_USE_YN = 'Y'
+                            <include refid="menuManagerWhere"/>
+                        START WITH ADM_MNU_TOP_IDX = 0
+                        CONNECT BY PRIOR ADM_MNU_IDX = ADM_MNU_UP_IDX
+                        ORDER SIBLINGS BY ADM_MNU_LEVEL, ADM_MNU_SORT ASC 
+                    )
+                    S1 
+            )
+            S2
+            <if test="startNum != null and startNum != '' and endNum != null and endNum != ''">
+                WHERE
+                    S2.RNUM BETWEEN #{startNum} AND #{endNum}
+            </if>
+    </select>
+
+    <!-- 관리자 > 사이트 관리 > 메뉴관리 > 상세정보 -->
+    <select id="selectMenuManagerInfo" parameterType="HashMap" resultType="HashMap">
+        /* MenuManager.selectMenuManagerInfo */
+        SELECT
+            (   SELECT
+                    ADM_MNU_NM 
+                FROM
+                    T_ADM_MNU 
+                WHERE
+                    ADM_MNU_IDX = MNU.ADM_MNU_UP_IDX 
+            )
+            AS ADM_MNU_UP_NM,
+            (   SELECT
+                    ADM_MNU_NM 
+                FROM
+                    T_ADM_MNU 
+                WHERE
+                    ADM_MNU_IDX = MNU.ADM_MNU_TOP_IDX 
+            )
+            AS ADM_MNU_TOP_NM,
+            MNU.ADM_MNU_IDX,
+            MNU.ADM_MNU_NM,
+            MNU.ADM_MNU_LEVEL,
+            MNU.ADM_MNU_UP_IDX,
+            MNU.ADM_MNU_TOP_IDX,
+            MNU.ADM_MNU_URL,
+            MNU.ADM_MNU_AUTH_URL,
+            MNU.ADM_MNU_ON_YN,
+            MNU.ADM_MNU_SORT,
+            MNU.ADM_MNU_MEMEO,
+            MNU.ADM_MNU_USE_YN,
+            MNU.ADM_MNU_REG_DT,
+            MNU.ADM_MNU_REG_IP,
+            MNU.ADM_MNU_REG_ID,
+            MNU.ADM_MNU_UPD_DT,
+            MNU.ADM_MNU_UPD_IP,
+            MNU.ADM_MNU_UPD_ID 
+        FROM
+            T_ADM_MNU MNU 
+        WHERE
+            ADM_MNU_IDX = #{ADM_MNU_IDX} 
+            AND ADM_MNU_USE_YN = 'Y'
+    </select>
+    
+    <!-- 관리자 > 사이트 관리 > 메뉴관리 > 등록 -->
+    <insert id="insertMenuManager" parameterType="HashMap">
+        /* MenuManager.insertMenuManager */
+        INSERT INTO
+            T_ADM_MNU 
+            (
+                ADM_MNU_IDX,
+                ADM_MNU_NM,
+                ADM_MNU_LEVEL,
+                ADM_MNU_UP_IDX,
+                ADM_MNU_TOP_IDX,
+                ADM_MNU_URL,
+                ADM_MNU_AUTH_URL,
+                ADM_MNU_ON_YN,
+                ADM_MNU_SORT,
+                ADM_MNU_MEMEO,
+                ADM_MNU_USE_YN,
+                ADM_MNU_REG_DT,
+                ADM_MNU_REG_IP,
+                ADM_MNU_REG_ID
+            )
+        VALUES
+            (
+                SEQ_ADM_MNU_IDX.NEXTVAL,
+                #{ADM_MNU_NM},
+                NVL(#{ADM_MNU_LEVEL}, 0),
+                NVL(#{ADM_MNU_UP_IDX}, 0),
+                NVL(#{ADM_MNU_TOP_IDX}, 0),
+                #{ADM_MNU_URL},
+                #{ADM_MNU_AUTH_URL},
+                NVL(#{ADM_MNU_ON_YN}, 'N'),
+                (   SELECT
+                        NVL(MAX(ADM_MNU_SORT), 0) + 1 
+                    FROM
+                        T_ADM_MNU 
+                    WHERE
+                        ADM_MNU_UP_IDX = NVL(#{ADM_MNU_UP_IDX}, 0) 
+                ),
+                #{ADM_MNU_MEMEO},
+                NVL(#{ADM_MNU_USE_YN}, 'Y'),
+                TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+                #{ADM_MNU_REG_IP},
+                #{ADM_MNU_REG_ID} 
+    )
+    </insert>
+    
+    <!-- 관리자 > 사이트 관리 > 메뉴관리 > 수정 -->
+    <update id="updateMenuManager" parameterType="HashMap">
+        /* MenuManager.updateMenuManager */
+        UPDATE
+            T_ADM_MNU 
+        SET
+            ADM_MNU_NM = #{ADM_MNU_NM},
+            ADM_MNU_URL = #{ADM_MNU_URL},
+            ADM_MNU_AUTH_URL = #{ADM_MNU_AUTH_URL},
+            ADM_MNU_ON_YN = #{ADM_MNU_ON_YN},
+            ADM_MNU_UPD_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+            ADM_MNU_UPD_IP = #{ADM_MNU_UPD_IP},
+            ADM_MNU_UPD_ID = #{ADM_MNU_UPD_ID} 
+        WHERE
+            ADM_MNU_IDX = #{ADM_MNU_IDX}
+    </update>
+    
+    <!-- 관리자 > 사이트 관리 > 메뉴 순서 정렬 -->
+    <update id="updateMenuManagerSortArray" parameterType="HashMap">
+        /* MenuManager.updateMenuManagerSortArray */
+        UPDATE
+            T_ADM_MNU
+        SET
+            ADM_MNU_SORT = #{ADM_MNU_SORT},
+            ADM_MNU_UPD_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+            ADM_MNU_UPD_IP = #{ADM_MNU_UPD_IP},
+            ADM_MNU_UPD_ID = #{ADM_MNU_UPD_ID}
+        WHERE
+            ADM_MNU_IDX = #{ADM_MNU_IDX}
+    </update>
+    
+    <!-- 관리자사이트 메뉴 리스트 -->
+    <select id="selectAdminMenuList" parameterType="HashMap" resultType="HashMap">
+        /* MenuManager."selectAdminMenuList" */
+        SELECT
+            RANK() OVER (PARTITION BY ADM_MNU_UP_IDX ORDER BY  ADM_MNU_SORT ASC ) as RANK,
+            S3.*,
+            (   SELECT
+                    COUNT(ADM_MNU_IDX) 
+                FROM
+                    T_ADM_MNU 
+                WHERE
+                    ADM_MNU_UP_IDX = S3.ADM_MNU_IDX 
+            )
+            AS ADM_MNU_CHILD_CNT,
+            LAG(S3.ADM_MNU_IDX , 1, -1) OVER(ORDER BY S3.RNUM ASC)   AS PREV_ADM_MNU_IDX,
+            LEAD(S3.ADM_MNU_LEVEL , 1, 0) OVER(ORDER BY S3.RNUM ASC) AS NEXT_ADM_MNU_LEVEL,
+            LAG(S3.ADM_MNU_LEVEL , 1, -1) OVER(ORDER BY S3.RNUM ASC) AS PREV_ADM_MNU_LEVEL 
+        FROM
+            (   SELECT
+                    ROWNUM AS RNUM,
+                    S2.* 
+                FROM
+                    (   SELECT
+                            S1.* 
+                        FROM
+                            (   SELECT
+                                    MNU.ADM_MNU_IDX,
+                                    MNU.ADM_MNU_NM,
+                                    MNU.ADM_MNU_LEVEL,
+                                    MNU.ADM_MNU_UP_IDX,
+                                    MNU.ADM_MNU_TOP_IDX,
+                                    MNU.ADM_MNU_URL,
+                                    MNU.ADM_MNU_AUTH_URL,
+                                    MNU.ADM_MNU_ON_YN,
+                                    MNU.ADM_MNU_SORT,
+                                    MNU.ADM_MNU_MEMEO,
+                                    MNU.ADM_MNU_USE_YN,
+                                    MNU.ADM_MNU_REG_DT,
+                                    MNU.ADM_MNU_REG_IP,
+                                    MNU.ADM_MNU_REG_ID,
+                                    MNU.ADM_MNU_UPD_DT,
+                                    MNU.ADM_MNU_UPD_IP,
+                                    MNU.ADM_MNU_UPD_ID 
+                                FROM
+                                    T_ADM_AUT AUT,
+                                    T_ADM_MNU MNU,
+                                    T_AUT_MST MST
+                                WHERE
+                                    AUT.ADM_ADM_MNU_IDX = MNU.ADM_MNU_IDX 
+                                    AND MST.AUT_MST_IDX = AUT.ADM_AUT_MST_IDX
+                                    AND AUT.ADM_AUT_MST_IDX = #{ADM_AUT_MST_IDX}
+                                    AND MST.AUT_MST_STATE = 'Y'
+                                    AND MST.AUT_MST_USE_YN = 'Y'
+                                    AND MNU.ADM_MNU_ON_YN = 'Y'
+                                    AND MNU.ADM_MNU_USE_YN = 'Y'
+                            )
+                            S1 
+                        START WITH S1.ADM_MNU_TOP_IDX = 0 
+                        CONNECT BY PRIOR S1.ADM_MNU_IDX = S1.ADM_MNU_UP_IDX 
+                        ORDER SIBLINGS BY S1.ADM_MNU_LEVEL, S1.ADM_MNU_SORT ASC 
+                    )
+                    S2 
+            )
+            S3
+    </select>
+</mapper>

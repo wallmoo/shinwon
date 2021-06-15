@@ -1,0 +1,847 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="pcEventMain">
+
+    <sql id="eventWhere">
+             WHERE EVT_MST_USE_YN   = 'Y'
+        <if test="whereType != null and whereType.equals('ing'.toString())">
+            <![CDATA[
+            AND TO_DATE(EVT.EVT_MST_ST_DT||EVT.EVT_MST_ST_HH||EVT.EVT_MST_ST_MM||'59','yyyymmddhh24miss') <= SYSDATE
+            AND TO_DATE(EVT.EVT_MST_ED_DT||EVT.EVT_MST_ED_HH||EVT.EVT_MST_ED_MM||'59','yyyymmddhh24miss') >= SYSDATE         
+            ]]>
+        </if>
+        <if test="whereType != null and whereType.equals('end'.toString())">
+            <![CDATA[
+            AND TO_DATE(EVT.EVT_MST_ED_DT||EVT.EVT_MST_ED_HH||EVT.EVT_MST_ED_MM||'59','yyyymmddhh24miss') < SYSDATE
+            ]]>
+        </if>
+        <if test="whereType != null and whereType.equals('win'.toString())">
+            <![CDATA[
+            AND TO_DATE(NVL(EVT.EVT_MST_OPN_DT, 29991212) || '00' || '00' ||'00','yyyymmddhh24miss') <= SYSDATE 
+            ]]>
+        </if>
+        <if test="CMM_FLE_TB_TYPE != null and CMM_FLE_TB_TYPE.equals('P'.toString())">
+            AND EVT_MST_PC_YN     = 'Y'
+        </if>
+
+        <if test="CMM_FLE_TB_TYPE != null and CMM_FLE_TB_TYPE.equals('M'.toString())">
+            AND EVT_MST_MB_YN     = 'Y'
+        </if>
+    </sql>
+    
+    <select id="selectEventListCount" parameterType="hashMap"  resultType="Integer">
+        /* pcEventMain.selectEventListCount*/
+        
+        SELECT COUNT(EVT.EVT_MST_IDX)
+          FROM T_EVT_MST EVT
+          <include refid="eventWhere"/>
+    </select>
+    
+    
+    <select id="selectEventBannerList"  parameterType="HashMap" resultType="HashMap">
+	SELECT TA.*
+	FROM (
+	SELECT	
+			ROWNUM AS RNUM
+            , BM.BNR_MST_IDX 
+            , BM.BNR_MST_TITLE 
+            , BM.CMN_COM_IDX
+            , BM.BNR_MST_SRT
+            , BM.BNR_MST_USE_YN
+            , BM.BNR_MST_TGT
+            , BM.BNR_MST_URL
+            , BM.BND_MST_IDX
+            , BM.VDR_MST_IDX
+            , BM.BNR_MST_DESC
+            , FL.CMM_FLE_ATT_PATH || FL.CMM_FLE_SYS_NM AS FILE_NM
+            , FL.CMN_FLE_ALT_TXT
+        FROM
+         T_BNR_MST BM, T_CMM_FLE FL
+        WHERE
+            CMN_COM_IDX = #{CMN_COM_IDX}
+            AND BM.BNR_MST_ENV =  #{BNR_MST_ENV}
+            AND SYSDATE BETWEEN TO_DATE(BM.BNR_MST_ST_DT||BM.BNR_MST_ST_HH||BM.BNR_MST_ST_MM||'00','yyyymmddhh24miss')
+            			AND TO_DATE(BM.BNR_MST_ED_DT||BM.BNR_MST_ED_HH||BM.BNR_MST_ED_MM||'59','yyyymmddhh24miss')
+           AND BM.BNR_MST_IDX = FL.CMM_FLE_TB_PK(+)
+           AND FL.CMM_FLE_TB_NM(+) = 'T_BNR_MST'
+           AND FL.CMM_FLE_USE_YN(+) ='Y'
+        ORDER BY BM.BNR_MST_SRT ASC
+       ) TA
+        WHERE TA.RNUM BETWEEN 1 AND 4
+	</select>
+	
+    <select id="selectEventList" parameterType="hashMap" resultType="hashMap">
+        /* pcEventMain.selectEventList*/
+        
+        SELECT S2.*            
+          FROM (   
+                    SELECT ROWNUM AS RNUM
+                         , S1.*
+                      FROM (
+                                SELECT EVT.EVT_MST_IDX
+                                     , EVT.EVT_MST_PC_YN
+                                     , EVT.EVT_MST_MB_YN
+                                     , EVT.EVT_MST_TITLE
+                                     , EVT.EVT_MST_ST_DT
+                                     , EVT.EVT_MST_ED_DT
+                                     , EVT.EVT_MST_TYPE
+                                     , EVT.EVT_MST_WIN_DT
+                                     , EVT.EVT_MST_OPN_DT
+                                     , EVT.EVT_MST_USE_YN
+                                     , (
+						            	SELECT tmp02.TAG_MST_TITLE
+						            	FROM T_TAG_BND tmp01, T_TAG_MST tmp02 
+						            	WHERE tmp01.TAG_BND_ID = TO_CHAR(EVT.EVT_MST_IDX)
+						            	AND tmp01.TAG_BND_TYPE = 'TYPE_EVENT'
+						            	AND tmp01.TAG_BND_REP = 'Y'
+						            	AND tmp01.TAG_MST_ID = tmp02.TAG_MST_ID 
+						                ) TAG_MST_TITLE
+                                     , (SELECT CMM_FLE_ATT_PATH || CMM_FLE_SYS_NM FROM T_CMM_FLE WHERE CMM_FLE_TB_NM = 'T_EVT_MST' AND CMM_FLE_TB_PK = EVT.EVT_MST_IDX AND CMM_FLE_USE_YN = 'Y' AND CMM_FLE_SORT = 1  AND ROWNUM = 1 ) AS FILE_NM
+                                   FROM T_EVT_MST EVT
+                                  <include refid="eventWhere"/>
+                                  ORDER BY EVT.EVT_MST_REG_DT DESC
+                            ) S1
+                ) S2
+         WHERE S2.RNUM BETWEEN #{startNum} AND #{endNum}
+    </select>
+
+    <select id="selectEventInfo" parameterType="hashMap" resultType="hashMap">
+        /* pcEventMain.selectEventInfo */
+        
+        SELECT EVT.EVT_MST_IDX
+             , EVT.EVT_MST_TITLE
+             , EVT.EVT_MST_PC_YN
+             , EVT.EVT_MST_MB_YN
+             , EVT.EVT_MST_MEM_GBN
+             , EVT.EVT_MST_ST_DT
+             , EVT.EVT_MST_ST_HH
+             , EVT.EVT_MST_ST_MM
+             , EVT.EVT_MST_ED_DT
+             , EVT.EVT_MST_ED_HH
+             , EVT.EVT_MST_ED_MM
+             , EVT.EVT_MST_TYPE
+             , EVT.EVT_MST_USE_YN
+             , EVT.EVT_MST_WIN_DT
+             , EVT.EVT_MST_PIT_YN
+             , EVT.EVT_MST_PIT_GBN
+             , NVL(EVT.EVT_MST_PIT, 0) AS EVT_MST_PIT
+             , EVT.EVT_MST_OPN_DT
+             , EVT.EVT_MST_DUP_ETR
+             , EVT.EVT_MST_LET_PLY_YN
+             , EVT.EVT_MST_PRE_WIN
+             , CASE WHEN SYSDATE > TO_DATE(EVT.EVT_MST_ED_DT||EVT.EVT_MST_ED_HH||EVT.EVT_MST_ED_MM||'59','yyyymmddhh24miss') THEN 'end'
+             		WHEN TO_DATE(NVL(EVT.EVT_MST_OPN_DT, 29991212) || '00' || '00' ||'00','yyyymmddhh24miss') <![CDATA[ <= ]]> SYSDATE THEN 'win'
+             		ELSE 'ing' 
+                END AS EVT_STATUS
+             , EVT_MST_QST
+             , EVT_MST_BUY_ST_DT
+             , EVT_MST_BUY_ED_DT                        
+          FROM T_EVT_MST EVT
+         WHERE EVT_MST_IDX      = #{EVT_MST_IDX}
+            <if test="CMM_FLE_TB_TYPE != null and CMM_FLE_TB_TYPE.equals('P'.toString())">
+                AND EVT.EVT_MST_PC_YN    = 'Y'
+            </if>
+            <if test="CMM_FLE_TB_TYPE != null and CMM_FLE_TB_TYPE.equals('M'.toString())">
+                AND EVT.EVT_MST_MB_YN    = 'Y'
+            </if>
+    </select>
+    
+    
+    <select id="selectEventAllImageList" parameterType="hashMap" resultType="hashMap">
+    	SELECT CMM_FLE_ATT_PATH || CMM_FLE_SYS_NM AS FILE_NM
+    	       , CMN_FLE_ALT_TXT
+    	       , CMM_FLE_SORT
+    	FROM  T_CMM_FLE
+    	WHERE CMM_FLE_TB_NM = 'T_EVT_MST'
+    	AND CMM_FLE_TB_PK = #{EVT_MST_IDX}
+    	AND CMM_FLE_USE_YN = 'Y'
+    	ORDER BY CMM_FLE_SORT
+    </select>
+    <select id="selectEventAllProductList" parameterType="hashMap" resultType="hashMap">
+    	SELECT EVT_PRD_IDX
+    		  , EVT_MST_IDX
+    		  , EVT_PRD_TYPE
+    		  , EVT_PRD_SRT
+    		  , EVT_PRD_ATT_PATH || EVT_PRD_SYS_NM AS FILE_NM
+    		  , EVT_PRD_ALT_TEXT
+    		  , EVT_PRD_WIN_RATE_VAL
+    		  , CPN_MST_IDX
+    		  , (SELECT TCM.CPN_MST_TITLE FROM T_CPN_MST TCM WHERE TCM.CPN_MST_IDX = TEP.CPN_MST_IDX) AS CPN_MST_TITLE
+    		  , EVT_PNT_VAL
+    		  , EVT_PRD_ADJ_DT
+    		  , EVT_PRD_PRT_AMT
+    		  , (SELECT CPN_MST_ISU_CNT FROM T_CPN_MST TCM WHERE TCM.CPN_MST_IDX = TEP.CPN_MST_IDX) AS CPN_MST_ISU_CNT
+    		  , (SELECT COUNT(*) FROM T_EVT_ETR TEE WHERE TEE.EVT_MST_IDX = TEP.EVT_MST_IDX AND TEE.EVT_PRD_IDX = TEP.EVT_PRD_IDX) AS EVT_PRD_ETR_CNT
+    	FROM  T_EVT_PRD TEP
+    	WHERE EVT_MST_IDX = #{EVT_MST_IDX}
+    	ORDER BY EVT_PRD_SRT
+    </select>
+    
+    <select id="selectEventEntryCount" parameterType="hashMap" resultType="Integer">
+        /* pcEventMain.selectEventEntryCount */
+        
+        SELECT COUNT(EVT_ETR_IDX)
+          FROM T_EVT_ETR
+         WHERE EVT_MST_IDX      = #{EVT_MST_IDX}
+           AND EVT_ETR_REG_ID   = #{MEM_MST_MEM_ID}
+           <if test="WIN_YN != null and WIN_YN != ''">
+           AND EVT_ETR_WIN_YN   = #{WIN_YN}
+           </if>
+    </select>
+    
+    <insert id="insertEventEntry" parameterType="HashMap">
+        /* pcEventMain.insertEventEntry */
+    
+        INSERT 
+          INTO T_EVT_ETR (  		
+	          EVT_ETR_IDX
+			, EVT_MST_IDX
+			, EVT_ETR_AGT
+			, EVT_ETR_WIN_YN
+			, EVT_ETR_REG_DT
+			, EVT_ETR_REG_IP
+			, EVT_ETR_REG_ID
+			, EVT_ETR_CHN_TYPE
+			, EVT_ETR_ENT_DT
+			, EVT_PRD_IDX )
+        VALUES (     
+        SEQ_EVT_ETR_IDX.NEXTVAL
+        , #{EVT_MST_IDX}
+        , #{EVT_ETR_AGT}
+        , #{EVT_ETR_WIN_YN}
+        , TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS')
+        , #{EVT_ETR_REG_IP}
+        , #{MEM_MST_MEM_ID}
+        , #{EVT_ETR_CHN_TYPE}
+        , #{EVT_ETR_ENT_DT}
+        , #{EVT_PRD_IDX}
+        )
+    </insert>
+     
+    <insert id="insertEventApply" parameterType="hashMap">
+    	INSERT INTO T_EVT_ETR
+		EVT_ETR_IDX
+		, EVT_MST_IDX
+		, EVT_ETR_AGT
+		, EVT_ETR_WIN_YN
+		, EVT_ETR_REG_DT
+		, EVT_ETR_REG_IP
+		, EVT_ETR_REG_ID
+		, EVT_ETR_UPD_DT
+		, EVT_ETR_UPD_IP
+		, EVT_ETR_UPD_ID
+		, EVT_ETR_CHN_TYPE
+		, EVT_ETR_ENT_DT
+		, EVT_PRD_IDX)
+		VALUES(0, 0, '', '', '', '', '', '', '', '', '', '', 0);
+    	
+    </insert>
+    
+    <select id="selectEventyDtlList" parameterType="hashMap" resultType="hashMap">
+        /* pcEventMain.selectEventyDtlList */
+            
+        SELECT EVT_DTL_IDX
+             , EVT_MST_IDX
+             , EVT_DTL_NO
+             , EVT_DTL_NM
+             , (SELECT CMM_FLE_ATT_PATH || CMM_FLE_SYS_NM FROM T_CMM_FLE WHERE CMM_FLE_TB_NM = 'T_EVT_DTL' AND CMM_FLE_TB_PK = DTL.EVT_DTL_IDX AND CMM_FLE_USE_YN = 'Y' AND ROWNUM = 1) AS FILE_NM
+             , (SELECT CMN_FLE_ALT_TXT || CMM_FLE_SYS_NM FROM T_CMM_FLE WHERE CMM_FLE_TB_NM = 'T_EVT_DTL' AND CMM_FLE_TB_PK = DTL.EVT_DTL_IDX AND CMM_FLE_USE_YN = 'Y'  AND ROWNUM = 1) AS CMM_FLE_ALT_TXT
+          FROM T_EVT_DTL DTL
+         WHERE EVT_MST_IDX = #{EVT_MST_IDX}
+         ORDER BY EVT_DTL_NO ASC                     
+    </select>
+    
+    <select id="selectEventSurveyCount" parameterType="hashMap" resultType="Integer">
+        /* pcEventMain.selectEventSurveyCount */
+        
+        SELECT COUNT(SVY.EVT_SVY_IDX)
+          FROM T_EVT_DTL DTL
+             , T_EVT_SVY SVY
+         WHERE DTL.EVT_DTL_IDX      = SVY.EVT_DTL_IDX
+           AND DTL.EVT_MST_IDX      = #{EVT_MST_IDX}
+           AND SVY.EVT_SVY_REG_ID   = #{MEM_MST_MEM_ID}
+           <if test="WIN_YN != null and WIN_YN != ''">
+           AND SVY.EVT_SVY_WIN_YN = #{WIN_YN}
+           </if>
+    </select>    
+
+    <insert id="insertEventSurvey" parameterType="hashMap">
+        /* pcEventMain.insertEventSurvey */
+        
+        INSERT 
+          INTO T_EVT_SVY    (         EVT_SVY_IDX
+                                    , EVT_DTL_IDX
+                                    , EVT_SVY_AGT
+                                    , EVT_SVY_WIN_YN
+                                    , EVT_SVY_REG_DT
+                                    , EVT_SVY_REG_IP
+                                    , EVT_SVY_REG_ID
+                                    , EVT_SVY_CHN_TYPE
+                            )
+        VALUES              (         SEQ_EVT_SVY_IDX.NEXTVAL
+                                    , #{EVT_DTL_IDX}
+                                    , #{EVT_AGT}
+                                    , 'N'
+                                    , TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS')
+                                    , #{EVT_REG_IP}
+                                    , #{MEM_MST_MEM_ID}
+                                    , #{CMM_FLE_TB_TYPE}
+                            )
+    </insert>
+    
+    <select id="selectEventCommentCount" parameterType="hashMap" resultType="Integer">
+        /* pcEventMain.selectEventCommentCount */
+        
+        SELECT COUNT(RPL.EVT_RPL_IDX)
+          FROM T_EVT_MST MST
+             , T_EVT_RPL RPL
+         WHERE MST.EVT_MST_IDX      = RPL.EVT_MST_IDX
+           AND RPL.EVT_MST_IDX      = #{EVT_MST_IDX}
+           AND MST.EVT_MST_USE_YN   = 'Y'
+           AND RPL.EVT_RPL_DPL_YN   = 'Y'   
+        <if test="WIN_YN != null and WIN_YN != ''">
+           AND RPL.EVT_RPL_WIN_YN = #{WIN_YN}
+        </if>
+        <if test="CMM_FLE_TB_TYPE != null and CMM_FLE_TB_TYPE.equals('P'.toString())">
+           AND MST.EVT_MST_PC_YN    = 'Y'
+        </if>
+        <if test="MY != null ald MY.equals('Y'.toString())">
+           AND RPL.EVT_RPL_REG_ID   = #{MEM_MST_MEM_ID}
+        </if>
+    </select>   
+    
+    <select id="selectEventCommentList" parameterType="hashMap" resultType="hashMap">
+        /* pcEventMain.selectEventCommentList */
+        
+        SELECT S2.*            
+          FROM (  
+                SELECT ROWNUM AS RNUM
+                     , S1.*
+                  FROM (             
+                        SELECT RPL.EVT_RPL_IDX
+                             , RPL.EVT_MST_IDX
+                             , RPL.EVT_RPL_CTS
+                             , RPL.EVT_RPL_AGT
+                             , RPL.EVT_RPL_WIN_YN
+                             , RPL.EVT_RPL_DPL_YN
+                             , RPL.EVT_RPL_REG_DT
+                             , TO_CHAR(TO_DATE(RPL.EVT_RPL_REG_DT, 'yyyyMMddHH24miss'), 'yyyy.MM.dd') AS EVT_RPL_REG_DT_CHAR
+                             , RPL.EVT_RPL_REG_IP
+                             , RPL.EVT_RPL_REG_ID
+                             , RPL.EVT_RPL_CHN_TYPE
+                             , SUBSTR(RPL.EVT_RPL_REG_ID,1,LENGTH(RPL.EVT_RPL_REG_ID)-3)|| LPAD('*',3,'*') AS HID_EVT_RPL_REG_ID
+                          FROM T_EVT_MST MST
+                             , T_EVT_RPL RPL
+                        WHERE MST.EVT_MST_IDX       = RPL.EVT_MST_IDX
+                           AND RPL.EVT_MST_IDX      = #{EVT_MST_IDX}
+                           AND MST.EVT_MST_USE_YN   = 'Y'
+                           AND RPL.EVT_RPL_DPL_YN   = 'Y'
+                        <if test="EVT_RPL_WIN_YN != null and EVT_RPL_WIN_YN != ''">
+                           AND RPL.EVT_RPL_WIN_YN = #{EVT_RPL_WIN_YN}
+                        </if>
+                        <if test="CMM_FLE_TB_TYPE != null and CMM_FLE_TB_TYPE.equals('P'.toString())">
+                           AND MST.EVT_MST_PC_YN    = 'Y'
+                        </if>
+                        <if test="MY != null and MY.equals('Y'.toString())">
+                           AND RPL.EVT_RPL_REG_ID   = #{MEM_MST_MEM_ID}  
+                        </if>
+                         ORDER BY RPL.EVT_RPL_REG_DT DESC                
+                        ) S1
+                ) S2
+         WHERE S2.RNUM BETWEEN #{startNum} AND #{endNum}                                      
+    </select>
+
+    <insert id="insertEventComment" parameterType="hashMap">
+        /* pcEventMain.insertEventComment */
+        
+        INSERT 
+          INTO T_EVT_RPL    (     EVT_RPL_IDX
+                                , EVT_MST_IDX
+                                , EVT_RPL_CTS
+                                , EVT_RPL_AGT
+                                , EVT_RPL_WIN_YN
+                                , EVT_RPL_DPL_YN 
+                                , EVT_RPL_CHN_TYPE
+                                , EVT_RPL_REG_DT
+                                , EVT_RPL_REG_IP
+                                , EVT_RPL_REG_ID
+                            )
+        VALUES              (     SEQ_EVT_RPL_IDX.NEXTVAL
+                                , #{EVT_MST_IDX}
+                                , #{EVT_RPL_CTS}
+                                , #{EVT_AGT}
+                                , 'N'
+                                , 'Y'
+                                , #{CMM_FLE_TB_TYPE}
+                                , TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS')
+                                , #{EVT_REG_IP}
+                                , #{MEM_MST_MEM_ID}   
+                            )                                                               
+    </insert>
+    
+    <select id="selectEventImageList" parameterType="hashMap" resultType="hashMap">
+        /* pcEventMain.selectEventImageList */
+        
+        SELECT *
+          FROM (
+                SELECT ROWNUM AS RNUM
+                     , S1.*
+                  FROM (             
+                        SELECT IMG.EVT_IMG_IDX
+                             , IMG.EVT_MST_IDX
+                             , IMG.EVT_IMG_NM
+                             , IMG.EVT_IMG_CTS
+                             , IMG.EVT_IMG_AGT
+                             , IMG.EVT_IMG_WIN_YN
+                             , IMG.EVT_IMG_DPL_YN
+                             , IMG.EVT_IMG_RCM_CNT
+                             , IMG.EVT_IMG_CHN_TYPE
+                             , IMG.EVT_IMG_REG_DT
+                             , IMG.EVT_IMG_REG_IP
+                             , IMG.EVT_IMG_REG_ID
+                             , SUBSTR(IMG.EVT_IMG_REG_ID,1,LENGTH(IMG.EVT_IMG_REG_ID)-3)|| LPAD('*',3,'*') AS HID_EVT_IMG_REG_ID
+                             , (SELECT CMM_FLE_ATT_PATH || CMM_FLE_SYS_NM FROM T_CMM_FLE WHERE CMM_FLE_TB_NM = 'T_EVT_IMG' AND CMM_FLE_TB_PK = IMG.EVT_IMG_IDX AND CMM_FLE_USE_YN = 'Y' AND CMM_FLE_SORT = 1  AND ROWNUM = 1) AS FILE_NM
+                             , (SELECT CMN_FLE_ALT_TXT || CMM_FLE_SYS_NM FROM T_CMM_FLE WHERE CMM_FLE_TB_NM = 'T_EVT_IMG' AND CMM_FLE_TB_PK = IMG.EVT_IMG_IDX AND CMM_FLE_USE_YN = 'Y' AND CMM_FLE_SORT = 1  AND ROWNUM = 1) AS CMM_FLE_ALT_TXT
+                             , TO_CHAR(TO_DATE(IMG.EVT_IMG_REG_DT, 'yyyyMMddHH24miss'), 'yyyy.MM.dd') AS EVT_IMG_REG_DT_CHAR 
+                          FROM T_EVT_IMG IMG
+                             , T_EVT_MST MST
+                             , T_MEM_MST MEM
+                         WHERE IMG.EVT_MST_IDX      = MST.EVT_MST_IDX
+                           AND IMG.EVT_IMG_REG_ID   = MEM.MEM_MST_MEM_ID
+                           AND IMG.EVT_MST_IDX      = #{EVT_MST_IDX}
+                           AND MST.EVT_MST_USE_YN   = 'Y'
+                           AND IMG.EVT_IMG_DPL_YN   = 'Y'
+                        <if test="CMM_FLE_TB_TYPE != null and CMM_FLE_TB_TYPE.equals('P'.toString())">
+                           AND MST.EVT_MST_PC_YN    = 'Y'
+                        </if>
+                        <if test="CMM_FLE_TB_TYPE != null and CMM_FLE_TB_TYPE.equals('M')">
+                           AND MST.EVT_MST_MB_YN    = 'Y'
+                        </if>
+                        <if test="orderType == null or !orderType.equals('top'.toString())">
+                           <if test="searchKey != null and searchKey != '' and searchType != null and searchType !''">
+                                <if test="searchType.equals('id'.toString())">
+                                    AND IMG.EVT_IMG_REG_ID   LIKE '%' || #{searchKey} || '%'
+                                </if>
+                                <if test="searchType.equals('nm'.toString())">
+                                    AND MEM.MEM_MST_MEM_NM LIKE '%' || #{searchKey} || '%'
+                                </if> 
+                                <if test="searchType.equals('title'.toString())">
+                                    AND IMG.EVT_IMG_NM LIKE '%' || #{searchKey} || '%'
+                                </if>
+                                <if test="searchType.equals('cts'.toString())">
+                                    AND IMG.EVT_IMG_CTS LIKE '%' || #{searchKey} || '%'
+                                </if>  
+                           </if>
+                           ORDER BY IMG.EVT_IMG_REG_DT DESC
+                        </if>
+                        <if test="orderType != null and orderType.equals('top'.toString())">
+                           AND IMG.EVT_IMG_RCM_CNT > 0  
+                           ORDER BY IMG.EVT_IMG_RCM_CNT DESC , IMG.EVT_IMG_REG_DT ASC
+                        </if>
+                        ) S1
+                ) S2
+        <if test="orderType != null and orderType.equals('top'.toString())">
+            <if test="startNum != null and startNum != '' and endNum != null and endNum != ''">
+                WHERE S2.RNUM BETWEEN #{startNum} AND #{endNum}
+            </if>
+        </if>                      
+    </select>
+        
+    <select id="selectEventImageListCount" parameterType="hashMap" resultType="Integer">
+        /* pcEventMain.selectEventImageListCount */
+        
+        SELECT COUNT(IMG.EVT_IMG_IDX)
+          FROM T_EVT_IMG IMG
+             , T_EVT_MST MST
+             , T_MEM_MST MEM
+         WHERE IMG.EVT_MST_IDX      = MST.EVT_MST_IDX
+           AND IMG.EVT_IMG_REG_ID   = MEM.MEM_MST_MEM_ID
+           AND IMG.EVT_MST_IDX      = #{EVT_MST_IDX}
+           AND MST.EVT_MST_USE_YN   = 'Y'
+           AND IMG.EVT_IMG_DPL_YN   = 'Y'
+        <if test="WIN_YN != null and WIN_YN != ''">
+           AND IMG.EVT_IMG_WIN_YN   = #{WIN_YN}
+        </if>   
+        <if test="CMM_FLE_TB_TYPE != null and CMM_FLE_TB_TYPE.equals('P'.toString())">
+           AND MST.EVT_MST_PC_YN    = 'Y'
+        </if>
+        <if test="CMM_FLE_TB_TYPE != null and CMM_FLE_TB_TYPE.equals('M'.toString())">
+           AND MST.EVT_MST_MB_YN    = 'Y'
+        </if>
+        <if test="orderType != null and orderType.equals('top'.toString())">
+           AND IMG.EVT_IMG_RCM_CNT > 0
+        </if>
+        <if test="orderType == null or !orderType.equals('top'.toString())">
+           <if test="searchKey != null and searchKey != '' and searchType != null and searchType !''">
+                <if test="searchType.equals('id'.toString())">
+                    AND IMG.EVT_IMG_REG_ID   LIKE '%' || #{searchKey} || '%'
+                </if>
+                <if test="searchType.equals('nm'.toString())">
+                    AND MEM.MEM_MST_MEM_NM LIKE '%' || #{searchKey} || '%'
+                </if> 
+                <if test="searchType.equals('title'.toString())">
+                    AND IMG.EVT_IMG_NM LIKE '%' || #{searchKey} || '%'
+                </if>
+                <if test="searchType.equals('cts'.toString())">
+                    AND IMG.EVT_IMG_CTS LIKE '%' || #{searchKey} || '%'
+                </if>  
+           </if>
+        </if>
+        <if test="MY != null and MY != '' and MEM_MST_MEM_ID != null and MEM_MST_MEM_ID != ''">
+            AND IMG.EVT_IMG_REG_ID   = #{MEM_MST_MEM_ID}  
+        </if>
+    </select>
+    
+    <insert id="insertEventImage" parameterType="hashMap">
+        <selectKey keyProperty="EVT_IMG_IDX" resultType="Integer" order="BEFORE">
+            SELECT SEQ_EVT_IMG_IDX.NEXTVAL AS EVT_IMG_IDX
+               FROM DUAL        
+        </selectKey>
+        
+        /* pcEventMain.insertEventImage */
+        
+        INSERT 
+          INTO T_EVT_IMG    (     EVT_IMG_IDX
+                                , EVT_MST_IDX
+                                , EVT_IMG_NM
+                                , EVT_IMG_CTS
+                                , EVT_IMG_AGT
+                                , EVT_IMG_WIN_YN
+                                , EVT_IMG_DPL_YN
+                                , EVT_IMG_RCM_CNT
+                                , EVT_IMG_REG_DT
+                                , EVT_IMG_REG_IP
+                                , EVT_IMG_REG_ID
+                                , EVT_IMG_CHN_TYPE
+                            )
+        VALUES              (     #{EVT_IMG_IDX}
+                                , #{EVT_MST_IDX}
+                                , #{EVT_IMG_NM}
+                                , #{EVT_IMG_CTS}
+                                , #{EVT_AGT}
+                                , 'N'
+                                , 'Y'
+                                , 0
+                                , TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS')
+                                , #{EVT_REG_IP}
+                                , #{MEM_MST_MEM_ID}
+                                , #{CMM_FLE_TB_TYPE}
+                            )
+    </insert>
+
+    <select id="selectEventImageRcmCount" parameterType="hashMap" resultType="Integer">
+        /* pcEventMain.selectEventImageRcmCount */
+    
+        SELECT COUNT(*)
+          FROM T_EVT_RCM
+         WHERE EVT_IMG_IDX  = #{EVT_IMG_IDX}   
+         <if test="MEM_MST_MEM_ID != null and MEM_MST_MEM_ID != ''">
+            AND EVT_RCM_ID   = #{MEM_MST_MEM_ID}
+         </if>    
+    </select>   
+    
+    <insert id="insertEventImageRcm" parameterType="hashMap">
+        /* pcEventMain.insertEventImageRcm*/
+        
+        INSERT
+          INTO T_EVT_RCM    (     EVT_IMG_IDX
+                                , EVT_IMG_REG_DT
+                                , EVT_IMG_REG_IP
+                                , EVT_RCM_ID
+                            )
+        VALUES              (     #{EVT_IMG_IDX}
+                                , TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS')
+                                , #{EVT_REG_IP}
+                                , #{MEM_MST_MEM_ID}
+                            )
+    </insert>
+    
+    <update id="updateEventImageRemCnt" parameterType="hashMap">
+        /* pcEventMain.updateEventImageRemCnt */
+        
+        UPDATE T_EVT_IMG
+           SET EVT_IMG_RCM_CNT  = (SELECT COUNT(*) 
+                                     FROM T_EVT_RCM
+                                    WHERE EVT_IMG_IDX = #{EVT_IMG_IDX}
+                                     )
+         WHERE EVT_IMG_IDX = #{EVT_IMG_IDX}                                       
+    </update>
+
+    <delete id="deleteEventComment" parameterType="hashMap">
+        /* pcEventMain.deleteEventComment */
+        
+        DELETE T_EVT_RPL
+         WHERE EVT_RPL_IDX      = #{EVT_RPL_IDX}
+           AND EVT_RPL_REG_ID   = #{MEM_MST_MEM_ID}  
+    </delete>
+    
+    <delete id="deleteEventImage" parameterType="hashMap">
+        /* pcEventMain.deleteEventImage */
+        
+        DELETE T_EVT_IMG
+         WHERE EVT_IMG_IDX      = #{EVT_IMG_IDX}
+           AND EVT_IMG_REG_ID   = #{MEM_MST_MEM_ID}
+    </delete>
+    
+    <resultMap type="hashMap" id="eventImgMap">
+        <result column="EVT_IMG_IDX" property="EVT_IMG_IDX" />
+        <result column="EVT_MST_IDX" property="EVT_MST_IDX" />
+        <result column="EVT_IMG_NM" property="EVT_IMG_NM" />
+        <result column="EVT_IMG_CTS" property="EVT_IMG_CTS" jdbcType="CLOB" javaType="java.lang.String"/>
+        <result column="EVT_IMG_AGT" property="EVT_IMG_AGT" />
+        <result column="EVT_IMG_WIN_YN" property="EVT_IMG_WIN_YN" />
+        <result column="EVT_IMG_DPL_YN" property="EVT_IMG_DPL_YN" />
+        <result column="EVT_IMG_RCM_CNT" property="EVT_IMG_RCM_CNT"/>
+        <result column="EVT_IMG_CHN_TYPE" property="EVT_IMG_CHN_TYPE" />
+        <result column="EVT_IMG_REG_DT" property="EVT_IMG_REG_DT"/>
+        <result column="EVT_IMG_REG_IP" property="EVT_IMG_REG_IP"/>
+        <result column="EVT_IMG_REG_ID" property="EVT_IMG_REG_ID" />
+        <result column="HID_EVT_IMG_REG_ID" property="HID_EVT_IMG_REG_ID"/>
+        <result column="FILE_NM" property="FILE_NM"/>
+        <result column="EVT_IMG_REG_IP" property="EVT_IMG_REG_IP"/>
+        <result column="CMM_FLE_ALT_TXT" property="CMM_FLE_ALT_TXT" />
+        <result column="EVT_IMG_REG_DT_CHAR" property="EVT_IMG_REG_DT_CHAR"/>
+    </resultMap>
+    
+    <select id="selectEventImageInfo" parameterType="hashMap" resultMap="eventImgMap">
+        /* pcEventMain.selectEventImageInfo */
+        
+        SELECT IMG.EVT_IMG_IDX
+             , IMG.EVT_MST_IDX
+             , IMG.EVT_IMG_NM
+             , IMG.EVT_IMG_CTS
+             , IMG.EVT_IMG_AGT
+             , IMG.EVT_IMG_WIN_YN
+             , IMG.EVT_IMG_DPL_YN
+             , IMG.EVT_IMG_RCM_CNT
+             , IMG.EVT_IMG_CHN_TYPE
+             , IMG.EVT_IMG_REG_DT
+             , IMG.EVT_IMG_REG_IP
+             , IMG.EVT_IMG_REG_ID
+             , SUBSTR(IMG.EVT_IMG_REG_ID,1,LENGTH(IMG.EVT_IMG_REG_ID)-3)|| LPAD('*',3,'*') AS HID_EVT_IMG_REG_ID
+             , (SELECT CMM_FLE_ATT_PATH || CMM_FLE_SYS_NM FROM T_CMM_FLE WHERE CMM_FLE_TB_NM = 'T_EVT_IMG' AND CMM_FLE_TB_PK = IMG.EVT_IMG_IDX AND CMM_FLE_USE_YN = 'Y' AND CMM_FLE_SORT = 1  AND ROWNUM = 1 ) AS FILE_NM
+             , (SELECT CMN_FLE_ALT_TXT || CMM_FLE_SYS_NM FROM T_CMM_FLE WHERE CMM_FLE_TB_NM = 'T_EVT_IMG' AND CMM_FLE_TB_PK = IMG.EVT_IMG_IDX AND CMM_FLE_USE_YN = 'Y' AND CMM_FLE_SORT = 1  AND ROWNUM = 1 ) AS CMM_FLE_ALT_TXT
+             , TO_CHAR(TO_DATE(IMG.EVT_IMG_REG_DT, 'yyyyMMddHH24miss'), 'yyyy.MM.dd') AS EVT_IMG_REG_DT_CHAR 
+          FROM T_EVT_IMG IMG
+             , T_EVT_MST MST
+             , T_MEM_MST MEM
+         WHERE IMG.EVT_MST_IDX      = MST.EVT_MST_IDX
+           AND IMG.EVT_IMG_REG_ID   = MEM.MEM_MST_MEM_ID
+           AND IMG.EVT_IMG_IDX      = #{EVT_IMG_IDX}
+           AND MST.EVT_MST_USE_YN   = 'Y'
+           AND IMG.EVT_IMG_DPL_YN   = 'Y'
+        <if test="CMM_FLE_TB_TYPE != null and CMM_FLE_TB_TYPE.equals('P'.toString())">
+           AND MST.EVT_MST_PC_YN    = 'Y'
+        </if>
+        <if test="CMM_FLE_TB_TYPE != null and CMM_FLE_TB_TYPE.equals('M'.toString())">
+           AND MST.EVT_MST_MB_YN    = 'Y'
+        </if>
+    </select>
+
+
+    <resultMap type="hashMap" id="eventDetPopImgMap">
+        <result column="EVT_IMG_IDX" property="EVT_IMG_IDX" />
+        <result column="EVT_MST_IDX" property="EVT_MST_IDX" />
+        <result column="EVT_IMG_NM" property="EVT_IMG_NM" />
+        <result column="EVT_IMG_CTS" property="EVT_IMG_CTS" jdbcType="CLOB" javaType="java.lang.String"/>
+        <result column="CMM_FLE_ALT_TXT" property="CMM_FLE_ALT_TXT" />
+        <result column="FILE_NM" property="FILE_NM"/>
+        <result column="EVT_IMG_RCM_CNT" property="EVT_IMG_RCM_CNT"/>
+        <result column="EVT_IMG_REG_DT" property="EVT_IMG_REG_DT"/>
+        <result column="HID_EVT_IMG_REG_ID" property="HID_EVT_IMG_REG_ID"/>
+        <result column="rk" property="rk"/>
+    </resultMap>
+    
+    <select id="selectEventDetailImg" parameterType="hashMap" resultMap="eventDetPopImgMap">
+        /* pcEventMain.selectEventDetailImg */
+        
+        SELECT S1.*
+          FROM(  
+               SELECT EVT_IMG_IDX
+                    , EVT_MST_IDX
+                    , EVT_IMG_NM
+                    , EVT_IMG_CTS
+                    , (SELECT CMM_FLE_ATT_PATH || CMM_FLE_SYS_NM FROM T_CMM_FLE WHERE CMM_FLE_TB_NM = 'T_EVT_IMG' AND CMM_FLE_TB_PK = IMG.EVT_IMG_IDX AND CMM_FLE_SORT = 1 AND CMM_FLE_TB_TYPE = 'P' AND CMM_FLE_USE_YN = 'Y' AND ROWNUM = 1) AS FILE_NM
+                    , (SELECT CMN_FLE_ALT_TXT || CMM_FLE_SYS_NM FROM T_CMM_FLE WHERE CMM_FLE_TB_NM = 'T_EVT_IMG' AND CMM_FLE_TB_PK = IMG.EVT_IMG_IDX AND CMM_FLE_SORT = 1 AND CMM_FLE_TB_TYPE = 'P' AND CMM_FLE_USE_YN = 'Y' AND ROWNUM = 1) AS CMM_FLE_ALT_TXT
+                    , RANK() OVER (ORDER BY EVT_IMG_RCM_CNT DESC) AS rk
+                    , SUBSTR(IMG.EVT_IMG_REG_ID,1,LENGTH(IMG.EVT_IMG_REG_ID)-3)|| LPAD('*',3,'*') AS HID_EVT_IMG_REG_ID
+                    , EVT_IMG_REG_DT
+                    , EVT_IMG_RCM_CNT
+                 FROM T_EVT_IMG IMG
+                WHERE EVT_MST_IDX = #{EVT_MST_IDX}   
+                  AND EVT_IMG_DPL_YN    = 'Y'   
+                ) S1
+          WHERE EVT_IMG_IDX = #{EVT_IMG_IDX} 
+    </select>
+    
+    <update id="updateEventImgDpl" parameterType="hashMap">
+        /* pcEventMain.updateEventImgDpl */
+        
+        UPDATE T_EVT_IMG
+           SET EVT_IMG_DPL_YN = 'N'
+         WHERE EVT_MST_IDX  = #{EVT_MST_IDX}
+           AND EVT_IMG_IDX  = #{EVT_IMG_IDX}
+           AND EVT_IMG_REG_ID   = #{MEM_MST_MEM_ID}
+    </update>
+
+    <select id="selectEvnetPointCount" parameterType="hashMap" resultType="Integer">
+        /* pcEventMain.selectEvnetPointCount */
+        
+        SELECT COUNT(MEM_PIT_IDX)
+          FROM T_MEM_PIT
+         WHERE MEM_PIT_MEM_ID = #{MEM_MST_MEM_ID}
+           AND EVT_MST_IDX  = #{EVT_MST_IDX}
+    </select>
+    
+    <update id="updateEventRplDpl" parameterType="hashMap">
+        /* pcEventMain.updateEventRplDpl */
+        
+        UPDATE T_EVT_RPL
+           SET EVT_RPL_DPL_YN = 'N'
+         WHERE EVT_MST_IDX  = #{EVT_MST_IDX}
+           AND EVT_RPL_IDX  = #{EVT_RPL_IDX}
+           AND EVT_RPL_REG_ID   = #{MEM_MST_MEM_ID}
+    </update>
+
+    <select id="selectEvtPointUseYN" parameterType="hashMap" resultType="Integer">
+        /* pcEventMain.selectEvtPointUseYN */
+        
+        SELECT COUNT(MEM_PIT_IDX) CNT
+          FROM T_MEM_PIT
+         WHERE MEM_PIT_MEM_ID   = #{MEM_MST_MEM_ID} 
+           AND EVT_MST_IDX      = #{EVT_MST_IDX} 
+    </select>
+    
+    <select id="selectPrenatalCnt" parameterType="hashMap" resultType="Integer">
+        /* pcEventMain.selectPrenatalCnt */
+        
+        SELECT COUNT(*)
+          FROM TB_EVENT_PRENATAL                         
+         WHERE MEM_MST_ID = #{MEM_MST_MEM_ID}                                
+           AND EVNT_SNO = #{EVNT_SNO}                                
+           AND EVNT_LNO = #{EVNT_LNO}  
+    </select>
+    
+    <select id="selectPrenatalInfo" parameterType="hashMap" resultType="hashMap">
+        /* pcEventMain.selectPrenatalInfo */
+        
+        SELECT C_NM
+             , HTEL1
+             , HTEL2
+             , HTEL3
+             , PARTNER
+             , RELATION
+             , B_NM
+             , DUE_DATE
+             , SUBSTR(DUE_DATE, 0, 4) AS DUE_YEAR
+             , SUBSTR(DUE_DATE, 5, 2) AS DUE_MONTH
+             , SUBSTR(DUE_DATE, 7, 2) AS DUE_DAY
+             , LIFE_AREA
+             , APP_ROOT
+             , AGREE1
+             , AGREE2
+          FROM TB_EVENT_PRENATAL
+         WHERE MEM_MST_ID = #{MEM_MST_MEM_ID}                                
+           AND EVNT_SNO = #{EVNT_SNO}                                
+           AND EVNT_LNO = #{EVNT_LNO}   
+    </select>
+    
+    <insert id="insertPrenatal" parameterType="hashMap">
+        /* pcEventMain.insertPrenatal */
+        
+        INSERT 
+          INTO TB_EVENT_PRENATAL    (     MEM_ID                        
+                                        , EVNT_SNO                     
+                                        , EVNT_LNO                     
+                                        , C_NM                         
+                                        , HTEL1                        
+                                        , HTEL2                        
+                                        , HTEL3                        
+                                        , PARTNER                      
+                                        , RELATION                     
+                                        , B_NM                         
+                                        , DUE_DATE                     
+                                        , LIFE_AREA                    
+                                        , APP_ROOT                     
+                                        , AGREE1                       
+                                        , AGREE2                       
+                                        , IN_YMDH
+                                        , MEM_MST_ID                       
+                                    )                             
+        VALUES                        
+                                    (     #{MEM_MST_MEM_ID}                              
+                                        , #{EVNT_SNO}                             
+                                        , #{EVNT_LNO}                             
+                                        , #{sName}                           
+                                        , #{sHtel1}                           
+                                        , #{sHtel2}                           
+                                        , #{sHtel3}                          
+                                        , #{sPatner}                          
+                                        , #{sRelation}                           
+                                        , #{sBname}                           
+                                        , #{sDuedate1} || #{sDuedate2} || #{sDuedate3}                           
+                                        , #{sLifeArea}                           
+                                        , #{sAppRoot}                           
+                                        , #{sAgree1}                           
+                                        , #{sAgree2}                           
+                                        , TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS') 
+                                        , #{MEM_MST_MEM_ID}                           
+                                    )              
+    </insert>           
+    
+    <update id="updatePrenatal" parameterType="hashMap">
+        /* pcEventMain.updatePrenatal */
+        
+        UPDATE TB_EVENT_PRENATAL 
+           SET HTEL1 = #{sHtel1}                  
+             , HTEL2 = #{sHtel2}                  
+             , HTEL3 = #{sHtel3}                  
+             , PARTNER = #{sPatner}                
+             , RELATION = #{sRelation}               
+             , B_NM = #{sBname}                   
+             , DUE_DATE = #{sDuedate1} || #{sDuedate2} || #{sDuedate3}            
+             , LIFE_AREA = #{sLifeArea}              
+             , APP_ROOT = #{sAppRoot}               
+             , AGREE1 = #{sAgree1}                 
+             , AGREE2 = #{sAgree2}                 
+             , UPD_YMDH = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS')                 
+         WHERE MEM_MST_ID = #{MEM_MST_MEM_ID}              
+           AND EVNT_SNO = #{EVNT_SNO}              
+           AND EVNT_LNO = #{EVNT_LNO}   
+    </update>
+    
+    <select id="selectPrenatalTotalCount" parameterType="hashMap" resultType="Integer">
+        /* pcEventMain.selectPrenatalTotalCount */
+        
+        SELECT COUNT(*)                                                                               
+          FROM T_MEM_MST A
+             , TB_EVENT_PRENATAL B                                                
+         WHERE A.MEM_MST_MEM_ID = B.MEM_MST_ID                                                            
+           AND B.EVNT_SNO = #{EVNT_SNO}                                                                
+           AND B.EVNT_LNO = #{EVNT_LNO}                                                                   
+    </select>   
+    
+    <select id="selectPrenatalList" parameterType="hashMap" resultType="hashMap">
+        /* pcEventMain.selectPrenatalList */
+        SELECT S2.*            
+          FROM (   
+                SELECT ROWNUM AS RNUM
+                     , S1.*
+                  FROM (                     
+                        SELECT A.MEM_MST_MEM_ID
+                             , B.IN_YMDH
+                             , TO_CHAR(TO_DATE(B.IN_YMDH, 'YYYYMMDDHH24MISS'), 'YYYY-MM-DD') INDATE
+                          FROM T_MEM_MST A
+                             , TB_EVENT_PRENATAL B                                                
+                         WHERE A.MEM_MST_MEM_ID = B.MEM_MST_ID  
+                           AND B.EVNT_SNO = #{EVNT_SNO}                                                                
+                           AND B.EVNT_LNO = #{EVNT_LNO}                                                                   
+                         ORDER BY B.IN_YMDH DESC
+                        ) S1
+                ) S2
+         WHERE S2.RNUM BETWEEN #{startNum} AND #{endNum}
+    </select>
+    
+
+</mapper>

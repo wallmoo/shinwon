@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="AppPush">
+    <!-- APP 푸시알림관리 검색 조건 -->
+    <sql id="appPushWhere">
+        <where>
+            <if test="searchAppPshTitle != null and searchAppPshTitle != ''">
+                AND APP_PSH_TITLE LIKE '%'||#{searchAppPshTitle}||'%'
+            </if>
+
+            <if test="searchStartDate != null and searchStartDate != '' and searchEndDate != null and searchEndDate != ''">
+                AND APP_PSH_REG_DT BETWEEN REPLACE(#{searchStartDate},'-', '')||'000000' AND REPLACE(#{searchEndDate},'-', '')||'235959'
+            </if>
+
+            <if test="searchAppPshUseYn != null and searchAppPshUseYn != ''">
+                AND APP_PSH_USE_YN = #{searchAppPshUseYn}
+            </if>
+        </where>
+    </sql>
+    
+    <!-- APP 푸시알림관리 리스트 갯수 -->
+    <select id="selectAppPushCount" parameterType="hashMap" resultType="integer">
+        /* AppPush.selectAppPushCount */
+        SELECT
+            COUNT(0)
+        FROM
+            T_APP_PSH
+        <include refid="appPushWhere"/>
+    </select> 
+    
+    <!-- APP 푸시알림관리 리스트 조회 -->
+    <select id="selectAppPushList" parameterType="hashMap" resultType="hashMap">
+        /* AppPush.selectAppPushList */
+        SELECT
+            S2.*
+        FROM (
+            SELECT 
+                ROWNUM RNUM
+                , S1.*
+            FROM (
+                SELECT
+                    APP_PSH_IDX
+                    , APP_PSH_TITLE
+                    , APP_PSH_DT
+                    , APP_PSH_HH
+                    , APP_PSH_REG_DT
+                    , APP_PSH_USE_YN
+                FROM
+                    T_APP_PSH
+                <include refid="appPushWhere"/>
+                ORDER BY APP_PSH_REG_DT DESC
+            ) S1
+        ) S2
+        <if test="startNum != null and startNum != '' and endNum != null and endNum != ''">
+        WHERE 
+            S2.RNUM BETWEEN #{startNum} AND #{endNum}
+        </if>
+    </select>
+
+    <!-- APP 푸시알림관리 상세 조회 -->
+    <select id="selectAppPushInfo" parameterType="hashMap" resultType="hashMap">
+        SELECT
+            APP_PSH_IDX
+            , APP_PSH_TITLE
+            , APP_PSH_URL
+            , APP_PSH_DT
+            , APP_PSH_HH
+            , APP_PSH_USE_YN
+            , APP_PSH_SND_CNT
+        FROM
+            T_APP_PSH
+        WHERE
+            APP_PSH_IDX = #{APP_PSH_IDX}
+    </select>
+
+    <!-- APP 푸시알림관리 등록 -->
+    <insert id="insertAppPush" parameterType="hashMap">
+        <selectKey keyProperty="APP_PSH_IDX" resultType="Integer" order="BEFORE">
+            SELECT SEQ_APP_PSH_IDX.NEXTVAL AS APP_PSH_IDX FROM DUAL 
+        </selectKey>
+        <![CDATA[
+        /* AppPush.insertAppPush */
+        INSERT INTO T_APP_PSH (
+            APP_PSH_IDX
+            , APP_PSH_TITLE
+            , APP_PSH_URL
+            , APP_PSH_DT
+            , APP_PSH_HH
+            , APP_PSH_USE_YN
+            , APP_PSH_REG_DT
+            , APP_PSH_REG_IP
+            , APP_PSH_REG_ID
+        )VALUES (
+            #{APP_PSH_IDX}
+            , #{APP_PSH_TITLE}
+            , #{APP_PSH_URL}
+            , REPLACE(#{APP_PSH_DT}, '-', '')
+            , #{APP_PSH_HH}
+            , #{APP_PSH_USE_YN}
+            , TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS')
+            , #{REG_IP}
+            , #{APP_PSH_REG_ID}
+        ) 
+        ]]>
+    </insert>
+
+    <!-- APP 푸시알림관리 수정 -->
+    <update id="updateAppPush" parameterType="hashMap">
+        <![CDATA[
+        /* AppPush.updateAppPush */
+        UPDATE 
+            T_APP_PSH
+        SET
+            APP_PSH_TITLE = #{APP_PSH_TITLE}
+            , APP_PSH_URL = #{APP_PSH_URL}
+            , APP_PSH_DT = REPLACE(#{APP_PSH_DT}, '-', '')
+            , APP_PSH_HH = #{APP_PSH_HH}
+            , APP_PSH_USE_YN = #{APP_PSH_USE_YN}
+            , APP_PSH_UPD_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS')
+            , APP_PSH_UPD_IP = #{APP_PSH_UPD_IP}
+            , APP_PSH_UPD_ID = #{APP_PSH_UPD_ID}
+        WHERE
+            APP_PSH_IDX = #{APP_PSH_IDX}
+        ]]>
+    </update>
+    
+    <!-- MEM_MST_TKN_ID 가 NULL이 아닌 회원 MEM_MST_PSH_YN 'Y'로 업데이트 -->
+    <update id="updatePushYn" parameterType="HashMap">
+        /* AppPush.updatePushYn */
+        UPDATE 
+            T_MEM_MST
+        SET
+            MEM_MST_PSH_YN = 'Y'
+        WHERE
+            MEM_MST_LEV_YN = 'N'
+        AND
+            MEM_MST_TKN_ID IS NOT NULL
+    </update>
+</mapper>

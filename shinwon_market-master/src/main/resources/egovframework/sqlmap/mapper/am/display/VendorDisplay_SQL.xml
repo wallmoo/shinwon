@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="VendorDisplay">
+    <!-- 입점업체 공통전시 상세 -->
+    <select id="selectVendorDisplayInfo" parameterType="hashMap" resultType="hashMap">
+        <![CDATA[
+        /* VendorDisplay.selectVendorDisplayInfo */
+        SELECT
+            VDR_MST_IDX
+            , VDR_DSP_ST_DT
+            , VDR_DSP_ST_HH
+            , VDR_DSP_ST_MM
+            , VDR_DSP_ED_DT
+            , VDR_DSP_ED_HH
+            , VDR_DSP_ED_MM
+            , VDR_DSP_REG_DT
+            , VDR_DSP_REG_IP
+            , VDR_DSP_REG_ID
+            , VDR_DSP_UPD_DT
+            , VDR_DSP_UPD_IP
+            , VDR_DSP_UPD_ID
+            , VDR_DSP_CTS
+        FROM
+            T_VDR_DSP
+        WHERE
+            VDR_MST_IDX = #{VDR_MST_IDX}
+        ]]>
+    </select>
+    
+    <!-- 입점업체 공통전시 등록 갯수 -->
+    <select id="selectVendorDisplayCount" parameterType="hashMap" resultType="integer">
+        /* VendorDisplay.selectVendorDisplayCount */
+        SELECT
+            COUNT(0)
+        FROM
+            T_VDR_DSP
+        WHERE
+            VDR_MST_IDX = #{VDR_MST_IDX}
+    </select> 
+    
+    <!-- 입점업체 공통전시 등록 -->
+    <insert id="insertVendorDisplay" parameterType="hashMap">
+        /* VendorDisplay.insertVendorDisplay */
+        INSERT INTO T_VDR_DSP (
+            VDR_MST_IDX
+            , VDR_DSP_ST_DT
+            , VDR_DSP_ST_HH
+            , VDR_DSP_ST_MM
+            , VDR_DSP_ED_DT
+            , VDR_DSP_ED_HH
+            , VDR_DSP_ED_MM
+            , VDR_DSP_REG_DT
+            , VDR_DSP_REG_IP
+            , VDR_DSP_REG_ID
+            , VDR_DSP_CTS
+        ) VALUES (
+            #{VDR_MST_IDX}
+            , REPLACE(#{VDR_DSP_ST_DT},'-','')
+            , #{VDR_DSP_ST_HH}
+            , #{VDR_DSP_ST_MM}
+            , REPLACE(#{VDR_DSP_ED_DT},'-','')
+            , #{VDR_DSP_ED_HH}
+            , #{VDR_DSP_ED_MM}
+            , TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS')
+            , #{VDR_DSP_REG_IP}
+            , #{VDR_DSP_REG_ID}
+            , #{VDR_DSP_CTS}
+        )
+    </insert>
+    
+    <!-- 입점업체 공통전시 수정 -->
+    <update id="updateVendorDisplay" parameterType="hashMap">
+        /* VendorDisplay.updateVendorDisplay */
+        UPDATE 
+            T_VDR_DSP
+        SET
+            VDR_DSP_ST_DT = REPLACE(#{VDR_DSP_ST_DT},'-','')
+            , VDR_DSP_ST_HH = #{VDR_DSP_ST_HH}
+            , VDR_DSP_ST_MM = #{VDR_DSP_ST_MM}
+            , VDR_DSP_ED_DT = REPLACE(#{VDR_DSP_ED_DT},'-','')
+            , VDR_DSP_ED_HH = #{VDR_DSP_ED_HH}
+            , VDR_DSP_ED_MM = #{VDR_DSP_ED_MM}
+            , VDR_DSP_UPD_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS')
+            , VDR_DSP_UPD_IP = #{VDR_DSP_UPD_IP}
+            , VDR_DSP_UPD_ID = #{VDR_DSP_UPD_ID}
+            , VDR_DSP_CTS = #{VDR_DSP_CTS}
+        WHERE
+            VDR_MST_IDX = #{VDR_MST_IDX}
+    </update>
+</mapper>

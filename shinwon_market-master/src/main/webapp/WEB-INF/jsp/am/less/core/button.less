@@ -1,0 +1,201 @@
+// default
+@button-font-size:                14px;
+
+/*22 button ====================================================== */
+.button-size(@fontSize, @height, @paddingX) {
+    padding-left: @paddingX;
+    padding-right: @paddingX;
+    height: @height;
+    height: @height;
+    font-size: @font-size;
+}
+
+// core
+.button {
+    .user-select(none);
+    display: inline-block; 
+    margin: 0;
+    font-weight: @button-font-weight;
+    text-align: center;
+    .text-none();
+    .vertical-middle();
+    cursor: pointer;
+    background-image: none; /* for firefox-on-android https://github.com/necolas/normalize.css/issues/214 */
+    border: solid 1px transparent;
+    white-space: nowrap;
+    .box-sizing(border-box);
+
+    .height(40px, true);
+
+    font-size: 14px;
+
+    &:focus {
+        .tab-focus();
+    }
+
+    &:link,
+    &:hover,
+    &:visited,
+    &:focus {
+        color: @button-default-color;
+        .text-none();
+    }
+
+    &:active, &.active {
+        outline: 0;
+        background-image: none;
+        .box-shadow(inset 0 1px 5px 0 rgba(0,0,0,.125));
+    }
+
+    &.disabled, &[disabled], fieldset[disabled] & {
+        cursor: not-allowed;
+        pointer-events: none; // Future-proof disabling of clicks
+        .opacity(.65);
+        .box-shadow(none);
+        .opacity(1); // iOS fix for unreadable disabled content
+    }
+
+    input[type="submit"],
+    input[type="reset"],
+    input[type="button"] {
+        &.btn-block {
+            width: 100%;
+        }
+    }
+
+    padding-left: 20px;
+    padding-right: 20px;
+
+    // size
+    &.xsmall {
+        padding-left: 9px;
+        padding-right: 9px;
+        .height(20px, true);
+        font-size: 12px;
+    }
+
+    &.small {
+        padding-left: 20px;
+        padding-right: 20px;
+        .height(28px, true);
+        font-size: 14px;
+    }
+
+    &.large {
+        padding-left: 60px;
+        padding-right: 60px;
+        .height(60px, true);
+        font-size: 18px;
+    }
+
+    &.xlarge {
+        padding-left: 20px;
+        padding-right: 20px;
+        .height(80px, true);
+        font-size: 18px;
+    }
+
+    &.full {
+        .box-sizing(border-box);
+        .block();
+        width: 100%;
+        text-align: center;
+    }
+
+    &,
+    &.default {
+        .button-variant(@button-default-color; @button-default-bg; @button-default-border);
+    }
+    &.default.disabled {
+        .button-variant(#aaa; @button-default-bg; @button-default-border);
+    }
+
+    &.primary {
+        .button-variant(@button-primary-color; @button-primary-bg; @button-primary-border);
+    }
+    &.success {
+        .button-variant(@button-success-color; @button-success-bg; @button-success-border);
+    }
+    &.info {
+        .button-variant(@button-info-color; @button-info-bg; @button-info-border);
+        &.dark {
+            .button-variant(@button-info-dark-color; @button-info-dark-bg; @button-info-dark-border);
+        }
+    }
+    &.warning {
+        .button-variant(@button-warning-color; @button-warning-bg; @button-warning-border);
+    }
+    &.danger {
+        .button-variant(@button-danger-color; @button-danger-bg; @button-danger-border);
+    }
+    &.gray {
+        .button-variant(#fff; #b7bbc1; #ccc);
+    }
+    &.disabled {
+        .button-variant(#fff; #b7bbc1; #ccc);
+        /* .button-variant(@button-danger-color; @gray-lighter; @button-danger-border); */
+    }
+    
+    &.sm-full {
+        @media only screen and (min-width: @screen-phone) and (max-width: @screen-tablet-max) {
+            .box-sizing(border-box);
+            .block();
+            padding-left: 0;
+            padding-right: 0;
+            width: 100%;
+            text-align: center;
+        }
+    }
+    &.lg-full {
+        // .is-lg & {
+        @media only screen and (min-width: @screen-desktop) {
+            .box-sizing(border-box);
+            .block();
+            padding-left: 0;
+            padding-right: 0;
+            width: 100%;
+            text-align: center;
+        }
+    }
+
+}
+
+/* button : button section  ========================================================================== */
+
+/* 버튼 영역 */
+.section-button {
+    clear: both;
+    margin-top: 20px;
+    margin-bottom: 100px;
+    .wrap {
+        text-align: right;
+    }
+    .button {
+        padding-left: 40px;
+        padding-right: 40px;
+        margin-left: 4px;
+        &:first-child {
+            margin-left: 0;
+        }
+    }
+    &.large {
+        margin-top: 40px;
+        margin-bottom: 100px;
+        .wrap {
+            text-align: center;
+        }
+        .button {
+            margin-left: 8px;
+            &:first-child {
+                margin-left: 0;
+            }
+        }
+    }
+    &.border-top {
+        .wrap {
+            padding-top: 20px;
+            border-top: solid 1px #e7e7e7;
+        }
+    }
+}
+

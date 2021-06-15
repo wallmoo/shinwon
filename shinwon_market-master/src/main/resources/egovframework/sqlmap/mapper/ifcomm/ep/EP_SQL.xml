@@ -1,0 +1,179 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="EnginePage">
+
+    <!-- 전체EP -->
+    <select id="selectProductAll" parameterType="hashMap" resultType="hashMap">
+        /* EnginePage.selectProductAll */
+        SELECT 
+             A.PRD_MST_CD MAPID
+            ,C.PRD_CHN_PRC PRICE
+            ,A.PRD_MST_NM PNAME
+            ,E.PRD_IMG_ATT_PATH||E.PRD_IMG_SYS_NM IGURL
+            ,(SELECT SUBSTR(SYS_CONNECT_BY_PATH(PRD_CTG_IDX||'`'||PRD_CTG_NM, '>'),2)
+                          FROM T_PRD_CTG
+                          WHERE PRD_CTG_IDX = F.DSP_PRD_CTG_IDX
+                            AND PRD_CTG_ENV = 'P'
+                            AND ROWNUM  = 1
+                          START WITH PRD_CTG_UP_IDX = -1
+                          CONNECT BY PRIOR PRD_CTG_IDX = PRD_CTG_UP_IDX) CATEGORY
+            ,A.PRD_MST_CPS_MDL MODEL
+            ,(SELECT BND_MST_BRAND_NM FROM T_BND_MST WHERE BND_MST_IDX = A.PRD_MST_BRD_IDX ) BRAND
+            ,(SELECT MRK_MST_BRAND_NM FROM T_MRK_MST WHERE MRK_MST_IDX = A.PRD_MST_MRK_IDX ) MAKER
+            ,ROUND(C.PRD_CHN_PRC*0.24/1000 )*10 AS MILGAMT
+            ,(CASE A.PRD_MST_ADD_MIL WHEN NULL THEN 0 ELSE ROUND(C.PRD_CHN_PRC*A.PRD_MST_ADD_MIL/1000 )*10 END) ADDONMILGAMT
+            ,PRD_MST_DLV_FEE DELIV
+            ,PRD_MST_DLV_DT DELIVTERM
+            ,(SELECT PLN_MST.PLN_MST_TITLE
+                FROM T_PLN_MST PLN_MST, T_PLN_DTL PLN_DTL
+                WHERE PLN_MST.PLN_MST_IDX = PLN_DTL.PLN_MST_IDX
+                    AND PLN_MST.PLN_MST_TYPE = 'A'
+                    AND TO_CHAR(SYSDATE, 'YYYYMMDDHH24MI') BETWEEN PLN_MST.PLN_MST_ST_DT||PLN_MST.PLN_MST_ST_HH||PLN_MST.PLN_MST_ST_MI AND PLN_MST.PLN_MST_ED_DT||PLN_MST.PLN_MST_ED_HH||PLN_MST.PLN_MST_ED_MI
+                    AND PLN_MST.PLN_MST_USE_YN = 'Y'
+                    AND PLN_MST.PLN_MST_PRD_DPL_YN = 'Y'
+                    AND PLN_DTL.PLN_PRD_MST_CD = A.PRD_MST_CD
+                    AND ROWNUM = 1) EVENT
+        FROM T_PRD_MST A, T_PRD_CHN B, T_PRD_CHN_DTL C, T_CHN_DTL D, T_PRD_IMG E, T_DSP_CTG F, T_PRD_CTG G
+        WHERE B.PRD_CHN_IDX = C.PRD_CHN_IDX
+        AND C.CHN_DTL_CD = D.CHN_DTL_CD
+        AND D.CHN_DTL_CD = #{CHN_DTL_CD}
+        AND B.PRD_CHN_DPT2 = #{PRD_CHN_DPT2}
+        AND A.PRD_MST_APV_STATE = 'A'
+        AND A.PRD_MST_DEL_YN = 'N'
+        AND A.PRD_MST_DPL_STATE = 'Y'
+        AND A.PRD_MST_CPS_YN = 'Y'
+        AND A.PRD_MST_CNL_PC_YN = 'Y'
+        AND A.PRD_MST_CD = E.PRD_PRD_MST_CD
+        AND E.PRD_IMG_IDX = 0
+        AND E.PRD_IMG_SORT = 1
+        AND A.PRD_MST_CD = B.PRD_MST_CD
+        AND A.PRD_MST_CD = F.DSP_PRD_MST_CD
+        AND G.PRD_CTG_IDX = F.DSP_PRD_CTG_IDX
+        AND G.PRD_CTG_ENV = 'P'
+        AND C.PRD_CHN_PRC > 0
+        AND F.DSP_PRD_CTG_IDX IS NOT NULL
+        AND F.DSP_PRD_CTG_IDX NOT IN (
+            SELECT CMN_COM_ETC1
+            FROM T_CMM_COM
+            WHERE CMN_COM_UP_IDX = 2796
+        )
+        AND A.PRD_MST_CD NOT IN (
+            SELECT CMN_COM_ETC1
+            FROM T_CMM_COM
+            WHERE CMN_COM_UP_IDX = 2797
+        )
+    </select>
+    
+    <!-- 요약EP 기준시간 -->
+    <select id="selectSomeTime" parameterType="hashMap" resultType="HashMap">
+        /* EnginePage.selectSomeTime */
+        SELECT TO_CHAR(SYSDATE, 'YYYYMMDD')||'000000' ST_DATE, TO_CHAR(SYSDATE, 'YYYYMMDDHH24')||'0000' ED_DATE FROM DUAL;
+    </select>    
+    
+    <!-- 요약EP -->
+    <select id="selectProductSome" parameterType="hashMap" resultType="HashMap">
+        /* EnginePage.selectProductSome */
+        SELECT 
+             A.PRD_MST_CD MAPID
+            ,C.PRD_CHN_PRC PRICE
+            ,A.PRD_MST_NM PNAME
+            ,E.PRD_IMG_ATT_PATH||E.PRD_IMG_SYS_NM IGURL
+            ,(
+                SELECT SUBSTR(SYS_CONNECT_BY_PATH(PRD_CTG_IDX||'`'||PRD_CTG_NM, '>'),2)
+                FROM T_PRD_CTG
+                WHERE PRD_CTG_IDX = F.DSP_PRD_CTG_IDX
+                AND PRD_CTG_ENV = 'P'
+                AND ROWNUM  = 1
+                START WITH PRD_CTG_UP_IDX = -1
+                CONNECT BY PRIOR PRD_CTG_IDX = PRD_CTG_UP_IDX
+            ) CATEGORY
+            ,A.PRD_MST_CPS_MDL MODEL
+            ,(SELECT BND_MST_BRAND_NM FROM T_BND_MST WHERE BND_MST_IDX = A.PRD_MST_BRD_IDX ) BRAND
+            ,(SELECT MRK_MST_BRAND_NM FROM T_MRK_MST WHERE MRK_MST_IDX = A.PRD_MST_MRK_IDX ) MAKER
+            ,ROUND(C.PRD_CHN_PRC*0.24/1000 )*10 AS MILGAMT    
+            ,(CASE A.PRD_MST_ADD_MIL WHEN NULL THEN 0 ELSE ROUND(C.PRD_CHN_PRC*A.PRD_MST_ADD_MIL/1000 )*10 END) ADDONMILGAMT
+            ,PRD_MST_DLV_FEE DELIV
+            ,PRD_MST_DLV_DT DELIVTERM
+            ,(SELECT PLN_MST.PLN_MST_TITLE
+                FROM T_PLN_MST PLN_MST, T_PLN_DTL PLN_DTL
+                WHERE PLN_MST.PLN_MST_IDX = PLN_DTL.PLN_MST_IDX
+                    AND PLN_MST.PLN_MST_TYPE = 'A'
+                    AND TO_CHAR(SYSDATE, 'YYYYMMDDHH24MI') BETWEEN PLN_MST.PLN_MST_ST_DT||PLN_MST.PLN_MST_ST_HH||PLN_MST.PLN_MST_ST_MI AND PLN_MST.PLN_MST_ED_DT||PLN_MST.PLN_MST_ED_HH||PLN_MST.PLN_MST_ED_MI
+                    AND PLN_MST.PLN_MST_USE_YN = 'Y'
+                    AND PLN_MST.PLN_MST_PRD_DPL_YN = 'Y'
+                    AND PLN_DTL.PLN_PRD_MST_CD = A.PRD_MST_CD
+                    AND ROWNUM = 1) EVENT
+            ,A.PRD_MST_REG_DT INSERT_TIME
+            ,A.PRD_MST_UPD_DT UTIME
+            ,(CASE A.PRD_MST_DEL_YN WHEN 'Y' THEN 'Y' ELSE (CASE A.PRD_MST_DPL_STATE WHEN 'N' THEN 'Y' ELSE 'N' END) END) DELETE_YN
+            ,(CASE WHEN A.PRD_MST_REG_DT <![CDATA[>=]]> #{ST_DATE} AND A.PRD_MST_REG_DT <![CDATA[<]]> #{ED_DATE} THEN 'Y' ELSE 'N' END) INSERT_YN
+        FROM T_PRD_MST A, T_PRD_CHN B, T_PRD_CHN_DTL C, T_CHN_DTL D, T_PRD_IMG E, T_DSP_CTG F, T_PRD_CTG G
+        WHERE B.PRD_CHN_IDX = C.PRD_CHN_IDX
+        AND C.CHN_DTL_CD = D.CHN_DTL_CD
+        AND D.CHN_DTL_CD = #{CHN_DTL_CD}
+        AND B.PRD_CHN_DPT2 = #{PRD_CHN_DPT2}
+        AND A.PRD_MST_APV_STATE = 'A'
+        AND A.PRD_MST_CPS_YN = 'Y'
+        AND A.PRD_MST_CD = E.PRD_PRD_MST_CD
+        AND E.PRD_IMG_IDX = 0
+        AND E.PRD_IMG_SORT = 1
+        AND A.PRD_MST_CD = B.PRD_MST_CD
+        AND A.PRD_MST_CD = F.DSP_PRD_MST_CD
+        AND G.PRD_CTG_IDX = F.DSP_PRD_CTG_IDX
+        AND G.PRD_CTG_ENV = 'P'
+        AND C.PRD_CHN_PRC > 0
+        AND F.DSP_PRD_CTG_IDX IS NOT NULL
+        AND ((A.PRD_MST_REG_DT <![CDATA[>=]]> #{ST_DATE} AND A.PRD_MST_REG_DT <![CDATA[<]]> #{ED_DATE})
+            OR (A.PRD_MST_UPD_DT <![CDATA[>=]]> #{ST_DATE} AND A.PRD_MST_UPD_DT <![CDATA[<]]> #{ED_DATE})
+            )
+        AND F.DSP_PRD_CTG_IDX NOT IN (
+            SELECT CMN_COM_ETC1
+            FROM T_CMM_COM
+            WHERE CMN_COM_UP_IDX = 2796
+        )
+        AND A.PRD_MST_CD NOT IN (
+            SELECT CMN_COM_ETC1
+            FROM T_CMM_COM
+            WHERE CMN_COM_UP_IDX = 2797
+        )
+    </select>
+        
+    <!-- 무이자할부 -->
+    <select id="selectPcardList" resultType="String">
+        /* EnginePage.selectPcardList */
+        SELECT
+             REPLACE(CRD_INF.CRD_INF_NM, '카드', '')||MIN(DIV_INF.DIV_INF_MNT)||'~'||MAX(DIV_INF.DIV_INF_MNT) PCARD
+        FROM T_CRD_DIV CRD_DIV, T_DIV_DTL DIV_DTL, T_DIV_INF DIV_INF, T_CRD_INF CRD_INF
+        WHERE CRD_DIV.CRD_DIV_IDX = DIV_DTL.CRD_DIV_IDX
+            AND DIV_DTL.DIV_DTL_IDX = DIV_INF.DIV_DTL_IDX
+            AND DIV_DTL.DIV_DTL_CD = CRD_INF.CRD_INF_IDX
+            AND TO_CHAR(SYSDATE, 'YYYYMMDDHH24MI') BETWEEN CRD_DIV.CRD_DIV_ST_DT||CRD_DIV.CRD_DIV_ST_HH||CRD_DIV.CRD_DIV_ST_MM
+                                                    AND CRD_DIV.CRD_DIV_ED_DT||CRD_DIV.CRD_DIV_ED_HH||CRD_DIV.CRD_DIV_ED_MM
+            AND DIV_INF.DIV_INF_USE_YN = 'Y'
+            AND DIV_INF.DIV_INF_GBN = 2085 --무이자
+            AND (DIV_DTL.DIV_DTL_PRC * 10000) <![CDATA[<=]]> #{PRD_CHN_PRC}
+        GROUP BY CRD_INF.CRD_INF_NM
+        ORDER BY CRD_INF.CRD_INF_NM
+    </select>   
+    
+    <!-- 무이자할부 -->
+    <select id="selectEnuriPcardList" resultType="String">
+        /* EnginePage.selectPcardList */
+        SELECT
+             REPLACE(CRD_INF.CRD_INF_NM, '카드', '')||MAX(DIV_INF.DIV_INF_MNT) PCARD
+        FROM T_CRD_DIV CRD_DIV, T_DIV_DTL DIV_DTL, T_DIV_INF DIV_INF, T_CRD_INF CRD_INF
+        WHERE CRD_DIV.CRD_DIV_IDX = DIV_DTL.CRD_DIV_IDX
+            AND DIV_DTL.DIV_DTL_IDX = DIV_INF.DIV_DTL_IDX
+            AND DIV_DTL.DIV_DTL_CD = CRD_INF.CRD_INF_IDX
+            AND TO_CHAR(SYSDATE, 'YYYYMMDDHH24MI') BETWEEN CRD_DIV.CRD_DIV_ST_DT||CRD_DIV.CRD_DIV_ST_HH||CRD_DIV.CRD_DIV_ST_MM
+                                                    AND CRD_DIV.CRD_DIV_ED_DT||CRD_DIV.CRD_DIV_ED_HH||CRD_DIV.CRD_DIV_ED_MM
+            AND DIV_INF.DIV_INF_USE_YN = 'Y'
+            AND DIV_INF.DIV_INF_GBN = 2085 --무이자
+            AND (DIV_DTL.DIV_DTL_PRC * 10000) <![CDATA[<=]]> #{PRD_CHN_PRC}
+        GROUP BY CRD_INF.CRD_INF_NM
+        ORDER BY CRD_INF.CRD_INF_NM
+    </select>   
+        
+    
+</mapper>

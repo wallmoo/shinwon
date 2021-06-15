@@ -1,0 +1,791 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="PcCommon">
+    
+    <!-- 게시글의 등록자 정보 -->
+    <select id="selectRegistInfo" parameterType="hashMap" resultType="String">
+        /* PcCommon.selectRegistInfo */
+        SELECT
+            ${COL_REG_ID}
+        FROM
+            ${TABLE_NM}
+        WHERE
+            ${COL_IDX} = #{COL_IDX_VALUE}
+    </select>
+
+    <!-- 공통코드 하위 코드 조회 -->
+    <select id="selectCodeList" parameterType="String" resultType="HashMap">
+        /* PcCommon.selectCodeList */
+        SELECT
+            CMN_COM_IDX,
+            CMN_COM_NM,
+            CMN_COM_LEVEL,
+            CMN_COM_UP_IDX,
+            CMN_COM_TOP_IDX,
+            CMN_COM_ETC1,
+            CMN_COM_ETC2,
+            CMN_COM_ETC3,
+            CMN_COM_SORT,
+            CMN_COM_USE_YN,
+            CMN_COM_REG_DT,
+            CMN_COM_REG_IP,
+            CMN_COM_REG_ID,
+            CMN_COM_UPD_DT,
+            CMN_COM_UPD_IP,
+            CMN_COM_UPD_ID 
+        FROM
+            T_CMM_COM
+        WHERE
+            CMN_COM_UP_IDX = #{CODE}
+            AND CMN_COM_USE_YN = 'Y'
+        ORDER BY CMN_COM_LEVEL, CMN_COM_SORT ASC
+    </select>
+    
+    <!-- 공통코드 하위 코드 조회 -->
+    <select id="selectTopCodeList" parameterType="String" resultType="HashMap">
+        /* PcCommon.selectTopCodeList */
+        SELECT
+            CMN_COM_IDX,
+            CMN_COM_NM,
+            CMN_COM_LEVEL,
+            CMN_COM_UP_IDX,
+            CMN_COM_TOP_IDX,
+            CMN_COM_ETC1,
+            CMN_COM_ETC2,
+            CMN_COM_ETC3,
+            CMN_COM_SORT,
+            CMN_COM_USE_YN,
+            CMN_COM_REG_DT,
+            CMN_COM_REG_IP,
+            CMN_COM_REG_ID,
+            CMN_COM_UPD_DT,
+            CMN_COM_UPD_IP,
+            CMN_COM_UPD_ID 
+        FROM
+            T_CMM_COM 
+        WHERE
+            CMN_COM_TOP_IDX = #{CODE}
+            AND NOT CMN_COM_LEVEL = 1
+        START WITH CMN_COM_TOP_IDX = 0
+        CONNECT BY PRIOR CMN_COM_IDX = CMN_COM_UP_IDX
+        ORDER SIBLINGS BY CMN_COM_LEVEL, CMN_COM_SORT ASC 
+    </select>
+    
+    <!-- 공통코드 현재 포함 하위 코드 조회 -->
+    <select id="selectSubCodeList" parameterType="hashMap" resultType="hashMap">
+        /* PcCommon.selectSubCodeList */
+        SELECT 
+            CMN_COM_IDX,
+            CMN_COM_NM,
+            CMN_COM_LEVEL,
+            CMN_COM_UP_IDX,
+            CMN_COM_TOP_IDX,
+            CMN_COM_ETC1,
+            CMN_COM_ETC2,
+            CMN_COM_ETC3,
+            CMN_COM_SORT,
+            CMN_COM_USE_YN,
+            CMN_COM_REG_DT,
+            CMN_COM_REG_IP,
+            CMN_COM_REG_ID,
+            CMN_COM_UPD_DT,
+            CMN_COM_UPD_IP,
+            CMN_COM_UPD_ID 
+        FROM 
+            T_CMM_COM
+        WHERE
+            CMN_COM_USE_YN = 'Y'
+        START WITH CMN_COM_IDX = #{CODE}
+        CONNECT BY PRIOR CMN_COM_IDX = CMN_COM_UP_IDX
+        ORDER SIBLINGS BY CMN_COM_LEVEL, CMN_COM_SORT ASC
+    </select>
+      
+    <!-- 공통코드 조회 -->
+    <select id="selectCodeInfo" parameterType="HashMap" resultType="HashMap">
+        /* pcCommon.selectCodeInfo */
+        SELECT
+            CMN_COM_IDX,
+            CMN_COM_NM,
+            CMN_COM_LEVEL,
+            CMN_COM_UP_IDX,
+            CMN_COM_TOP_IDX,
+            CMN_COM_ETC1,
+            CMN_COM_ETC2,
+            CMN_COM_ETC3,
+            CMN_COM_ETC4,
+            CMN_COM_SORT,
+            CMN_COM_USE_YN,
+            CMN_COM_REG_DT,
+            CMN_COM_REG_IP,
+            CMN_COM_REG_ID,
+            CMN_COM_UPD_DT,
+            CMN_COM_UPD_IP,
+            CMN_COM_UPD_ID 
+        FROM
+            T_CMM_COM
+        WHERE
+            CMN_COM_IDX = #{CMN_COM_IDX}
+    </select>
+    
+    <!-- 첨부파일 목록  -->
+    <select id="selectCommonFileList" parameterType="HashMap" resultType="HashMap">
+        /* PcCommon.selectCommonFileList */
+        SELECT
+            CMM_FLE_IDX,
+            CMM_FLE_TB_NM,
+            CMM_FLE_TB_PK,
+            CMM_FLE_TB_TYPE,
+            CMM_FLE_SYS_PATH,
+            CMM_FLE_ATT_PATH,
+            CMM_FLE_ORG_NM,
+            CMM_FLE_SYS_NM,
+            CMM_FLE_ATT_SIZE,
+            CMM_FLE_ATT_EXT,
+            CMM_FLE_DW_CNT,
+            CMM_FLE_SORT,
+            CMM_FLE_USE_YN,
+            CMM_FLE_REG_DT,
+            CMM_FLE_REG_ID,
+            CMN_FLE_ALT_TXT,
+            CMM_FLE_SYS_PATH || CMM_FLE_ATT_PATH || CMM_FLE_SYS_NM AS CMM_FLE_SAVE_PATH
+        FROM
+            T_CMM_FLE
+        WHERE
+            CMM_FLE_TB_NM = #{CMM_FLE_TB_NM}
+            AND CMM_FLE_TB_PK = #{CMM_FLE_TB_PK}
+            AND CMM_FLE_USE_YN = 'Y'
+    </select>
+    
+    <!-- 첨부파일 상세 정보 -->
+    <select id="selectCommonFileInfo" parameterType="HashMap" resultType="HashMap">
+        /* PcCommon.selectCommonFileInfo */
+        SELECT
+            CMM_FLE_IDX,
+            CMM_FLE_TB_NM,
+            CMM_FLE_TB_PK,
+            CMM_FLE_TB_TYPE,
+            CMM_FLE_SYS_PATH,
+            CMM_FLE_ATT_PATH,
+            CMM_FLE_ORG_NM,
+            CMM_FLE_SYS_NM,
+            CMM_FLE_ATT_SIZE,
+            CMM_FLE_ATT_EXT,
+            CMM_FLE_DW_CNT,
+            CMM_FLE_SORT,
+            CMM_FLE_USE_YN,
+            CMM_FLE_REG_DT,
+            CMM_FLE_REG_ID,
+            CMN_FLE_ALT_TXT,
+            CMM_FLE_SYS_PATH || CMM_FLE_ATT_PATH || CMM_FLE_SYS_NM AS CMM_FLE_SAVE_PATH
+        FROM
+            T_CMM_FLE
+        WHERE
+            CMM_FLE_USE_YN = 'Y'
+            <if test="CMM_FLE_IDX != null and CMM_FLE_IDX != ''">
+                AND CMM_FLE_IDX = #{CMM_FLE_IDX}
+            </if>
+            <if test="CMM_FLE_TB_NM != null and CMM_FLE_TB_NM != ''">
+                AND CMM_FLE_TB_NM = #{CMM_FLE_TB_NM}
+            </if>
+            <if test="CMM_FLE_TB_PK != null and CMM_FLE_TB_PK != ''">
+                AND CMM_FLE_TB_PK = #{CMM_FLE_TB_PK}
+            </if>
+    </select>
+    
+    <!-- 첨부파일 등록 -->
+    <insert id="insertCommonFile" parameterType="HashMap">
+        /* PcCommon.insertCommonFile */
+        INSERT INTO
+            T_CMM_FLE
+            (
+                CMM_FLE_IDX,
+                CMM_FLE_TB_NM,
+                CMM_FLE_TB_PK,
+                CMM_FLE_TB_TYPE,
+                CMM_FLE_SYS_PATH,
+                CMM_FLE_ATT_PATH,
+                CMM_FLE_ORG_NM,
+                CMM_FLE_SYS_NM,
+                CMM_FLE_ATT_SIZE,
+                CMM_FLE_ATT_EXT,
+                CMM_FLE_DW_CNT,
+                CMM_FLE_SORT,
+                CMM_FLE_USE_YN,
+                CMM_FLE_REG_DT,
+                CMM_FLE_REG_ID,
+                CMN_FLE_ALT_TXT
+            )
+        VALUES
+            (
+                SEQ_CMM_FLE_IDX.NEXTVAL,
+                #{CMM_FLE_TB_NM},
+                #{CMM_FLE_TB_PK},
+                #{CMM_FLE_TB_TYPE},
+                #{CMM_FLE_SYS_PATH},
+                #{CMM_FLE_ATT_PATH},
+                #{CMM_FLE_ORG_NM},
+                #{CMM_FLE_SYS_NM},
+                #{CMM_FLE_ATT_SIZE},
+                #{CMM_FLE_ATT_EXT},
+                0,
+                (
+                SELECT 
+                    NVL(MAX(CMM_FLE_SORT), 0) + 1 
+                FROM 
+                    T_CMM_FLE 
+                WHERE 
+                    CMM_FLE_USE_YN = 'Y' 
+                    AND CMM_FLE_TB_NM = #{CMM_FLE_TB_NM} 
+                    AND CMM_FLE_TB_PK = #{CMM_FLE_TB_PK}
+                ),
+                NVL(#{CMM_FLE_USE_YN}, 'N'),
+                TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+                #{CMM_FLE_REG_ID},
+                #{CMN_FLE_ALT_TXT}
+            )
+    </insert>
+    
+    <!-- 첨부파일 대체 텍스트 수정 -->
+    <update id="updateCommonFileAltText" parameterType="HashMap">
+        /* PcCommon.updateCommonFileAltText */
+        UPDATE 
+            T_CMM_FLE
+        SET
+            CMN_FLE_ALT_TXT = #{CMN_FLE_ALT_TXT_OLD}
+        WHERE
+            CMM_FLE_IDX = #{CMN_FLE_ALT_TXT_IDX}
+    </update>
+    
+    <!-- 첨부파일 다운로드 수 증가 -->
+    <update id="updateCommonFileDownCount" parameterType="HashMap">
+        /* PcCommon.updateCommonFileCount */
+        UPDATE 
+            T_CMM_FLE
+        SET
+            CMM_FLE_DW_CNT = NVL(CMM_FLE_DW_CNT, 0) + 1
+        WHERE
+            CMM_FLE_IDX = #{CMM_FLE_IDX}
+    </update>
+    
+    <!-- 첨부파일 사용 유무 변경 -->
+    <update id="deleteCommonFile" parameterType="HashMap">
+        /* PcCommon.deleteCommonFile */
+       UPDATE 
+            T_CMM_FLE
+       SET
+            CMM_FLE_USE_YN = 'N'
+       WHERE CMM_FLE_IDX = #{CMM_FLE_IDX}
+    </update>
+    
+    <!-- 우편번호, 광역시도별 시군구 조회 -->
+    <select id="selectZipcodeSigunguList" parameterType="HashMap" resultType="HashMap">
+    	/* PcCommon.selectZipcodeSigunguList */
+    	SELECT
+    		SIGUNGU
+    	FROM T_CMM_ZIP
+    	WHERE SIDO = #{SIDO}
+			GROUP BY SIGUNGU
+			ORDER BY SIGUNGU
+    </select>
+    
+    
+    <!-- 우편번호 검색조건 - 도로명 -->
+    <sql id="commonZipCodeWhere">
+        <if test="searchType != null and searchType != ''">
+            <if test="searchType.equals('DORO'.toString())">
+                AND SIDO = #{searchSido}
+                AND SIGUNGU = #{searchSigungu}
+                <choose>
+                    <when test="searchType2 != null and searchType2.equals('DORO'.toString())">
+                        AND ( DORO LIKE '%' || #{searchWord} || '%' OR UPPER(BLDNAME) LIKE '%' || UPPER(#{searchWord}) || '%' )                        
+                    </when>
+                    <when test="searchType2 != null and searchType2.equals('JIBUN'.toString())">
+                        AND ( LI LIKE #{searchWord} || '%' OR DONG LIKE #{searchWord} || '%' OR MYUN LIKE #{searchWord} || '%' )
+                        AND JIBUN1 = #{searchJibun1}    
+                        <if test="searchJibun2 != null and searchJibun2 != ''">
+                            AND JIBUN2 = #{searchJibun2}
+                        </if>
+                    </when>
+                </choose>                
+            </if>
+        </if>
+    </sql>
+    
+    <!-- 우편번호 검색조건 - 지번 -->
+    <sql id="commonZipCodeJibunWhere">
+        <if test="searchType != null and searchType != ''">
+            <if test="searchType != 'DORO'">
+                AND SIDO = #{searchSido}
+                AND ( MYUN LIKE #{searchWord} || '%' OR LI LIKE #{searchWord} || '%' OR DONG LIKE #{searchWord} || '%' OR UPPER(BLDNAME) LIKE  '%' || UPPER(#{searchWord}) || '%' )
+            </if>
+        </if>
+    </sql>
+    
+    <!-- 우편번호 검색 목록 갯수 -->
+    <select id="selectCommonZipCodeListCount" parameterType="HashMap" resultType="Integer">
+        /* PcCommon.selectCommonZipCodeListCount */
+        SELECT
+            COUNT(1)
+        FROM
+            T_CMM_ZIP
+        WHERE
+            1=1
+        <if test="searchType != null and searchType != ''">
+            <choose>
+                <when test="searchType.equals('DORO'.toString())">
+                    <include refid="commonZipCodeWhere"/>
+                </when>
+                <when test="!searchType.equals('DORO'.toString())">
+                    <include refid="commonZipCodeJibunWhere"/>
+                </when>
+            </choose>
+        </if>
+        
+        <include refid="commonZipCodeWhere"/>
+    </select>
+    
+    <!-- 우편번호 검색 목록 - 도로명  -->
+    <select id="selectCommonZipCodeList" parameterType="HashMap" resultType="HashMap">
+    	<![CDATA[
+        /* PcCommon.selectCommonZipCodeList */
+		SELECT
+			ZIP,
+            SIDO,
+            SIGUNGU,
+            NVL(MYUN,'') MYUN,
+            DORO,
+            DORONUM1,
+            DORONUM2,
+            NVL(BLDNAME,'') BLDNAME,
+            DONG,
+            NVL(LI,'') LI,
+            SAN,
+            JIBUN1,
+            JIBUN2,
+            REPLACE(
+	            SIDO || ' '|| SIGUNGU ||' '|| MYUN ||' '|| DORO ||' '|| DORONUM1 ||
+	            CASE WHEN DORONUM2 <> '0' THEN '-'||DORONUM2 ELSE '' END  ||
+	            ' '|| '(' || DONG || 
+	            CASE WHEN SAN <> '0' THEN ' 산' ELSE ' ' END || 
+	            JIBUN1 ||
+	            CASE WHEN JIBUN2 <> '0' THEN '-'||JIBUN2 ELSE '' END ||
+	            CASE WHEN LENGTH(NVL(BLDNAME,'')) >0 THEN ', '  ||BLDNAME ELSE '' END ||
+	            ')'
+            , '  ', ' ')
+            AS ADDR
+        FROM
+            T_CMM_ZIP
+        WHERE
+            1=1
+        ]]>
+            <include refid="commonZipCodeWhere"/>
+        ORDER BY ZIP, SIDO, SIGUNGU, MYUN, DORO, TO_NUMBER(DORONUM1), TO_NUMBER(DORONUM2) ASC
+    </select>
+    
+    <!-- 우편번호 검색 목록 - 지번   -->
+    <select id="selectCommonZipCodeJibunList" parameterType="HashMap" resultType="HashMap">
+    	<![CDATA[
+        /* PcCommon.selectCommonZipCodeJibunList */
+        SELECT
+            ZIP,
+            SIDO,
+            SIGUNGU,
+            NVL(MYUN,'') MYUN,
+            NVL(BLDNAME,'') BLDNAME,
+            DONG,
+            NVL(LI,'') LI,
+            SAN,
+            JIBUN1,
+            JIBUN2,
+            ADDR
+        FROM
+            T_CMM_ZIP_JIBUN
+        WHERE
+            1=1
+        ]]>
+            <include refid="commonZipCodeJibunWhere"/>
+        ORDER BY SIDO, SIGUNGU, MYUN, DONG, LI, TO_NUMBER(JIBUN1), TO_NUMBER(JIBUN2)
+    </select>
+    
+    <!-- 카드 이벤트 안내 리스트 -->
+	<select id="selectCardBoardList" parameterType="HashMap" resultType="HashMap">
+		/* PcCommon.selectCardBoardList */
+    	SELECT
+            BRD_CAR_IDX
+            , BRD_CMN_COM_IDX
+            , CMN_COM_NM AS BRD_CMN_COM_NM         
+            , BRD_CAR_TITLE            
+            , BRD_CAR_CONTENTS
+            , BRD_CAR_USE_YN 
+            , FL.CMN_FLE_ALT_TXT
+            , FL.CMM_FLE_ATT_PATH
+          	, FL.CMM_FLE_SYS_NM
+          	, BRD_CAR_BRAND_CD
+        FROM T_BRD_CAR CAR, T_CMM_COM COM, T_CMM_FLE FL        
+        WHERE CAR.BRD_CMN_COM_IDX = COM.CMN_COM_IDX
+        AND CAR.BRD_CAR_IDX = FL.CMM_FLE_TB_PK
+        AND FL.CMM_FLE_TB_NM =  'T_BRD_CAR'       	
+       	AND FL.CMM_FLE_USE_YN='Y'
+        AND BRD_CAR_USE_YN = 'Y'
+        AND BRD_CAR_BRAND_CD = #{BRD_CAR_BRAND_CD}
+        ORDER BY CMN_COM_SORT
+    </select>
+    
+    <!-- 카드 이벤트 안내 상세 -->    
+    <select id="selectCardBoardInfo" parameterType="HashMap" resultType="HashMap">
+    	/* PcCommon.selectCardBoardInfo */
+    	SELECT
+            BRD_CAR_IDX
+            , BRD_CAR_TITLE
+            , BRD_CAR_CONTENTS
+        FROM T_BRD_CAR CAR
+        WHERE        
+        BRD_CAR_IDX = #{BRD_CAR_IDX}
+    </select>
+    
+    <resultMap id="resultPopupListInfo" type="HashMap">
+        <result property="POP_MST_IDX" column="POP_MST_IDX"/>
+        <result property="POP_MST_TITLE" column="POP_MST_TITLE"/>
+        <result property="POP_MST_X" column="POP_MST_X"/>  
+        <result property="POP_MST_Y" column="POP_MST_Y"/>           
+        <result property="POP_MST_W" column="POP_MST_W"/>
+        <result property="POP_MST_H" column="POP_MST_H"/>
+        <result property="POP_MST_DAY_YN" column="POP_MST_DAY_YN"/>
+        <result property="POP_MST_TYP" column="POP_MST_TYP"/>
+        <result property="POP_MST_IMG_TXT" column="POP_MST_IMG_TXT"/>
+        <result property="POP_MST_LNK" column="POP_MST_LNK"/>
+        <result property="POP_MST_MDE" column="POP_MST_MDE"/>
+        <result property="POP_MST_CNT" column="POP_MST_CNT" jdbcType="CLOB" javaType="java.lang.String"/>
+    </resultMap>
+    <!--  팝업 목록  -->
+    <select id="selectPopupList" parameterType="hashMap" resultMap="resultPopupListInfo">
+        /* PcCommon.selectPopupList */
+        SELECT
+        	S2.*
+        FROM (
+		        SELECT ROWNUM AS RNUM
+		        	, S1.*
+		        FROM 
+				     (
+				        SELECT PMT.POP_MST_IDX
+					          , PMT.POP_MST_TITLE
+					          , PMT.POP_MST_X
+					          , PMT.POP_MST_Y
+					          , PMT.POP_MST_W
+					          , PMT.POP_MST_H
+					          , PMT.POP_MST_DAY_YN
+					          , PMT.POP_MST_TYP
+					          , PMT.POP_MST_IMG_TXT
+					          , PMT.POP_MST_LNK
+					          , PMT.POP_MST_MDE
+					          , PMT.POP_MST_CNT
+						FROM T_POP_MST PMT
+						WHERE 1=1
+						AND PMT.POP_MST_USE_YN = 'Y'
+						AND PMT.POP_MST_CHN_GBN = #{PRD_CTG_ENV}
+					    AND TO_CHAR(SYSDATE,'YYYYMMDDHH24MI') BETWEEN PMT.POP_MST_ST_DT||PMT.POP_MST_ST_HH||PMT.POP_MST_ST_MI AND PMT.POP_MST_ED_DT||PMT.POP_MST_ED_HH||PMT.POP_MST_ED_MI
+						ORDER BY POP_MST_REG_DT DESC
+					) S1
+				)S2
+            <if test="RNUM != null and RNUM != ''">
+                WHERE RNUM <![CDATA[<]]> #{RNUM} 
+            </if>
+    </select>
+    
+    <resultMap id="resultPopupInfo" type="HashMap">
+        <result property="POP_MST_IDX" column="POP_MST_IDX"/>
+        <result property="POP_MST_TITLE" column="POP_MST_TITLE"/>
+        <result property="POP_MST_X" column="POP_MST_X"/>  
+        <result property="POP_MST_Y" column="POP_MST_Y"/>           
+        <result property="POP_MST_W" column="POP_MST_W"/>
+        <result property="POP_MST_H" column="POP_MST_H"/>
+        <result property="POP_MST_DAY_YN" column="POP_MST_DAY_YN"/>
+        <result property="POP_MST_TYP" column="POP_MST_TYP"/>
+        <result property="POP_MST_IMG_TXT" column="POP_MST_IMG_TXT"/>
+        <result property="POP_MST_LNK" column="POP_MST_LNK"/>
+        <result property="POP_MST_MDE" column="POP_MST_MDE"/>
+        <result property="POP_MST_CNT" column="POP_MST_CNT" jdbcType="CLOB" javaType="java.lang.String"/>
+    </resultMap>
+    <!-- 팝업 상세 -->
+    <select id="selectPopupInfo" parameterType="hashMap" resultMap="resultPopupInfo">
+        <![CDATA[
+        /* PcCommon.selectPopupInfo */
+        SELECT PMT.POP_MST_IDX
+	          , PMT.POP_MST_TITLE
+	          , PMT.POP_MST_X
+	          , PMT.POP_MST_Y
+	          , PMT.POP_MST_W
+	          , PMT.POP_MST_H
+	          , PMT.POP_MST_DAY_YN
+	          , PMT.POP_MST_TYP
+	          , PMT.POP_MST_IMG_TXT
+	          , PMT.POP_MST_LNK
+	          , PMT.POP_MST_MDE
+	          , PMT.POP_MST_CNT
+		FROM T_POP_MST PMT
+		WHERE 1=1
+		AND PMT.POP_MST_USE_YN = 'Y'
+		AND PMT.POP_MST_CHN_GBN = #{PRD_CTG_ENV}
+        AND PMT.POP_MST_IDX = #{POP_MST_IDX}
+        ]]>
+    </select>
+    
+    <!-- 메인 > 타임특가 플로팅 팝업 상세 -->
+    <select id="selectTimeSalePopup" parameterType="hashMap" resultType="HashMap">
+        /* PcCommon.selectTimeSalePopup */
+		SELECT
+			S1.PRD_MST_CD
+			,S1.DSP_MST_IDX
+			, TBM.BND_MST_BRAND_NM
+			, TPM.PRD_MST_NM
+			, FN_PRODUCT_IMG(S1.PRD_MST_CD, #{POPUP_SIZE}) PRD_IMAGE
+			, FN_PRODUCT_IMG_ALT(S1.PRD_MST_CD, #{POPUP_SIZE}) PRD_IMAGE_ALT
+			, TPM.PRD_MST_PRC
+			, CASE 
+				WHEN TTD.TIM_PRD_MST_UNT = 'R' THEN TPM.PRD_MST_PRC - (TPM.PRD_MST_PRC * (TTD.TIM_PRD_MST_SALE_RATE/100))
+				WHEN TTD.TIM_PRD_MST_UNT = 'S' THEN TPM.PRD_MST_PRC - TTD.TIM_PRD_MST_SALE_RATE
+			ELSE 0 END AS SALED_PRICE
+			, TTD.TIM_PRD_MST_SALE_RATE
+			, TTM.TAG_MST_TITLE
+			, TO_DATE(TTS.TIM_SAL_ST_DT || TTS.TIM_SAL_ST_HH || TTS.TIM_SAL_ST_MM, 'YYYYMMDDHH24MISS') AS TIM_SAL_START_TIME
+			, TO_DATE(TTS.TIM_SAL_ED_DT || TTS.TIM_SAL_ED_HH || TTS.TIM_SAL_ED_MM, 'YYYYMMDDHH24MISS') AS TIM_SAL_END_TIME
+		FROM
+			(
+				SELECT 
+					TDM.PRD_MST_CD
+					, TDM.DSP_MST_IDX
+				FROM T_DSP_MST TDM
+				WHERE TDM.DSP_MST_SRT = 0
+				AND TDM.CMN_COM_IDX = #{TIME_SALE_CMM_IDX}
+				AND TDM.DSP_MST_ENV = #{DSP_MST_ENV}
+			) S1, T_TIM_SAL TTS, T_TIM_DTL TTD, T_PRD_MST TPM, T_TAG_MST TTM, T_TAG_BND TTB , T_BND_MST TBM
+		WHERE 
+			TTS.TIM_SAL_TYPE = 'G'
+			AND TTS.TIM_SAL_IDX = TTD.TIM_SAL_IDX
+			AND S1.PRD_MST_CD = TTD.TIM_PRD_MST_CD
+			AND S1.PRD_MST_CD = TPM.PRD_MST_CD
+			AND TTB.TAG_BND_ID = TO_CHAR(TTS.TIM_SAL_IDX)
+			AND TTB.TAG_BND_TYPE = 'TYPE_TIME_SALE'
+			AND TTB.TAG_BND_REP = 'Y'
+			AND TTB.TAG_MST_ID = TTM.TAG_MST_ID
+			AND TBM.BND_MST_IDX = TPM.PRD_MST_BRD_IDX 
+    </select>
+    
+    <select id="selectGnbCategoryList" parameterType="hashMap" resultType="HashMap">
+        /* PcCommon.selectGnbCategoryList */
+        SELECT 
+            PRD_CTG_IDX
+            , PRD_CTG_NM
+            , PRD_CTG_UP_IDX
+            , PRD_CTG_LEVEL
+            , PRD_CTG_TOP_IDX
+        FROM 
+            T_PRD_CTG
+        WHERE PRD_CTG_DEL_YN != 'Y'
+        AND PRD_CTG_USE_YN = 'Y'
+        AND PRD_CTG_DSP_YN = 'Y'
+        AND
+            PRD_CTG_ENV = #{searchPrdCtgEnv}
+        AND PRD_CTG_LEVEL <![CDATA[ < ]]> 4
+        START WITH PRD_CTG_UP_IDX = -1
+        CONNECT BY PRIOR PRD_CTG_IDX = PRD_CTG_UP_IDX
+        ORDER SIBLINGS BY PRD_CTG_SORT ASC
+	</select>
+	
+	<select id="selectGnbMenuList" parameterType="hashMap" resultType="HashMap">
+        /* PcCommon.selectGnbMenuList */
+        SELECT 
+            DSP_GNB_NM
+            , DPS_GNB_DSP_URL
+        FROM 
+            T_DSP_GNB
+        WHERE DSP_GNB_USE_YN = 'Y'    
+        AND DSP_GNB_DEL_YN != 'Y'
+        AND DSP_GNB_DSP_YN = 'Y'      
+        ORDER BY DSP_GNB_SORT ASC
+	</select>
+	
+	<!-- 실시간 검색어 목록  -->
+	<select id="selectRealSearchTextList" parameterType="HashMap" resultType="HashMap">
+		/* PcCommon.selectRealSearchTextList */
+		SELECT 
+			REL_SCH_IDX,
+			REL_SCH_BRAND_CD,
+			REL_SCH_TXT
+		FROM
+			T_REL_SCH
+		ORDER BY REL_SCH_IDX ASC
+	</select>
+	
+	<!-- 퀵메뉴 > 최근 본 상품 목록 -->
+    <select id="selectRecentProductList" parameterType="HashMap" resultType="HashMap">
+    	/* PcCommon.selectRecentProductList */
+    	SELECT
+    		PRD_MST_CD
+    		,SUBSTR(FN_GET_PRODUCT_NM(PRD_MST_CD,20),0,30) || '...' AS PRD_MST_NM
+    		, FN_PRODUCT_IMG(PRD_MST_CD, #{THUMBNAIL_SIZE}) AS PRD_IMAGE
+		    , FN_PRODUCT_IMG_ALT(PRD_MST_CD, #{THUMBNAIL_SIZE}) AS PRD_IMAGE_ALT
+		    , FN_PRODUCT_LIST_PRICE(PRD_MST_CD,#{CHN_GBN},#{MEM_MST_MEM_ID}) AS PRD_MST_PRICE
+		FROM
+			T_PRD_MST
+		WHERE
+			1=1
+		AND
+			PRD_MST_CD IN
+            <foreach collection="recentProductCodeArr" item="recentProductCode" open="(" close=")" separator=",">#{recentProductCode}</foreach>
+	    ORDER BY 
+            <foreach collection="recentProductCodeArr" item="recentProductCode" separator=",">
+                DECODE(PRD_MST_CD,#{recentProductCode}, 'A', 'B') ASC
+            </foreach>
+    </select>    
+    
+    <select id="selectIpCheckCount" parameterType="hashMap" resultType="Integer">
+    	/* PcCommon.selectIpCheckCount */
+    	
+    	SELECT COUNT(LOC_INF_IP)
+    	  FROM T_LOC_INF
+		 WHERE LOC_INF_IP		= #{remoteIp}    	  
+    </select>   
+        
+	<select id="selectIpLocationInfo" parameterType="hashMap" resultType="hashMap">
+		/* PcCommon.selectIpLocationInfo */
+		SELECT S3.*
+		  	 , (SELECT WTH_MST_KOR FROM T_WTH_MST WHERE WTH_MST_IDX = S3.CTY_WTH_WCD) AS WTH_MST_KOR
+		  	 , (SELEcT WTH_MST_ICO_NO FROM T_WTH_MST WHERE WTH_MST_IDX = S3.CTY_WTH_WCD) AS WTH_MST_ICO_NO
+		  	 , S3.MM || '월 ' || S3.DD || '일' TODAY
+		  FROM ( 
+				SELECT S2.*
+					 , ROWNUM AS RNUM
+				  FROM (       
+						SELECT S1.CTY_SDO_NM
+							 , S1.CTY_GGU_NM 
+							 , ROUND(WTH.CTY_WTH_CTM,0) CTY_WTH_CTM
+							 , WTH.CTY_WTH_ICO
+							 , TO_CHAR(SYSDATE, 'MM') AS MM
+							 , TO_CHAR(SYSDATE, 'DD') AS DD
+							 , WTH.CTY_WTH_IDX
+						 	 , WTH.CTY_WTH_DSC
+						 	 , WTH.CTY_WTH_WCD
+						  FROM T_CTY_WTH WTH
+						  	 , (SELECT CRD.CTY_CRD_IDX
+						  	 		 , CRD.CTY_SDO_NM
+						  	 		 , CRD.CTY_GGU_NM
+						  	 	  FROM T_CTY_CRD CRD
+									 , T_LOC_INF LOC
+								 WHERE CRD.CTY_SDO_NM = LOC.LOC_CTY_SDO_NM
+								   AND CRD.CTY_GGU_NM = LOC.LOC_CTY_GGU_NM
+								   AND LOC.LOC_INF_IP = #{remoteIp}
+								) S1
+						 WHERE WTH.CTY_CRD_IDX = S1.CTY_CRD_IDX 
+						 ORDER BY CTY_WTH_IDX DESC 
+						) S2
+				) S3						
+		 WHERE S3.RNUM = 1
+	</select>      
+	
+	<insert id="insertLocationIp" parameterType="hashMap">
+		/* PcCommon.insertLocationIp */
+		
+		INSERT 
+		  INTO T_LOC_INF	(	  LOC_INF_IP
+		  						, LOC_INF_ADR
+		  						, LOC_INF_REG_DT
+		  						, LOC_CTY_SDO_NM
+		  						, LOC_CTY_GGU_NM
+		  					)
+		VALUES				(	  #{remoteIp}
+								, #{LOC_INF_ADR}
+								, TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS')
+								, #{CTY_SDO_NM}
+								, #{CTY_GGU_NM} 
+							)		  					
+	</insert>
+	
+	<select id="selectAppIntroBannerList" parameterType="HashMap" resultType="HashMap">
+		/* PcCommon.selectAppIntroBannerList */
+		 SELECT 
+		 	(SELECT CMN_COM_ETC2 FROM T_CMM_COM WHERE CMN_COM_IDX = S2.CMN_COM_IDX) AS BANNER_SIZE,
+		 	(SELECT CMM_FLE_ATT_PATH || CMM_FLE_SYS_NM FROM T_CMM_FLE TCF WHERE S2.BNR_MST_IDX = TCF.CMM_FLE_TB_PK  AND TCF.CMM_FLE_TB_NM =  'T_BNR_MST' AND TCF.CMM_FLE_USE_YN='Y') AS IMG_URL,
+		 	BNR_MST_URL
+		 FROM ( SELECT CMN_COM_IDX,
+		                 BNR_MST_IDX,
+		                 BNR_MST_URL,
+		                 ROW_NUMBER( ) OVER (PARTITION BY CMN_COM_IDX ORDER BY ORD) as RN
+		            from ( SELECT CMN_COM_IDX,
+		                          BNR_MST_IDX,
+		                          BNR_MST_URL,
+		                          ROUND(DBMS_RANDOM.VALUE (100,999),0) ORD
+		                     FROM T_BNR_MST BM
+		                    WHERE 1 = 1
+		                      AND EXISTS
+                   					(
+                   						SELECT CMN_COM_IDX FROM T_CMM_COM TCC WHERE TCC.CMN_COM_UP_IDX = '2757' AND BM.CMN_COM_IDX = TCC.CMN_COM_IDX
+                   					)                
+		                      AND BM.BNR_MST_ENV = 'M'
+		                      AND BM.BNR_MST_USE_YN = 'Y'
+		                      AND TO_CHAR(SYSDATE,'YYYYMMDDYYYYMMDDHH24MISS') BETWEEN BM.BNR_MST_ST_DT || BM.BNR_MST_ST_HH || BM.BNR_MST_ST_MM
+		                      AND BM.BNR_MST_ED_DT || BM.BNR_MST_ED_HH || BM.BNR_MST_ED_MM
+		                  ) S1
+		                   ) S2
+		  where RN <![CDATA[ < ]]> 2
+	</select>
+	
+	<select id="selectCodeUpInfo" parameterType="hashMap" resultType="hashMap">
+		/* PcCommon.selectCodeUpInfo */
+		
+		 SELECT CMN_COM_IDX
+			  , CMN_COM_NM
+			  , CMN_COM_UP_IDX
+			  , CMN_COM_TOP_IDX
+			  , (SELECT CMN_COM_NM FROM T_CMM_COM WHERE CMN_COM_IDX = COM.CMN_COM_UP_IDX) CMN_COM_UP_IDX_NM
+		   FROM T_CMM_COM COM
+		  WHERE CMN_COM_IDX = #{COM_CMN_IDX}
+		
+	</select>
+	
+	<update id="updateLocationIp" parameterType="hashMap">
+		/* PcCommon.updateLocationIp */
+		
+		UPDATE T_LOC_INF
+		   SET LOC_INF_ADR		= #{LOC_INF_ADR}
+			 , LOC_CTY_SDO_NM	= #{CTY_SDO_NM}
+			 , LOC_CTY_GGU_NM	= #{CTY_GGU_NM}
+		 WHERE LOC_INF_IP		= #{remoteIp}  			 
+	</update>
+	
+	<select id="selectIpYongsanTopInfo" parameterType="hashMap" resultType="hashMap">
+		/* PcCommon.selectIpYongsanTopInfo */
+		
+		SELECT S3.*
+		  	 , (SELECT WTH_MST_KOR FROM T_WTH_MST WHERE WTH_MST_IDX = S3.CTY_WTH_WCD) AS WTH_MST_KOR
+		  	 , (SELEcT WTH_MST_ICO_NO FROM T_WTH_MST WHERE WTH_MST_IDX = S3.CTY_WTH_WCD) AS WTH_MST_ICO_NO
+		  FROM ( 
+				SELECT S2.*
+					 , ROWNUM AS RNUM
+				  FROM (       
+						SELECT S1.CTY_SDO_NM
+							 , S1.CTY_GGU_NM 
+							 , ROUND(WTH.CTY_WTH_CTM,0) CTY_WTH_CTM
+							 , WTH.CTY_WTH_ICO
+							 , TO_CHAR(SYSDATE, 'YYYY.MM.DD') AS TODAY
+							 , WTH.CTY_WTH_IDX
+						 	 , WTH.CTY_WTH_DSC
+						 	 , WTH.CTY_WTH_WCD
+						  FROM T_CTY_WTH WTH
+						  	 , (SELECT CRD.CTY_CRD_IDX
+						  	 		 , CRD.CTY_SDO_NM
+						  	 		 , CRD.CTY_GGU_NM
+						  	 	  FROM T_CTY_CRD CRD
+									 , T_LOC_INF LOC
+								 WHERE CRD.CTY_SDO_NM = LOC.LOC_CTY_SDO_NM
+								   AND CRD.CTY_GGU_NM = LOC.LOC_CTY_GGU_NM
+					/* 			   AND LOC.LOC_INF_IP = #{remoteIp}		나중에 용산 아이피로 대체 */
+								) S1
+						 WHERE WTH.CTY_CRD_IDX = S1.CTY_CRD_IDX 
+						 ORDER BY CTY_WTH_IDX DESC 
+						) S2
+				) S3						
+		 WHERE S3.RNUM = 1 
+	</select>
+</mapper>

@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="ko" dir="ltr">
+    <head>
+        <meta charset="utf-8">
+        <title></title>
+		<link href="http://bo.marketplanta.epasscni.com:8080/am/css/font-awesome.css" rel="stylesheet">
+		<link rel="stylesheet" href="http://bo.marketplanta.epasscni.com:8080/am/css/import.css">
+        <link rel="stylesheet" href="style.css">
+		<script src="http://bo.marketplanta.epasscni.com:8080/am/js/vendor/modernizr-2.6.2-respond-1.1.0.min.js"></script>
+		<script src="http://bo.marketplanta.epasscni.com:8080/am/js/vendor/jquery-1.11.2.min.js"></script>
+    </head>
+    <body><!-- body class, 중요 -->
+
+    <div id="header"><!-- header -->
+        <div id="top" class="container" style="background: #414547 url('/am/img/bg_head.png') no-repeat center top;"><!-- top -->
+            <div class="wrap">
+                <div class="menu"><!-- menu -->
+                    <div id="togglerAside" class="toggler left">
+                        <a href="#!" class="js-toggle-nav" data-class="is-aside-in" data-lg-class="is-aside-out">
+                            <i class="fonti um-fog on"><em>메뉴 펼치기</em></i>
+                            <i class="fonti um-fog off"><em>메뉴 접기</em></i>
+                        </a>
+                    </div>
+                </div><!-- // menu -->
+                <h1 class="logo">
+                    <a href="http://bo.marketplanta.epasscni.com"><img src="http://bo.marketplanta.epasscni.com/nas/cdn/logo/2c679ea5-27f8-4d4b-a2ee-0bd2e4aa2bef.png" alt="HOME" /></a>
+                </h1>
+                <div class="util"><!-- util -->
+                    <div class="col">
+                        <a href="javascript:;"><i class="fonti um-gears"><em>환경설정</em></i></a>
+                    </div>
+                    <div class="col">
+                        <a href="http://bo.marketplanta.epasscni.com/am/manager/logout.do"><i class="fonti um-sign-out"><em>로그아웃</em></i></a>
+                    </div>
+                    <div class="col">
+                        <div id="togglerQuick" class="toggler left">
+                            <a href="#!" class="js-toggle-nav" data-class="is-quick-in" data-lg-class="is-quick-out">
+                                <i class="fonti um-ellipsis-h on"><em>사용자 메뉴 펼치기</em></i>
+                                <i class="fonti um-ellipsis-v off"><em>사용자 메뉴 접기</em></i>
+                            </a>
+                        </div>
+                    </div>
+                </div><!-- // util -->
+            </div>
+        </div><!-- // top -->
+
+        <div id="gnb" class="container">
+            <div class="wrap core"></div><!-- // gnb -->
+            <div class="spacer"></div>
+        </div>
+    </div><!-- // header -->
+
+    <div id="container"><!-- container -->
+
+        <div id="aside" class="aside left"><!-- aside -->
+            <div class="holder"><!-- holder -->
+                <div id="lnb" class="container">
+                    <div class="wrap modules"><!-- modules -->
+                        <div class="title">
+
+                        </div>
+                        <div class="core"></div>
+                    </div><!-- // modules -->
+                </div>
+            </div><!-- // holder --></div><!-- // aside -->
+
+        <div id="wrapper"><!-- wrapper -->
+
+            <div id="breadcrumb"></div><!-- breadcrumb -->
+
+            <div id="contents"><!-- contents -->
+
+                <div class="container">
+
+                    <h2 class="title"><span>태그그룹 상세 | 수정</span></h2>
+
+    				<form id="searchForm" name="searchForm">
+    	                <input type="hidden" name="pageSize" value="20" />
+    	                <input type="hidden" name="cPage" value=""/>
+    	                <input type="hidden" name="searchEsmMstType" value=""/>
+    	                <input type="hidden" name="searchEsmMstMemNm" value=""/>
+    	                <input type="hidden" name="searchEsmMstMemId" value=""/>
+    	                <input type="hidden" name="searchEsmMstHp1" value=""/>
+    	                <input type="hidden" name="searchEsmMstHp2" value=""/>
+    	                <input type="hidden" name="searchEsmMstHp3" value=""/>
+    	                <input type="hidden" name="searchUseYn" value=""/>
+    	                <input type="hidden" name="searchStartDate" value=""/>
+    	                <input type="hidden" name="searchEndDate" value=""/>
+    	                <input type="hidden" name="searchYn" value=""/>
+                    </form>
+
+                    <form id="frm" name="frm">
+    	                <input type="hidden" name="pageSize" value="20" />
+    	                <input type="hidden" name="cPage" value=""/>
+    	                <input type="hidden" name="searchEsmMstType" value=""/>
+    	                <input type="hidden" name="searchEsmMstMemNm" value=""/>
+    	                <input type="hidden" name="searchEsmMstMemId" value=""/>
+    	                <input type="hidden" name="searchEsmMstHp1" value=""/>
+    	                <input type="hidden" name="searchEsmMstHp2" value=""/>
+    	                <input type="hidden" name="searchEsmMstHp3" value=""/>
+    	                <input type="hidden" name="searchUseYn" value=""/>
+    	                <input type="hidden" name="searchStartDate" value=""/>
+    	                <input type="hidden" name="searchEndDate" value=""/>
+    	                <input type="hidden" name="searchYn" value=""/>
+    	                <input type="hidden" name="ESM_MST_PRD_CHANGE_YN" id="ESM_MST_PRD_CHANGE_YN" value="Y"/>
+    	                <input type="hidden" name="ESM_MST_ADV_TYPE" id="ESM_MST_ADV_TYPE" value="1932"/>
+    	                <input type="hidden" name="ESM_MST_QST_TYPE" id="ESM_MST_QST_TYPE" value=""/>
+    	                <input type="hidden" name="EMS_MST_OPN_YN" id="EMS_MST_OPN_YN" value="Y"/>
+
+    	                <table cellspacing="0" class="table-row table-a"><!-- table -->
+    	                    <colgroup>
+    	                        <col style="width: 15%; min-width: 180px;" />
+    	                        <col style="width: auto;" />
+    	                    </colgroup>
+    	                    <tbody>
+    	                        <tr><!-- row -->
+    	                            <th><span>태그 그룹명 <i class="require"><em>필수입력</em></i></span></th>
+    	                            <td>
+                                        <input type="text" name="ESM_MST_MEM_NM" id="ESM_MST_MEM_NM" class="text" placeholder="태그 그룹명 설명"/>
+    	                       	    </td>
+    	                        </tr>
+                                <tr><!-- row -->
+    	                            <th><span>태그 그룹 설명</span></th>
+    	                            <td>
+                                        <input type="text" name="ESM_MST_MEM_NM" id="ESM_MST_MEM_NM" class="text xlarge" placeholder="태그 그룹 설명 입력"/>
+    	                       	    </td>
+    	                        </tr>
+    	                        <tr><!-- row -->
+    	                            <th><span>사용설정 <i class="require"><em>필수입력</em></i></span></th>
+    	                            <td>
+    	                                <input type="radio" class="radio" name="ESM_MST_USE_YN" id="ESM_MST_USE_YN1" value="Y" checked=true />
+    		                            <label for="ESM_MST_USE_YN1">사용</label>
+    		                            <input type="radio" class="radio" name="ESM_MST_USE_YN" id="ESM_MST_USE_YN2" value="N" />
+    		                            <label for="ESM_MST_USE_YN2">미사용</label>
+    	                            </td>
+    	                        </tr>
+    	                        <tr>
+    								<th><span>등록태그<i class="require"><em>필수입력</em></i> <br />(29)</span></th>
+    								<td>
+                                        <ul class="tag_list">
+                                            <li>#오버핏<button type="button" class="btn_del">X</button></li>
+                                            <li>#신상품<button type="button" class="btn_del">X</button></li>
+                                            <li>#빈티지<button type="button" class="btn_del">X</button></li>
+                                            <li>#거울셀카<button type="button" class="btn_del">X</button></li>
+                                            <li>#streetstyle<button type="button" class="btn_del">X</button></li>
+                                            <li>#루즈핏<button type="button" class="btn_del">X</button></li>
+                                            <li>#고상한<button type="button" class="btn_del">X</button></li>
+                                            <li>#신상품1<button type="button" class="btn_del">X</button></li>
+                                            <li>#가을신상<button type="button" class="btn_del">X</button></li>
+                                            <li>#데일리룩<button type="button" class="btn_del">X</button></li>
+                                            <li>#ootd<button type="button" class="btn_del">X</button></li>
+                                            <li>#비오는날<button type="button" class="btn_del">X</button></li>
+                                            <li>#상큼한<button type="button" class="btn_del">X</button></li>
+                                            <li>#가을여행<button type="button" class="btn_del">X</button></li>
+                                            <li>#오버핏1<button type="button" class="btn_del">X</button></li>
+                                            <li>#신상품2<button type="button" class="btn_del">X</button></li>
+                                            <li>#빈티지1<button type="button" class="btn_del">X</button></li>
+                                            <li>#거울셀카1<button type="button" class="btn_del">X</button></li>
+                                            <li>#streetstyle1<button type="button" class="btn_del">X</button></li>
+                                            <li>#루즈핏1<button type="button" class="btn_del">X</button></li>
+                                            <li>#고상한1<button type="button" class="btn_del">X</button></li>
+                                            <li>#신상품3<button type="button" class="btn_del">X</button></li>
+                                            <li>#가을신상<button type="button" class="btn_del">X</button></li>
+                                            <li>#데일리룩1<button type="button" class="btn_del">X</button></li>
+                                            <li>#ootd<button type="button" class="btn_del">X</button></li>
+                                            <li>#비오는날1<button type="button" class="btn_del">X</button></li>
+                                            <li>#상큼한<button type="button" class="btn_del">X</button></li>
+                                            <li>#가을여행<button type="button" class="btn_del">X</button></li>
+                                        </ul>
+    								</td>
+    							</tr>
+    	                        <tr><!-- row -->
+    	                            <th><span>태그선택</span><a href="#none" class="button button-a small chk_reset">초기화</a></th>
+    								<td>
+                                        <div class="field tag_chk_con">
+                                            <input type="checkbox" name="tag_chk" value="tag_chk" id="tag_chk1">
+                                            <label for="tag_chk1">오버핏</label>
+                                            <input type="checkbox" name="tag_chk" value="tag_chk" id="tag_chk2">
+                                            <label for="tag_chk2">전신샷</label>
+                                            <input type="checkbox" name="tag_chk" value="tag_chk" id="tag_chk3">
+                                            <label for="tag_chk3">ootd</label>
+                                            <input type="checkbox" name="tag_chk" value="tag_chk" id="tag_chk4">
+                                            <label for="tag_chk4">오늘코디</label>
+                                            <input type="checkbox" name="tag_chk" value="tag_chk" id="tag_chk5">
+                                            <label for="tag_chk5">신상룩</label>
+                                            <input type="checkbox" name="tag_chk" value="tag_chk" id="tag_chk6">
+                                            <label for="tag_chk6">패션피플</label>
+                                            <input type="checkbox" name="tag_chk" value="tag_chk" id="tag_chk7">
+                                            <label for="tag_chk7">여친룩</label>
+                                            <input type="checkbox" name="tag_chk" value="tag_chk" id="tag_chk8">
+                                            <label for="tag_chk8">스포츠</label>
+                                            <input type="checkbox" name="tag_chk" value="tag_chk" id="tag_chk9">
+                                            <label for="tag_chk9">멋남</label>
+                                            <input type="checkbox" name="tag_chk" value="tag_chk" id="tag_chk10">
+                                            <label for="tag_chk10">신상품</label>
+                                            <input type="checkbox" name="tag_chk" value="tag_chk" id="tag_chk11">
+                                            <label for="tag_chk11">멋스타그램</label>
+                                            <input type="checkbox" name="tag_chk" value="tag_chk" id="tag_chk12">
+                                            <label for="tag_chk12">오늘옷</label>
+                                            <input type="checkbox" name="tag_chk" value="tag_chk" id="tag_chk13">
+                                            <label for="tag_chk13">패션인스타</label>
+                                            <input type="checkbox" name="tag_chk" value="tag_chk" id="tag_chk14">
+                                            <label for="tag_chk14">내옷</label>
+                                            <input type="checkbox" name="tag_chk" value="tag_chk" id="tag_chk15">
+                                            <label for="tag_chk15">여행코디</label>
+                                            <input type="checkbox" name="tag_chk" value="tag_chk" id="tag_chk16">
+                                            <label for="tag_chk16">시선강탈</label>
+                                            <input type="checkbox" name="tag_chk" value="tag_chk" id="tag_chk17">
+                                            <label for="tag_chk17">가을신상</label>
+                                            <input type="checkbox" name="tag_chk" value="tag_chk" id="tag_chk18">
+                                            <label for="tag_chk18">streetstyle</label>
+                                            <input type="checkbox" name="tag_chk" value="tag_chk" id="tag_chk19">
+                                            <label for="tag_chk19">패션인스타</label>
+                                            <input type="checkbox" name="tag_chk" value="tag_chk" id="tag_chk20">
+                                            <label for="tag_chk20">일상코디</label>
+                                            <input type="checkbox" name="tag_chk" value="tag_chk" id="tag_chk21">
+                                            <label for="tag_chk21">데일리패션</label>
+                                            <input type="checkbox" name="tag_chk" value="tag_chk" id="tag_chk22">
+                                            <label for="tag_chk22">착샷</label>
+                                            <input type="checkbox" name="tag_chk" value="tag_chk" id="tag_chk23">
+                                            <label for="tag_chk23">공항룩</label>
+                                            <input type="checkbox" name="tag_chk" value="tag_chk" id="tag_chk24">
+                                            <label for="tag_chk24">20대코디</label>
+                                            <input type="checkbox" name="tag_chk" value="tag_chk" id="tag_chk25">
+                                            <label for="tag_chk25">코디</label>
+                                            <input type="checkbox" name="tag_chk" value="tag_chk" id="tag_chk26">
+                                            <label for="tag_chk26">인스타룩</label>
+                                            <input type="checkbox" name="tag_chk" value="tag_chk" id="tag_chk27">
+                                            <label for="tag_chk27">상큼한</label>
+                                            <input type="checkbox" name="tag_chk" value="tag_chk" id="tag_chk28">
+                                            <label for="tag_chk28">오오티디</label>
+                                            <input type="checkbox" name="tag_chk" value="tag_chk" id="tag_chk29">
+                                            <label for="tag_chk29">여친룩</label>
+                                            <input type="checkbox" name="tag_chk" value="tag_chk" id="tag_chk30">
+                                            <label for="tag_chk30">고상한</label>
+                                            <input type="checkbox" name="tag_chk" value="tag_chk" id="tag_chk31">
+                                            <label for="tag_chk31">청순한</label>
+                                        </div>
+    								</td>
+    	                        </tr>
+    	                    </tbody>
+    	                </table><!-- // table -->
+
+
+
+                    <div class="section-button"><!-- section-button -->
+                        <div class="wrap text-center">
+                        	<a href="#none" id="goRegist" class="button large primary"><span>저장</span></a>
+                        	<a href="#none" id="goList" class="button large"><span>목록</span></a>
+                        </div>
+                    </div><!-- // section-button -->
+                    </form>
+                </div>
+
+            </div><!-- // contents -->
+
+        </div><!-- // wrapper -->
+
+        <div id="quickmenu" class="aside right"><!-- quickmenu-->
+            <div class="holder"><!-- holder -->
+
+                <div id="quick" class="container">
+
+                    <div class="wrap modules"><!-- modules -->
+                        <ul class="core">
+                            <li class="d2 active">
+                                <a href="javascript:;" class="d2"><span>admin 님</span></a>
+                                <div class="d3 show"><!-- d3 -->
+                                    <ul class="d3">
+                                        <li class="d3">
+                                            <a href="http://bo.marketplanta.epasscni.com/am/manager/logout.do" class="d3"><span>로그아웃</span></a>
+                                        </li>
+                                    </ul>
+                                </div><!-- // d3 -->
+                            </li>
+                        </ul>
+                    </div><!-- // modules -->
+
+                </div>
+
+            </div><!-- // holder -->
+        </div><!-- // quickmenu -->
+
+    </div><!-- // container -->
+
+    <div id="footer">
+        <div id="copyrights"><!-- copyrights -->
+            <div class="container">
+                <p>
+                    Copyrights &copy; MarketPlant, co.ltd. All rights Reserved.
+                </p>
+            </div>
+        </div><!-- // copyrights -->
+    </div>
+
+<script type="text/javascript">
+
+$(document).ready(function () {
+
+    // 버튼 클릭시 삭제
+    $('.btn_del').click(function() {
+        $(this).parents('li').remove();
+    });
+
+    // 초기화 클릭시 라디오 버튼 체크 전체 해제
+    $(".chk_reset").click(function(){
+        $("input[type=checkbox]").prop("checked",false);
+    });
+});
+
+</script>
+
+<script src="/am/js/epass.base-0.3.js"></script>
+<script src="/am/js/plugins.js"></script>
+<script src="/am/js/plugins/jquery.menu-aim.js"></script>
+<script src="/am/js/plugins/nanobar.js"></script>
+<script src="/am/js/plugins/alertify.custom-0.3.11.js"></script>
+<script src="/am/js/plugins/Chart.bundle.js"></script>
+<script src="/am/js/common/jquery.cookie.js"></script>
+<script src="/am/js/epass.helper.notify-0.1.js"></script>
+<script src="/am/js/epass.modalr-0.1.js"></script>
+<!-- run -->
+<script src="/am/js/ui.nav.js"></script>
+<script src="/am/js/ui.js"></script>
+<script src="/am/js/admin.js"></script>
+<script src="/am/js/common.js"></script>
+<script src="/am/js/common/jquery.validate.js"></script>
+<!-- common -->
+<script src="http://bo.marketplanta.epasscni.com/am/js/vendor/jquery.tmpl.min.js"></script>
+
+</body>
+</html>

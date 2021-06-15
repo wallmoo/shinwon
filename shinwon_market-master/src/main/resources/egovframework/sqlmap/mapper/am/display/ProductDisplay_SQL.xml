@@ -1,0 +1,339 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="ProductDisplay">
+    
+    <!-- 전시상품관리 리스트 갯수 -->
+    <select id="selectProductDisplayListCount" parameterType="hashMap" resultType="integer">
+        /* ProductDisplay.selectProductDisplayListCount */
+        SELECT
+            COUNT(0)
+        FROM
+            T_DSP_CTG TDC, T_PRD_MST TPM
+        WHERE
+            TDC.DSP_PRD_CTG_IDX = #{CMN_COM_IDX}
+            AND TDC.DSP_PRD_MST_CD = TPM.PRD_MST_CD
+    </select> 
+    
+    <!-- 전시상품관리 리스트 조회 -->
+    <select id="selectProductDisplayList" parameterType="hashMap" resultType="hashMap">
+        /* ProductDisplay.selectProductDisplayList */
+        SELECT
+            IV1.RNUM, IV1.DSP_CTG_IDX, IV1.DSP_PRD_CTG_IDX AS CMN_COM_IDX, IV1.DSP_CTG_REG_DT, IV1.DSP_CTG_SRT, IV1.DSP_CTG_USE_YN,
+            PRD_MST_CD, PRD_MST_SEL_STATE, PRD_MST_NM, FN_PRODUCT_THUM_IMG(PRD_MST_CD) AS THUMBNAIL_IMG
+        FROM (
+            SELECT 
+              ROWNUM RNUM, A.*
+            FROM (
+                SELECT
+                    DSP_CTG_IDX, DSP_PRD_CTG_IDX, DSP_PRD_MST_CD, DSP_CTG_REG_DT, DSP_CTG_SRT, DSP_CTG_USE_YN, PM.PRD_MST_CD, PM.PRD_MST_SEL_STATE, PM.PRD_MST_NM 
+                FROM
+                 T_DSP_CTG TDC, T_PRD_MST PM
+                WHERE
+                    DSP_PRD_CTG_IDX = #{CMN_COM_IDX}
+                    AND TDC.DSP_PRD_MST_CD = PM.PRD_MST_CD
+                ORDER BY DSP_CTG_SRT ASC,DSP_CTG_REG_DT DESC, DSP_PRD_MST_CD ASC
+              ) A
+        ) IV1
+        WHERE IV1.RNUM BETWEEN #{startNum} AND #{endNum} 
+        ORDER BY IV1.RNUM      
+    </select>
+
+    <!-- 전시상품관리 상세 조회 -->
+    <select id="selectProductDisplayInfo" parameterType="hashMap" resultType="hashMap">
+        <![CDATA[
+        /* ProductDisplay.selectProductDisplayInfo */
+        SELECT
+            DSP_CTG_IDX, PM.PRD_MST_NM, DSP_PRD_CTG_IDX, DSP_CTG_USE_YN
+        FROM
+            T_PRD_MST PM, T_DSP_CTG TDC 
+        WHERE
+            DSP_CTG_IDX = #{DSP_CTG_IDX}
+            AND PM.PRD_MST_CD = TDC.DSP_PRD_MST_CD 
+        ]]>
+    </select>
+
+    <!-- 전시상품관리 등록 -->
+    <insert id="insertProductDisplay" parameterType="hashMap">
+        <selectKey keyProperty="DSP_CTG_IDX" resultType="Integer" order="BEFORE">
+            SELECT SEQ_DSP_CTG_IDX.NEXTVAL AS DSP_CTG_IDX FROM DUAL
+        </selectKey>
+        /* ProductDisplay.insertProductDisplay */
+        INSERT INTO T_DSP_CTG (
+            DSP_CTG_IDX
+            , DSP_PRD_CTG_IDX
+            , DSP_PRD_MST_CD
+            , DSP_CTG_REG_DT
+            , DSP_CTG_REG_IP
+            , DSP_CTG_REG_ID
+            , DSP_CTG_SRT
+            , DSP_CTG_USE_YN
+        ) VALUES (
+            #{DSP_CTG_IDX}
+            , #{CMN_COM_IDX}
+            , #{PRD_MST_CD}
+            , TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS')
+            , #{DSP_CTG_REG_IP}
+            , #{DSP_CTG_REG_ID}
+            , '1'
+            , 'Y'
+        )
+    </insert>
+
+    <!-- 탭별 전시상품 등록 -->
+    <insert id="insertDisplayTabProduct" parameterType="hashMap">
+        /* ProductDisplay.insertDisplayTabProduct */
+        INSERT INTO T_DSP_MST (
+            DSP_MST_IDX
+            , CMN_COM_IDX
+            , PRD_MST_CD
+            , DSP_MST_TXT
+            , DSP_MST_REG_DT
+            , DSP_MST_REG_IP
+            , DSP_MST_REG_ID
+            , DSP_MST_SRT
+            , DSP_MST_USE_YN
+        ) VALUES (
+            #{DSP_MST_IDX}
+            , #{CMN_COM_IDX}
+            , #{PRD_MST_CD}
+            , #{DSP_MST_TXT}
+            , TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS')
+            , #{DSP_MST_REG_IP}
+            , #{DSP_MST_REG_ID}
+            , #{DSP_MST_SRT}
+            , #{DSP_MST_USE_YN}
+        )
+    </insert>
+
+    <!-- 탭 상세 조회 -->
+    <select id="selectDisplayTabInfo" parameterType="hashMap" resultType="hashMap">
+        /* ProductDisplay.selectDisplayTabInfo */
+        SELECT
+            TDT.DSP_TAB_IDX
+            ,TDT.PRD_CTG_IDX
+            ,TDT.DSP_TAB_NM
+            ,TDT.DSP_TAB_TYP
+            ,TDT.DSP_TAB_USE_YN
+        FROM T_DSP_TAB TDT
+        WHERE 
+            TDT.DSP_TAB_IDX = #{DSP_TAB_IDX}
+            ORDER BY TDT.DSP_TAB_REG_DT ASC
+    </select> 
+
+    <!-- 탭별 전시상품 상세 조회 -->
+    <select id="selectProductTabDisplayInfo" parameterType="hashMap" resultType="hashMap">
+        /* ProductDisplay.selectProductTabDisplayInfo */
+        SELECT
+            TDM.DSP_MST_IDX
+            ,TDM.PRD_MST_CD
+            ,TDM.DSP_MST_REG_DT
+            ,TDT.DSP_TAB_TYP
+            ,TDT.DSP_TAB_USE_YN
+            ,TDM.DSP_MST_TXT
+            ,TPM.PRD_MST_CD
+            ,TPM.PRD_MST_SEL_STATE
+            ,TDM.DSP_MST_USE_YN
+            ,FN_PRODUCT_IMG(TPM.PRD_MST_CD, #{THUMBNAIL_SIZE}) AS PRD_IMAGE
+        FROM T_DSP_TAB TDT, T_DSP_MST TDM, T_PRD_MST TPM
+        WHERE 
+            TDT.DSP_TAB_IDX = #{DSP_TAB_IDX}
+            AND TDT.DSP_TAB_IDX = TDM.CMN_COM_IDX
+            AND TDM.PRD_MST_CD = TPM.PRD_MST_CD 
+            AND TPM.PRD_MST_CD = #{PRD_MST_CD}
+    </select> 
+
+    <!-- 전시상품관리 수정 -->
+    <delete id="deleteProductDisplay" parameterType="hashMap">
+        /* ProductDisplay.deleteProductDisplay */
+        DELETE FROM T_DSP_CTG 
+        WHERE DSP_CTG_IDX IN        
+        <foreach collection="arrDSP_CTG_IDX" item="DSP_CTG_IDX" open="(" close=")" separator=","> #{DSP_CTG_IDX}</foreach>
+    </delete>        
+    
+    <!-- 전시상품관리 대카테고리 탭 상품 삭제 -->
+    <delete id="deleteTabProductDisplay" parameterType="hashMap">
+        /* ProductDisplay.deleteTabProductDisplay */
+        DELETE FROM T_DSP_MST 
+        WHERE DSP_MST_IDX IN        
+        <foreach collection="arrDSP_MST_IDX" item="DSP_MST_IDX" open="(" close=")" separator=","> #{DSP_MST_IDX}</foreach>
+    </delete>        
+    
+    
+    
+    <!-- 공통코드 현재 포함 하위 코드 조회 -->
+    <select id="selectProductCatCodeList" parameterType="hashMap" resultType="hashMap">
+        /* ProductDisplay.selectProductCatCodeList */
+        
+        SELECT * FROM T_PRD_CTG
+		WHERE 1=1
+		AND PRD_CTG_USE_YN = 'Y'
+		AND PRD_CTG_DEL_YN <![CDATA[ <> ]]> 'Y'
+		AND PRD_CTG_DSP_YN = 'Y'
+		AND PRD_CTG_LEVEL <![CDATA[ < ]]>  4
+		START WITH PRD_CTG_IDX = #{CMN_COM_IDX}
+		CONNECT BY PRIOR PRD_CTG_UP_IDX = PRD_CTG_IDX
+		ORDER BY PRD_CTG_LEVEL ASC
+    </select>    
+    
+    <!-- 공통코드 현재 포함 하위 코드 조회 -->
+    <select id="selectSubCodeList" parameterType="hashMap" resultType="hashMap">
+        /* ProductDisplay.selectSubCodeList */
+        SELECT 
+            CMN_COM_IDX,
+            CMN_COM_NM,
+            CMN_COM_LEVEL,
+            CMN_COM_UP_IDX,
+            CMN_COM_TOP_IDX,
+            CMN_COM_ETC1,
+            CMN_COM_ETC2,
+            CMN_COM_ETC3,
+            CMN_COM_SORT,
+            CMN_COM_USE_YN,
+            CMN_COM_REG_DT,
+            CMN_COM_REG_IP,
+            CMN_COM_REG_ID,
+            CMN_COM_UPD_DT,
+            CMN_COM_UPD_IP,
+            CMN_COM_UPD_ID 
+        FROM 
+            T_CMM_COM
+        WHERE
+            CMN_COM_USE_YN = 'Y'
+        START WITH CMN_COM_UP_IDX = #{CODE}
+        CONNECT BY PRIOR CMN_COM_IDX = CMN_COM_UP_IDX
+        ORDER SIBLINGS BY CMN_COM_LEVEL, CMN_COM_SORT ASC
+    </select>
+    
+    <!-- 상품관리 정렬 순서 변경 -->
+    <update id="updateProductDisplayOrder" parameterType="hashMap">
+        /* ProductDisplay.updateProductDisplayOrder */
+        UPDATE 
+            T_DSP_CTG
+        SET
+            DSP_CTG_SRT = #{DSP_CTG_SRT},
+            DSP_CTG_USE_YN = #{DSP_CTG_USE_YN}            
+        WHERE
+            DSP_CTG_IDX = #{DSP_CTG_IDX}
+    </update>
+    
+    <!-- 상품관리 정렬 순서 변경 -->
+    <update id="updateProductDisplaySort" parameterType="hashMap">
+        /* ProductDisplay.updateProductDisplaySort */
+        UPDATE 
+            T_DSP_MST
+        SET
+            DSP_MST_SRT = DSP_MST_SRT + 1
+        WHERE
+            CMN_COM_IDX = #{CMN_COM_IDX}
+        AND
+            DSP_MST_IDX <![CDATA[ <> ]]> #{DSP_MST_IDX}
+    </update>
+    
+    <!-- 대 카테코리 탭전시 테이블 IDX 생성  -->
+    <select id="createDisplayTabIdx" resultType="HashMap">
+        SELECT SEQ_DSP_TAB_IDX.NEXTVAL AS DSP_TAB_IDX FROM DUAL
+    </select>
+    
+    <!-- 전시상품관리 테이블 IDX 생성  -->
+    <select id="createDisplayMstIdx" resultType="HashMap">
+        SELECT SEQ_DSP_MST_IDX.NEXTVAL AS DSP_MST_IDX  FROM DUAL
+    </select>
+    
+    <!-- 전시상품관리 탭 등록 -->
+    <insert id="insertDisplayTab" parameterType="hashMap">
+        /* ProductDisplay.insertDisplayTab */
+        INSERT INTO T_DSP_TAB (
+            DSP_TAB_IDX
+            , PRD_CTG_IDX
+            , DSP_TAB_USE_YN
+            , DSP_TAB_TYP
+            , DSP_TAB_NM
+			, DSP_TAB_REG_DT
+        ) VALUES (
+            #{DSP_TAB_IDX}
+            , #{PRD_CTG_IDX}
+            , #{DSP_TAB_USE_YN}
+            , #{DSP_TAB_TYP}
+            , #{DSP_TAB_NM}
+            , TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS')
+        )
+    </insert>
+    
+    <!-- 탭 리스트 조회 -->
+    <select id="selectDisplayCatTabList" parameterType="hashMap" resultType="hashMap">
+        /* ProductDisplay.selectDisplayCatTabList */
+        SELECT 
+            DSP_TAB_IDX, 
+            DSP_TAB_USE_YN, 
+            DSP_TAB_NM, 
+            DSP_TAB_TYP
+        FROM T_DSP_TAB
+        WHERE PRD_CTG_IDX = #{PRD_CTG_IDX}
+        ORDER BY DSP_TAB_TYP DESC, DSP_TAB_REG_DT ASC
+    </select>
+    
+    <!-- 전시 배너 상품 리스트 조회 -->
+    <select id="selectDisplayCatTabProductList" parameterType="hashMap" resultType="hashMap">
+        /* ProductDisplay.selectDisplayCatTabProductList */
+        SELECT 
+            TDT.DSP_TAB_IDX, 
+            TDM.DSP_MST_IDX, 
+            TDM.PRD_MST_CD, 
+            TDM.DSP_MST_REG_DT, 
+            TDT.DSP_TAB_TYP, 
+            TDM.DSP_MST_TXT, 
+            TPM.PRD_MST_SEL_STATE, 
+            TDM.DSP_MST_USE_YN, 
+            FN_PRODUCT_IMG(TPM.PRD_MST_CD, #{THUMBNAIL_SIZE}) AS PRD_IMAGE
+        FROM T_DSP_TAB TDT, T_DSP_MST TDM, T_PRD_MST TPM
+        WHERE 
+            TDT.DSP_TAB_IDX = TDM.CMN_COM_IDX
+            AND TDM.PRD_MST_CD = TPM.PRD_MST_CD
+            AND TDT.PRD_CTG_IDX = #{PRD_CTG_IDX}
+            AND TDT.DSP_TAB_IDX IN 
+            <foreach collection="DSP_TAB_IDXs" item="DSP_TAB_IDX" open="(" close=")" separator=","> #{DSP_TAB_IDX}</foreach>
+            ORDER BY DSP_TAB_TYP DESC, TDT.DSP_TAB_REG_DT ASC, TDM.DSP_MST_SRT ASC
+    </select>
+    
+    <!-- 전시 배너 탭별 상품 리스트 조회 -->
+    <select id="selectDisplayTapProductList" parameterType="hashMap" resultType="hashMap">
+        /* ProductDisplay.selectDisplayTapProductList */
+        SELECT 
+            TDT.DSP_TAB_IDX, 
+            TDM.DSP_MST_IDX, 
+            TPM.PRD_MST_CD, 
+            TDM.DSP_MST_REG_DT, 
+            TDT.DSP_TAB_TYP, 
+            TDM.DSP_MST_TXT, 
+            TPM.PRD_MST_SEL_STATE, 
+            TDM.DSP_MST_USE_YN, 
+            FN_PRODUCT_IMG(TPM.PRD_MST_CD, #{THUMBNAIL_SIZE}) AS PRD_IMAGE
+        FROM T_DSP_TAB TDT, T_DSP_MST TDM, T_PRD_MST TPM
+        WHERE 
+            TDT.DSP_TAB_IDX = #{DSP_TAB_IDX}
+            AND TDM.PRD_MST_CD = TPM.PRD_MST_CD
+            AND TDM.CMN_COM_IDX = TDT.DSP_TAB_IDX
+            ORDER BY TDT.DSP_TAB_REG_DT ASC, TDM.DSP_MST_SRT ASC
+    </select>
+    
+    <!-- 탭 삭제 -->
+    <delete id="deleteProductDisplayTab" parameterType="hashMap">
+        /* ProductDisplay.deleteProductDisplayTab */
+        DELETE FROM T_DSP_TAB 
+        WHERE DSP_TAB_IDX = #{DSP_TAB_IDX}        
+    </delete>
+    
+    <!-- 탭별 상품 수정 기능 -->
+    <update id="updateProductDisplayTab" parameterType="hashMap">
+        /* ProductDisplay.updateProductDisplayTab */
+        UPDATE 
+            T_DSP_MST
+        SET
+            DSP_MST_SRT = #{DSP_MST_SRT},
+            DSP_MST_USE_YN = #{DSP_MST_USE_YN}
+        WHERE
+            DSP_MST_IDX = #{DSP_MST_IDX}
+    </update>   
+    
+</mapper>

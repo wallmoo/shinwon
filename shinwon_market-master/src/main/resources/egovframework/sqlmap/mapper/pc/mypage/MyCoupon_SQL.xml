@@ -1,0 +1,645 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="PcMyCoupon">
+	
+	<sql id="searchWhere">
+		<![CDATA[
+			AND CPN_MST_USE_ED_DT >= to_date(#{startDt}, 'yyyy-mm-dd')
+			AND CPN_MST_USE_ST_DT <= to_date(#{endDt} || '235959', 'yyyy-mm-dd HH24MISS')
+		]]>
+	</sql>
+    
+    <!-- 프론트 > 마이페이지 > 쇼핑혜택 > 사용가능 등급쿠폰 , 특별쿠폰 갯수 -->
+    <select id="selectCouponUsableTotalCount" parameterType="hashMap" resultType="hashMap">
+    	/* PcMyCoupon.selectCouponUsableTotalCount */
+    	SELECT
+    		NVL(SUM(DECODE(CPN_MST_GBN, 'D' ,1,0)),0)	 AS CPN_GRB_CNT
+			, NVL(SUM(DECODE(CPN_MST_GBN, 'D' ,0,1)),0)	 AS CPN_OTR_CNT
+    	FROM(
+	    	SELECT 
+				CMT.CPN_MST_GBN
+				, CASE CPN_MST_ISU_DAY_GBN 
+					WHEN 'A' THEN
+						TO_DATE(CMT.CPN_MST_USE_ST_DT,'YYYYMMDDHH24MISS') 
+					ELSE
+						TO_DATE(CMM.CPN_MEM_ISU_DT,'YYYYMMDDHH24MISS')
+					END AS CPN_MST_USE_ST_DT
+				, CASE CPN_MST_ISU_DAY_GBN 
+					WHEN 'A' THEN
+						TO_DATE(CMT.CPN_MST_USE_ED_DT,'YYYYMMDDHH24MISS') 
+					WHEN 'B' THEN
+						TO_DATE(CMM.CPN_MEM_ISU_DT,'YYYYMMDDHH24MISS') + CMT.CPN_MST_USE_DAY + 1
+					ELSE
+						LAST_DAY(TO_DATE(CMM.CPN_MEM_ISU_DT,'YYYYMMDDHH24MISS')) + 1
+					END AS CPN_MST_USE_ED_DT
+			FROM T_CPN_MST CMT
+				INNER JOIN T_CPN_MEM CMM ON CMM.CPN_MST_IDX = CMT.CPN_MST_IDX
+			WHERE CMM.CPN_MEM_ID = #{MEM_MST_MEM_ID}
+				AND CMM.CPN_MEM_USE_YN = 'N'
+				AND CMT.CPN_MST_YN = 'Y'
+				AND (CMT.CPN_MST_MEM_GRD IS NULL 			/* 쿠폰 사용 가능 등급 확인(전체) */
+		 			OR CMT.CPN_MST_MEM_GRD = (				/* 쿠폰 사용 가능 등급 확인(특정 등급) */
+		 				SELECT MEM_MST_MEM_GRD 
+		 				FROM T_MEM_MST 
+		 				WHERE MEM_MST_MEM_ID = #{MEM_MST_MEM_ID}
+		 			)
+		 		)
+		)
+		WHERE 1 = 1 
+			<include refid="searchWhere" />
+    </select>
+    <!-- 프론트 > 마이페이지 > 쇼핑혜택 > 쿠폰 갯수 -->
+    <select id="selectCouponListCount" parameterType="hashMap" resultType="integer">
+        /* PcMyCoupon.selectCouponListCount */
+        SELECT COUNT(0)
+        FROM(
+        	SELECT
+	            CASE CPN_MST_ISU_DAY_GBN 
+					WHEN 'A' THEN
+						TO_DATE(CMT.CPN_MST_USE_ST_DT,'YYYYMMDDHH24MISS') 
+					ELSE
+						TO_DATE(CMM.CPN_MEM_ISU_DT,'YYYYMMDDHH24MISS')
+				END AS CPN_MST_USE_ST_DT,
+					
+				CASE CPN_MST_ISU_DAY_GBN 
+					WHEN 'A' THEN
+						TO_DATE(CMT.CPN_MST_USE_ED_DT,'YYYYMMDDHH24MISS') + 1
+					WHEN 'B' THEN
+						TO_DATE(CMM.CPN_MEM_ISU_DT,'YYYYMMDDHH24MISS') + CMT.CPN_MST_USE_DAY + 1
+					ELSE
+						LAST_DAY(TO_DATE(CMM.CPN_MEM_ISU_DT,'YYYYMMDDHH24MISS')) + 1
+				END AS CPN_MST_USE_ED_DT
+				, CPN_MEM_USE_YN
+				, CPN_MST_MEM_GRD
+	    	FROM T_CPN_MST CMT
+				JOIN T_CPN_MEM CMM ON CMM.CPN_MST_IDX = CMT.CPN_MST_IDX
+			WHERE CMM.CPN_MEM_ID = #{MEM_MST_MEM_ID}
+				<if test="CPN_MEM_USE_YN != null or CPN_MEM_USE_YN != ''">
+					<if test="CPN_MEM_USE_YN != 'ALL'">
+						AND CMM.CPN_MEM_USE_YN = #{CPN_MEM_USE_YN}
+					</if>
+				</if>
+				<if test="CPN_MST_YN != null or CPN_MST_YN != '' or CPN_MST_YN != 'ALL'">
+				AND CMT.CPN_MST_YN = 'Y'
+				</if>
+		) T1
+		WHERE 1 = 1 
+			<choose>
+			<when test="GET_USABLE != null and GET_USABLE != ''">
+				AND SYSDATE BETWEEN CPN_MST_USE_ST_DT AND CPN_MST_USE_ED_DT
+				AND (CPN_MST_MEM_GRD IS NULL 			/* 쿠폰 사용 가능 등급 확인(전체) */
+		 			OR CPN_MST_MEM_GRD = (				/* 쿠폰 사용 가능 등급 확인(특정 등급) */
+		 				SELECT MEM_MST_MEM_GRD 
+		 				FROM T_MEM_MST 
+		 				WHERE MEM_MST_MEM_ID = #{MEM_MST_MEM_ID}
+		 			)
+		 		)
+			</when>
+			<otherwise> <![CDATA[
+				AND (SYSDATE > CPN_MST_USE_ED_DT
+					OR CPN_MEM_USE_YN = 'Y') ]]>
+			</otherwise>
+			</choose>
+			<include refid="searchWhere" />
+    </select>
+
+    <!-- 프론트 > 마이페이지 > 쇼핑혜택 > 쿠폰 목록 -->
+    <select id="selectCouponList" parameterType="hashMap" resultType="hashMap">
+        /* PcMyCoupon.selectCouponList */
+		SELECT
+			S3.*
+		FROM(
+			SELECT
+				ROWNUM AS RUNM
+				, S2.*	
+				, CASE CPN_MST_ISU_DAY_GBN <![CDATA[
+					  	WHEN 'A' THEN CPN_MST_USE_ST_DT ||'~'|| CPN_MST_USE_ED_DT
+					  	WHEN 'B' THEN '발행일로부터 '||CPN_MST_USE_DAY||'일'
+					  	WHEN 'M' THEN '발행 당월말까지'
+				END]]> AS CPN_MST_USE_TXT
+			FROM(
+				SELECT
+					CPN_MST_IDX
+					, CPN_MST_GBN
+					, CPN_MST_TITLE
+					, CPN_MST_SAL_GBN
+					, CPN_MST_SAL_PRC
+					, CPN_MST_SML_PRC
+					, CPN_MST_MXM_PRC
+					, CPN_MST_TGT_GBN
+					, TO_CHAR(CPN_MST_USE_ST_DT,'YYYY-MM-DD') AS CPN_MST_USE_ST_DT
+					, TO_CHAR(CPN_MST_USE_ED_DT - 1,'YYYY-MM-DD') AS CPN_MST_USE_ED_DT
+					, CPN_MST_USE_DAY
+					, CPN_MST_GBN_Type
+					, ORDER_DAY
+					, CPN_MST_ISU_DAY_GBN
+					, CPN_MST_DLV_GBN
+					, CPN_MEM_USE_DT
+						FROM(SELECT
+								CMT.CPN_MST_IDX
+								, CMT.CPN_MST_GBN
+								, CMT.CPN_MST_TITLE
+								, CMT.CPN_MST_SAL_GBN
+								, NVL(CMT.CPN_MST_SAL_PRC,0) AS CPN_MST_SAL_PRC
+								, NVL(CMT.CPN_MST_SML_PRC,0) AS CPN_MST_SML_PRC
+								, NVL(CMT.CPN_MST_MXM_PRC,0) AS CPN_MST_MXM_PRC
+								, CMT.CPN_MST_TGT_GBN
+									
+								, CASE CMT.CPN_MST_ISU_DAY_GBN 
+									WHEN 'A' THEN
+										TO_DATE(CMT.CPN_MST_USE_ST_DT,'YYYYMMDDHH24MISS') 
+									ELSE
+										TO_DATE(CMM.CPN_MEM_ISU_DT,'YYYYMMDDHH24MISS')
+								END AS CPN_MST_USE_ST_DT
+									
+								, CASE CMT.CPN_MST_ISU_DAY_GBN 
+									WHEN 'A' THEN
+										TO_DATE(CMT.CPN_MST_USE_ED_DT,'YYYYMMDDHH24MISS') + 1
+									WHEN 'B' THEN
+										TO_DATE(CMM.CPN_MEM_ISU_DT,'YYYYMMDDHH24MISS') + CMT.CPN_MST_USE_DAY + 1
+									ELSE
+										LAST_DAY(TO_DATE(CMM.CPN_MEM_ISU_DT,'YYYYMMDDHH24MISS')) + 1
+								END AS CPN_MST_USE_ED_DT
+									
+								, NVL(CMT.CPN_MST_USE_DAY,0) CPN_MST_USE_DAY
+								, CASE CMT.CPN_MST_GBN <![CDATA[
+									  WHEN 'F' THEN 'ship'
+									  ELSE
+									  	CASE CMT.CPN_MST_SAL_GBN
+									  		WHEN 'A' THEN 'sale'
+									  		WHEN 'B' THEN 'price'
+									  	END
+									  END]]> AS CPN_MST_GBN_Type
+								, CASE CMT.CPN_MST_ISU_DAY_GBN <![CDATA[
+									  	WHEN 'A' THEN TO_DATE(TO_CHAR(TO_DATE(CMT.CPN_MST_USE_ED_DT,'YYYYMMDDHH24MISS'),'YYYYMMDD'),'YYYYMMDD') - TO_DATE(TO_CHAR(TO_DATE(TO_CHAR(SYSDATE-1,'YYYYMMDDHH24MISS'),'YYYYMMDDHH24MISS'),'YYYYMMDD'),'YYYYMMDD')
+									  	WHEN 'B' THEN CMT.CPN_MST_USE_DAY - (TO_DATE(TO_CHAR(SYSDATE, 'YYYYMMDD')) +1 - TO_DATE(TO_CHAR(TO_DATE(CMM.CPN_MEM_ISU_DT,'YYYYMMDDHH24MISS'),'YYYYMMDD'),'YYYYMMDD'))
+									  	WHEN 'M' THEN TO_DATE(TO_CHAR(LAST_DAY(TO_DATE(CMM.CPN_MEM_ISU_DT,'YYYYMMDDHH24MISS')),'YYYYMMDD')) - TO_DATE(TO_CHAR(TO_DATE(TO_CHAR(SYSDATE-1,'YYYYMMDDHH24MISS'),'YYYYMMDDHH24MISS'),'YYYYMMDD'),'YYYYMMDD')
+									  END]]> AS ORDER_DAY
+								, CMT.CPN_MST_ISU_DAY_GBN
+								, CMT.CPN_MST_DLV_GBN
+								, TO_CHAR(TO_DATE(CMM.CPN_MEM_USE_DT, 'YYYYMMDDHH24MISS'), 'YYYY-MM-DD') AS CPN_MEM_USE_DT
+								, CPN_MEM_USE_YN
+								, CPN_MST_MEM_GRD
+							FROM T_CPN_MST CMT
+								JOIN T_CPN_MEM CMM ON CMM.CPN_MST_IDX = CMT.CPN_MST_IDX
+							WHERE CMM.CPN_MEM_ID = #{MEM_MST_MEM_ID}
+								<if test="CPN_MEM_USE_YN != null or CPN_MEM_USE_YN != ''">
+									<if test="CPN_MEM_USE_YN != 'ALL'">
+										AND CMM.CPN_MEM_USE_YN = #{CPN_MEM_USE_YN}
+									</if>
+								</if>
+								<if test="CPN_MST_YN != null or CPN_MST_YN != '' or CPN_MST_YN != 'ALL'">
+								AND CMT.CPN_MST_YN = 'Y'
+								</if>
+							) S1
+						WHERE 1 = 1
+						<choose>
+						<when test="GET_USABLE != null and GET_USABLE != ''">
+							AND SYSDATE BETWEEN CPN_MST_USE_ST_DT AND CPN_MST_USE_ED_DT
+							AND (CPN_MST_MEM_GRD IS NULL 			/* 쿠폰 사용 가능 등급 확인(전체) */
+					 			OR CPN_MST_MEM_GRD = (				/* 쿠폰 사용 가능 등급 확인(특정 등급) */
+					 				SELECT MEM_MST_MEM_GRD 
+					 				FROM T_MEM_MST 
+					 				WHERE MEM_MST_MEM_ID = #{MEM_MST_MEM_ID}
+					 			)
+					 		)
+						</when>
+						<otherwise> <![CDATA[
+							AND (SYSDATE > CPN_MST_USE_ED_DT
+								OR CPN_MEM_USE_YN = 'Y') ]]>
+						</otherwise>
+						</choose>
+						<include refid="searchWhere" />
+						ORDER BY S1.ORDER_DAY ASC
+				)S2
+				WHERE 1 = 1
+		)S3
+		WHERE S3.RUNM BETWEEN #{startNum} AND #{endNum}
+		
+    </select>
+    
+    <!-- 프론트 > 마이페이지 > 쇼핑혜택 > 제휴카드 유무 -->
+    <select id="selectShpCouponInfo" parameterType="hashMap" resultType="hashMap">
+        /* PcMyCoupon.selectShpCouponInfo */
+        SELECT 
+        	COUNT(0) AS USE_CNT 
+        	, CMT.CPN_MST_IDX
+        	, (SELECT COUNT(0) FROM T_CPN_MEM WHERE CPN_MEM_ID = #{MEM_MST_MEM_ID} AND CPN_MST_IDX = CMT.CPN_MST_IDX AND CPN_PTN_SHP_NO = #{CPN_PTN_SHP_NO} ) AS MEM_CPN_CNT
+        	, (SELECT COUNT(0) FROM T_CPN_MEM WHERE CPN_MST_IDX = CMT.CPN_MST_IDX AND CPN_PTN_SHP_NO = #{CPN_PTN_SHP_NO}) AS SEND_USER_CPN_CNT
+        	, (SELECT COUNT(0) FROM T_CPN_MEM WHERE CPN_MST_IDX = CMT.CPN_MST_IDX) AS SEND_CPN_CNT
+			, CMT.CPN_MST_PTN_SHP_GBN
+			, CMT.CPN_MST_PTN_SHP_RND
+		FROM T_CPN_PTN_SHP CPS
+		INNER JOIN T_CPN_MST CMT ON CMT.CPN_MST_IDX = CPS.CPN_MST_IDX
+		WHERE CPS.CPN_PTN_SHP_NO = #{CPN_PTN_SHP_NO}
+		AND TO_CHAR(SYSDATE,'YYYYMMDDHH24MISS') BETWEEN CMT.CPN_MST_ISU_ST_DT||CMT.CPN_MST_ISU_ST_HH||CMT.CPN_MST_ISU_ST_MM AND CMT.CPN_MST_ISU_ED_DT||CMT.CPN_MST_ISU_ED_HH||CMT.CPN_MST_ISU_ED_MM
+		AND CMT.CPN_MST_YN = 'Y'
+		GROUP BY CMT.CPN_MST_IDX , CMT.CPN_MST_PTN_SHP_GBN , CMT.CPN_MST_PTN_SHP_RND
+    </select>
+    
+	<!-- 프론트 > 마이페이지 > 쇼핑혜택 > 제휴카드 등록 -->
+	<insert id="insertShpCoupon" parameterType="hashmap" >
+        /* PcMyCoupon.insertShpCoupon */
+        INSERT INTO T_CPN_MEM (
+	   		CPN_MEM_IDX, CPN_MST_IDX, CPN_MEM_ID, CPN_PTN_SHP_NO,CPN_MEM_ISU_DT, CPN_MEM_USE_DT, CPN_MEM_USE_YN
+		)VALUES (
+			SEQ_CPN_MEM_IDX.NEXTVAL, #{CPN_MST_IDX}, #{MEM_MST_MEM_ID} ,#{CPN_PTN_SHP_NO},TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'), NULL, 'N'
+		)     			
+    </insert>
+    
+    <!-- 프론트 > 마이페이지 > 쇼핑혜택 > 쿠폰등록 -->
+	<insert id="insertDwnCoupon" parameterType="hashmap" >
+        /* PcMyCoupon.insertDwnCoupon */
+        INSERT INTO T_CPN_MEM (
+	   		CPN_MEM_IDX, CPN_MST_IDX, CPN_MEM_ID, CPN_MEM_ISU_DT, CPN_MEM_USE_DT, CPN_MEM_USE_YN
+		)VALUES (
+			SEQ_CPN_MEM_IDX.NEXTVAL, #{CPN_MST_IDX}, #{MEM_MST_MEM_ID} ,TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'), NULL, 'N'
+		)     			
+    </insert>
+    
+    <!-- 프론트 > 마이페이지 > 쇼핑혜택 > 쿠폰 적용상품 카운트 -->
+    <select id="selectCouponProductCount" parameterType="hashMap" resultType="integer">
+    	SELECT 
+			COUNT(0)
+		FROM T_PRD_MST PM
+		INNER JOIN T_CPN_TGT CTT ON CTT.CPN_TGT_CD = PM.PRD_MST_CD
+		LEFT OUTER JOIN T_PRD_IMG PIG ON PM.PRD_MST_CD = PIG.PRD_PRD_MST_CD AND PIG.PRD_IMG_IDX = 0 AND PIG.PRD_IMG_ATT_SIZE = #{THUMBNAIL_SIZE}
+		WHERE CTT.CPN_MST_IDX = #{CPN_MST_IDX}
+    </select>
+    
+    <!-- 프론트 > 마이페이지 > 쇼핑혜택 > 쿠폰 적용상품 리스트 -->
+    <select id="selectCouponProductList" parameterType="hashMap" resultType="hashMap">
+        /* PcMyCoupon.selectCouponProductList */
+        SELECT
+			RUNM
+			, PRD_MST_CD
+			, PRD_MST_NM
+			, PRD_MST_PRC
+			, PRD_IMG_SYS_NM
+			, PRD_IMG_ALT_TEXT
+			, PRD_IMG_ATT_PATH
+			, PRD_MST_PRICE
+			, PRD_MST_SEL_STATE
+		FROM(	SELECT 
+					ROWNUM AS RUNM
+					, PM.PRD_MST_CD
+					, FN_GET_PRODUCT_NM(PM.PRD_MST_CD,34) AS PRD_MST_NM
+					, PM.PRD_MST_PRC
+					, PIG.PRD_IMG_SYS_NM
+					, PIG.PRD_IMG_ALT_TEXT
+					, PIG.PRD_IMG_ATT_PATH
+					, NVL(FN_PRODUCT_LIST_PRICE(PM.PRD_MST_CD,#{USER_ENV_TYPE},#{MEM_MST_MEM_ID}),0) AS PRD_MST_PRICE
+					, PM.PRD_MST_SEL_STATE
+				FROM T_PRD_MST PM
+				INNER JOIN T_CPN_TGT CTT ON CTT.CPN_TGT_CD = PM.PRD_MST_CD AND CTT.CPN_TGT_GBN = 'A'
+				LEFT OUTER JOIN T_PRD_IMG PIG ON PM.PRD_MST_CD = PIG.PRD_PRD_MST_CD AND PIG.PRD_IMG_IDX = 0 AND PIG.PRD_IMG_ATT_SIZE = #{THUMBNAIL_SIZE}
+				WHERE CTT.CPN_MST_IDX = #{CPN_MST_IDX}
+				AND PM.PRD_MST_SEL_STATE != 'S'	
+			    AND PM.PRD_MST_APV_STATE = 'A'
+			    AND PM.PRD_MST_DPL_STATE = 'Y'
+			) S1
+		WHERE
+			S1.RUNM BETWEEN #{startNum} AND #{endNum} 
+    </select>
+    
+    <!-- 프론트 > 마이페이지 > 쇼핑혜택 > 쿠폰 적용 브랜드 카운트 -->
+    <select id="selectCouponBrandCount" parameterType="hashMap" resultType="integer">
+    	SELECT 
+			COUNT(0)
+		FROM T_BND_MST BMT
+		WHERE 
+			BMT.BND_MST_IDX IN (SELECT CPN.CPN_TGT_CD FROM T_CPN_TGT CPN WHERE CPN.CPN_TGT_GBN = 'C' AND CPN.CPN_MST_IDX = #{CPN_MST_IDX} )
+		AND
+			BMT.BND_MST_USE_YN = 'Y'
+    </select>
+    
+    <!-- 프론트 > 마이페이지 > 쇼핑혜택 > 쿠폰 적용 브랜드 리스트 -->
+    <select id="selectCouponBrandList" parameterType="hashMap" resultType="hashMap">
+        /* PcMyCoupon.selectCouponBrandList */
+        SELECT
+			RUNM
+			, BND_MST_IDX
+			, BND_MST_BRAND_NM
+			, CPN_MST_ISU_DAY_GBN
+			, CPN_MST_USE_ST_DT
+			, CPN_MST_USE_ED_DT
+			, CPN_MST_USE_DAY
+		FROM(	SELECT 
+					ROWNUM AS RUNM
+					, BMT.BND_MST_IDX
+				    , BMT.BND_MST_BRAND_NM
+				    , (SELECT CPN_MST_ISU_DAY_GBN FROM T_CPN_MST WHERE CPN_MST_IDX = #{CPN_MST_IDX} ) AS CPN_MST_ISU_DAY_GBN
+				    , (SELECT CPN_MST_USE_ST_DT FROM T_CPN_MST WHERE CPN_MST_IDX = #{CPN_MST_IDX} ) AS CPN_MST_USE_ST_DT
+				    , (SELECT CPN_MST_USE_ED_DT FROM T_CPN_MST WHERE CPN_MST_IDX = #{CPN_MST_IDX} ) AS CPN_MST_USE_ED_DT
+				    , (SELECT NVL(CPN_MST_USE_DAY,0) FROM T_CPN_MST WHERE CPN_MST_IDX = #{CPN_MST_IDX} ) AS CPN_MST_USE_DAY
+				FROM T_BND_MST BMT
+				WHERE 
+					EXISTS (
+								SELECT CPN.CPN_TGT_CD
+								FROM T_CPN_TGT CPN 
+								WHERE CPN.CPN_TGT_GBN = 'C' 
+								AND CPN.CPN_MST_IDX = #{CPN_MST_IDX}
+								AND CPN.CPN_TGT_CD = BMT.BND_MST_IDX
+							)
+				AND
+					BMT.BND_MST_USE_YN = 'Y'
+			) S1
+		WHERE
+			S1.RUNM BETWEEN #{startNum} AND #{endNum} 
+    </select>
+    
+    <!-- 프론트 > 마이페이지 > 쇼핑혜택 > 쿠폰 적용 기획전 카운트 -->
+    <select id="selectCouponPlanCount" parameterType="hashMap" resultType="integer">
+    	SELECT 
+			COUNT(0)
+		FROM T_PLN_MST PLN
+		WHERE
+			PLN.PLN_MST_USE_YN = 'Y'
+		AND
+			TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS') BETWEEN PLN.PLN_MST_ST_DT ||PLN.PLN_MST_ST_HH||PLN.PLN_MST_ST_MI AND PLN.PLN_MST_ED_DT ||PLN.PLN_MST_ED_HH||PLN.PLN_MST_ED_MI
+		AND 
+			EXISTS (
+						SELECT CPN.CPN_TGT_CD
+						FROM T_CPN_TGT CPN 
+						WHERE CPN.CPN_TGT_GBN = 'D' 
+						AND CPN.CPN_MST_IDX = #{CPN_MST_IDX}
+						AND CPN.CPN_TGT_CD = PLN.PLN_MST_IDX
+					)
+    </select>
+    
+    <!-- 프론트 > 마이페이지 > 쇼핑혜택 > 쿠폰 적용 기획전 리스트 -->
+    <select id="selectCouponPlanList" parameterType="hashMap" resultType="hashMap">
+        /* PcMyCoupon.selectCouponPlanList */
+        SELECT
+			RUNM
+			, PLN_MST_IDX
+			, PLN_MST_TITLE
+			, PLN_MST_ST_DT
+			, PLN_MST_ED_DT
+			, CPN_MST_ISU_DAY_GBN
+			, CPN_MST_USE_ST_DT
+			, CPN_MST_USE_ED_DT
+			, CPN_MST_USE_DAY
+		FROM(	SELECT 
+					ROWNUM AS RUNM
+					, PLN.PLN_MST_IDX
+				    , PLN.PLN_MST_TITLE
+				    , PLN.PLN_MST_ST_DT
+				    , PLN.PLN_MST_ED_DT
+				    , (SELECT CPN_MST_ISU_DAY_GBN FROM T_CPN_MST WHERE CPN_MST_IDX = #{CPN_MST_IDX}  ) AS CPN_MST_ISU_DAY_GBN
+				    , (SELECT CPN_MST_USE_ST_DT FROM T_CPN_MST WHERE CPN_MST_IDX = #{CPN_MST_IDX} ) AS CPN_MST_USE_ST_DT
+				    , (SELECT CPN_MST_USE_ED_DT FROM T_CPN_MST WHERE CPN_MST_IDX = #{CPN_MST_IDX} ) AS CPN_MST_USE_ED_DT
+				    , (SELECT NVL(CPN_MST_USE_DAY,0) FROM T_CPN_MST WHERE CPN_MST_IDX = #{CPN_MST_IDX} ) AS CPN_MST_USE_DAY
+				FROM T_PLN_MST PLN
+				WHERE
+					PLN.PLN_MST_USE_YN = 'Y'
+				AND
+					TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS') BETWEEN PLN.PLN_MST_ST_DT ||PLN.PLN_MST_ST_HH||PLN.PLN_MST_ST_MI AND PLN.PLN_MST_ED_DT ||PLN.PLN_MST_ED_HH||PLN.PLN_MST_ED_MI
+				AND 
+					EXISTS (
+								SELECT CPN.CPN_TGT_CD
+								FROM T_CPN_TGT CPN 
+								WHERE CPN.CPN_TGT_GBN = 'D' 
+								AND CPN.CPN_MST_IDX = #{CPN_MST_IDX}
+								AND CPN.CPN_TGT_CD = PLN.PLN_MST_IDX
+							)
+				
+			) S1
+		WHERE
+			S1.RUNM BETWEEN #{startNum} AND #{endNum} 
+    </select>
+    
+    <!-- 프론트 > 상품상세 > 상품 상세 쿠폰혜택 정보 -->
+    <select id="selectProductDetailCoupon" parameterType="hashMap" resultType="hashMap">
+        /* PcMyCoupon.selectProductDetailCoupon */
+        SELECT 
+            S1.CPN_MST_IDX
+            ,S1.CPN_MST_GBN
+            ,S1.CPN_MST_TITLE
+            ,S1.CPN_MST_SAL_GBN
+            ,S1.CPN_MST_SAL_PRC
+            ,S1.CPN_MST_SML_PRC
+            ,S1.CPN_MST_MXM_PRC
+            ,S1.CPN_MST_USE_ST_DT
+            ,S1.CPN_MST_USE_ED_DT
+            ,S1.CPN_MST_GBN_Type
+            ,S1.sale_price
+            ,S1.cpn_price
+            ,LEAST(S1.sale_price, S1.cpn_price) AS RESULT_CPN_PRICE
+        FROM 
+            (SELECT 
+                CMT.CPN_MST_IDX
+                , CMT.CPN_MST_GBN
+                , CMT.CPN_MST_TITLE
+                , CMT.CPN_MST_SAL_GBN
+                , NVL(CMT.CPN_MST_SAL_PRC,0) AS CPN_MST_SAL_PRC
+                , NVL(CMT.CPN_MST_SML_PRC,0) AS CPN_MST_SML_PRC
+                , NVL(CMT.CPN_MST_MXM_PRC,0) AS CPN_MST_MXM_PRC
+                , CMT.CPN_MST_TGT_GBN
+                , TO_CHAR(TO_DATE(CMT.CPN_MST_USE_ST_DT,'YYYYMMDDHH24MISS'),'YYYY.MM.DD') AS CPN_MST_USE_ST_DT
+                , TO_CHAR(TO_DATE(CMT.CPN_MST_USE_ED_DT,'YYYYMMDDHH24MISS'),'YYYY.MM.DD') AS CPN_MST_USE_ED_DT
+                , NVL(CMT.CPN_MST_USE_DAY,0) CPN_MST_USE_DAY
+                , CASE CMT.CPN_MST_GBN
+                    WHEN 'F' THEN 'ship'
+                  ELSE
+                    CASE CMT.CPN_MST_SAL_GBN
+                        WHEN 'A' THEN 'sale'
+                        WHEN 'B' THEN 'price'
+                    END
+                  END  AS CPN_MST_GBN_Type
+                  , TPM.PRD_MST_PRC
+                  , CASE WHEN CMT.CPN_MST_SAL_GBN = 'A' THEN (TPM.PRD_MST_PRC*(1-(CPN_MST_SAL_PRC*0.01))) ELSE TPM.PRD_MST_PRC END AS sale_price --정율일때 할인적용가격
+                  , CASE WHEN CMT.CPN_MST_SAL_GBN = 'B' THEN (PRD_MST_PRC-CPN_MST_SAL_PRC) ELSE TPM.PRD_MST_PRC END AS cpn_price --정액일때 할인적용가격
+            FROM T_CPN_MST CMT, T_PRD_MST TPM
+            WHERE 
+                CMT.CPN_MST_YN = 'Y'
+            AND (
+                    CASE WHEN CMT.CPN_MST_LMT_YN = 'Y' THEN 1 
+                    ELSE
+                        CASE WHEN (SELECT COUNT(0) FROM T_CPN_MEM CMM WHERE CMM.CPN_MST_IDX = CMT.CPN_MST_IDX) > CMT.CPN_MST_ISU_CNT THEN 0
+                        ELSE 1 END
+                    END
+                ) = 1--발급수량
+            AND CMT.CPN_MST_ISU_GBN = 'C'--발급방식 (다운로드)
+            AND CMT.CPN_MST_PC_YN = 'Y' --채널(pc)
+            AND TPM.PRD_MST_CD = #{PRD_MST_CD}
+            AND (CASE WHEN CMT.CPN_MST_TGT_GBN = 'A' THEN ( SELECT COUNT(1) FROM T_CPN_TGT T, T_PRD_MST P WHERE T.CPN_MST_IDX = CMT.CPN_MST_IDX AND T.CPN_TGT_GBN = 'A' AND P.PRD_MST_CD = T.CPN_TGT_CD AND P.PRD_MST_CD = #{PRD_MST_CD} ) 
+                      WHEN CMT.CPN_MST_TGT_GBN = 'B' THEN ( SELECT COUNT(1) FROM T_PRD_MST WHERE PRD_MST_CD = #{PRD_MST_CD} AND PRD_MST_PRC >= CMT.CPN_MST_SML_PRC) 
+                      WHEN CMT.CPN_MST_TGT_GBN = 'C' THEN ( SELECT COUNT(1) FROM T_CPN_TGT T, T_PRD_MST P WHERE T.CPN_MST_IDX = CMT.CPN_MST_IDX AND T.CPN_TGT_GBN = 'C' AND P.PRD_MST_BRD_IDX = T.CPN_TGT_CD AND P.PRD_MST_CD = #{PRD_MST_CD} ) 
+                      WHEN CMT.CPN_MST_TGT_GBN = 'D' THEN ( SELECT COUNT(1) FROM T_CPN_TGT T, T_PRD_MST P, T_PLN_DTL PLN WHERE T.CPN_MST_IDX = CMT.CPN_MST_IDX AND T.CPN_TGT_GBN = 'D' AND PLN.PLN_MST_IDX = T.CPN_TGT_CD AND PLN.PLN_PRD_MST_CD = P.PRD_MST_CD AND PLN.PLN_PRD_MST_CD = #{PRD_MST_CD} ) 
+                      ELSE 1 END ) = 1
+            AND (CASE WHEN CMT.CPN_MST_ETC_GBN = 'A' THEN ( SELECT COUNT(*) FROM T_CPN_ETC WHERE CPN_MST_IDX = CMT.CPN_MST_IDX AND CPN_ETC_GBN = 'A' AND CPN_ETC_CD = #{PRD_MST_CD}) 
+                      WHEN CMT.CPN_MST_ETC_GBN = 'B' THEN ( SELECT COUNT(*) FROM T_CPN_ETC T, T_PRD_MST P, T_DSP_CTG CTG WHERE T.CPN_MST_IDX = CMT.CPN_MST_IDX  AND T.CPN_ETC_GBN = 'B' AND FN_CATEGORY_PATH (CTG.DSP_PRD_CTG_IDX) LIKE FN_CATEGORY_PATH (T.CPN_ETC_CD) || '%' AND CTG.DSP_PRD_MST_CD = P.PRD_MST_CD AND P.PRD_MST_CD = #{PRD_MST_CD}) 
+                      WHEN CMT.CPN_MST_ETC_GBN = 'C' THEN ( SELECT COUNT(*) FROM T_CPN_ETC T, T_PRD_MST P WHERE T.CPN_MST_IDX = CMT.CPN_MST_IDX  AND T.CPN_ETC_GBN = 'C' AND P.PRD_MST_BRD_IDX = T.CPN_ETC_CD  AND PRD_MST_CD = #{PRD_MST_CD}) 
+                      WHEN CMT.CPN_MST_ETC_GBN = 'D' THEN ( SELECT COUNT(*) FROM T_CPN_ETC T, T_PRD_MST P  WHERE T.CPN_MST_IDX = CMT.CPN_MST_IDX AND T.CPN_ETC_GBN = 'D'  AND P.PRD_MST_VDR_IDX = T.CPN_ETC_CD  AND PRD_MST_CD = #{PRD_MST_CD}) 
+                      ELSE 0 END ) = 0
+            AND TO_CHAR(SYSDATE,'YYYYMMDDHH24MISS') BETWEEN CMT.CPN_MST_ISU_ST_DT||CPN_MST_ISU_ST_HH||CPN_MST_ISU_ST_MM AND CMT.CPN_MST_ISU_ED_DT||CPN_MST_ISU_ED_HH||CPN_MST_ISU_ED_MM
+            ) S1         
+    </select>
+    
+    <!-- 프론트 > 쿠폰다운로드 > 1:1상품 쿠폰 목록 -->
+    <select id="selectProductCouponList" parameterType="hashMap" resultType="hashMap">
+        /* PcMyCoupon.selectProductCouponList */
+        SELECT 
+		 	CMT.CPN_MST_IDX
+			, CMT.CPN_MST_GBN
+			, CMT.CPN_MST_TITLE
+			, CMT.CPN_MST_SAL_GBN
+			, NVL(CMT.CPN_MST_SAL_PRC,0) AS CPN_MST_SAL_PRC
+			, NVL(CMT.CPN_MST_SML_PRC,0) AS CPN_MST_SML_PRC
+			, NVL(CMT.CPN_MST_MXM_PRC,0) AS CPN_MST_MXM_PRC
+			, CMT.CPN_MST_TGT_GBN
+			, TO_CHAR(TO_DATE(CMT.CPN_MST_USE_ST_DT,'YYYYMMDDHH24MISS'),'YYYY.MM.DD') AS CPN_MST_USE_ST_DT
+			, TO_CHAR(TO_DATE(CMT.CPN_MST_USE_ED_DT,'YYYYMMDDHH24MISS'),'YYYY.MM.DD') AS CPN_MST_USE_ED_DT
+			, NVL(CMT.CPN_MST_USE_DAY,0) CPN_MST_USE_DAY
+			, CASE CMT.CPN_MST_GBN
+			  	WHEN 'F' THEN 'ship'
+			  ELSE
+			  	CASE CMT.CPN_MST_SAL_GBN
+			  		WHEN 'A' THEN 'sale'
+			  		WHEN 'B' THEN 'price'
+			  	END
+			  END  AS CPN_MST_GBN_Type
+		   FROM T_CPN_MST CMT
+		  WHERE CMT.CPN_MST_YN = 'Y'
+		  	AND (
+		  			CASE WHEN CMT.CPN_MST_LMT_YN = 'Y' THEN 1 
+		  			ELSE
+		  				CASE WHEN (SELECT COUNT(0) FROM T_CPN_MEM CMM WHERE CMM.CPN_MST_IDX = CMT.CPN_MST_IDX) > CMT.CPN_MST_ISU_CNT THEN 0
+		  				ELSE 1 END
+		  			END
+		  		) = 1--발급수량
+			AND CMT.CPN_MST_ISU_GBN = 'C'--발급방식 (다운로드)
+			AND CMT.CPN_MST_PC_YN = 'Y'	--채널(pc)
+		    AND (CASE WHEN CMT.CPN_MST_TGT_GBN = 'A' THEN ( SELECT COUNT(1) FROM T_CPN_TGT T, T_PRD_MST P WHERE T.CPN_MST_IDX = CMT.CPN_MST_IDX AND T.CPN_TGT_GBN = 'A' AND P.PRD_MST_CD = T.CPN_TGT_CD AND P.PRD_MST_CD = #{PRD_MST_CD} ) 
+		              WHEN CMT.CPN_MST_TGT_GBN = 'B' THEN ( SELECT COUNT(1) FROM T_PRD_MST WHERE PRD_MST_CD = #{PRD_MST_CD} AND PRD_MST_PRC >= CMT.CPN_MST_SML_PRC) 
+		              WHEN CMT.CPN_MST_TGT_GBN = 'C' THEN ( SELECT COUNT(1) FROM T_CPN_TGT T, T_PRD_MST P WHERE T.CPN_MST_IDX = CMT.CPN_MST_IDX AND T.CPN_TGT_GBN = 'C' AND P.PRD_MST_BRD_IDX = T.CPN_TGT_CD AND P.PRD_MST_CD = #{PRD_MST_CD} ) 
+		              WHEN CMT.CPN_MST_TGT_GBN = 'D' THEN ( SELECT COUNT(1) FROM T_CPN_TGT T, T_PRD_MST P, T_PLN_DTL PLN WHERE T.CPN_MST_IDX = CMT.CPN_MST_IDX AND T.CPN_TGT_GBN = 'D' AND PLN.PLN_MST_IDX = T.CPN_TGT_CD AND PLN.PLN_PRD_MST_CD = P.PRD_MST_CD AND PLN.PLN_PRD_MST_CD = #{PRD_MST_CD} ) 
+		              ELSE 1 END ) = 1
+		    AND (CASE WHEN CMT.CPN_MST_ETC_GBN = 'A' THEN ( SELECT COUNT(*) FROM T_CPN_ETC WHERE CPN_MST_IDX = CMT.CPN_MST_IDX AND CPN_ETC_GBN = 'A' AND CPN_ETC_CD = #{PRD_MST_CD}) 
+		    		  WHEN CMT.CPN_MST_ETC_GBN = 'B' THEN ( SELECT COUNT(*) FROM T_CPN_ETC T, T_PRD_MST P, T_DSP_CTG CTG WHERE T.CPN_MST_IDX = CMT.CPN_MST_IDX  AND T.CPN_ETC_GBN = 'B' AND FN_CATEGORY_PATH (CTG.DSP_PRD_CTG_IDX) LIKE FN_CATEGORY_PATH (T.CPN_ETC_CD) || '%' AND CTG.DSP_PRD_MST_CD = P.PRD_MST_CD AND P.PRD_MST_CD = #{PRD_MST_CD}) 
+		    		  WHEN CMT.CPN_MST_ETC_GBN = 'C' THEN ( SELECT COUNT(*) FROM T_CPN_ETC T, T_PRD_MST P WHERE T.CPN_MST_IDX = CMT.CPN_MST_IDX  AND T.CPN_ETC_GBN = 'C' AND P.PRD_MST_BRD_IDX = T.CPN_ETC_CD  AND PRD_MST_CD = #{PRD_MST_CD}) 
+		    		  WHEN CMT.CPN_MST_ETC_GBN = 'D' THEN ( SELECT COUNT(*) FROM T_CPN_ETC T, T_PRD_MST P  WHERE T.CPN_MST_IDX = CMT.CPN_MST_IDX AND T.CPN_ETC_GBN = 'D'  AND P.PRD_MST_VDR_IDX = T.CPN_ETC_CD  AND PRD_MST_CD = #{PRD_MST_CD}) 
+		    		  ELSE 0 END ) = 0
+		    AND TO_CHAR(SYSDATE,'YYYYMMDDHH24MISS') BETWEEN CMT.CPN_MST_ISU_ST_DT||CPN_MST_ISU_ST_HH||CPN_MST_ISU_ST_MM AND CMT.CPN_MST_ISU_ED_DT||CPN_MST_ISU_ED_HH||CPN_MST_ISU_ED_MM
+            <if test="MEM_MST_MEM_GBN != null and MEM_MST_MEM_GBN != ''">
+                <if test="MEM_MST_MEM_GRD != null and MEM_MST_MEM_GRD != ''">
+                    <choose>
+                        <when test="MEM_MST_MEM_GBN.equals('682'.toString())">
+                            <choose>
+                                <when test="MEM_MST_MEM_GRD.equals('1833'.toString())">
+                                    AND CPN_MST_NML_YN = 'Y' AND (CPN_MST_MEM_GRD IS NULL OR CPN_MST_MEM_GRD = '1833')
+                                </when>  
+                                <when test="MEM_MST_MEM_GRD.equals('1834'.toString())">
+                                    AND CPN_MST_NML_YN = 'Y' AND (CPN_MST_MEM_GRD IS NULL OR CPN_MST_MEM_GRD = '1834')
+                                </when>  
+                                <when test="MEM_MST_MEM_GRD.equals('1835'.toString())">
+                                    AND CPN_MST_NML_YN = 'Y' AND (CPN_MST_MEM_GRD IS NULL OR CPN_MST_MEM_GRD = '1835')
+                                </when>  
+                                <when test="MEM_MST_MEM_GRD.equals('1836'.toString())">
+                                    AND CPN_MST_NML_YN = 'Y' AND (CPN_MST_MEM_GRD IS NULL OR CPN_MST_MEM_GRD = '1836')
+                                </when>    
+                                <when test="MEM_MST_MEM_GRD.equals('1837'.toString())">
+                                    AND CPN_MST_NML_YN = 'Y' AND (CPN_MST_MEM_GRD IS NULL OR CPN_MST_MEM_GRD = '1837')
+                                </when>                            
+                            </choose>
+                        </when>
+                        <when test="MEM_MST_MEM_GBN.equals('1961'.toString())">
+                            AND CPN_MST_SMP_YN = 'Y'
+                        </when>
+                    </choose>
+                </if>
+            </if>
+    </select>
+    
+    <!-- 프론트 > 마이페이지 > 쇼핑혜택 > 사용가능 등급쿠폰 , 특별쿠폰 갯수 -->
+    <select id="selectMyCouponCount" parameterType="hashMap" resultType="integer">
+    	/* PcMyCoupon.selectMyCouponCount */
+    	SELECT 
+			NVL(COUNT(0),0) AS TOT_CNT
+		FROM T_CPN_MEM CMM
+		WHERE CMM.CPN_MEM_ID = #{MEM_MST_MEM_ID}
+		AND CMM.CPN_MEM_USE_YN = 'N'
+		AND CMM.CPN_MST_IDX = #{CPN_MST_IDX}
+    </select>
+    
+    <!-- 프론트 > 마이페이지 > 마이쇼핑 > 쿠폰 발급여부 확인 -->
+    <select id="selectRegisteredCouponCount" parameterType="hashMap" resultType="integer">
+    	/* PcMyCoupon.selectRegisteredCouponCount */
+    	SELECT 
+			NVL(COUNT(0),0) AS TOT_CNT
+		FROM T_CPN_MEM CMM
+		WHERE CMM.CPN_MEM_ID = #{MEM_MST_MEM_ID}
+		AND CMM.CPN_MST_IDX = #{CPN_MST_IDX}
+    </select>
+    
+    <!-- 2020.06.27 프론트 > 주문 > 주문서 > 쿠폰사용초기화  -->
+    <update id="updateCpnReset" parameterType="java.util.Map">
+    	/* PcMyCoupon.updateCpnReset */
+    	UPDATE T_CPN_MEM SET
+    	CPN_MEM_USE_DT = NULL
+    	WHERE 1=1
+    	AND CPN_MEM_ID = #{MEM_MST_MEM_ID}
+    	AND CPN_MEM_USE_YN = 'N'
+    </update>
+    
+    <!-- 2020.06.26 프론트 > 주문 > 상품쿠폰 팝업 > 쿠폰리스트 조회  -->
+    <select id="selectProdCpnProcAjax" parameterType="java.util.Map" resultType="java.util.Map">
+    	/* PcMyCoupon.selectProdCpnProcAjax */
+    	SELECT TCM.CPN_MST_IDX
+    		 , CM.CPN_MEM_IDX 
+			 , TCM.CPN_MST_GBN
+			 , (SELECT CMN_COM_NM FROM T_CMM_COM WHERE 1=1 AND CMN_COM_UP_IDX = 3029 AND CMN_COM_ETC1 = TCM.CPN_MST_GBN )AS CPN_MST_GBN_LABEL 	     
+			 , TCM.CPN_MST_TITLE  /* 쿠폰명 */
+			 , TCM.CPN_MST_ADM_TXT /* 관리자메모 */
+			 , TCM.CPN_MST_SAL_GBN 
+			 , (CASE WHEN TCM.CPN_MST_SAL_GBN = 'A' THEN '정율할인'
+			 		 WHEN TCM.CPN_MST_SAL_GBN = 'B' THEN '정액할인'
+			 		 ELSE 'E-포인트' END) AS CPN_MST_SAL_GBN_LABEL	
+			 , TCM.CPN_MST_SAL_PRC 
+			 , TCM.CPN_MST_SML_PRC 
+			 , TCM.CPN_MST_MXM_PRC
+			 <if test='CPN_TGT_CD != null and CPN_TGT_CD != ""'>
+			 	, (SELECT PRD_MST_PRC FROM T_PRD_MST WHERE 1=1 AND PRD_MST_CD = #{CPN_TGT_CD}) AS PRD_MST_PRC /* 해당상품 판매가격 */
+			 	, (CASE WHEN TCM.CPN_MST_SAL_GBN = 'A' THEN (SELECT (PRD_MST_PRC*TCM.CPN_MST_SAL_PRC)/100 FROM T_PRD_MST WHERE 1=1 AND PRD_MST_CD = #{CPN_TGT_CD} )  	 		 
+	 		 		 ELSE TCM.CPN_MST_SAL_PRC END) AS CPN_MST_SAL_GBN_PAY
+			 </if> 		  			 
+			 , TCM.CPN_MST_USE_ST_DT  /* 쿠폰사용가능시작일 */
+			 , TCM.CPN_MST_USE_ED_DT /* 쿠폰사용종료일 */
+			 , TCM.CPN_MST_USE_DAY /* 쿠폰사용가능일수 */ 
+			 , CM.CPN_MEM_IDX  /* 회원쿠폰IDX */
+			 , CM.CPN_MEM_ID  /* 쿠폰회원아이디 */
+			 , CM.CPN_MEM_USE_DT /* 회원쿠폰사용일자  */
+			 , CM.CPN_MEM_USE_YN /* 회원쿠폰사용여부 */
+			 , TCT.CPN_TGT_CD /* 상품코드 */
+		FROM T_CPN_MST TCM 
+		INNER JOIN T_CPN_MEM CM
+		ON TCM.CPN_MST_IDX = CM.CPN_MST_IDX
+		LEFT JOIN T_CPN_TGT TCT  
+		ON CM.CPN_MST_IDX = TCT.CPN_MST_IDX 
+		WHERE 1=1
+		AND CM.CPN_MEM_ID = #{CPN_MEM_ID}
+		<if test='CPN_MEM_USE_DT != null and CPN_MEM_USE_DT != ""'>
+			AND CM.CPN_MEM_USE_DT = ${CPN_MEM_USE_DT}
+		</if>		
+		<if test='CPN_TGT_CD != null and CPN_TGT_CD != ""'>
+			AND TCT.CPN_TGT_CD = #{CPN_TGT_CD}
+		</if>				
+		AND CM.CPN_MEM_USE_YN = 'N'
+    	AND TO_CHAR(SYSDATE,'YYYYMMDDHH') BETWEEN TCM.CPN_MST_ISU_ST_DT AND TCM.CPN_MST_ISU_ED_DT
+		<!-- AND TO_CHAR(SYSDATE,'YYYYMMDDHH') BETWEEN TCM.CPN_MST_USE_ST_DT AND TCM.CPN_MST_USE_ED_DT  2020.07.02 임시주석-->
+    </select>
+    
+    <!-- 2020.06.27 상품쿠폰 사용 (주문서)  -->
+    <update id="cpnUseUpdateProc" parameterType="java.util.Map">
+    	/* PcMyCoupon.cpnUseUpdateProc */
+    	UPDATE T_CPN_MEM SET
+    	CPN_MEM_USE_DT = TO_CHAR(#{PRD_TMP_IDX})
+    	/* CPN_MEM_USE_DT = TO_CHAR(SYSDATE,'YYYYMMDDHH24MISS') */
+    	WHERE 1=1
+    	AND CPN_MEM_IDX = #{CPN_MEM_IDX}    	
+    </update>
+    
+
+</mapper>

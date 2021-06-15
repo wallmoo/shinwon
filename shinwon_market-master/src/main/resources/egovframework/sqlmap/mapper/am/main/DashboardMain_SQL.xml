@@ -1,0 +1,498 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="DashboardMain">
+    
+    <!-- 관리자 > 메인 > 주문 현황 -->
+    <select id="selectOrderSummary" parameterType="hashMap" resultType="hashMap">
+        /* DashboardMain.selectOrderSummary */
+        SELECT
+	 		NVL(PAY_READY_CNT,0) as PAY_READY_CNT
+	 		, NVL(PAY_CNT,0) as PAY_CNT	
+	 		, NVL(PRD_SEND_READY_CNT,0) as PRD_SEND_READY_CNT
+	 		, NVL(PRD_SEND_CNT,0) as PRD_SEND_CNT
+	 		, NVL(PRD_SEND_END_CNT,0) as PRD_SEND_END_CNT
+	 	FROM
+	 	(
+        SELECT
+			SUM(PAY_READY_CNT) as PAY_READY_CNT /* 주문단위 기준 입금대기 개수 */
+			, SUM(PAY_CNT) as PAY_CNT /* 주문단위 기준 결제완료 개수 */	
+			, MAX(PRD_SEND_READY_CNT) as PRD_SEND_READY_CNT /* 상품단위 기준 배송준비중 개수 */
+			, MAX(PRD_SEND_CNT) as PRD_SEND_CNT /* 상품단위 기준 배송중 개수 */
+			, MAX(PRD_SEND_END_CNT) as PRD_SEND_END_CNT /* 상품단위 기준 배송완료 개수 */
+		FROM
+		(
+		SELECT
+			T2.ORD_MST_CD
+			, MAX(PAY_READY_CNT) as PAY_READY_CNT
+			, MAX(PAY_CNT) as PAY_CNT
+			, MAX(PRD_SEND_READY_CNT) as PRD_SEND_READY_CNT
+			, MAX(PRD_SEND_CNT) as PRD_SEND_CNT
+			, MAX(PRD_SEND_END_CNT) as PRD_SEND_END_CNT
+		FROM
+		(
+		SELECT
+			T1.*
+			, SUM(SEND_READY_CNT) OVER() as PRD_SEND_READY_CNT 
+			, SUM(SEND_CNT) OVER() as PRD_SEND_CNT
+			, SUM(SEND_END_CNT) OVER() as PRD_SEND_END_CNT 
+		FROM
+		(
+		SELECT	
+			ORD_ORD_MST_CD as ORD_MST_CD
+			, ORD_PRD_IDX
+			, ORD_PRD_ORD_STATE
+			, DECODE(ORD_PRD_ORD_STATE, '404', 1, 0) as PAY_READY_CNT /* 입금대기 */
+			, DECODE(ORD_PRD_ORD_STATE, '405', 1, 0) as PAY_CNT /* 결제완료 */
+			, DECODE(ORD_PRD_ORD_STATE, '406', 1, 0) as SEND_READY_CNT /* 배송준비중 */
+			, DECODE(ORD_PRD_ORD_STATE, '407', 1, 0) as SEND_CNT /* 배송중 */
+			, DECODE(ORD_PRD_ORD_STATE, '408', 1, 0) as SEND_END_CNT /* 배송완료 */
+		FROM T_ORD_PRD TOP, T_ORD_MST TOM
+		WHERE TOP.ORD_ORD_MST_CD = TOM.ORD_MST_CD
+		AND TOM.ORD_MST_ORD_DT BETWEEN TO_CHAR(SYSDATE-30, 'YYYYMMDD')||'000000' AND TO_CHAR(SYSDATE, 'YYYYMMDD')||'235959'
+        <if test="ADM_MST_SUB_IDX != null and ADM_MST_SUB_IDX != ''">
+            AND TOP.ORD_PRD_VDR_IDX = #{ADM_MST_SUB_IDX} /* 입점업체 주문 조회시 */
+        </if>
+		) T1
+		) T2
+		GROUP BY ORD_MST_CD
+		ORDER BY ORD_MST_CD DESC
+		) T3
+		)
+    </select>
+    
+    <!-- 관리자 > 메인 > 클레임 현황 -->
+    <select id="selectOrderClaim" parameterType="hashMap" resultType="hashMap">
+        /* DashboardMain.selectOrderClaim */
+        SELECT
+	 		NVL(CANCEL_CNT,0) as CANCEL_CNT	 		
+	 		, NVL(REFUND_CNT,0) as REFUND_CNT
+	 		, NVL(SCM_CNL_Y_CNT,0) as SCM_CNL_Y_CNT	 	
+	 		, NVL(SCM_CNL_D_CNT,0) as SCM_CNL_D_CNT		
+	 		, NVL(SCM_CNL_C_CNT,0) as SCM_CNL_C_CNT
+	 		, NVL(PRD_SWAP_CNT,0) as PRD_SWAP_CNT
+	 		, NVL(PRD_BACK_CNT,0) as PRD_BACK_CNT
+	 		, (SELECT COUNT(1) FROM T_ORD_MST WHERE ORD_MST_CNL_YN = 'Y') as FRONT_CNL_Y_CNT /* 고객 취소요청 주문 개수 */
+	 	FROM
+	 	(
+        SELECT
+			SUM(CANCEL_CNT) as CANCEL_CNT /* 주문단위 기준 취소 접수 개수 */		
+			, SUM(REFUND_CNT) as REFUND_CNT /* 주문단위 기준 환불 접수 개수 */
+			, SUM(SCM_CNL_Y_CNT) as SCM_CNL_Y_CNT /* 주문단위 기준 입점업체 취소요청 개수 */
+			, SUM(SCM_CNL_D_CNT) as SCM_CNL_D_CNT /* 주문단위 기준 입점업체 반품요청 개수 */		
+			, SUM(SCM_CNL_C_CNT) as SCM_CNL_C_CNT /* 주문단위 기준 입점업체 교환요청 개수 */	
+			, MAX(PRD_SWAP_CNT) as PRD_SWAP_CNT /* 상품단위 기준 교환 개수 */
+			, MAX(PRD_BACK_CNT) as PRD_BACK_CNT /* 상품단위 기준 반품 개수 */	
+		FROM
+		(
+		SELECT
+			T2.ORD_MST_CD
+			, MAX(CANCEL_CNT) as CANCEL_CNT
+			, MAX(REFUND_CNT) as REFUND_CNT
+			, MAX(SCM_CNL_Y_CNT) as SCM_CNL_Y_CNT
+			, MAX(SCM_CNL_D_CNT) as SCM_CNL_D_CNT
+			, MAX(SCM_CNL_C_CNT) as SCM_CNL_C_CNT
+			, MAX(PRD_SWAP_CNT) as PRD_SWAP_CNT
+			, MAX(PRD_BACK_CNT) as PRD_BACK_CNT
+		FROM
+		(
+		SELECT
+			T1.*
+			, SUM(SWAP_CNT) OVER() as PRD_SWAP_CNT 
+			, SUM(BACK_CNT) OVER() as PRD_BACK_CNT 
+		FROM
+		(
+		SELECT	
+			ORD_ORD_MST_CD as ORD_MST_CD
+			, ORD_PRD_IDX
+			, ORD_PRD_ORD_STATE
+			, DECODE(ORD_PRD_ORD_STATE, '402', 1, 0) as CANCEL_CNT /* 취소 접수 */
+			, DECODE(ORD_PRD_ORD_STATE, '421', 1, 0) as SWAP_CNT /* 교환 접수 */
+			, DECODE(ORD_PRD_ORD_STATE, '431', 1, 0) as BACK_CNT /* 반품 접수 */		
+			, DECODE(ORD_PRD_ORD_STATE, '1784', 1, 0) as REFUND_CNT /* 환불 접수 */
+			, DECODE(ORD_PRD_SCM_CNL_YN, 'Y', 1, 0) as SCM_CNL_Y_CNT /* 입점업체 취소요청*/
+			, DECODE(ORD_PRD_SCM_CNL_YN, 'D', 1, 0) as SCM_CNL_D_CNT /* 입점업체 반품요청*/
+			, DECODE(ORD_PRD_SCM_CNL_YN, 'C', 1, 0) as SCM_CNL_C_CNT /* 입점업체 교환요청*/
+		FROM T_ORD_PRD TOP, T_ORD_MST TOM
+		WHERE TOP.ORD_ORD_MST_CD = TOM.ORD_MST_CD
+        <if test="ADM_MST_SUB_IDX != null and ADM_MST_SUB_IDX != ''">
+            AND TOP.ORD_PRD_VDR_IDX = #{ADM_MST_SUB_IDX} /* 입점업체 주문 조회시 */
+        </if>
+		) T1
+		) T2
+		GROUP BY ORD_MST_CD
+		ORDER BY ORD_MST_CD DESC
+		) T3
+		)
+    </select>
+    
+    <!-- 관리자 > 메인 > 상품 현황 -->
+    <select id="selectProductSelSummaryList" parameterType="hashMap" resultType="hashMap">
+        /* DashboardMain.selectProductSelSummaryList */	
+         <if test="ADM_MST_SUB_IDX != null and ADM_MST_SUB_IDX != ''">
+         SELECT '일반 상품' AS PRD_MST_TITLE
+		        , COUNT(0) AS TOT_CNT 
+		        , SUM (CASE  PRD_MST_SEL_STATE WHEN 'I'
+		                                        THEN 1 
+		                                        ELSE 0 
+		        END )   SEL_CNT /* 판매중 */
+		        , SUM (CASE  PRD_MST_SEL_STATE WHEN 'O'
+		                                        THEN 1 
+		                                        ELSE 0 
+		        END )   NOT_SEL_CNT /* 일시품절 */
+		        , SUM (CASE  PRD_MST_SEL_STATE WHEN 'T'
+		                                        THEN 1 
+		                                        ELSE 0 
+		        END )  OUT_CNT /* 품절상품 */
+		FROM T_PRD_MST PM
+		WHERE
+			PRD_MST_DEL_YN = 'N'
+		UNION ALL
+		</if>
+		SELECT '입점 상품' AS PRD_MST_TITLE
+		        , COUNT(0) AS TOT_CNT 
+		        , SUM (CASE  PRD_MST_SEL_STATE WHEN 'I'
+		                                        THEN 1 
+		                                        ELSE 0 
+		        END )   SEL_CNT /* 판매중 */
+		        , SUM (CASE  PRD_MST_SEL_STATE WHEN 'O'
+		                                        THEN 1 
+		                                        ELSE 0 
+		        END )   NOT_SEL_CNT /* 일시품절 */
+		        , SUM (CASE  PRD_MST_SEL_STATE WHEN 'T'
+		                                        THEN 1 
+		                                        ELSE 0 
+		        END )  OUT_CNT /* 품절상품 */
+		FROM T_PRD_MST 
+		WHERE
+			PRD_MST_VDR_YN = 'Y'
+		AND
+			PRD_MST_VDR_IDX > 0
+		AND
+			PRD_MST_DEL_YN = 'N'
+        <if test="ADM_MST_SUB_IDX != null and ADM_MST_SUB_IDX != ''">
+            AND PRD_MST_VDR_IDX = #{ADM_MST_SUB_IDX} /* 입점업체 상품 조회시 */
+        </if>
+    </select>	
+    
+    <!-- 관리자 > 메인 > 입점업체 승인/대기 현황 -->
+    <select id="selectProductApvSummaryList" parameterType="hashMap" resultType="hashMap">
+        /* DashboardMain.selectProductApvSummaryList */	
+         SELECT '상품등록 승인대기' AS PRD_MST_TITLE
+		       , (
+		       		SELECT COUNT(0) FROM T_PRD_MST WHERE TO_CHAR(TO_DATE(PRD_MST_REG_DT,'YYYYMMDDHH24MISS'),'YYYYMMDD') = TO_CHAR(SYSDATE, 'YYYYMMDD') AND PRD_MST_DEL_YN = 'N' AND PRD_MST_APV_STATE = 'D' AND PRD_MST_VDR_YN = 'Y' AND PRD_MST_VDR_IDX > 0
+                    <if test="ADM_MST_SUB_IDX != null and ADM_MST_SUB_IDX != ''">
+                        AND PRD_MST_VDR_IDX = #{ADM_MST_SUB_IDX}
+                    </if>
+  	       		 ) AS NEW_STATE_D_CNT /*신규 승인대기*/
+		       , (
+		       		SELECT COUNT(0) FROM T_PRD_MST WHERE TO_CHAR(TO_DATE(PRD_MST_UPD_DT,'YYYYMMDDHH24MISS'),'YYYYMMDD') = TO_CHAR(SYSDATE, 'YYYYMMDD') AND PRD_MST_DEL_YN = 'N' AND PRD_MST_APV_STATE = 'A' AND PRD_MST_VDR_YN = 'Y' AND PRD_MST_VDR_IDX > 0
+                    <if test="ADM_MST_SUB_IDX != null and ADM_MST_SUB_IDX != ''">
+                        AND PRD_MST_VDR_IDX = #{ADM_MST_SUB_IDX}
+                    </if>
+		       	  ) AS NEW_STATE_A_CNT /*신규 승인*/
+		       , (
+		       		SELECT COUNT(0) FROM T_PRD_MST WHERE PRD_MST_DEL_YN = 'N' AND PRD_MST_APV_STATE = 'D' AND PRD_MST_VDR_YN = 'Y' AND PRD_MST_VDR_IDX > 0
+                    <if test="ADM_MST_SUB_IDX != null and ADM_MST_SUB_IDX != ''">
+                        AND PRD_MST_VDR_IDX = #{ADM_MST_SUB_IDX}
+                    </if>
+		       	  ) AS TOT_STATE_D_CNT /*누적 미승인*/
+		FROM DUAL
+		UNION ALL
+		SELECT '상품수정 승인대기' AS PRD_MST_TITLE
+		       , (
+		       		SELECT COUNT(0) FROM T_PRD_MST PM INNER JOIN T_VDR_APV VAV ON PM.PRD_MST_CD = VAV.PRD_MST_CD WHERE PM.PRD_MST_DEL_YN = 'N' AND TO_CHAR(TO_DATE(VAV.VDR_APV_REG_DT,'YYYYMMDDHH24MISS'),'YYYYMMDD') = TO_CHAR(SYSDATE, 'YYYYMMDD') AND VAV.VDR_APV_APV_STATE = 'D' AND PM.PRD_MST_VDR_YN = 'Y' AND PM.PRD_MST_VDR_IDX > 0
+                    <if test="ADM_MST_SUB_IDX != null and ADM_MST_SUB_IDX != ''">
+                        AND PRD_MST_VDR_IDX = #{ADM_MST_SUB_IDX}
+                    </if>
+		       	  ) AS NEW_STATE_D_CNT /* 신규 승인대기*/
+		       , (
+		       		SELECT COUNT(0) FROM T_PRD_MST PM INNER JOIN T_VDR_APV VAV ON PM.PRD_MST_CD = VAV.PRD_MST_CD WHERE PM.PRD_MST_DEL_YN = 'N' AND TO_CHAR(TO_DATE(VAV.VDR_APV_UPD_DT,'YYYYMMDDHH24MISS'),'YYYYMMDD') = TO_CHAR(SYSDATE, 'YYYYMMDD') AND VAV.VDR_APV_APV_STATE = 'A' AND PM.PRD_MST_VDR_YN = 'Y' AND PM.PRD_MST_VDR_IDX > 0
+                    <if test="ADM_MST_SUB_IDX != null and ADM_MST_SUB_IDX != ''">
+                        AND PRD_MST_VDR_IDX = #{ADM_MST_SUB_IDX}
+                    </if>                    
+		       	  ) AS NEW_STATE_A_CNT /* 신규 승인대기*/
+			   , (
+			   		SELECT COUNT(0) FROM T_PRD_MST PM INNER JOIN T_VDR_APV VAV ON PM.PRD_MST_CD = VAV.PRD_MST_CD WHERE PM.PRD_MST_DEL_YN = 'N' AND VAV.VDR_APV_APV_STATE = 'A' AND PM.PRD_MST_VDR_YN = 'Y' AND PM.PRD_MST_VDR_IDX > 0
+                    <if test="ADM_MST_SUB_IDX != null and ADM_MST_SUB_IDX != ''">
+                        AND PRD_MST_VDR_IDX = #{ADM_MST_SUB_IDX}
+                    </if>                    
+			   	  ) AS TOT_STATE_D_CNT /* 누적미승인*/
+		FROM DUAL
+    </select>
+    
+    <!-- 관리자 > 메인 > 견적문의 현황 -->
+    <select id="selectEstimateManagementSummaryList" parameterType="hashMap" resultType="hashMap">
+        /* DashboardMain.selectEstimateManagementSummaryList */	
+         SELECT
+		    CM.CMN_COM_NM
+		    , (SELECT COUNT(0) FROM T_ESM_MST WHERE ESM_MST_USE_YN = 'Y' AND TO_CHAR(TO_DATE(ESM_MST_REG_DT,'YYYYMMDDHH24MISS'),'YYYYMMDD') = TO_CHAR(SYSDATE, 'YYYYMMDD') AND ESM_MST_TYPE LIKE '%'||CM.CMN_COM_IDX||'%') AS NEW_ESM_MST_CNT /*신규 등록*/
+		    , (SELECT COUNT(0) FROM (SELECT EPH.ESM_PCH_MST_CD,EMT.ESM_MST_TYPE FROM T_ESM_PCH EPH INNER JOIN T_ESM_MST EMT ON EMT.ESM_MST_CD = EPH.ESM_PCH_MST_CD WHERE EMT.ESM_MST_USE_YN = 'Y' AND TO_CHAR(TO_DATE(EPH.ESM_PCH_REG_DT,'YYYYMMDDHH24MISS'),'YYYYMMDD') = TO_CHAR(SYSDATE, 'YYYYMMDD') GROUP BY EPH.ESM_PCH_MST_CD , EMT.ESM_MST_TYPE) A WHERE A.ESM_MST_TYPE LIKE '%'||CM.CMN_COM_IDX||'%' ) AS NEW_ESM_PCH_MD_CNT /* MD견적*/
+		    , (SELECT COUNT(0) FROM (SELECT EPH.ESM_PCH_MST_CD,EMT.ESM_MST_TYPE FROM T_ESM_PCH EPH INNER JOIN T_ESM_MST EMT ON EMT.ESM_MST_CD = EPH.ESM_PCH_MST_CD WHERE EMT.ESM_MST_USE_YN = 'Y' AND EPH.ESM_PCH_MD_BUY_YN = 'Y' AND TO_CHAR(TO_DATE(EPH.ESM_PCH_REG_DT,'YYYYMMDDHH24MISS'),'YYYYMMDD') = TO_CHAR(SYSDATE, 'YYYYMMDD') GROUP BY EPH.ESM_PCH_MST_CD , EMT.ESM_MST_TYPE) A WHERE A.ESM_MST_TYPE LIKE '%'||CM.CMN_COM_IDX||'%' ) AS NEW_ESM_PCH_MD_BUY_CNT /* 구매승인*/
+		    , (SELECT COUNT(0) FROM T_ESM_MST EMT INNER JOIN T_ORD_MST OMT ON OMT.ESM_MST_IDX = EMT.ESM_MST_IDX INNER JOIN T_ORD_PRD ORD ON ORD.ORD_ORD_MST_CD = OMT.ORD_MST_CD AND ORD.ORD_PRD_ORD_STATE IN ('404','405') WHERE EMT.ESM_MST_USE_YN = 'Y' AND EMT.ESM_MST_TYPE LIKE '%'||CM.CMN_COM_IDX||'%') AS NEW_ESM_PCH_ODR_CNT
+		    , (
+		    		SELECT 	COUNT(0)
+					FROM
+						T_ESM_MST
+					WHERE NOT EXISTS (
+									SELECT ESM_MST_CD
+									FROM T_ESM_MST EMT 
+									INNER JOIN T_ESM_PCH EPH ON EMT.ESM_MST_CD = EPH.ESM_PCH_MST_CD
+									WHERE EMT.ESM_MST_USE_YN = 'Y'
+									AND T_ESM_MST.ESM_MST_CD = EMT.ESM_MST_CD
+									AND EMT.ESM_MST_TYPE = CM.CMN_COM_IDX
+									GROUP BY ESM_MST_CD
+								)
+					AND ESM_MST_TYPE = CM.CMN_COM_IDX
+		    	) AS TOT_ESM_EPH_CNT /*누적미처리*/
+		FROM
+		    T_CMM_COM CM
+		WHERE
+		    CM.CMN_COM_UP_IDX = '1814'
+		AND CM.CMN_COM_USE_YN = 'Y'
+		ORDER BY CM.CMN_COM_LEVEL, CM.CMN_COM_SORT ASC
+    </select>
+    
+    <!-- 회원현황 -->
+    <select id="selectMemberSummary" parameterType="HashMap" resultType="HashMap">
+    	/* DashboardMain.selectMemberSummary */
+    	SELECT
+			(SELECT COUNT(0) FROM T_MEM_MST WHERE MEM_MST_LEV_YN = 'N' AND MEM_MST_MEM_GBN = '682' AND MEM_MST_REG_DT BETWEEN TO_CHAR(SYSDATE,'YYYYMMDD') || '000000' AND TO_CHAR(SYSDATE,'YYYYMMDD') || '235959') AS BASIC_NEW_CNT, /* 통합회원 신규 */
+			(SELECT COUNT(0) FROM T_MEM_MST WHERE MEM_MST_LEV_YN = 'N' AND MEM_MST_MEM_GBN = '682' AND TO_CHAR(TO_DATE(MEM_MST_REG_DT,'YYYYMMDDHH24MISS'),'YYYYMM') = TO_CHAR(SYSDATE,'YYYYMM')) AS BASIC_MONTH_CNT, /* 통합회원 월누적 */
+			(SELECT COUNT(0) FROM T_MEM_MST WHERE MEM_MST_LEV_YN = 'N' AND MEM_MST_MEM_GBN = '682') AS BASIC_TOTAL_CNT, /* 통합회원 총누적 */
+			(SELECT COUNT(0) FROM T_MEM_MST WHERE MEM_MST_LEV_YN = 'N' AND MEM_MST_MEM_GBN = '1961' AND MEM_MST_REG_DT BETWEEN TO_CHAR(SYSDATE,'YYYYMMDD') || '000000' AND TO_CHAR(SYSDATE,'YYYYMMDD') || '235959') AS SIMPLE_NEW_CNT, /* 간편회원 신규 */
+			(SELECT COUNT(0) FROM T_MEM_MST WHERE MEM_MST_LEV_YN = 'N' AND MEM_MST_MEM_GBN = '1961' AND TO_CHAR(TO_DATE(MEM_MST_REG_DT,'YYYYMMDDHH24MISS'),'YYYYMM') = TO_CHAR(SYSDATE,'YYYYMM')) AS SIMPLE_MONTH_CNT, /* 간편회원 월누적 */
+			(SELECT COUNT(0) FROM T_MEM_MST WHERE MEM_MST_LEV_YN = 'N' AND MEM_MST_MEM_GBN = '1961') AS SIMPLE_TOTAL_CNT, /* 간편회원 총누적 */
+			(SELECT COUNT(0) FROM T_MEM_MST WHERE MEM_MST_LEV_YN = 'N' AND MEM_MST_MEM_GBN = '683' AND MEM_MST_REG_DT BETWEEN TO_CHAR(SYSDATE,'YYYYMMDD') || '000000' AND TO_CHAR(SYSDATE,'YYYYMMDD') || '235959') AS COMP_NEW_CNT, /* 기업회원 신규 */
+			(SELECT COUNT(0) FROM T_MEM_MST WHERE MEM_MST_LEV_YN = 'N' AND MEM_MST_MEM_GBN = '683' AND TO_CHAR(TO_DATE(MEM_MST_REG_DT,'YYYYMMDDHH24MISS'),'YYYYMM') = TO_CHAR(SYSDATE,'YYYYMM')) AS COMP_MONTH_CNT, /* 기업회원 월누적 */
+			(SELECT COUNT(0) FROM T_MEM_MST WHERE MEM_MST_LEV_YN = 'N' AND MEM_MST_MEM_GBN = '683') AS COMP_TOTAL_CNT, /* 기업회원 총누적 */
+			(SELECT COUNT(0) FROM T_MEM_VIEW WHERE MEM_MST_LEV_YN = 'Y' AND MEM_MST_LEV_DT BETWEEN TO_CHAR(SYSDATE,'YYYYMMDD') || '000000' AND TO_CHAR(SYSDATE,'YYYYMMDD') || '235959') AS OUT_NEW_CNT, /* 탈퇴회원 신규 */
+			(SELECT COUNT(0) FROM T_MEM_VIEW WHERE MEM_MST_LEV_YN = 'Y' AND TO_CHAR(TO_DATE(MEM_MST_LEV_DT,'YYYYMMDDHH24MISS'),'YYYYMM') = TO_CHAR(SYSDATE,'YYYYMM')) AS OUT_MONTH_CNT, /* 탈퇴회원 월누적 */
+			(SELECT COUNT(0) FROM T_MEM_VIEW WHERE MEM_MST_LEV_YN = 'Y') AS OUT_TOTAL_CNT, /* 탈퇴회원 총누적 */
+			(SELECT COUNT(0) FROM T_MEM_RST WHERE MEM_MST_LEV_YN = 'N' AND MEM_MST_RST_DT BETWEEN TO_CHAR(SYSDATE,'YYYYMMDD') || '000000' AND TO_CHAR(SYSDATE,'YYYYMMDD') || '235959') AS REST_NEW_CNT, /* 휴면회원 신규 */
+			(SELECT COUNT(0) FROM T_MEM_RST WHERE MEM_MST_LEV_YN = 'N' AND TO_CHAR(TO_DATE(MEM_MST_RST_DT,'YYYYMMDDHH24MISS'),'YYYYMM') = TO_CHAR(SYSDATE,'YYYYMM')) AS REST_MONTH_CNT, /* 휴면회원 월누적 */
+			(SELECT COUNT(0) FROM T_MEM_RST WHERE MEM_MST_LEV_YN = 'N') AS REST_TOTAL_CNT /* 휴면회원 총누적 */
+		FROM
+			DUAL
+    </select>
+    
+    <!-- 관리자 > 메인 > 세금계산서 신청 현황 -->
+    <select id="selectTaxIvcState" parameterType="hashMap" resultType="hashMap">
+        /* DashboardMain.selectTaxIvcState */
+        SELECT
+			SUM(TOT_CNT) as TOT_CNT /* 당일 신규 전체 개수 */
+			, SUM(HANDLED_Y_CNT) as HANDLED_Y_CNT /* 당일 신규 처리완료 개수 */ 
+			, SUM(HANDLED_N_CNT) as HANDLED_N_CNT /* 당일 신규 미처리 개수 */ 
+			, SUM(TOT_HANDLED_N_CNT) as TOT_HANDLED_N_CNT /* 누적 미처리 개수 */
+		FROM
+		(
+		SELECT
+			COUNT(1) as TOT_CNT /* 당일 신규 전체 개수 */
+			, NVL(SUM(DECODE(TAX_IVC_STATE, 'Y', 0, 1)),0) as HANDLED_Y_CNT /* 당일 신규 처리완료 개수 */ 
+			, NVL(SUM(DECODE(TAX_IVC_STATE, 'N', 1, 0)),0) as HANDLED_N_CNT /* 당일 신규 미처리 개수 */ 
+			, 0 as TOT_HANDLED_N_CNT /* 누적 미처리 개수 */
+		FROM T_TAX_IVC
+		WHERE TAX_IVC_REG_DT BETWEEN TO_CHAR(SYSDATE, 'YYYYMMDD')||'000000' AND TO_CHAR(SYSDATE, 'YYYYMMDD')||'235959'
+		UNION ALL
+		SELECT
+			0 as TOT_CNT /* 당일 신규 전체 개수 */
+			, 0 as HANDLED_Y_CNT /* 당일 신규 처리완료 개수 */ 
+			, 0 as HANDLED_N_CNT /* 당일 신규 미처리 개수 */ 
+			, NVL(SUM(DECODE(TAX_IVC_STATE, 'N', 1, 0)),0) as TOT_HANDLED_N_CNT /* 누적 미처리 개수 */
+		FROM T_TAX_IVC
+		)
+    </select>
+    
+    <!-- SCM > MarketPlant 공지사항 -->
+    <select id="selectScmNoticeList" parameterType="HashMap" resultType="HashMap">
+    	/* DashboardMain.selectScmNoticeList */
+    	SELECT			
+			S2.*
+		FROM
+		(
+			SELECT	    		
+				SCM_NTS_TITLE,
+				(
+		        SELECT
+		            ADM_MST_NM
+		        FROM
+		            T_ADM_MST
+		        WHERE
+		            ADM_MST_ID = SCM_NTS_REG_ID
+		        )
+		        AS ADM_MST_NM,
+		        SCM_NTS_REG_DT
+		   FROM
+		   	  T_SCM_NTS
+		   WHERE
+		   	  SCM_NTS_USE_YN = 'Y'
+		   ORDER BY SCM_NTS_REG_DT DESC
+		) S2
+		WHERE ROWNUM <![CDATA[ < ]]> 9
+    </select>
+    
+    <!-- SCM > 최근 등록한 상품Q&A -->
+    <resultMap id="resultScmProductInquiryList" type="HashMap">
+        <result column="BRD_PRD_MST_CD" property="BRD_PRD_MST_CD" />
+        <result column="BRD_PRD_MST_NM" property="BRD_PRD_MST_NM" />
+        <result column="BRD_INQ_CONTENTS" property="BRD_INQ_CONTENTS" jdbcType="CLOB" javaType="java.lang.String"/>
+    </resultMap>
+    <select id="selectScmProductInquiryList" parameterType="HashMap" resultMap="resultScmProductInquiryList">
+    	/* DashboardMain.selectScmProductInquiryList */
+    	SELECT
+			S1.*
+		FROM
+		(
+			SELECT                           
+			    BRD_PRD_MST_CD,
+			    (   SELECT
+			            PRD_MST_NM
+			        FROM
+			            T_PRD_MST
+			        WHERE
+			            PRD_MST_CD = BRD_PRD_MST_CD
+			    )
+			    AS BRD_PRD_MST_NM,                      
+			    CASE WHEN LENGTH(BRD_INQ_CONTENTS) > 30 THEN SUBSTR(BRD_INQ_CONTENTS,0,30) || '..'
+			    ELSE BRD_INQ_CONTENTS
+			    END AS BRD_INQ_CONTENTS			                               
+			FROM
+			    T_BRD_INQ TBI, T_PRD_MST TPM 
+			WHERE
+			    TBI.BRD_PRD_MST_CD = TPM.PRD_MST_CD
+			AND
+				BRD_INQ_TYPE= 'Q'
+			AND
+				BRD_INQ_USE_YN = 'Y'
+			AND    
+			 	TPM.PRD_MST_VDR_IDX = #{ADM_MST_SUB_IDX}
+			ORDER BY BRD_INQ_REG_DT DESC
+		) S1
+		WHERE ROWNUM <![CDATA[ < ]]> 4
+    </select>
+    
+    <!-- SCM > 최근 등록한 상품평 -->
+    <select id="selectScmProductCommentList" parameterType="HashMap" resultType="HashMap">
+    	/* DashboardMain.selectScmProductCommentList */
+    	SELECT
+			S1.*
+		FROM
+		(
+			SELECT                   
+	            TPR.PRD_PRD_MST_CD,
+	            TPM.PRD_MST_NM,                    
+	            CASE WHEN LENGTH(TPR.PRD_REV_TITLE) > 30 THEN SUBSTR(TPR.PRD_REV_TITLE,0,30) || '..'
+	            ELSE TPR.PRD_REV_TITLE
+	            END AS PRD_REV_TITLE	                
+            FROM
+                T_PRD_REV TPR,
+                T_PRD_MST TPM
+            WHERE
+                TPR.PRD_PRD_MST_CD = TPM.PRD_MST_CD                 
+            AND
+              	TPR.PRD_REV_USE_YN = 'Y'
+			AND    
+			 	TPM.PRD_MST_VDR_IDX = #{ADM_MST_SUB_IDX}
+			ORDER BY TPR.PRD_REV_REG_DT DESC
+		) S1
+		WHERE ROWNUM <![CDATA[ < ]]> 4
+    </select>
+    
+    <!-- SCM > MarketPlant 문의현황 -->
+    <select id="selectScmInquiryList" parameterType="HashMap" resultType="HashMap">
+    	/* DashboardMain.selectScmInquiryList */
+    	SELECT
+			S2.*
+		FROM
+		(
+			SELECT    
+				SCM_INQ_TITLE,
+			    SCM_INQ_REPLY_CD,    
+			    SCM_INQ_REG_DT
+			FROM
+			    T_SCM_INQ TSI, T_VDR_MST TVM
+			WHERE
+			    TSI.SCM_VDR_MST_IDX = TVM.VDR_MST_IDX
+			AND 
+				TVM.VDR_MST_IDX = #{ADM_MST_SUB_IDX}
+			ORDER BY SCM_INQ_REG_DT DESC 
+		) S2
+		WHERE ROWNUM <![CDATA[ < ]]> 11
+    </select>
+    <!-- DASHBOARD > CS상담게시물현황 -->
+    <select id="selectMemAdvList" parameterType="HashMap" resultType="HashMap">
+	    SELECT GB, 
+			   CNT_ALL, 
+			   CNT_NO, 
+			   CNT_YES, 
+			   CNT_NO_ALL
+		FROM (
+			SELECT 1 AS GB, NVL(SUM(CNT_ALL),0) AS CNT_ALL, NVL(SUM(CNT_NO),0) AS CNT_NO, NVL(SUM(CNT_YES),0) AS CNT_YES, NVL(SUM(CNT_NO_ALL),0) AS CNT_NO_ALL
+			FROM (
+			SELECT 1 AS CNT_ALL, DECODE(BRD_INQ_REPLY_CD,'N',1,0) AS CNT_NO, DECODE(BRD_INQ_REPLY_CD,'Y',1,0) AS CNT_YES, 0 AS CNT_NO_ALL
+			FROM T_BRD_INQ WHERE BRD_INQ_TYPE = 'Q' AND SUBSTR(BRD_INQ_REG_DT,1,8) = TO_CHAR(SYSDATE,'yyyymmdd')
+			UNION ALL
+			SELECT 0 AS CNT_ALL, 0 AS CNT_NO, 0 AS CNT_YES, 1 AS CNT_NO_ALL
+			FROM T_BRD_INQ WHERE BRD_INQ_TYPE = 'Q'  AND BRD_INQ_REPLY_CD = 'N')
+			UNION ALL
+			SELECT 2 AS GB, NVL(SUM(CNT_ALL),0) AS CNT_ALL, NVL(SUM(CNT_NO),0) AS CNT_NO, NVL(SUM(CNT_YES),0) AS CNT_YES, NVL(SUM(CNT_NO_ALL),0) AS CNT_NO_ALL
+			FROM (
+			SELECT 1 AS CNT_ALL, DECODE(MEM_ADV_RPL_YN,'N',1,0) AS CNT_NO, DECODE(MEM_ADV_RPL_YN,'Y',1,0) AS CNT_YES, 0 AS CNT_NO_ALL
+			FROM T_MEM_ADV WHERE MEM_ADV_TYPE = '2238' AND SUBSTR(MEM_ADV_REG_DT,1,8) = TO_CHAR(SYSDATE,'yyyymmdd')
+			UNION ALL
+			SELECT 0 AS CNT_ALL, 0 AS CNT_NO, 0 AS CNT_YES, 1 AS CNT_NO_ALL
+			FROM T_MEM_ADV WHERE MEM_ADV_TYPE = '2238'  AND MEM_ADV_RPL_YN = 'N')
+			UNION ALL
+			SELECT 3 AS GB, NVL(SUM(CNT_ALL),0) AS CNT_ALL, NVL(SUM(CNT_NO),0) AS CNT_NO, NVL(SUM(CNT_YES),0) AS CNT_YES, NVL(SUM(CNT_NO_ALL),0) AS CNT_NO_ALL
+			FROM (
+			SELECT 1 AS CNT_ALL, DECODE(MEM_ADV_RPL_YN,'N',1,0) AS CNT_NO, DECODE(MEM_ADV_RPL_YN,'Y',1,0) AS CNT_YES, 0 AS CNT_NO_ALL
+			FROM T_MEM_ADV WHERE MEM_ADV_TYPE = '2239' AND SUBSTR(MEM_ADV_REG_DT,1,8) = TO_CHAR(SYSDATE,'yyyymmdd')
+			UNION ALL
+			SELECT 0 AS CNT_ALL, 0 AS CNT_NO, 0 AS CNT_YES, 1 AS CNT_NO_ALL
+			FROM T_MEM_ADV WHERE MEM_ADV_TYPE = '2239'  AND MEM_ADV_RPL_YN = 'N')
+			UNION ALL
+			SELECT 4 AS GB, NVL(SUM(CNT_ALL),0) AS CNT_ALL, NVL(SUM(CNT_NO),0) AS CNT_NO, NVL(SUM(CNT_YES),0) AS CNT_YES, NVL(SUM(CNT_NO_ALL),0) AS CNT_NO_ALL
+			FROM (
+			SELECT 1 AS CNT_ALL, DECODE(MEM_ADV_RPL_YN,'N',1,0) AS CNT_NO, DECODE(MEM_ADV_RPL_YN,'Y',1,0) AS CNT_YES, 0 AS CNT_NO_ALL
+			FROM T_MEM_ADV WHERE MEM_ADV_TYPE = '2240' AND SUBSTR(MEM_ADV_REG_DT,1,8) = TO_CHAR(SYSDATE,'yyyymmdd')
+			UNION ALL
+			SELECT 0 AS CNT_ALL, 0 AS CNT_NO, 0 AS CNT_YES, 1 AS CNT_NO_ALL
+			FROM T_MEM_ADV WHERE MEM_ADV_TYPE = '2240'  AND MEM_ADV_RPL_YN = 'N')
+			UNION ALL
+			SELECT 5 AS GB, NVL(SUM(CNT_ALL),0) AS CNT_ALL, NVL(SUM(CNT_NO),0) AS CNT_NO, NVL(SUM(CNT_YES),0) AS CNT_YES, NVL(SUM(CNT_NO_ALL),0) AS CNT_NO_ALL
+			FROM (
+			SELECT 1 AS CNT_ALL, DECODE(SCM_INQ_REPLY_CD,'N',1,0) AS CNT_NO, DECODE(SCM_INQ_REPLY_CD,'Y',1,0) AS CNT_YES, 0 AS CNT_NO_ALL
+			FROM T_SCM_INQ WHERE   SUBSTR(SCM_INQ_REG_DT,1,8) = TO_CHAR(SYSDATE,'yyyymmdd')
+			UNION ALL
+			SELECT 0 AS CNT_ALL, 0 AS CNT_NO, 0 AS CNT_YES, 1 AS CNT_NO_ALL
+			FROM T_SCM_INQ WHERE SCM_INQ_REPLY_CD = 'N')
+		)
+		ORDER BY GB
+	</select>
+	 <!-- DASHBOARD > 이벤트현황 -->
+    <select id="selectEventList" parameterType="HashMap" resultType="HashMap">
+	    SELECT EVT_MST_TITLE,  
+	    		EVT_MST_ED_DT, 
+	    		EVT_MST_WIN_DT
+		FROM (
+			SELECT EVT_MST_TITLE, EVT_MST_ED_DT, EVT_MST_WIN_DT
+			FROM T_EVT_MST
+			WHERE TO_CHAR(SYSDATE,'yyyymmdd') BETWEEN EVT_MST_ST_DT AND EVT_MST_ED_DT
+			AND EVT_MST_USE_YN = 'Y'
+			ORDER BY EVT_MST_ED_DT, EVT_MST_WIN_DT
+		)
+		WHERE ROWNUM <![CDATA[ < ]]> 6
+    </select>
+    
+    <!-- 관리자 > 메인 > CS상담/게시물현황 > 입점상담문의 -->
+    <select id="selectVendorCounselState" parameterType="HashMap" resultType="HashMap">
+    	/* DashboardMain.selectVendorCounselState */
+    	SELECT
+			(SELECT COUNT(0) FROM T_VDR_CST TVC, T_VDR_LGN TVL WHERE TVC.VDR_LGN_IDX = TVL.VDR_LGN_IDX AND TVC.VDR_CST_USE_YN = 'Y' AND VDR_CST_REG_DT BETWEEN TO_CHAR(SYSDATE,'YYYYMMDD') || '000000' AND TO_CHAR(SYSDATE,'YYYYMMDD') || '235959' ) AS NEW_CNT,	/* 신규 */
+			(SELECT COUNT(0) FROM T_VDR_CST TVC, T_VDR_LGN TVL WHERE TVC.VDR_LGN_IDX = TVL.VDR_LGN_IDX AND TVC.VDR_CST_USE_YN = 'Y' AND VDR_CST_GBN <![CDATA[<>]]> '2392' AND VDR_CST_REG_DT BETWEEN TO_CHAR(SYSDATE,'YYYYMMDD') || '000000' AND TO_CHAR(SYSDATE,'YYYYMMDD') || '235959' ) AS NO_CLEAR_CNT,	/* 미처리여부 */
+			(SELECT COUNT(0) FROM T_VDR_CST TVC, T_VDR_LGN TVL WHERE TVC.VDR_LGN_IDX = TVL.VDR_LGN_IDX AND TVC.VDR_CST_USE_YN = 'Y' AND VDR_CST_GBN = '2392' AND VDR_CST_REG_DT BETWEEN TO_CHAR(SYSDATE,'YYYYMMDD') || '000000' AND TO_CHAR(SYSDATE,'YYYYMMDD') || '235959' ) AS CLEAR_CNT,	/* 처리완료 */	
+			(SELECT COUNT(0) FROM T_VDR_CST TVC, T_VDR_LGN TVL WHERE TVC.VDR_LGN_IDX = TVL.VDR_LGN_IDX AND TVC.VDR_CST_USE_YN = 'Y' AND VDR_CST_GBN <![CDATA[<>]]> '2392') AS TOT_NO_CLEAR_CNT	/* 누적미처리 */	
+		FROM DUAL
+    </select>
+
+</mapper>

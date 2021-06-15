@@ -1,0 +1,4 @@
+[14:50:05] [0hKVRnwVrgClcWgIqbn] START:mall_id=[]+tr_cd=[00101000]+order_no=[2016011100723]
+[14:50:05] [0hKVRnwVrgClcWgIqbn] DATA:pay_data=common=tot_amt=993000currency=00client_ip=127.0.0.1escrow_yn=Ncomplex_yn=Ncli_ver=N8vacct=vacct_txtype=10vacct_amt=993000bank_cd=003expire_date=20160114expire_time=235959cash_yn=0order_data=order_no=2016011100723user_phone2=01099999999product_nm=브랜드2SINFONIAJ24묶음배송할거임 외 2건product_amt=993000
+[14:50:05] [0hKVRnwVrgClcWgIqbn] RESULT:res_cd=E106res_msg=Mall ID 없음
+[14:50:05] [0hKVRnwVrgClcWgIqbn] ENDED :mall_id=[]+tr_cd=[00101000]+order_no=[2016011100723]

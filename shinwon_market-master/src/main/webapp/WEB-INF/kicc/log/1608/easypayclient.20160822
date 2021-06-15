@@ -1,0 +1,4 @@
+[14:26:34] [0kkwkubG91ujkacpyHE] START:mall_id=[]+tr_cd=[00101000]+order_no=[]
+[14:26:34] [0kkwkubG91ujkacpyHE] DATA:pay_data=common=client_ip=127.0.0.1card=card_txtype=20noint=00wcc=@order_data=user_id=sosoworld2user_nm=쏘쏘
+[14:26:35] [0kkwkubG91ujkacpyHE] RESULT:res_cd=E901res_msg=결제총금액 없음
+[14:26:35] [0kkwkubG91ujkacpyHE] ENDED :mall_id=[]+tr_cd=[00101000]+order_no=[]

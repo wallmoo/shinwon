@@ -1,0 +1,233 @@
+// 포커싱 후 섀도우 효과 
+.focus-shadow(@color: @brand-primary){
+    .transition(~"border-color ease-in-out .2s, box-shadow ease-in-out .2s");
+    &:focus {
+        border-color: @color;
+        -moz-box-shadow: 0 0 5px @color;
+        -webkit-box-shadow: 0 0 5px @color;
+        box-shadow: 0 0 5px @color;
+    }
+}
+
+html {
+    -webkit-font-smoothing: antialiased;
+}
+
+// selection color
+@selection-color:   #b3d4fc;
+
+// HTML5 Boilerplate v4.3.0 | MIT License | http://h5bp.com/
+::-moz-selection {
+    background: @selection-color;
+    text-shadow: none;
+}
+::selection {
+    background: @selection-color;
+    text-shadow: none;
+}
+hr {
+    .block();
+    margin: 1em 0;
+    padding: 0;
+    height: 1px;
+    border: none;
+    border-top: 1px solid #dedede;
+}
+audio, canvas, img, video {
+    .vertical-middle();
+}
+form, fieldset {
+    .reset();
+    border: none;
+}
+textarea {
+    resize: vertical;
+}
+/* .browsehappy */
+.browsehappy {
+    margin: 0.2em 0;
+    padding: 0.2em 0;
+    background: #ccc;
+    color: #000;
+}
+
+th {
+    .bold();
+}
+
+* {
+    .background-no-repeat();
+    background-position: center center;
+}
+
+// scroll bar
+.scroll {
+    overflow: hidden;
+    overflow-y: scroll;
+    .ie & {
+        scrollbar-3dlight-color: #d0d0d0;
+        scrollbar-arrow-color: #999;
+        scrollbar-base-color: #fff;
+        scrollbar-face-color: #fff;
+        scrollbar-track-color: #ddd;
+        scrollbar-darkshadow-color: #ccc;
+        scrollbar-highlight-color: #fff;
+        scrollbar-shadow-color: #fff;
+    }   
+}
+
+/* tab */
+ul.tab { 
+    .reset();
+    .clear-after();
+    *zoom: 1;
+    > li { 
+        .pull-left(); 
+    }
+}
+
+ul.table {
+    .reset();
+    li { 
+        .clearfix();
+        .th, 
+        .td { 
+            .inline-block();
+            .vertical-middle();
+        }
+        .th {
+            .pull-left();
+        }
+        .td {
+            .pull-right();
+        }
+    }
+}
+
+dl.table { 
+    .reset();
+    dt, 
+    dd { 
+        height: 26px; 
+        line-height: 25px; 
+        overflow: hidden; 
+    }
+    dt { 
+        clear: left; 
+        .reset();
+        .pull-left(); 
+        label { 
+            .inline-block(); 
+            .vertical-top(); 
+        }
+    }
+    dd { 
+        margin: 0 0 0 100px; 
+        padding: 0; 
+    }
+}
+
+/* form : base ========================================================================== */
+select,
+textarea {
+    // .focus-shadow();
+}
+
+input:invalid, 
+textarea:invalid { 
+    background-color: #f0dddd;
+} 
+
+label[for] { 
+    margin-right: 3px; 
+    cursor: pointer; 
+}
+
+input {
+    .placeholder();
+    label > &[type="checkbox"],
+    label > &[type="radio"] {
+        vertical-align: middle;
+        cursor: pointer; 
+    }
+
+    // placeholder, transition
+    &[type="text"],
+    &[type="password"],
+    &[type="number"],
+    &[type="tel"],
+    &[type="date"],
+    &[type="search"],
+    &[type="radio"], 
+    &[type="checkbox"] {
+        // .focus-shadow();
+        &:focus {
+            border-color: @brand-primary;
+        }
+    }
+
+    // ime-mode
+    &[type="number"], 
+    &.spinner,
+    &.number { 
+        ime-mode: disabled; 
+    }
+
+    &[type="radio"], 
+    &[type="checkbox"] {
+        margin-right: 3px;
+    }
+
+}
+
+p {
+    .pos-relative();
+    > input[type="radio"],
+    > input[type="checkbox"] { 
+        vertical-align: middle;
+    }
+}
+
+/* utility : image ================================================================ */
+img.spacer { background-image: url(@image-spacer); .background-repeat(); }
+img.noimage { background-image: url(@image-noimage); .background-repeat(); }
+img.blank { background-image: url(@image-blank); .background-repeat(); }
+
+img.full {
+    max-width: 100%;
+}
+
+/* table ================================================================ */
+table {
+    .scroll & { width: 96%; }
+    &.fixed { table-layout: fixed; }
+    &.layout-auto {
+        table-layout: auto !important;
+    }
+    .webkit &.fixed { table-layout: auto; }
+
+    &.center { 
+        td, 
+        th { text-align: center; }
+    }
+    caption { display: none; } 
+
+    img, select, input, button, .button { .vertical-middle(); }
+
+    textarea { width: 99.99%; }
+
+    label { vertical-align: middle; }
+} 
+
+.frame {
+    clear: both;
+    line-height: 1.4;
+    &.frame-a {
+        border-top: 1px solid #d7d7d7;
+        border-bottom: 1px solid #d7d7d7;
+        background-color: #fafbfb;
+    }
+}
+
+b,
+strong { .bold(); }

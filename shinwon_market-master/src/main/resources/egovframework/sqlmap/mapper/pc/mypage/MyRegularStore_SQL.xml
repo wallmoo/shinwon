@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="pcRegularStore">
+
+	<!-- 사용자 > 퀵메뉴 > 단골매장 상세정보 -->
+	<select id="regularStoreInfo" parameterClass="HashMap" resultClass="HashMap">
+		/* pcRegularStore.regularStoreInfo */
+		SELECT
+			TC.COMP_CD,
+			TC.CUST_NO,
+			TC.BCNC_CD,
+			TC.BCNC_NM,
+			TCS.CUST_ID
+		FROM
+			TSM_CUST TC, TSM_CUST_SCRT TCS
+		WHERE
+			TC.CUST_NO = TCS.CUST_NO
+		AND
+			TC.COMP_CD = TCS.COMP_CD
+		AND
+			TCS.CUST_ID = #MEM_MST_MEM_ID#
+		AND
+			TC.COMP_CD = '003'
+	</select>
+	
+	<!-- 사용자 > 퀵메뉴 > 단골매장 팝업 > 매장 목록 갯수 -->
+	<select id="selectRegularStoreCount" parameterClass="HashMap" resultClass="Integer">
+		/* pcRegularStore.selectRegularStoreCount */
+		SELECT
+                COUNT(TB.BCNC_CD)                
+        FROM US_YAK.V_TCT_BCNC TB
+        WHERE COMP_CD = #COMP_CD#
+        AND BCNC_DIV='A'
+        AND DEAL_STAT='DEAL'  /*거래상태(CM211)*/
+        AND OPEN_STAT='30'   /*개설상태(CM212)*/
+        AND (BUSI_DIV='OBY' OR BUSI_DIV='OBK')  /*매장_사업구분(CM213)*/
+        AND SHOP_DIV='2'    /* 매장구분 : 직영점 */
+        AND NOT EXISTS (
+            SELECT SHOP_CD
+            FROM US_YAK.TSU_SHOP_MLT
+            WHERE COMP_CD=#COMP_CD#
+                AND SHOP_CD = TB.BCNC_CD
+                AND SHOP_CD!=MLT_SHOP_CD
+                AND USE_YN='Y'
+        )
+        <isNotEmpty property="searchAreaCd">
+        AND TB.AREA_CD = #searchAreaCd#
+        </isNotEmpty>        
+	</select>
+	
+	<!-- 사용자 > 퀵메뉴 > 단골매장 팝업 > 매장 목록 -->
+	<select id="selectRegularStoreList" parameterClass="HashMap" resultClass="HashMap">
+		/* pcRegularStore.selectRegularStoreList */		
+		SELECT
+			S1.*
+		FROM
+		(
+			SELECT
+				ROWNUM AS RNUM,
+				S2.*
+			FROM
+			(
+				SELECT
+					TB.BCNC_CD,
+		            TB.BCNC_NM,
+		            TB.BPLC_ZIP_CD as ZIP_CD,
+		            TB.BPLC_ROAD_ADDR as ROAD_ADDR,
+		            TB.BPLC_ROAD_ADDR_DETL as ROAD_ADDR_DETL,
+		            TB.BPLC_ADDR as ADDR,
+		            TB.BPLC_ADDR_DETL as ADDR_DETL,
+		            TB.TEL_EXCH_NO,
+		            TB.TEL_OFFC_NO,
+		            TB.TEL_LAST_NO,
+		            DECODE(TB.BPLC_TEL_OFFC_NO,'','',(TB.BPLC_TEL_EXCH_NO || '-' || TB.BPLC_TEL_OFFC_NO || '-' || TB.BPLC_TEL_LAST_NO)) AS TEL,
+				    NVL((TB.BPLC_ROAD_ADDR || '' || TB.BPLC_ROAD_ADDR_DETL), (TB.BPLC_ADDR || '' || TB.BPLC_ADDR_DETL)) AS ADDR2 	
+				FROM US_YAK.V_TCT_BCNC TB
+		        WHERE COMP_CD = #COMP_CD#
+		        AND BCNC_DIV='A'
+		        AND DEAL_STAT='DEAL'  /*거래상태(CM211)*/
+		        AND OPEN_STAT='30'   /*개설상태(CM212)*/
+		        AND (BUSI_DIV='OBY' OR BUSI_DIV='OBK')  /*매장_사업구분(CM213)*/
+		        AND SHOP_DIV='2'   /* 매장구분 : 직영점 */
+		        AND NOT EXISTS (
+		            SELECT SHOP_CD
+		            FROM US_YAK.TSU_SHOP_MLT
+		            WHERE COMP_CD=#COMP_CD#
+		                AND SHOP_CD = TB.BCNC_CD
+		                AND SHOP_CD!=MLT_SHOP_CD
+		                AND USE_YN='Y'
+		                )
+		        <isNotEmpty property="searchAreaCd">
+		        AND TB.AREA_CD = #searchAreaCd#
+		        </isNotEmpty>
+		        ORDER BY TB.BCNC_NM ASC
+			) S2
+		) S1
+		<isNotEmpty property="endNum">
+		WHERE S1.RNUM BETWEEN #startNum# AND #endNum#
+		</isNotEmpty>
+	</select>
+	
+	<!-- 사용자 > 퀵메뉴 > 단골매장 팝업 > 단골 매장 변경 -->
+	<update id="updateRegularStore" parameterClass="HashMap">
+		/* pcRegularStore.updateRegularStore */		
+		UPDATE
+			TSM_CUST
+		SET
+			BCNC_NM = #BCNC_NM#
+			, BCNC_CD = #BCNC_CD#
+		WHERE
+			CUST_NO = #MEM_MST_MEMBER_NO#
+		AND
+			COMP_CD = '003'
+	</update>
+</mapper>

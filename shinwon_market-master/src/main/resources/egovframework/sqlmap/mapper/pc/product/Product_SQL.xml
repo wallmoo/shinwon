@@ -1,0 +1,2862 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="Product">
+<!-- 특정 상품을 기준으로 정보를 가져오는 쿼리모음입니다.  -->
+	<!-- 상품 검색 조건 -->
+    <sql id="productWhere">
+    	AND PM.PRD_MST_SEL_STATE != 'S'	
+	    AND PM.PRD_MST_APV_STATE = 'A'
+	    AND PM.PRD_MST_DPL_STATE = 'Y'
+        <if test="searchPrdMstCd != null and searchPrdMstCd != ''">
+            AND PM.PRD_MST_CD LIKE '%'||UPPER(#{searchPrdMstCd})||'%'
+        </if>
+        <if test="searchPrdMstNm != null and searchPrdMstNm != ''">
+            AND UPPER(PM.PRD_MST_NM) LIKE '%'||UPPER(#{searchPrdMstNm})||'%'
+        </if>
+    </sql>
+    
+    <!-- 상품 카테고리 검색 조건 -->
+    <sql id="productCategoryWhere">
+        <where>
+            <if test="searchPrdCtgEnv != null and searchPrdCtgEnv != ''">
+                <if test="searchPrdCtgEnv != '0'">
+                    AND PC.PRD_CTG_ENV = #{searchPrdCtgEnv}
+                </if>
+            </if>
+        </where>
+        <if test="searchPrdCtgIdx != null and searchPrdCtgIdx != ''">
+            START WITH PC.PRD_CTG_IDX = #{searchPrdCtgIdx}
+            CONNECT BY PRIOR PC.PRD_CTG_IDX = PC.PRD_CTG_UP_IDX
+        </if>
+    </sql>
+
+    <!-- 상품 상세 배너 조회-->
+    <select id="selectProductBannerInfo" parameterType="hashMap" resultType="hashMap">
+        /* Product.selectProductBannerInfo */
+    	SELECT 
+    		S1.PRD_CTG_IDX
+    		,S1.PRD_CTG_NM
+    		,TBM.BNR_MST_IDX
+    		,TBM.BNR_MST_TITLE
+    		,TBM.BNR_MST_URL
+    		,(SELECT CMM_FLE_ATT_PATH || CMM_FLE_SYS_NM FROM T_CMM_FLE WHERE CMM_FLE_TB_NM = 'T_BNR_MST' AND CMM_FLE_TB_PK = TBM.BNR_MST_IDX AND CMM_FLE_SORT = 1 AND CMM_FLE_USE_YN = 'Y') AS IMG_THUMBNAIL
+        	,(SELECT CMN_FLE_ALT_TXT FROM T_CMM_FLE WHERE CMM_FLE_TB_NM = 'T_BNR_MST' AND CMM_FLE_TB_PK = TBM.BNR_MST_IDX AND CMM_FLE_SORT = 1 AND CMM_FLE_USE_YN = 'Y') AS CMN_FLE_ALT_TXT
+    	FROM 
+    		(SELECT 
+    			TPC.PRD_CTG_NM
+    			,TPC.PRD_CTG_IDX
+    			,TPC.PRD_CTG_LEVEL
+    		FROM
+    			T_DSP_CTG TDC,
+    			T_PRD_CTG TPC
+    		WHERE
+    			TDC.DSP_PRD_MST_CD = #{PRD_MST_CD}
+    			AND TPC.PRD_CTG_IDX = TDC.DSP_PRD_CTG_IDX
+    			AND TPC.PRD_CTG_LEVEL <![CDATA[<=]]> 3
+    		) S1 LEFT OUTER JOIN T_BNR_CTG TBC ON S1.PRD_CTG_IDX = TBC.PRD_CTG_IDX AND TBC.BNR_CTG_ORDER = 1
+    		INNER JOIN T_BNR_MST TBM ON TBM.BNR_MST_IDX = TBC.BNR_MST_IDX
+    		WHERE
+                1=1
+                    <if test="PRD_CTG_ENV != null and PRD_CTG_ENV != ''"> 
+        			 AND TBM.BNR_MST_ENV = #{PRD_CTG_ENV}
+                    </if>
+    			AND TBM.BNR_MST_USE_YN = 'Y'
+    			AND TO_CHAR(SYSDATE,'YYYYMMDDHH24MI') BETWEEN TBM.BNR_MST_ST_DT AND TBM.BNR_MST_ED_DT
+    			AND TBM.CMN_COM_IDX = #{CMN_COM_IDX}
+    </select>
+
+	<!-- 상품 카테고리 리스트 조회 -->
+    <select id="selectProductCategoryInfo" parameterType="hashMap" resultType="hashMap">
+        /* Product.selectProductCategoryInfo */
+        SELECT PRD_CTG_NM
+		FROM (
+			SELECT 
+		    	ROWNUM RNUM,
+		      	PRD_CTG_IDX,
+		      	PRD_CTG_NM
+			FROM T_DSP_CTG, T_PRD_CTG
+			WHERE
+			 T_DSP_CTG.DSP_PRD_CTG_IDX = T_PRD_CTG.PRD_CTG_IDX
+				AND T_DSP_CTG.DSP_PRD_MST_CD = #{PRD_MST_CD}
+                <if test="CTG_TOP_IDX != null and CTG_TOP_IDX != ''">
+                    AND T_PRD_CTG.PRD_CTG_TOP_IDX = #{CTG_TOP_IDX}
+                </if>
+                <if test="PRD_CTG_ENV != null and PRD_CTG_ENV != ''">
+                    AND T_PRD_CTG.PRD_CTG_ENV = #{PRD_CTG_ENV}
+                </if>
+		      	AND T_PRD_CTG.PRD_CTG_LEVEL <![CDATA[<=]]> 3
+			ORDER BY T_PRD_CTG.PRD_CTG_LEVEL DESC, T_DSP_CTG.DSP_CTG_IDX ASC
+		)
+		WHERE RNUM = 1
+	</select>
+	
+	<select id="selectCategoryPath" parameterType="hashMap" resultType="hashMap">
+		/* Product.selectCategoryPath */
+		SELECT
+			PRD_CTG_IDX,
+			PRD_CTG_NM,
+            PRD_CTG_LEVEL,
+            (SELECT COUNT(0) FROM T_PRD_CTG WHERE PRD_CTG_UP_IDX = #{CATEGORY_IDX} AND PRD_CTG_USE_YN = 'Y') AS PRD_CTG_DN_CNT
+		FROM T_PRD_CTG
+		WHERE PRD_CTG_ENV = #{PRD_CTG_ENV}
+		AND PRD_CTG_USE_YN = 'Y'
+		START WITH PRD_CTG_IDX = #{CATEGORY_IDX}
+		CONNECT BY PRIOR PRD_CTG_UP_IDX = PRD_CTG_IDX
+		ORDER BY PRD_CTG_LEVEL ASC
+	</select>
+	
+	<select id="selectBrandCategoryPath" parameterType="hashMap" resultType="hashMap">
+		/* Product.selectBrandCategoryPath */
+		WITH CAT_IDX AS (
+			SELECT  DSP_PRD_CTG_IDX
+			FROM (  
+		    	SELECT 
+			        RANK() OVER( ORDER BY T_DSP_CTG.DSP_CTG_IDX) SORT,
+			        DSP_PRD_CTG_IDX,
+			        DSP_CTG_IDX
+		      	FROM 
+		         T_DSP_CTG, T_PRD_CTG
+		      	WHERE 
+			        T_DSP_CTG.DSP_PRD_CTG_IDX = T_PRD_CTG.PRD_CTG_IDX
+			        AND DSP_PRD_MST_CD = #{PRD_MST_CD}
+			        AND T_PRD_CTG.PRD_CTG_ENV = #{PRD_CTG_ENV}
+		    		AND T_PRD_CTG.PRD_CTG_TOP_IDX = #{CTG_TOP_IDX}
+		  	)
+		  	WHERE SORT=1
+		)
+		SELECT 
+			PRD_CTG_IDX,
+			PRD_CTG_NM
+		FROM T_PRD_CTG, CAT_IDX
+		WHERE PRD_CTG_ENV = #{PRD_CTG_ENV}
+		AND T_PRD_CTG.PRD_CTG_LEVEL <![CDATA[<]]> 3
+		START WITH PRD_CTG_IDX = CAT_IDX.DSP_PRD_CTG_IDX
+		CONNECT BY PRIOR PRD_CTG_UP_IDX = PRD_CTG_IDX AND PRD_CTG_USE_YN = 'Y' AND PRD_CTG_DSP_YN='Y'
+		ORDER BY PRD_CTG_LEVEL ASC
+	</select>
+	
+	<!-- 상품에 등록된 카테고리 불러오기 -->
+	<select id="selectProductLastCategoryPath" parameterType="hashMap" resultType="hashMap">
+		/* Product.selectProductLastCategoryPath */
+		SELECT
+			RUM,
+			DSP_PRD_CTG_IDX
+		FROM (
+				SELECT ROWNUM AS RUM ,DSP_PRD_CTG_IDX
+				FROM T_DSP_CTG DCG
+				INNER JOIN T_PRD_CTG PCG ON PCG.PRD_CTG_IDX = DCG.DSP_PRD_CTG_IDX AND PCG.PRD_CTG_ENV = #{PRD_CTG_ENV}
+				WHERE DSP_PRD_MST_CD = #{PRD_MST_CD}
+				ORDER BY DSP_CTG_IDX
+			 ) TA
+		WHERE RUM <![CDATA[<]]> 2
+	</select>
+    
+    <!-- 로그인한 사용자의 선호매장 정보  -->
+    <select id="selectRegularStore" parameterType="hashMap" resultType="hashMap">
+        /* Product.selectRegularStore */
+          SELECT TC.BCNC_CD , TC.BCNC_NM 
+            FROM TSM_CUST TC, TSM_CUST_SCRT TCS
+           WHERE TC.CUST_NO = TCS.CUST_NO
+           AND TC.COMP_CD = TCS.COMP_CD
+           AND CUST_ID = #{MEM_MST_MEM_ID}
+           AND TC.COMP_CD = '003'  
+	</select>
+    <insert id="insertPrw" parameterType="HashMap">
+	INSERT INTO T_MEM_PRW
+	(
+	     MEM_PRW_IDX
+	   , MEM_PRW_MEM_ID
+	   , PRD_MST_CD
+	   , PRD_MST_REF_IMG_URL
+	   , PRD_MST_DTL_IMG1_URL
+	   , PRD_MST_DTL_IMG2_URL
+	   , MEM_PRW_REG_DT
+	   , MEM_PRW_REG_IP
+	   , MEM_PRW_REG_ID
+	   , MEM_PRW_UPD_DT
+	   , MEM_PRW_UPD_IP
+	   , MEM_PRW_UPD_ID
+	   , PRD_MST_NM
+       , MEM_PRW_CTG_IDX	   
+	   )
+	VALUES(
+	        SEQ_MEM_PRW_IDX.NEXTVAL
+	        , #{MEM_MST_MEM_ID}
+	       , #{PRD_MST_CD}
+	       , (
+				SELECT PRD_IMG_URL_PATH FROM T_PRD_IMG
+				WHERE 	PRD_PRD_MST_CD = #{PRD_MST_CD}
+				AND     PRD_IMG_IDX = 1
+				AND     PRD_IMG_ATT_SIZE =250
+				AND ROWNUM = 1         
+	         )
+	       , ''
+	       , ''
+	       , TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS')
+	       , #{MEM_PRW_IP}
+	       , #{MEM_MST_MEM_ID}
+	       , TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS')
+	       , #{MEM_PRW_IP}
+	       , #{MEM_MST_MEM_ID}
+           , (
+				SELECT PRD_MST_NM FROM T_PRD_MST
+				WHERE 	PRD_MST_CD = #{PRD_MST_CD}
+				AND ROWNUM = 1         
+	         )
+	       ,#{PRD_CTG_IDX}
+		       
+	      )
+    </insert>    
+    
+    <!--포인트 딱봐도 10만 0413 상품 상세 내역  --> 
+    <select id="selectProductInfo" parameterType="hashMap" resultType="hashMap">
+         /* Product.selectProductInfo */	 
+         SELECT
+            PRD_MST_YEAR,
+            TAG_MST_TITLE,
+            DLV_FEE,
+            PRD_MST_SEASON,
+            LIKE_COUNTS,
+            MY_LIKE,
+            PRD_MST_URL,
+            PRD_MST_LIVE_ON_YN,
+         	PRD_MST_CD ,
+         	PRD_MST_ERP_CD ,
+			PRD_MST_VDR_YN ,
+			PRD_MST_VDR_IDX ,
+			BND_MST_BRAND_TYPE,
+			PRD_MST_TYPE ,
+			PRD_MST_BUY_TP ,
+			PRD_MST_NM ,
+			PRD_MST_NM_MB,
+			PRD_MST_NM_SUB ,
+			PRD_MST_NM_ADD,
+			PRD_MST_LNG_DIV_YN ,
+			PRD_MST_LNG_DIV_MNT1 ,
+			PRD_MST_LNG_DIV_MNT2 ,
+			PRD_MST_MD_ID ,
+			PRD_MST_DLV_FEE ,
+			PRD_MST_CPS_YN ,
+			PRD_MST_CPS_MDL ,
+			PRD_MST_CPN_YN ,
+			PRD_MST_SEL_CNT ,
+			PRD_MST_PC_CPN_UNT ,
+			PRD_MST_PC_CPN_PRC ,
+			PRD_MST_MB_CPN_UNT ,
+			PRD_MST_MB_CPN_PRC ,
+			PRD_MST_ADD_MIL ,
+			PRD_MST_SRC_YN ,
+			PRD_MST_O2O_YN ,
+			PRD_MST_DLV_BND ,
+			PRD_MST_IVB_YN ,
+			PRD_MST_DLV_DSN_YN ,
+			PRD_MST_DLV_DT ,
+			PRD_MST_PRC ,
+			PRD_MST_SCH_PRC ,
+			PRD_MST_CPR_PRC1 ,
+			PRD_MST_CPR_PRC2 ,
+			PRD_MST_PKG_PRC ,
+			PRD_MST_CNL_PC_YN ,
+			PRD_MST_CNL_MB_YN ,
+			PRD_MST_SEL_STATE ,
+			PRD_MST_DPL_STATE ,
+			PRD_MST_APV_STATE ,
+			PRD_MST_PC_DTL_DSC ,
+			PRD_MST_MB_DTL_DSC ,
+			PRD_MST_NFI_IDX ,
+			PRD_MST_BRD_IDX ,
+			PRD_MST_MRK_IDX ,
+			PRD_MST_NFI_INF1 ,
+			PRD_MST_NFI_INF2 ,
+			PRD_MST_NFI_INF3 ,
+			PRD_MST_NFI_INF4 ,
+			PRD_MST_NFI_INF5 ,
+			PRD_MST_NFI_INF6 ,
+			PRD_MST_NFI_INF7 ,
+			PRD_MST_NFI_INF8 ,
+			PRD_MST_NFI_INF9 ,
+			PRD_MST_NFI_INF10 ,
+			PRD_MST_NFI_INF11 ,
+			PRD_MST_NFI_INF12 ,
+			PRD_MST_NFI_INF13 ,
+			PRD_MST_NFI_INF14 ,
+			PRD_MST_MTA_TAG1 ,
+			PRD_MST_MTA_TAG2 ,
+			PRD_MST_MTA_TAG3 ,
+			PRD_MST_MEMO ,
+			PRD_MST_RED_CNT ,
+			PRD_MST_ICN_YN1 ,
+			PRD_MST_ICN_ST_DT1 ,
+			PRD_MST_ICN_ED_DT1 ,
+			PRD_MST_ICN_YN2 ,
+			PRD_MST_ICN_ST_DT2 ,
+			PRD_MST_ICN_ED_DT2 ,
+			PRD_MST_ICN_YN3 ,
+			PRD_MST_ICN_ST_DT3 ,
+			PRD_MST_ICN_ED_DT3 ,
+			PRD_MST_ICN_YN4 ,
+			PRD_MST_ICN_ST_DT4 ,
+			PRD_MST_ICN_ED_DT4 ,
+			PRD_MST_ICN_YN5 ,
+			PRD_MST_ICN_ST_DT5 ,
+			PRD_MST_ICN_ED_DT5 ,
+			PRD_MST_DEL_YN ,
+			PRD_MST_SEL_STATE_NM,
+			PRD_MST_NFI_NM,
+			PRD_MST_BRAND_NM,
+			PRD_MST_MRK_NM,
+			PRD_MST_BRD_SERV,
+			PRD_MST_ICON_LIST,
+			CASE PRD_NOW_DST_PRICE WHEN 0 THEN PRD_MST_PRC ELSE PRD_NOW_DST_PRICE END AS PRD_MST_PRICE,
+			PRD_NOW_DST_PRICE,
+			PRD_CPN_DST_PRICE,
+			PRD_BRD_CPN_CNT,
+			PRD_MST_CRD_ICON,
+			PRD_MST_MIL,
+			PRD_MST_CASH,
+			CMM_FLE_SAVE_PATH,
+            CMM_FLE_ORG_NM,
+            CMM_FLE_IDX,
+			CASE WHEN PRD_NOW_DST_PRICE > 0
+				THEN
+					ROUND(((PRD_MST_PRC - PRD_NOW_DST_PRICE) / PRD_MST_PRC) * 100,1)
+				ELSE 0
+			END AS PRD_NOW_DST_POINT,
+			CASE WHEN PRD_CPN_DST_PRICE > 0
+				THEN
+					ROUND(((PRD_MST_PRC - PRD_CPN_DST_PRICE) / PRD_MST_PRC) * 100,1)
+				ELSE 0
+			END AS PRD_CPN_DST_POINT,
+			PRD_IMAGE,
+			PRD_IMAGE_ALT,
+			PRD_MST_DISCNT_PRICE ,
+			PRD_MST_CRD_YN ,
+			PRD_MST_VDR_DIY_CTS ,
+            PRD_MST_RLT_CD1,
+            PRD_MST_RLT_CD2,
+            PRD_MST_RLT_CD3,
+            PRD_MST_RLT_CAT1,
+            PRD_MST_RLT_CAT2,
+            PRD_MST_RLT_CAT3,
+			RLT_PRD_IMAGE1 ,
+			RLT_PRD_IMAGE2 ,
+			RLT_PRD_IMAGE3 ,
+			RLT_PRD_IMAGE_ALT1 ,
+			RLT_PRD_IMAGE_ALT2 ,
+			RLT_PRD_IMAGE_ALT3 ,
+			PRD_ORD_PRD_IDX
+		FROM (        
+		        SELECT
+                    PM.PRD_MST_YEAR ,
+                    (SELECT TAG_MST_TITLE FROM T_TAG_MST TTM WHERE TTB.TAG_MST_ID = TTM.TAG_MST_ID) TAG_MST_TITLE,
+                    (CASE WHEN PM.PRD_MST_VDR_IDX = '-1' THEN PM.PRD_MST_DLV_FEE ELSE TVM.VDR_MST_DLV_PRICE END ) DLV_FEE,
+		            (SELECT TCC.CMN_COM_NM FROM T_CMM_COM TCC WHERE TCC.CMN_COM_IDX = PM.PRD_MST_SEASON) PRD_MST_SEASON,
+                    (SELECT COUNT(TLH.CNT_MST_ID) FROM T_LIK_HIS TLH WHERE TLH.CNT_MST_ID = PM.PRD_MST_CD AND TLH.CNT_MST_TYPE= 'TYPE_PRODUCT') LIKE_COUNTS,
+                    (CASE WHEN (SELECT COUNT(TLH.CNT_MST_ID) FROM T_LIK_HIS TLH WHERE TLH.CNT_MST_ID = PM.PRD_MST_CD AND TLH.MEM_MST_ID = #{MEM_MST_ID}) > 0 THEN 'Y' ELSE 'N' END ) MY_LIKE,
+                    PRD_MST_URL,
+                    PRD_MST_LIVE_ON_YN,
+                    PM.PRD_MST_CD ,
+                    PM.PRD_MST_ERP_CD ,
+					PM.PRD_MST_VDR_YN ,
+					PM.PRD_MST_VDR_IDX ,
+					(SELECT BND_MST_BRAND_TYPE FROM T_BND_MST WHERE VDR_MST_IDX = PM.PRD_MST_VDR_IDX ) AS BND_MST_BRAND_TYPE,
+					PM.PRD_MST_TYPE ,
+					PM.PRD_MST_BUY_TP ,
+					FN_GET_PRODUCT_NM(PM.PRD_MST_CD,0) AS PRD_MST_NM ,
+					PM.PRD_MST_NM AS PRD_MST_NM_ADD,
+					FN_GET_PRODUCT_NM(PM.PRD_MST_CD,0) AS PRD_MST_NM_MB ,
+					PM.PRD_MST_NM_SUB ,
+					PM.PRD_MST_LNG_DIV_YN ,
+					NVL(PM.PRD_MST_LNG_DIV_MNT1,0) AS PRD_MST_LNG_DIV_MNT1 ,
+					NVL(PM.PRD_MST_LNG_DIV_MNT2,0) AS PRD_MST_LNG_DIV_MNT2 ,
+					PM.PRD_MST_MD_ID ,
+					NVL(PM.PRD_MST_DLV_FEE,0) AS PRD_MST_DLV_FEE ,
+					PM.PRD_MST_CPS_YN ,
+					PM.PRD_MST_CPS_MDL ,
+					PM.PRD_MST_CPN_YN ,
+					PM.PRD_MST_SEL_CNT ,
+					PM.PRD_MST_PC_CPN_UNT ,
+					PM.PRD_MST_PC_CPN_PRC ,
+					PM.PRD_MST_MB_CPN_UNT ,
+					PM.PRD_MST_MB_CPN_PRC ,
+					PM.PRD_MST_ADD_MIL ,
+					PM.PRD_MST_SRC_YN ,
+					PM.PRD_MST_O2O_YN ,
+					PM.PRD_MST_DLV_BND ,
+					PM.PRD_MST_IVB_YN ,
+					PM.PRD_MST_DLV_DSN_YN ,
+					PM.PRD_MST_DLV_DT ,
+					PM.PRD_MST_PRC ,
+					PM.PRD_MST_SCH_PRC ,
+					PM.PRD_MST_CPR_PRC1 ,
+					PM.PRD_MST_CPR_PRC2 ,
+					PM.PRD_MST_PKG_PRC ,
+					PM.PRD_MST_CNL_PC_YN ,
+					PM.PRD_MST_CNL_MB_YN ,
+					PM.PRD_MST_SEL_STATE ,
+					PM.PRD_MST_DPL_STATE ,
+					PM.PRD_MST_APV_STATE ,
+					PM.PRD_MST_PC_DTL_DSC ,
+					PM.PRD_MST_MB_DTL_DSC ,
+					PM.PRD_MST_NFI_IDX ,
+					PM.PRD_MST_BRD_IDX ,
+					PM.PRD_MST_MRK_IDX ,
+					PM.PRD_MST_NFI_INF1 ,
+					PM.PRD_MST_NFI_INF2 ,
+					PM.PRD_MST_NFI_INF3 ,
+					PM.PRD_MST_NFI_INF4 ,
+					PM.PRD_MST_NFI_INF5 ,
+					PM.PRD_MST_NFI_INF6 ,
+					PM.PRD_MST_NFI_INF7 ,
+					PM.PRD_MST_NFI_INF8 ,
+					PM.PRD_MST_NFI_INF9 ,
+					PM.PRD_MST_NFI_INF10 ,
+					PM.PRD_MST_NFI_INF11 ,
+					PM.PRD_MST_NFI_INF12 ,
+					PM.PRD_MST_NFI_INF13 ,
+					PM.PRD_MST_NFI_INF14 ,
+					PM.PRD_MST_MTA_TAG1 ,
+					PM.PRD_MST_MTA_TAG2 ,
+					PM.PRD_MST_MTA_TAG3 ,
+					PM.PRD_MST_MEMO ,
+					PM.PRD_MST_RED_CNT ,
+					PM.PRD_MST_ICN_YN1 ,
+					PM.PRD_MST_ICN_ST_DT1 ,
+					PM.PRD_MST_ICN_ED_DT1 ,
+					PM.PRD_MST_ICN_YN2 ,
+					PM.PRD_MST_ICN_ST_DT2 ,
+					PM.PRD_MST_ICN_ED_DT2 ,
+					PM.PRD_MST_ICN_YN3 ,
+					PM.PRD_MST_ICN_ST_DT3 ,
+					PM.PRD_MST_ICN_ED_DT3 ,
+					PM.PRD_MST_ICN_YN4 ,
+					PM.PRD_MST_ICN_ST_DT4 ,
+					PM.PRD_MST_ICN_ED_DT4 ,
+					PM.PRD_MST_ICN_YN5 ,
+					PM.PRD_MST_ICN_ST_DT5 ,
+					PM.PRD_MST_ICN_ED_DT5 ,
+					PM.PRD_MST_DEL_YN ,
+					<![CDATA[
+		            	CASE PM.PRD_MST_SEL_STATE 
+							WHEN 'I' THEN '판매중'
+							WHEN 'O' THEN '일시품절'
+							WHEN 'T' THEN '품정상품'
+						ELSE '미판매' END]]> AS PRD_MST_SEL_STATE_NM
+					, (SELECT PRD_NFI_NM FROM T_PRD_NFI WHERE PRD_NFI_IDX = PM.PRD_MST_NFI_IDX ) AS PRD_MST_NFI_NM
+					, (SELECT BND_MST_BRAND_NM FROM T_BND_MST WHERE BND_MST_IDX = PM.PRD_MST_BRD_IDX ) AS PRD_MST_BRAND_NM
+					, (SELECT MRK_MST_BRAND_NM FROM T_MRK_MST WHERE MRK_MST_IDX = PM.PRD_MST_MRK_IDX ) AS PRD_MST_MRK_NM
+					, (SELECT BND_MST_SERV FROM T_BND_MST WHERE BND_MST_IDX = PM.PRD_MST_BRD_IDX) AS PRD_MST_BRD_SERV
+					, FN_GET_PRODUCT_ICON(#{PRD_MST_CD},#{PRD_CTG_ENV}) AS PRD_MST_ICON_LIST
+					, (SELECT FN_PRODUCT_DETAIL_PRICE(#{PRD_MST_CD},#{PRD_CTG_ENV},#{MEM_CRT_SES_ID},'N',#{PRD_CHL_TYPE}) FROM DUAL) AS PRD_NOW_DST_PRICE
+					, (SELECT FN_PRODUCT_DETAIL_PRICE(#{PRD_MST_CD},#{PRD_CTG_ENV},#{MEM_CRT_SES_ID},'C',#{PRD_CHL_TYPE}) FROM DUAL) AS PRD_CPN_DST_PRICE
+					, (SELECT FN_PRODUCT_DETAIL_PRICE(#{PRD_MST_CD},#{PRD_CTG_ENV},#{MEM_CRT_SES_ID},'B',#{PRD_CHL_TYPE}) FROM DUAL) AS PRD_BRD_CPN_CNT
+					, NVL(FN_GET_PRODUCT_CARD_ICON(#{PRD_MST_CD}),'') AS PRD_MST_CRD_ICON
+					, CASE
+						WHEN PM.PRD_MST_IVB_YN = 'Y' THEN 0
+						ELSE  100000
+					  END PRD_MST_MIL
+					, CASE
+						WHEN PM.PRD_MST_IVB_YN = 'Y' THEN 0
+						ELSE 100000
+					  END PRD_MST_CASH
+					, CMF.CMM_FLE_SYS_PATH || CMF.CMM_FLE_ATT_PATH || CMF.CMM_FLE_SYS_NM AS CMM_FLE_SAVE_PATH
+                    , CMF.CMM_FLE_ORG_NM
+                    , CMF.CMM_FLE_IDX
+                    , FN_PRODUCT_IMG(PRD_MST_CD, #{THUMBNAIL_SIZE}) PRD_IMAGE
+                    , FN_PRODUCT_IMG_ALT(PRD_MST_CD, #{THUMBNAIL_SIZE}) PRD_IMAGE_ALT
+                    , FN_PRODUCT_LIST_PRICE(PM.PRD_MST_CD,#{PRD_CTG_ENV},#{MEM_CRT_SES_ID}) AS PRD_MST_DISCNT_PRICE
+                    , PM.PRD_MST_CRD_YN
+                    , (
+                    	SELECT VDR_DSP_CTS
+                    	FROM T_VDR_DSP
+                    	WHERE VDR_MST_IDX = PM.PRD_MST_VDR_IDX
+                    	AND TO_CHAR(SYSDATE,'YYYYMMDDHH24MISS') BETWEEN VDR_DSP_ST_DT||VDR_DSP_ST_HH||VDR_DSP_ST_MM AND VDR_DSP_ED_DT||VDR_DSP_ED_HH||VDR_DSP_ED_MM
+                      ) AS PRD_MST_VDR_DIY_CTS
+                    , 0 AS ERP_MST_DSP_PRC
+                    , PM.PRD_MST_RLT_CD1
+                    , PM.PRD_MST_RLT_CD2
+                    , PM.PRD_MST_RLT_CD3
+                    ,(SELECT tmp01.DSP_PRD_CTG_IDX FROM T_DSP_CTG tmp01 WHERE tmp01.DSP_PRD_MST_CD = PM.PRD_MST_RLT_CD1 AND ROWNUM = 1 ) AS PRD_MST_RLT_CAT1
+                    ,(SELECT tmp01.DSP_PRD_CTG_IDX FROM T_DSP_CTG tmp01 WHERE tmp01.DSP_PRD_MST_CD = PM.PRD_MST_RLT_CD2 AND ROWNUM = 1 ) AS PRD_MST_RLT_CAT2
+                    ,(SELECT tmp01.DSP_PRD_CTG_IDX FROM T_DSP_CTG tmp01 WHERE tmp01.DSP_PRD_MST_CD = PM.PRD_MST_RLT_CD3 AND ROWNUM = 1 ) AS PRD_MST_RLT_CAT3
+                    ,FN_PRODUCT_IMG(PM.PRD_MST_RLT_CD1, #{RTL_THUMBNAIL_SIZE}) RLT_PRD_IMAGE1
+                    ,FN_PRODUCT_IMG(PM.PRD_MST_RLT_CD2, #{RTL_THUMBNAIL_SIZE}) RLT_PRD_IMAGE2
+                    ,FN_PRODUCT_IMG(PM.PRD_MST_RLT_CD3, #{RTL_THUMBNAIL_SIZE}) RLT_PRD_IMAGE3
+                    ,FN_PRODUCT_IMG_ALT(PM.PRD_MST_RLT_CD1, #{RTL_THUMBNAIL_SIZE}) RLT_PRD_IMAGE_ALT1
+                    ,FN_PRODUCT_IMG_ALT(PM.PRD_MST_RLT_CD2, #{RTL_THUMBNAIL_SIZE}) RLT_PRD_IMAGE_ALT2
+                    ,FN_PRODUCT_IMG_ALT(PM.PRD_MST_RLT_CD3, #{RTL_THUMBNAIL_SIZE}) RLT_PRD_IMAGE_ALT3
+                    ,(
+	                    SELECT top.ORD_PRD_IDX 
+						FROM T_ORD_MST tom, T_ORD_PRD top
+						WHERE tom.ORD_MST_ORD_ID = #{MEM_CRT_SES_ID}
+						AND tom.ORD_MST_CD = top.ORD_ORD_MST_CD
+						AND top.ORD_PRD_MST_CD = #{PRD_MST_CD}
+						AND top.ORD_PRD_ORD_STATE = '409'
+						AND ROWNUM = 1
+					) PRD_ORD_PRD_IDX
+		        FROM
+		            T_PRD_MST PM
+                    INNER JOIN T_VDR_MST TVM ON PM.PRD_MST_VDR_IDX = TVM.VDR_MST_IDX 
+		            LEFT OUTER JOIN T_CMM_FLE CMF ON CMF.CMN_FLE_ALT_TXT = PM.PRD_MST_CD AND CMF.CMM_FLE_TB_NM = 'T_PRD_MST' AND CMF.CMM_FLE_USE_YN = 'Y'
+		            LEFT OUTER JOIN T_PRD_IMG PIG ON PM.PRD_MST_CD = PIG.PRD_PRD_MST_CD AND PIG.PRD_IMG_IDX = 0 AND PIG.PRD_IMG_ATT_SIZE = #{THUMBNAIL_SIZE}
+                    LEFT OUTER JOIN T_TAG_BND TTB ON TO_CHAR(PM.PRD_MST_CD) = TTB.TAG_BND_ID AND TTB.TAG_BND_TYPE = 'TYPE_PRODUCT' AND TTB.TAG_BND_REP='Y'
+		        WHERE
+		            PM.PRD_MST_CD = #{PRD_MST_CD}
+		            AND FN_GET_PRODUCT_STATUS(PM.PRD_MST_CD) = 'true' 
+                    <if test="PRD_CTG_ENV != null and PRD_CTG_ENV.equals('P'.toString())">
+                        AND PM.PRD_MST_CNL_PC_YN = 'Y'
+                    </if>
+                    <if test="PRD_CTG_ENV != null and PRD_CTG_ENV.equals('M'.toString())">
+                        AND PM.PRD_MST_CNL_MB_YN = 'Y'
+                    </if>
+			) TA
+    </select>
+    
+    <select id="selectTogetherProduct" parameterType="hashMap" resultType="hashMap">
+        SELECT TB.*,
+ 				FN_PRODUCT_IMG(TB.PRD_MST_CD, 250) PRD_IMAGE,
+       			FN_PRODUCT_IMG_ALT(TB.PRD_MST_CD,250) PRD_IMAGE_ALT
+		FROM (
+		SELECT tpm.PRD_MST_CD,
+		       tdc.DSP_PRD_CTG_IDX AS PRD_CTG_IDX,
+		       ROWNUM AS RNUM
+		FROM T_DSP_CTG tdc, T_PRD_MST tpm 
+		WHERE tdc.DSP_PRD_CTG_IDX = #{PRD_CTG_IDX}
+		AND tdc.DSP_PRD_MST_CD = tpm.PRD_MST_CD
+		ORDER BY tpm.PRD_MST_RED_CNT DESC
+		) TB
+		WHERE TB.RNUM <![CDATA[<=]]> 3
+    </select>
+
+
+	<!-- 상품 존재 여부 체크  -->
+    <select id="selectProductExist" parameterType="HashMap" resultType="integer">
+        /* Product.selectProductExist */
+        SELECT
+            COUNT(PM.PRD_MST_CD)
+        FROM
+            T_PRD_MST PM
+        WHERE
+        	PM.PRD_MST_CD = #{PRD_MST_CD}
+            <if test="ADMIN == null and ADMIN == ''">
+                AND PM.PRD_MST_SEL_STATE != 'S'
+            </if>
+    </select>
+    
+    <!-- 상품 이미지 조회 - 이미지별 사이즈 하나 -->
+    <select id="selectProductImageOneSizeList" parameterType="hashMap" resultType="hashMap">
+        /* Product.selectProductImageOneSizeList */
+		SELECT PRD_IMG_IDX
+			 , PRD_IMG_ATT_PATH 
+		     , PRD_IMG_SYS_NM
+		     , PRD_IMG_ALT_TEXT
+		FROM T_PRD_IMG
+	   WHERE PRD_PRD_MST_CD = #{PRD_MST_CD}
+		 AND PRD_IMG_ATT_SIZE =#{THUMBNAIL_SIZE}   
+		ORDER BY PRD_IMG_IDX ASC	
+	</select>
+    
+    
+    
+	<!-- 상품 이미지 리스트 조회 -->
+	<select id="selectProductImageList" parameterType="hashMap" resultType="hashMap">
+        /* Product.selectProductImageList */
+		SELECT 
+		    #{IMAGEPATH} || A.PRD_IMG_ATT_PATH || A.PRD_IMG_SYS_NM "large" ,
+            #{IMAGEPATH} || NVL(B.PRD_IMG_ATT_PATH, A.PRD_IMG_ATT_PATH) || NVL(B.PRD_IMG_SYS_NM,A.PRD_IMG_SYS_NM) "small" ,
+			A.PRD_IMG_ALT_TEXT "alt",
+			A.PRD_IMG_ALT_TEXT "desc"
+		FROM 
+		(   SELECT
+		        PRD_IMG_IDX,
+		        PRD_IMG_ATT_PATH, 
+		        PRD_IMG_SYS_NM,
+		        PRD_IMG_ALT_TEXT
+			FROM 
+			 T_PRD_IMG
+			WHERE 
+				PRD_PRD_MST_CD = #{PRD_MST_CD}
+				AND PRD_IMG_ATT_SIZE = NVL(#{DETAIL_IMAGE_SIZE},0)      ) A,
+		(   SELECT
+		       	PRD_IMG_IDX,
+		       	PRD_IMG_ATT_PATH, 
+		        PRD_IMG_SYS_NM,
+		        PRD_IMG_ALT_TEXT
+			FROM 
+			 T_PRD_IMG
+			WHERE 
+				PRD_PRD_MST_CD = #{PRD_MST_CD}
+				AND PRD_IMG_ATT_SIZE = NVL(#{THUMBNAIL_IMAGE_SIZE},0)     ) B
+		WHERE  A.PRD_IMG_IDX = B.PRD_IMG_IDX(+) 
+		ORDER BY A.PRD_IMG_IDX ASC	
+	</select>
+
+	<!-- 온라인 전용 상품 옵션 목록 -->
+	<select id="selectProductOnlineOptionList" parameterType="HashMap" resultType="HashMap">
+	/* Product.selectProductOnlineOptionList */
+        SELECT  BASE.PRD_PRD_MST_CD
+             ,  BASE.PRD_OPT_COLR_CD
+             ,  BASE.PRD_OPT_COLR_NM
+             ,  BASE.PRD_OPT_SIZE_CD
+             ,  BASE.PRD_OPT_SIZE_NM
+             ,  NVL(TPO.PRD_OPT_STOCK_CNT,0) AS PRD_OPT_STOCK_CNT
+             ,  0 AS MALL_STOCK_CNT
+             
+        FROM 
+              (
+                   SELECT A.PRD_PRD_MST_CD, PRD_OPT_SIZE_CD, PRD_OPT_SIZE_NM ,  PRD_OPT_COLR_CD, PRD_OPT_COLR_NM 
+                   FROM
+                         (
+                           SELECT DISTINCT PRD_PRD_MST_CD,  PRD_OPT_SIZE_CD, PRD_OPT_SIZE_NM 
+                             FROM T_PRD_OPT 
+                           WHERE PRD_PRD_MST_CD = #{PRD_MST_CD}
+                          ) A
+                    INNER JOIN
+                         (
+                           SELECT DISTINCT PRD_PRD_MST_CD,  PRD_OPT_COLR_CD, PRD_OPT_COLR_NM 
+                             FROM T_PRD_OPT 
+                           WHERE PRD_PRD_MST_CD = #{PRD_MST_CD}
+                          ) B  
+                    ON A.PRD_PRD_MST_CD = B.PRD_PRD_MST_CD
+                ) BASE
+        LEFT OUTER JOIN T_PRD_OPT TPO
+        ON BASE.PRD_OPT_SIZE_CD = TPO.PRD_OPT_SIZE_CD
+        AND BASE.PRD_OPT_COLR_CD = TPO.PRD_OPT_COLR_CD
+        AND BASE.PRD_PRD_MST_CD = TPO.PRD_PRD_MST_CD
+        WHERE BASE.PRD_PRD_MST_CD=	#{PRD_MST_CD}
+        ORDER BY BASE.PRD_OPT_COLR_CD, BASE.PRD_OPT_SIZE_CD
+    </select>
+    
+    <!-- 상품 옵션 목록 -->
+	<select id="selectProductMallOptionList" parameterType="HashMap" resultType="HashMap">
+	/* Product.selectProductMallOptionList */
+        SELECT  BASE.PRD_PRD_MST_CD
+             ,  BASE.PRD_OPT_COLR_CD
+             ,  BASE.PRD_OPT_COLR_NM
+             ,  BASE.PRD_OPT_SIZE_CD
+             ,  BASE.PRD_OPT_SIZE_NM
+	         ,  TPO.PRD_OPT_STOCK_CNT
+	         ,  NVL(TSS.MALL_STOCK_CNT,0) AS MALL_STOCK_CNT
+		 FROM 
+              (
+                   SELECT A.PRD_PRD_MST_CD, PRD_OPT_SIZE_CD, PRD_OPT_SIZE_NM ,  PRD_OPT_COLR_CD, PRD_OPT_COLR_NM 
+                   FROM
+                         (
+                           SELECT DISTINCT PRD_PRD_MST_CD,  PRD_OPT_SIZE_CD, PRD_OPT_SIZE_NM 
+                             FROM T_PRD_OPT 
+                           WHERE PRD_PRD_MST_CD = #{PRD_MST_CD}
+                          ) A
+                    INNER JOIN
+                         (
+                           SELECT DISTINCT PRD_PRD_MST_CD,  PRD_OPT_COLR_CD, PRD_OPT_COLR_NM 
+                             FROM T_PRD_OPT 
+                           WHERE PRD_PRD_MST_CD = #{PRD_MST_CD}
+                          ) B  
+                    ON A.PRD_PRD_MST_CD = B.PRD_PRD_MST_CD
+                ) BASE
+        LEFT OUTER JOIN T_PRD_OPT TPO
+        ON BASE.PRD_OPT_SIZE_CD = TPO.PRD_OPT_SIZE_CD
+        AND BASE.PRD_OPT_COLR_CD = TPO.PRD_OPT_COLR_CD
+        AND BASE.PRD_PRD_MST_CD = TPO.PRD_PRD_MST_CD
+		LEFT OUTER JOIN 
+		        (
+		            SELECT COMP_CD, PROD_CD, COLR_CD, SIZE_CD, SUM(STCK_QTY) MALL_STOCK_CNT 
+		             FROM US_YAK.TSS_STCK_SHOP
+		            WHERE COMP_CD = #{COMP_CD}
+		              AND PROD_CD = #{PROD_CD}
+		              AND SHOP_CD = #{SHOP_CD}
+		            GROUP BY COMP_CD, PROD_CD , COLR_CD, SIZE_CD
+		        ) TSS
+		ON TPO.PRD_OPT_ERP_COMP_CD = TSS.COMP_CD
+		AND TPO.PRD_OPT_ERP_PROD_CD = TSS.PROD_CD
+		AND TPO.PRD_OPT_COLR_CD = TSS.COLR_CD
+		AND TPO.PRD_OPT_SIZE_CD = TSS.SIZE_CD
+		WHERE BASE.PRD_PRD_MST_CD = #{PRD_MST_CD}
+		ORDER BY BASE.PRD_OPT_COLR_CD, BASE.PRD_OPT_SIZE_CD
+    </select>
+    
+    <!-- 미니샵 상품 옵션 목록 -->
+	<select id="selectProductMiniOptionList" parameterType="HashMap" resultType="HashMap">
+	/* Product.selectProductMiniOptionList */
+        SELECT  BASE.PRD_PRD_MST_CD
+             ,  BASE.PRD_OPT_COLR_CD
+             ,  BASE.PRD_OPT_COLR_NM
+             ,  BASE.PRD_OPT_SIZE_CD
+             ,  BASE.PRD_OPT_SIZE_NM
+	         ,  NVL(TSS.MALL_STOCK_CNT,0) AS PRD_OPT_STOCK_CNT
+	         ,  0 MALL_STOCK_CNT
+		 FROM 
+              (
+                   SELECT A.PRD_PRD_MST_CD, PRD_OPT_SIZE_CD, PRD_OPT_SIZE_NM ,  PRD_OPT_COLR_CD, PRD_OPT_COLR_NM 
+                   FROM
+                         (
+                           SELECT DISTINCT PRD_PRD_MST_CD,  PRD_OPT_SIZE_CD, PRD_OPT_SIZE_NM 
+                             FROM T_PRD_OPT 
+                           WHERE PRD_PRD_MST_CD = #{PRD_MST_CD}
+                          ) A
+                    INNER JOIN
+                         (
+                           SELECT DISTINCT PRD_PRD_MST_CD,  PRD_OPT_COLR_CD, PRD_OPT_COLR_NM 
+                             FROM T_PRD_OPT 
+                           WHERE PRD_PRD_MST_CD = #{PRD_MST_CD}
+                          ) B  
+                    ON A.PRD_PRD_MST_CD = B.PRD_PRD_MST_CD
+                ) BASE
+        LEFT OUTER JOIN T_PRD_OPT TPO
+        ON BASE.PRD_OPT_SIZE_CD = TPO.PRD_OPT_SIZE_CD
+        AND BASE.PRD_OPT_COLR_CD = TPO.PRD_OPT_COLR_CD
+        AND BASE.PRD_PRD_MST_CD = TPO.PRD_PRD_MST_CD
+		LEFT OUTER JOIN 
+		        (
+		            SELECT COMP_CD, PROD_CD, COLR_CD, SIZE_CD, SUM(STCK_QTY) MALL_STOCK_CNT 
+		             FROM US_YAK.TSS_STCK_SHOP
+		            WHERE COMP_CD = #{COMP_CD}
+		              AND PROD_CD = #{PROD_CD}
+		              AND SHOP_CD = #{SHOP_CD}
+		            GROUP BY COMP_CD, PROD_CD , COLR_CD, SIZE_CD
+		        ) TSS
+		ON TPO.PRD_OPT_ERP_COMP_CD = TSS.COMP_CD
+		AND TPO.PRD_OPT_ERP_PROD_CD = TSS.PROD_CD
+		AND TPO.PRD_OPT_COLR_CD = TSS.COLR_CD
+		AND TPO.PRD_OPT_SIZE_CD = TSS.SIZE_CD
+		WHERE BASE.PRD_PRD_MST_CD = #{PRD_MST_CD}
+		ORDER BY BASE.PRD_OPT_COLR_CD, BASE.PRD_OPT_SIZE_CD
+    </select>
+    
+    <!-- 상품상세 ACTIVITY 설정값 조회 -->
+    <select id="selectProductActivityList" parameterType="hashMap" resultType="hashMap">
+        /* Product.selectProductActivityList */
+        SELECT ACT.CMN_COM_IDX
+             , ACT.CMN_COM_NM
+             , ACT.ACT_SELECT
+             , ROWNUM AS RNUM
+         FROM
+             (
+                 SELECT TCC.CMN_COM_IDX 
+                     , TCC.CMN_COM_NM
+                     , DECODE(TPA.PRD_ACT_IDX, NULL, 'N','Y')  AS ACT_SELECT
+                  FROM 
+                      T_CMM_COM TCC
+                     , (SELECT PRD_ACT_IDX, CMN_COM_IDX
+                          FROM  T_PRD_ACT TPA
+                         WHERE  TPA.PRD_PRD_MST_CD = #{PRD_MST_CD} ) TPA
+                 WHERE TCC.CMN_COM_UP_IDX = 720
+                   AND TCC.CMN_COM_USE_YN  = 'Y'
+                   AND TCC.CMN_COM_IDX = TPA.CMN_COM_IDX(+)  
+                ORDER BY TCC.CMN_COM_SORT
+             ) ACT
+		  
+    </select>   
+    
+    <!-- 진행중인 기획전 목록 -->
+	<select id="selectPlanOngoingList" parameterType="HashMap" resultType="HashMap">
+		/* Product.selectPlanOngoingList */
+        SELECT PLN_MST_IDX, PLN_MST_TITLE
+        FROM T_PLN_MST TPM
+        WHERE TO_CHAR(SYSDATE,'YYYYMMDD') BETWEEN TPM.PLN_MST_ST_DT AND  TPM.PLN_MST_ED_DT
+        <if test="PRD_CTG_ENV != null and PRD_CTG_ENV.equals('P'.toString())">
+            AND TPM.PLN_MST_CHANNEL_PC_YN = 'Y'   
+        </if>
+        <if test="PRD_CTG_ENV != null and PRD_CTG_ENV.equals('M'.toString())">
+            AND TPM.PLN_MST_CHANNEL_MOBILE_YN = 'Y' 
+        </if>
+         AND TPM.PLN_MST_USE_YN = 'Y'
+         AND EXISTS 
+         (
+         SELECT PLN_PLN_MST_IDX
+          FROM T_PLN_DTL
+         WHERE PLN_MST_IDX = PLN_PLN_MST_IDX
+           AND PLN_PRD_MST_CD = #{PRD_MST_CD}
+         )
+    </select>
+                
+	<!-- 연관상품 리스트 조회 -->
+	<select id="selectProductRelatedList" parameterType="hashMap" resultType="hashMap">
+		/* Product.selectProductRelatedList */
+		SELECT PM.PRD_MST_CD, PM.PRD_MST_NM, PM.PRD_MST_NORMAL_PRICE
+		     , FN_PRODUCT_PRM_TEXT(PM.PRD_MST_CD) PRM_TEXT
+		     , FN_PRODUCT_IMG(PM.PRD_MST_CD, #{THUMBNAIL_SIZE}) PRD_IMAGE
+	    FROM T_PRD_REL PR, T_PRD_MST PM
+      	WHERE PR.REL_PRD_MST_CD = PM.PRD_MST_CD
+	    AND PM.PRD_MST_SEL_STATE != 'S'    
+      	AND PR.PRD_PRD_MST_CD = #{PRD_MST_CD}
+      	ORDER BY PR.REL_SORT ASC
+	</select>   
+	
+	<!-- 상품 기술정보 리스트 조회 -->
+    <select id="selectProductTechInfoList" parameterType="hashMap" resultType="hashMap">
+        /* Product.selectProductTechInfoList */
+        SELECT
+            PS.PRD_BRD_SHG_IDX, 
+            BS.BRD_CMN_COM_IDX, BS.BRD_CMN_COM_SUB_IDX,
+            BS.BRD_SHG_TITLE, 
+            BS.BRD_SHG_CONTENTS,
+            CF.CMM_FLE_ATT_PATH, CF.CMM_FLE_SYS_NM, CF.CMN_FLE_ALT_TXT
+        FROM
+            T_PRD_SHG PS, T_BRD_SHG BS, T_CMM_FLE CF
+        WHERE
+        	PS.PRD_BRD_SHG_IDX = BS.BRD_SHG_IDX
+         AND BS.BRD_SHG_IDX = CF.CMM_FLE_TB_PK(+)
+         AND CF.CMM_FLE_TB_NM(+) =  'T_BRD_SHG'
+         AND CF.CMM_FLE_USE_YN(+) = 'Y'
+         AND PS.PRD_PRD_MST_CD = #{PRD_MST_CD} 
+        ORDER BY PRD_SHG_SORT                        
+    </select>
+	
+	<!--  상품 AS 정보  -->
+	<select id="selectAsGuideInfo" parameterType="HashMap" resultType="HashMap">
+        /* Product.selectAsGuideInfo */
+		SELECT
+            BRD_GDS_IDX,
+            BRD_GDS_TITLE,
+            BRD_GDS_CONTENTS,
+            BRD_GDS_TOP_YN,
+            BRD_GDS_READ_CNT,
+            BRD_GDS_USE_YN,
+            BRD_GDS_CAT
+        FROM
+            T_BRD_GDS GD, T_PRD_ASG ASG
+        WHERE GD.BRD_GDS_IDX = ASG.PRD_BRD_GDS_IDX
+        AND ASG.PRD_PRD_MST_CD = #{PRD_MST_CD}
+        AND ASG.PRD_ASG_USE_YN = 'Y'
+        AND GD.BRD_GDS_USE_YN = 'Y'
+    </select>
+    
+    <!--  상품 세탁 및 취급 주의 사항  -->
+	<select id="selectWashGuideInfo" parameterType="HashMap" resultType="HashMap">
+        /* Product.selectWashGuideInfo */
+		SELECT
+            GD.BRD_GDS_IDX,
+            GD.BRD_GDS_TITLE,
+            GD.BRD_GDS_CONTENTS,
+            GD.BRD_GDS_TOP_YN,
+            GD.BRD_GDS_READ_CNT,
+            GD.BRD_GDS_USE_YN,
+            GD.BRD_GDS_CAT
+        FROM
+            T_BRD_GDS GD, T_PRD_WASH TPW
+        WHERE GD.BRD_GDS_IDX = TPW.BRD_GDS_IDX
+        AND TPW.PRD_PRD_MST_CD = #{PRD_MST_CD}
+        AND GD.BRD_GDS_USE_YN = 'Y'
+    </select>
+    
+    <!--  상품 배송반품교환 정보  -->
+	<select id="selectShippingGuideInfo" parameterType="HashMap" resultType="HashMap">
+        /* Product.selectShippingGuideInfo */
+		SELECT
+            BRD_GDS_IDX,
+            BRD_GDS_TITLE,
+            BRD_GDS_CONTENTS,
+            BRD_GDS_TOP_YN,
+            BRD_GDS_READ_CNT,
+            BRD_GDS_USE_YN,
+            BRD_GDS_CAT
+        FROM
+            T_BRD_GDS GD, T_PRD_SHP SHP
+        WHERE GD.BRD_GDS_IDX = SHP.PRD_BRD_GDS_IDX
+        AND SHP.PRD_PRD_MST_CD = #{PRD_MST_CD}
+        AND SHP.PRD_SHP_USE_YN = 'Y'
+        AND GD.BRD_GDS_USE_YN = 'Y'
+    </select>
+    
+     <!--  상품 고시 정보  -->
+	<select id="selectNotiGuideInfo" parameterType="HashMap" resultType="HashMap">
+        /* Product.selectNotiGuideInfo */
+		SELECT
+            BRD_GDS_IDX,
+            BRD_GDS_TITLE,
+            BRD_GDS_CONTENTS,
+            BRD_GDS_TOP_YN,
+            BRD_GDS_READ_CNT,
+            BRD_GDS_USE_YN,
+            BRD_GDS_CAT
+        FROM
+            T_BRD_GDS GD, T_PRD_INF INF
+        WHERE GD.BRD_GDS_IDX = INF.PRD_BRD_GDS_IDX
+        AND INF.PRD_PRD_MST_CD = #{PRD_MST_CD}
+        AND INF.PRD_INF_USE_YN = 'Y'
+        AND GD.BRD_GDS_USE_YN = 'Y'
+    </select>
+    
+    <!--  상품평 갯수, 평점 -->
+    <select id="selectProductReputation" parameterType="HashMap" resultType="hashMap">
+        /* Product.selectProductReputation */
+        SELECT
+			FN_GET_PRODUCT_REQ_POINT(TA.REP_POINT) AS REP_POINT,
+			TA.REP_CNT,
+			TA.PHOTO_CNT ,
+			TA.TEXT_CNT ,
+			FN_GET_PRODUCT_REQ(TA.REP_POINT) AS REP_POINT_GRD ,
+			NVL(ROUND(REP_SIZE / DECODE(REP_CNT,0,NULL,REP_CNT) * 100,0),0) AS SIZE_RATE,
+			NVL(ROUND(REP_COLOR / DECODE(REP_CNT,0,NULL,REP_CNT) * 100,0),0) AS COLOR_RATE
+		FROM (
+            SELECT NVL(ROUND( ( SUM(PRD_REV_STAR) ) / COUNT(0) ,2),0) REP_POINT 
+                 , COUNT(*) REP_CNT
+                 , NVL(SUM(DECODE(CMM_FLE_IDX, NULL ,0,1)),0) PHOTO_CNT
+                 , NVL(SUM(DECODE(CMM_FLE_IDX, NULL ,1,0)),0) TEXT_CNT
+                 , COUNT(CASE WHEN TPR.PRD_REV_CLR ='A' THEN 1 END) AS REP_COLOR
+                 , COUNT(CASE WHEN TPR.PRD_REV_SIZE ='B' THEN 1 END) AS REP_SIZE
+             FROM T_PRD_REV TPR
+             LEFT OUTER JOIN T_CMM_FLE TCF
+               ON TCF.CMM_FLE_TB_PK = TPR.PRD_REV_IDX
+              AND TCF.CMM_FLE_TB_NM =  'T_PRD_REV'
+              AND TCF.CMM_FLE_USE_YN = 'Y'
+            WHERE TPR.PRD_PRD_MST_CD =  #{PRD_MST_CD}
+              AND TPR.PRD_REV_USE_YN = 'Y'  
+              AND TPR.PRD_REV_DEL_YN = 'N'
+              <if test="searchMemId != null and searchMemId != ''">
+                  <if test="searchMemId.equals('Y'.toString())">
+                      AND TPR.PRD_REV_REG_ID = #{MEM_ID} 
+                  </if>
+              </if>
+         ) TA
+    </select>
+    
+    <!--  포토리뷰 갯수 -->
+    <select id="selectPhotoRevListCount" parameterType="HashMap" resultType="Integer">
+        /* Product.selectPhotoRevListCount */
+        SELECT
+            COUNT(TPR.PRD_REV_IDX)
+        FROM
+            T_PRD_REV TPR, T_CMM_FLE TCF
+        WHERE
+            TPR.PRD_PRD_MST_CD = #{PRD_PRD_MST_CD}
+            AND TPR.PRD_REV_USE_YN = 'Y'
+            AND TPR.PRD_REV_DEL_YN = 'N'
+            AND TCF.CMM_FLE_TB_NM = 'T_PRD_REV'
+            AND TCF.CMM_FLE_TB_PK = TPR.PRD_REV_IDX
+            AND TCF.CMM_FLE_USE_YN = 'Y' 
+        ORDER BY TPR.PRD_REV_ADM_REG_DT
+    </select>
+    
+    <!-- 포토리뷰 모아보기 리스트 -->
+    <select id="selectPhotoRevList" parameterType="HashMap" resultType="hashMap">
+        /* Product.selectPhotoRevList */
+    	SELECT 
+            S1.*
+        FROM
+            (SELECT
+                ROWNUM AS RNUM
+        		, PRD_REV_IDX
+        		,(CMM_FLE_ATT_PATH || CMM_FLE_SYS_NM) AS FILENM
+        		,TCF.CMM_FLE_ATT_EXT
+        	FROM
+        		T_PRD_REV TPR, T_CMM_FLE TCF
+        	WHERE
+        		TPR.PRD_PRD_MST_CD = #{PRD_PRD_MST_CD}
+        		AND TPR.PRD_REV_USE_YN = 'Y'
+        		AND TPR.PRD_REV_DEL_YN = 'N'
+        		AND TCF.CMM_FLE_TB_NM = 'T_PRD_REV'
+        		AND TCF.CMM_FLE_TB_PK = TPR.PRD_REV_IDX
+        		AND TCF.CMM_FLE_USE_YN = 'Y' 
+            ORDER BY TPR.PRD_REV_ADM_REG_DT) S1
+        <if test="startNum != null and startNum != '' and endNum != null and  endNum != ''">
+            WHERE S1.RNUM BETWEEN #{startNum} AND #{endNum}
+        </if>
+    </select>
+    
+    <select id="selectPhotoRevLimitList" parameterType="HashMap" resultType="hashMap">
+	   /* Product.selectPhotoRevLimitList */
+		SELECT TB.*
+		FROM (
+			SELECT ROWNUM AS ROWN, TA.*
+			FROM 
+			(
+			SELECT TPR.PRD_REV_IDX 
+			    , TPR.PRD_REV_REG_DT 
+				, (CMM_FLE_ATT_PATH || CMM_FLE_SYS_NM) AS FILENM
+				, TCF.CMM_FLE_ATT_EXT
+				, ROW_NUMBER() OVER (PARTITION BY TPR.PRD_REV_IDX ORDER BY TCF.CMM_FLE_SYS_NM ASC) AS RN
+			FROM
+				T_PRD_REV TPR, T_CMM_FLE TCF
+			WHERE
+				TPR.PRD_PRD_MST_CD = #{PRD_MST_CD}
+				AND TPR.PRD_REV_USE_YN = 'Y'
+				AND TPR.PRD_REV_DEL_YN = 'N'
+				AND TCF.CMM_FLE_TB_NM = 'T_PRD_REV'
+				AND TCF.CMM_FLE_TB_PK = TPR.PRD_REV_IDX
+				AND TCF.CMM_FLE_USE_YN = 'Y'
+				<if test="PRD_REV_IDX != null and PRD_REV_IDX != ''">
+					AND TPR.PRD_REV_IDX = #{PRD_REV_IDX}
+   				</if>
+			) TA WHERE RN = 1
+			ORDER BY TA.PRD_REV_REG_DT DESC, TA.PRD_REV_IDX ASC
+		) TB WHERE TB.ROWN BETWEEN 1 AND 50
+    </select>
+    
+    <select id="selectPhotoRevLimitAllList" parameterType="HashMap" resultType="hashMap">
+		/* Product.selectPhotoRevLimitAllList */
+		SELECT TA.*, FN_GET_PRODUCT_NM(TA.PRD_PRD_MST_CD,34) AS PRD_MST_NM
+		FROM 
+		(
+		SELECT TPR.PRD_REV_IDX
+		    , TPR.PRD_REV_CLR
+		    , TPR.PRD_REV_SIZE
+		    , TPR.PRD_REV_STAR
+		    , TPR.PRD_PRD_MST_CD
+		    , TPR.PRD_REV_CONTENTS
+			, TPR.PRD_REV_REG_DT
+			, DENSE_RANK() OVER (ORDER BY TPR.PRD_REV_REG_DT DESC, TPR.PRD_REV_IDX ASC) AS RNUM
+		FROM
+			T_PRD_REV TPR
+		WHERE
+			TPR.PRD_PRD_MST_CD = #{PRD_MST_CD}
+			AND TPR.PRD_REV_USE_YN = 'Y'
+			AND TPR.PRD_REV_DEL_YN = 'N'
+			ORDER BY TPR.PRD_REV_REG_DT DESC, TPR.PRD_REV_IDX ASC
+		) TA WHERE RNUM <![CDATA[<=]]> 50
+    </select>
+ 
+    <select id="selectPhotoAllList" parameterType="HashMap" resultType="hashMap">
+		/* Product.selectPhotoAllList */
+		SELECT (CMM_FLE_ATT_PATH || CMM_FLE_SYS_NM) AS FILENM
+			, TCF.CMM_FLE_ATT_EXT
+			, TCF.CMM_FLE_IDX			
+		FROM
+			T_CMM_FLE TCF
+		WHERE
+			TCF.CMM_FLE_TB_NM = 'T_PRD_REV'
+			AND TCF.CMM_FLE_TB_PK = #{PRD_REV_IDX}
+			AND TCF.CMM_FLE_USE_YN = 'Y'
+    </select>
+    
+    <!-- 상품 색상/사이즈 만족도 -->
+    <select id="selectProductRevStar" parameterType="HashMap" resultType="hashMap">
+        /* Product.selectProductRevStar */
+        SELECT  FN_GET_PRODUCT_REQ_POINT(TA.REP_POINT) AS REP_POINT,
+        		FN_GET_PRODUCT_REQ_POINT(TA.REP_FNC_POINT) AS REP_FNC_POINT,
+        		FN_GET_PRODUCT_REQ_POINT(TA.REP_PRC_POINT) AS REP_PRC_POINT,
+        		FN_GET_PRODUCT_REQ(TA.REP_POINT) AS REP_POINT_GRD,
+        		FN_GET_PRODUCT_REQ(TA.REP_FNC_POINT) AS REP_FNC_POINT_GRD,
+        		FN_GET_PRODUCT_REQ(TA.REP_PRC_POINT) AS REP_PRC_POINT_GRD
+          FROM 
+             (
+                SELECT NVL(ROUND(AVG(PRD_REV_SCORE_STAR),1),0) AS REP_POINT ,
+						NVL(ROUND(AVG(PRD_REV_FNC_STAR),1),0) AS REP_FNC_POINT,
+						NVL(ROUND(AVG(PRD_REV_PRC_STAR),1),0) AS REP_PRC_POINT
+                 FROM T_PRD_REV
+	            WHERE PRD_PRD_MST_CD =  #{PRD_MST_CD}
+	              AND PRD_REV_USE_YN = 'Y'    
+	              AND PRD_REV_DEL_YN = 'N'            
+               ) TA
+    </select>
+    <!--  상품평 갯수  --> 
+    <select id="selectReputationListCount" parameterType="HashMap" resultType="Integer">
+        /* Product.selectReputationListCount */
+          SELECT COUNT(0)
+          FROM (
+                     SELECT  PRD_REV_IDX
+                         ,   PRD_REV_TITLE
+                         ,   PRD_REV_CONTENTS
+                         ,   PRD_REV_FNC_STAR
+                         ,   PRD_REV_PRC_STAR
+                         ,   PRD_REV_SCORE_STAR
+                         ,   PRD_REV_REG_ID
+                         ,   PRD_REV_REG_DT
+                         ,  ( SELECT CMM_FLE_ATT_PATH||CMM_FLE_SYS_NM 
+                                FROM T_CMM_FLE 
+                              WHERE T_CMM_FLE.CMM_FLE_TB_NM =  'T_PRD_REV'
+                                  AND T_CMM_FLE.CMM_FLE_TB_PK = T_PRD_REV.PRD_REV_IDX
+                                  AND T_CMM_FLE.CMM_FLE_USE_YN = 'Y'   ) REP_IMG 
+                    FROM T_PRD_REV
+                   WHERE PRD_PRD_MST_CD = #{PRD_MST_CD}
+                     AND PRD_REV_USE_YN = 'Y'
+                     AND PRD_REV_DEL_YN = 'N'
+          )S1
+          WHERE 1=1
+          <if test="searchRevType != null and searchRevType != ''">
+              <choose>
+                  <when test="searchRevType.equals('TEXT'.toString())">
+                      AND REP_IMG IS NULL 
+                  </when>
+                  <when test="searchRevType.equals('PHOTO'.toString())">
+                      AND REP_IMG IS NOT NULL
+                  </when>
+              </choose>
+          </if>
+          <if test="searchMemId != null and searchMemId != ''">
+              <if test="searchMemId.equals('Y'.toString())">
+                  AND PRD_REV_REG_ID = #{MEM_ID}
+              </if>
+          </if>
+    </select>
+    
+    <!--  상품평  --> 
+    <select id="selectReputationList" parameterType="HashMap" resultType="HashMap">
+        /* Product.selectReputationList */
+        SELECT PRD_REV_TITLE
+             , PRD_REV_IDX
+          	 , PRD_REV_CONTENTS
+          	 , PRD_REV_REG_ID
+          	 , PRD_REV_REG_DT_2
+             , PRD_REV_BST_YN
+          	 , RNUM
+          	 , PRD_REV_CHN_GBN
+             , PRD_REV_SCORE_STAR
+             , REV_COLOR
+             , REV_SIZE
+	  	  FROM
+	            (   
+	                SELECT ROWNUM AS RNUM
+                         , PRD_REV_IDX
+                         , PRD_REV_TITLE
+                         , PRD_REV_CONTENTS
+                         , PRD_REV_REG_ID
+                         , PRD_REV_REG_DT_2
+                         , PRD_REV_BST_YN
+                         , PRD_REV_CHN_GBN
+                         , PRD_REV_SCORE_STAR
+                         , REV_COLOR
+                         , REV_SIZE
+	                FROM (
+                            SELECT  
+                                PRD_REV_IDX
+                                , PRD_REV_TITLE
+                                , PRD_REV_CONTENTS
+                                , PRD_REV_REG_ID
+                                , TO_CHAR(TO_DATE(PRD_REV_REG_DT,'YYYYMMDDHH24MISS'),'YYYY-MM-DD') AS PRD_REV_REG_DT_2
+                                , PRD_REV_BST_YN
+                                , PRD_REV_CHN_GBN
+                                , FN_GET_PRODUCT_REQ_POINT(PRD_REV_STAR) AS PRD_REV_SCORE_STAR
+                                , CASE PRD_REV_CLR 
+                                    WHEN 'A' THEN '화면과 같아요' 
+                                    WHEN 'B' THEN '화면과 달라요'
+                                  END AS REV_COLOR
+                                , CASE PRD_REV_SIZE 
+                                    WHEN 'A' THEN '작아요' 
+                                    WHEN 'B' THEN '정사이즈'
+                                    WHEN 'C' THEN '커요'
+                                  END AS REV_SIZE
+                           FROM T_PRD_REV
+                          WHERE PRD_PRD_MST_CD = #{PRD_MST_CD}
+                            AND PRD_REV_USE_YN = 'Y'
+                            AND PRD_REV_DEL_YN = 'N'
+                          ORDER BY PRD_REV_REG_DT DESC
+	                )S1
+	                WHERE 1=1
+                        <if test="searchRevType != null and searchRevType != ''">
+                            <choose>
+                                <when test="searchRevType.equals('TEXT'.toString())">
+                                    AND REP_IMG IS NULL 
+                                </when>
+                                <when test="searchRevType.equals('PHOTO'.toString())">
+                                    AND REP_IMG IS NOT NULL
+                                </when>
+                            </choose>
+                        </if>
+                        <if test="searchMemId != null and searchMemId != ''">
+                            <if test="searchMemId.equals('Y'.toString())">
+                                AND PRD_REV_REG_ID = #{MEM_ID}
+                            </if>
+                        </if>
+	            )  S2
+	        WHERE S2.RNUM BETWEEN #{startNum} AND #{endNum}
+	        ORDER BY RNUM ASC
+    </select>
+        
+    <!--  상품 Q&A -->
+    <select id="selectQnaList" parameterType="HashMap" resultType="HashMap">
+        /* Product.selectQnaList */
+        SELECT
+        	BRD_INQ_IDX,
+			BRD_INQ_TITLE,
+			BRD_INQ_CONTENTS,
+			BRD_INQ_REPLY_CD,
+			BRD_INQ_REPLY_CONTENTS,
+			BRD_INQ_REPLY_DT,
+			BRD_INQ_REPLY_DT_2,
+			BRD_INQ_REG_ID,
+			BRD_INQ_REG_DT_2,
+			BRD_INQ_REPLY_CD_NM,
+			MY_QNA_YN,
+			BRD_INQ_CHN_GBN,
+			BRD_INQ_PUB_YN
+        FROM
+            (   
+            	SELECT 
+            		ROWNUM AS RNUM,
+            		BRD_INQ_IDX,
+            		BRD_INQ_TITLE,
+            		CASE WHEN MY_QNA_YN = 'N' AND BRD_INQ_PUB_YN = 'Y' THEN NULL ELSE BRD_INQ_CONTENTS END BRD_INQ_CONTENTS,
+					BRD_INQ_REPLY_CD,
+					CASE WHEN MY_QNA_YN = 'N' AND BRD_INQ_PUB_YN = 'Y' THEN NULL ELSE BRD_INQ_REPLY_CONTENTS END BRD_INQ_REPLY_CONTENTS,
+					BRD_INQ_REPLY_DT,
+					BRD_INQ_REPLY_DT_2,
+					BRD_INQ_REG_ID,
+					BRD_INQ_REG_DT_2,
+					BRD_INQ_REPLY_CD_NM,
+					MY_QNA_YN,
+					BRD_INQ_CHN_GBN,
+					BRD_INQ_PUB_YN
+				FROM (
+            		SELECT
+						  BRD_INQ_TITLE,
+						  BRD_INQ_IDX,
+						  BRD_INQ_CONTENTS,
+						  BRD_INQ_REPLY_CD,
+						  BRD_INQ_REPLY_CONTENTS,
+						  BRD_INQ_REG_ID,
+						  BRD_INQ_REPLY_DT,
+						  TO_CHAR(TO_DATE(BRD_INQ_REPLY_DT,'YYYYMMDDHH24MISS'),'YYYY.MM.DD') AS BRD_INQ_REPLY_DT_2,
+						  TO_CHAR(TO_DATE(BRD_INQ_REG_DT,'YYYYMMDDHH24MISS'),'YYYY.MM.DD') AS BRD_INQ_REG_DT_2,
+						  BRD_INQ_REG_DT,
+						  CASE BRD_INQ_REPLY_CD WHEN 'Y' THEN '답변완료' ELSE '문의접수' END AS BRD_INQ_REPLY_CD_NM,
+						  DECODE(BRD_INQ_REG_ID, #{MEM_ID}, 'Y', 'N') AS MY_QNA_YN,
+						  BRD_INQ_CHN_GBN,
+						  BRD_INQ_PUB_YN
+					FROM T_BRD_INQ
+					WHERE BRD_CMN_COM_IDX=#{BRD_CMN_COM_IDX}
+					AND BRD_PRD_MST_CD = #{PRD_MST_CD}
+					AND BRD_INQ_TYPE = #{BRD_INQ_TYPE}
+					AND BRD_INQ_USE_YN = 'Y'
+                    <if test="searchQnaMemId != null and searchQnaMemId != ''">
+                        <if test="searchQnaMemId.equals('Y'.toString())">
+                            AND BRD_INQ_REG_ID = #{MEM_ID} 
+                        </if>
+                    </if>
+					ORDER BY BRD_INQ_REG_DT DESC
+				)
+            )
+            S2
+        WHERE S2.RNUM BETWEEN #{startNum} AND #{endNum}
+    </select>
+    
+    <select id="selectQnaListCount" parameterType="HashMap" resultType="integer">
+        /* Product.selectQnaListCount */
+        SELECT 
+        	COUNT(0)
+        FROM T_BRD_INQ
+		WHERE BRD_CMN_COM_IDX=#{BRD_CMN_COM_IDX}
+		AND BRD_PRD_MST_CD = #{PRD_MST_CD}
+		AND BRD_INQ_TYPE = #{BRD_INQ_TYPE}
+		AND BRD_INQ_USE_YN = 'Y'
+        <if test="searchQnaMemId != null and searchQnaMemId != ''">
+            <if test="searchQnaMemId.equals('Y'.toString())">
+                AND BRD_INQ_REG_ID = #{MEM_ID}
+            </if>
+        </if>
+    </select>
+    
+    <!--  QNA 상세  -->
+    <select id="selectQnaInfo" parameterType="HashMap" resultType="HashMap">
+        /* Product.selectQnaInfo */
+        SELECT
+			BRD_INQ_TITLE,
+			BRD_INQ_IDX,
+			BRD_INQ_CONTENTS
+        FROM T_BRD_INQ
+        WHERE BRD_CMN_COM_IDX=#{BRD_CMN_COM_IDX}
+		AND BRD_PRD_MST_CD = #{PRD_MST_CD}
+		AND BRD_INQ_IDX = #{BRD_INQ_IDX}
+		AND BRD_INQ_TYPE = #{BRD_INQ_TYPE}
+		AND BRD_INQ_REG_ID = #{MEM_MST_MEM_ID}
+		AND BRD_INQ_USE_YN = 'Y'
+    </select>
+    
+    <select id="selectQnaSimpleInfo" parameterType="HashMap" resultType="HashMap">
+        /* Product.selectQnaSimpleInfo */
+        SELECT
+			BRD_INQ_TITLE,
+			BRD_INQ_IDX,
+			BRD_INQ_CONTENTS,
+			BRD_INQ_PUB_YN
+        FROM T_BRD_INQ
+        WHERE BRD_INQ_IDX = #{BRD_INQ_IDX}
+        AND BRD_INQ_REG_ID = #{MEM_MST_MEM_ID}
+		AND BRD_INQ_USE_YN = 'Y'
+    </select>
+    
+    <!--  QNA작성  -->
+    <insert id="insertQna" parameterType="HashMap">
+        <selectKey keyProperty="BRD_INQ_IDX" resultType="Integer" order="BEFORE">
+            SELECT SEQ_BRD_INQ_IDX.NEXTVAL AS BRD_INQ_IDX  FROM DUAL
+        </selectKey>
+        /* Product.insertQna */
+        INSERT INTO
+            T_BRD_INQ
+        (
+			BRD_INQ_IDX,
+			BRD_INQ_TITLE,
+			BRD_CMN_COM_IDX,
+			BRD_INQ_CONTENTS,
+			BRD_INQ_REG_ID,
+			BRD_INQ_REG_NM,
+			BRD_INQ_REG_DT,
+			BRD_PRD_MST_CD,
+			BRD_INQ_TYPE,
+			BRD_INQ_REG_IP,
+			BRD_INQ_CHN_GBN,
+			BRD_INQ_PUB_YN
+		)
+		VALUES
+        (
+			#{BRD_INQ_IDX},
+			#{BRD_INQ_TITLE},
+			#{BRD_CMN_COM_IDX},
+			#{BRD_INQ_CONTENTS:CLOB},
+			#{MEM_MST_MEM_ID},
+			#{BRD_INQ_REG_NM},
+			TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+			#{PRD_MST_CD},
+			NVL(#{BRD_INQ_TYPE}, 'Q'),
+			#{MEM_MST_WEB_IP},
+			#{PRD_CTG_ENV},
+			#{BRD_INQ_PUB_YN}
+		)
+    </insert>
+    
+    <!-- QNA 수정 -->
+	<update id="updateQna" parameterType="HashMap">
+		/* Product.updateQna */
+		UPDATE
+			T_BRD_INQ
+		SET
+			BRD_INQ_TITLE = #{BRD_INQ_TITLE},
+			BRD_INQ_CONTENTS = #{BRD_INQ_CONTENTS:CLOB},
+			BRD_INQ_UPD_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+			BRD_INQ_PUB_YN = #{BRD_INQ_PUB_YN},
+			BRD_INQ_UPD_ID = #{MEM_MST_MEM_ID},
+			BRD_INQ_UPD_IP = #{MEM_MST_WEB_IP}		
+		WHERE
+			BRD_INQ_IDX = #{BRD_INQ_IDX}
+	</update>
+	
+	
+	<!-- QNA 삭제 -->
+	<delete id="deleteQna" parameterType="HashMap">
+		/* Product.deleteQna */
+		DELETE
+			T_BRD_INQ
+		WHERE
+			BRD_INQ_IDX = #{BRD_INQ_IDX}		
+	</delete>
+    
+    <!-- 사이즈조견표 -->
+    <select id="selectProductSizeGuide" parameterType="HashMap" resultType="HashMap">
+        /* Product.selectProductSizeGuide */
+        SELECT 
+        	BG.BRD_GDS_TITLE,
+			BG.BRD_GDS_CONTENTS ,
+        	FL.CMM_FLE_ATT_PATH,
+        	FL.CMM_FLE_SYS_NM
+        FROM T_PRD_SZG SZ, T_BRD_GDS BG, T_CMM_FLE FL
+		WHERE
+			SZ.PRD_BRD_GDS_IDX = BG.BRD_GDS_IDX
+	      	AND FL.CMM_FLE_TB_NM(+) =  'T_BRD_GDS'
+	      	AND FL.CMM_FLE_TB_PK(+) = BG.BRD_GDS_IDX
+            AND SZ.PRD_PRD_MST_CD = #{PRD_MST_CD}
+            AND FL.CMM_FLE_USE_YN(+) = 'Y'
+            AND BG.BRD_GDS_USE_YN = 'Y'
+    </select>
+    
+	<!-- 상품 조회수 증가  -->
+	<update id="updateProductReadCnt" parameterType="hashmap" >
+        /* Product.updateProductReadCnt */
+        UPDATE 
+            T_PRD_MST
+        SET
+        	PRD_MST_RED_CNT = NVL(PRD_MST_RED_CNT, 0) + 1,
+        	PRD_MST_CUR_CNT = NVL(PRD_MST_CUR_CNT, 0) + 1
+        WHERE
+            PRD_MST_CD = #{PRD_MST_CD}
+    </update>
+    
+    <!-- 상품 필수 옵션 카운트 -->
+	<select id="selectProductOptionMstEstCount" parameterType="HashMap" resultType="integer">
+		/* Product.selectProductOptionMstEstCount */
+	    SELECT 
+		        COUNT(0)
+		FROM T_PRD_OPT PRP
+		WHERE PRP.PRD_MST_CD = #{PRD_MST_CD}
+		AND PRP.PRD_OPT_EST_YN = 'Y'
+		AND EXISTS (
+						SELECT COUNT(*)
+						FROM T_OPT_DTL OPD
+						WHERE OPD.PRD_OPT_IDX = PRP.PRD_OPT_IDX
+						AND OPD.OPT_DTL_USE_YN = 'Y'
+						AND TO_CHAR(SYSDATE,'YYYYMMDDHH24MI') BETWEEN OPD.OPT_DTL_ST_DT||'000000' AND OPD.OPT_DTL_ED_DT||'235959' 
+					)
+     	ORDER BY PRP.PRD_OPT_IDX	
+    </select>
+    
+    <!-- 상품 옵션 마스터 목록 -->
+	<select id="selectProductOptionMstList" parameterType="HashMap" resultType="HashMap">
+		/* Product.selectProductOptionMstList */
+	    SELECT 
+		        PRP.PRD_OPT_IDX,
+		        PRP.PRD_MST_CD, 
+		        PRP.PRD_OPT_NM,
+                PRP.PRD_OPT_USE_YN, 
+		        PRP.PRD_OPT_EST_YN, 
+		        PRP.PRD_OPT_CNT_YN,
+		        (SELECT COUNT(*) FROM T_OPT_DTL WHERE PRD_OPT_IDX = PRP. PRD_OPT_IDX) AS DTL_CNT,
+		        CASE PRP.PRD_OPT_EST_YN WHEN 'Y' THEN '필수옵션' ELSE '선택옵션' END PRD_OPT_EST_NM
+		FROM T_PRD_OPT PRP
+		WHERE PRP.PRD_MST_CD = #{PRD_MST_CD}
+        AND PRP.PRD_OPT_USE_YN = 'Y'
+		AND EXISTS (
+						SELECT COUNT(*)
+						FROM T_OPT_DTL OPD
+						WHERE OPD.PRD_OPT_IDX = PRP.PRD_OPT_IDX
+						AND OPD.OPT_DTL_USE_YN = 'Y'
+						AND TO_CHAR(SYSDATE,'YYYYMMDDHH24MI') BETWEEN OPD.OPT_DTL_ST_DT||'000000' AND OPD.OPT_DTL_ED_DT||'235959' 
+					)
+     	ORDER BY PRP.PRD_OPT_EST_YN DESC	
+    </select>
+    
+    <!-- 상품 필수 옵션(색상,사이즈) 리스트 -->
+    <select id="selectProductOptionMustList" parameterType="HashMap" resultType="HashMap">
+    /* Product.selectProductOptionMustList */
+    SELECT 
+        TPCO.CMN_COM_IDX
+        ,TPCO.PRD_MST_CD
+        ,TPCO.OPT_STK_CNT
+        ,TPCO.PRD_CMM_TYPE
+        ,TPCO.UP_COM_OPT_IDX
+        ,TPCO.CMM_OPT_NM
+        ,TPCO.CMM_OPT_HW
+        ,TCC.CMN_COM_ETC2 
+    FROM 
+        T_PRD_CMM_OPT TPCO
+    LEFT JOIN T_CMM_COM TCC ON TPCO.CMN_COM_IDX = TCC.CMN_COM_IDX
+    WHERE 
+        TPCO.PRD_MST_CD = #{PRD_MST_CD}
+        AND TPCO.CMM_OPT_USE_YN = 'Y'
+    ORDER BY PRD_CMM_TYPE ASC
+    </select>
+    
+    <!-- 상품 컬러 리스트 -->
+    <select id="selectProductColorList" parameterType="HashMap" resultType="HashMap">
+    /* Product.selectProductColorList */
+    SELECT 
+        TCC.CMN_COM_IDX, 
+        TCC.CMN_COM_NM, 
+        TCC.CMN_COM_ETC2 AS CNT_PRD_COLOR
+    FROM 
+        T_PRD_CMM_OPT TPCO, T_CMM_COM TCC
+    WHERE TPCO.PRD_MST_CD = #{PRD_MST_CD}
+    AND TPCO.CMN_COM_IDX = TCC.CMN_COM_IDX
+    AND CMM_OPT_USE_YN = 'Y'
+    AND TPCO.PRD_CMM_TYPE = 'C'
+    AND TPCO.UP_COM_OPT_IDX = '-1'
+    </select>
+    
+    <!-- 상품 컬러 리스트 -->
+    <select id="selectProductColorListBatch" parameterType="HashMap" resultType="HashMap">
+    /* Product.selectProductColorListBatch */
+    SELECT 
+    	TPCO.PRD_MST_CD,
+        TCC.CMN_COM_IDX, 
+        TCC.CMN_COM_NM, 
+        TCC.CMN_COM_ETC2 AS CNT_PRD_COLOR
+    FROM 
+        T_PRD_CMM_OPT TPCO, T_CMM_COM TCC
+    WHERE TPCO.PRD_MST_CD IN
+	 <foreach collection="productList" item="product" open="(" close=")" separator=",">#{product.PRD_MST_CD}</foreach>
+    AND TPCO.CMN_COM_IDX = TCC.CMN_COM_IDX
+    AND CMM_OPT_USE_YN = 'Y'
+    AND TPCO.PRD_CMM_TYPE = 'C'
+    AND TPCO.UP_COM_OPT_IDX = '-1'
+    </select>
+    
+    <!-- 상품 옵션 사이즈 목록 -->
+	<select id="selectProductOptionDtlList" parameterType="HashMap" resultType="HashMap">
+		/* Product.selectProductOptionDtlList */
+	    SELECT 
+		        OPD.OPT_DTL_IDX,
+		        OPD.PRD_OPT_IDX, 
+		        OPD.OPT_DTL_NM, 
+		        OPD.OPT_DTL_ADD_PRC,
+		        OPD.OPT_DTL_STK_CNT,
+		        OPD.OPT_DTL_ST_DT,
+		        OPD.OPT_DTL_ED_DT,
+		        OPD.OPT_DTL_USE_YN,
+                CMM.CMN_COM_NM,
+                CMM.CMN_COM_ETC2,
+		        <![CDATA[CASE 
+		        	WHEN NVL(OPD.OPT_DTL_ADD_PRC,0) > 0 THEN 
+		        		OPD.OPT_DTL_NM||'(+'||OPD.OPT_DTL_ADD_PRC||')/재고:'||OPD.OPT_DTL_STK_CNT
+		        	WHEN NVL(OPD.OPT_DTL_ADD_PRC,0) < 0 THEN
+		        		OPD.OPT_DTL_NM||'('||OPD.OPT_DTL_ADD_PRC||')/재고:'||OPD.OPT_DTL_STK_CNT
+		        	ELSE
+		        		OPD.OPT_DTL_NM||'/재고:'||OPD.OPT_DTL_STK_CNT
+		        END]]> AS OPT_DTL_ADD_PRC_NM
+		FROM T_OPT_DTL OPD 
+		INNER JOIN T_PRD_OPT PRP ON OPD.PRD_OPT_IDX = PRP.PRD_OPT_IDX
+		AND PRP.PRD_MST_CD = #{PRD_MST_CD}
+		AND OPD.OPT_DTL_USE_YN = 'Y'
+     	AND TO_CHAR(SYSDATE,'YYYYMMDDHH24MI') BETWEEN OPD.OPT_DTL_ST_DT||'000000' AND OPD.OPT_DTL_ED_DT||'235959'
+        LEFT OUTER JOIN T_CMM_COM CMM ON CMM.CMN_COM_UP_IDX=#{CODE}
+        AND CMM.CMN_COM_NM = OPD.OPT_DTL_NM
+        AND CMM.CMN_COM_USE_YN = 'Y'
+     	ORDER BY OPD.PRD_OPT_IDX , OPD.OPT_DTL_IDX ASC 
+    </select>
+    
+	<!-- 카테고리 2뎁스 스펙리스트  -->
+	<select id="selectCategorySpecList" parameterType="hashMap" resultType="hashMap">
+		/* Product.selectCategorySpecList */
+		SELECT 
+			SMT.SPC_MST_IDX
+			, SMT.SPC_MST_NM
+			, SMT.SPC_MST_LEVEL
+			, SMT.SPC_MST_UP_IDX
+		FROM T_SPC_MST SMT
+		WHERE 
+			SMT.SPC_MST_DEL_YN != 'Y'
+		AND
+			SMT.SPC_MST_ENV = 'P'
+		START WITH SPC_MST_IDX IN (
+									SELECT DSP_PRD_SPC_IDX
+									FROM T_DSP_SPC DSC
+									WHERE DSC.DSP_PRD_DEL_YN = 'N'
+									AND DSC. DSP_PRD_CTG_IDX IN
+												(
+													SELECT
+														PRD_CTG_IDX
+													FROM T_PRD_CTG
+													WHERE PRD_CTG_ENV = #{PRD_CTG_ENV}
+													  AND PRD_CTG_USE_YN = 'Y'
+                                                      <if test="cateUpIdxYn != null and cateUpIdxYn != ''">
+                                                          <choose>
+                                                              <when test="cateUpIdxYn.equals('Y'.toString())">
+                                                                  AND PRD_CTG_UP_IDX = #{spcCateIdx}
+                                                              </when>                                         
+                                                              <when test="cateUpIdxYn.equals('N'.toString())">
+                                                                  AND PRD_CTG_IDX = #{spcCateIdx}                                                               
+                                                              </when>                 
+                                                          </choose>
+                                                      </if>
+												)
+									)
+		CONNECT BY PRIOR SPC_MST_IDX = SPC_MST_UP_IDX
+		ORDER SIBLINGS BY SMT.SPC_MST_SORT ASC
+	</select>
+	
+	<!-- 상품에 속한 기획전 -->
+    <select id="selectProductPlanList" parameterType="HashMap" resultType="HashMap">
+    /* Product.selectProductPlanList */
+    	SELECT
+			RUM
+			, PLN_MST_TITLE 
+			, CMM_FLE_SAVE_PATH 
+			, CMN_FLE_ALT_TXT 
+			, PLN_MST_IDX
+			, PLN_NEW_DAY
+		FROM (
+		    	SELECT 
+		    		ROWNUM AS RUM , PLN_MST_TITLE , CMM_FLE_SAVE_PATH , CMN_FLE_ALT_TXT , PLN_MST_IDX , PLN_NEW_DAY
+				FROM (
+				      	SELECT 
+							PLT.PLN_MST_TITLE
+							, CFE.CMM_FLE_ATT_PATH || CFE.CMM_FLE_SYS_NM AS CMM_FLE_SAVE_PATH
+							, CFE.CMN_FLE_ALT_TXT
+							, PLT.PLN_MST_IDX
+							, TO_DATE(TO_CHAR(SYSDATE, 'YYYYMMDD')) +1 - TO_DATE(TO_CHAR(TO_DATE(PLT.PLN_MST_REG_DT,'YYYYMMDDHH24MISS'),'YYYYMMDD'),'YYYYMMDD') AS PLN_NEW_DAY
+						FROM T_PLN_MST PLT 
+						INNER JOIN T_CMM_FLE CFE ON PLT.PLN_MST_IDX = CFE.CMM_FLE_TB_PK AND CFE.CMM_FLE_TB_TYPE = #{PRD_CTG_ENV} AND CFE.CMM_FLE_SORT = 1
+						,(
+							SELECT DISTINCT PLN_MST_IDX
+							FROM T_PRD_MST PM, T_PLN_DTL PDL
+							WHERE PM.PRD_MST_CD = PDL.PLN_PRD_MST_CD
+							AND PDL.PLN_PRD_MST_CD = #{PRD_MST_CD}
+							) TPM
+						WHERE PLT.PLN_MST_TYPE = 'A'
+						AND TPM.PLN_MST_IDX = PLT.PLN_MST_IDX
+						AND PLT.PLN_MST_CHANNEL_PC_YN = 'Y'
+						AND PLT.PLN_MST_USE_YN = 'Y'
+						AND CFE.CMM_FLE_TB_NM = 'T_PLN_MST'
+						AND CFE.CMM_FLE_USE_YN = 'Y'
+						AND TO_CHAR(SYSDATE,'YYYYMMDDHH24MI') BETWEEN PLT.PLN_MST_ST_DT ||PLT.PLN_MST_ST_HH||PLT.PLN_MST_ST_MI AND PLT.PLN_MST_ED_DT ||PLT.PLN_MST_ED_HH||PLT.PLN_MST_ED_MI
+						ORDER BY PLN_MST_REG_DT DESC
+					)TA
+			 ) TB
+		WHERE TB.RUM <![CDATA[<]]> 5
+    </select>
+    
+    <select id="selectProductEmagazineList" parameterType="HashMap" resultType="HashMap">
+        /*Product.selectProductEmagazineList*/
+        WITH WT1 AS (
+				SELECT PC.PRD_CTG_IDX,  
+                       PC.PRD_CTG_NM,
+                       PC.PRD_CTG_TOP_IDX,
+                       PC.PRD_CTG_ENV
+                FROM T_PRD_CTG PC
+		    	WHERE
+	         		PC.PRD_CTG_ENV = #{PRD_CTG_ENV}
+		            START WITH PC.PRD_CTG_IDX = #{PRD_CTG_IDX}
+        		    CONNECT BY PRIOR PC.PRD_CTG_IDX = PC.PRD_CTG_UP_IDX
+            )
+		SELECT
+			TC.*
+		FROM (
+		        SELECT
+					ROWNUM AS RUNM,
+					TB.MGZ_MST_IDX,
+					TB.MGZ_MST_TITLE,
+					TB.CMM_FLE_ATT_PATH,
+					TB.CMM_FLE_SYS_NM,
+					TB.CMN_FLE_ALT_TXT,
+					TB.MGZ_MST_CTS,
+					TB.MGZ_MST_NEW_TITLE ,
+					TB.MGZ_MST_MB_TITLE,
+					TB.MGZ_MST_REG_DT,
+					TB.MGZ_MST_CPY
+				FROM (
+						SELECT
+							TA.MGZ_MST_IDX,
+							TA.MGZ_MST_TITLE,
+						    TA.CMM_FLE_ATT_PATH,
+						    TA.CMM_FLE_SYS_NM,
+						    TA.CMN_FLE_ALT_TXT,
+						    TA.MGZ_MST_CTS,
+						    TA.MGZ_MST_NEW_TITLE ,
+						    TA.MGZ_MST_MB_TITLE,
+						    TA.MGZ_MST_REG_DT,
+						    TA.MGZ_MST_CPY
+						FROM	(		
+									SELECT
+							            MGZ.MGZ_MST_IDX,    
+							            CMF.CMM_FLE_ATT_PATH,
+							            CMF.CMM_FLE_SYS_NM,
+							            CMF.CMN_FLE_ALT_TXT,
+							            MGZ.MGZ_MST_CTS,
+							            MGZ.MGZ_MST_TITLE,
+								        CASE WHEN LENGTH(MGZ.MGZ_MST_TITLE) > 24
+								             THEN SUBSTR(MGZ.MGZ_MST_TITLE,0,24)||'...'
+								        ELSE MGZ.MGZ_MST_TITLE END AS MGZ_MST_NEW_TITLE ,
+								        MGZ.MGZ_MST_TITLE AS MGZ_MST_MB_TITLE,
+								        MGZ.MGZ_MST_REG_DT,
+								        MGZ.MGZ_MST_CPY
+							        FROM
+							            T_MGZ_MST MGZ         
+							            INNER JOIN T_PRD_MGZ PMZ ON MGZ.MGZ_MST_IDX = PMZ.MGZ_MST_IDX AND PMZ.PRD_MST_CD = #{PRD_MST_CD}
+							            LEFT OUTER JOIN T_CMM_FLE CMF ON CMF.CMM_FLE_TB_PK = MGZ.MGZ_MST_IDX AND CMF.CMM_FLE_TB_NM = #{CMM_FLE_TB_NM} AND CMF.CMM_FLE_USE_YN = 'Y' AND CMF.CMM_FLE_TB_TYPE = #{PRD_CTG_ENV}
+							        WHERE
+							            MGZ.MGZ_MST_YN = 'Y'
+                                        <if test="MGZ_MST_CTG_TYPE != null and MGZ_MST_CTG_TYPE != ''">
+                                            <choose>
+                                                <when test="MGZ_MST_CTG_TYPE.equals('N'.toString())">
+                                                    AND MGZ.MGZ_MST_CTG = #{MGZ_MST_CTG}
+                                                </when>    
+                                                <when test="MGZ_MST_CTG_TYPE.equals('Y'.toString())">
+                                                    AND MGZ.MGZ_MST_CTG NOT IN ('2016','2017') 
+                                                </when>                                        
+                                            </choose>
+                                        </if>
+							       UNION ALL
+							       
+							       SELECT
+							            MGZ.MGZ_MST_IDX,    
+							            CMF.CMM_FLE_ATT_PATH,
+							            CMF.CMM_FLE_SYS_NM,
+							            CMF.CMN_FLE_ALT_TXT,
+							            MGZ.MGZ_MST_CTS,
+							            MGZ.MGZ_MST_TITLE,
+								        MGZ.MGZ_MST_TITLE AS MGZ_MST_NEW_TITLE ,
+								        MGZ.MGZ_MST_TITLE AS MGZ_MST_MB_TITLE,
+								        MGZ.MGZ_MST_REG_DT,
+								        MGZ.MGZ_MST_CPY
+							        FROM
+							            T_MGZ_MST MGZ            
+							            LEFT OUTER JOIN T_CMM_FLE CMF ON CMF.CMM_FLE_TB_PK = MGZ.MGZ_MST_IDX AND CMF.CMM_FLE_TB_NM = #{CMM_FLE_TB_NM} AND CMF.CMM_FLE_USE_YN = 'Y' AND CMF.CMM_FLE_TB_TYPE = #{PRD_CTG_ENV}               
+							        WHERE
+							            MGZ.MGZ_MST_YN = 'Y'
+						                <if test="MGZ_MST_CTG_TYPE != null and MGZ_MST_CTG_TYPE != ''">
+                                            <choose>
+                                                <when test="MGZ_MST_CTG_TYPE.equals('N'.toString())">
+                                                    AND MGZ.MGZ_MST_CTG = #{MGZ_MST_CTG}
+                                                </when>    
+                                                <when test="MGZ_MST_CTG_TYPE.equals('Y'.toString())">
+                                                    AND MGZ.MGZ_MST_CTG NOT IN ('2016','2017') 
+                                                </when>                                        
+                                            </choose>
+                                        </if>
+							        AND 
+										MGZ.MGZ_MST_IDX IN (
+															SELECT MGZ_MST_IDX
+															FROM T_MGZ_CTG, WT1
+															WHERE T_MGZ_CTG.DSP_CTG_IDX = WT1.PRD_CTG_IDX
+														   )
+									AND
+										NOT EXISTS (
+														SELECT
+												            MMT.MGZ_MST_IDX
+												        FROM
+												            T_MGZ_MST MMT            
+												            INNER JOIN T_PRD_MGZ PMZ ON MMT.MGZ_MST_IDX = PMZ.MGZ_MST_IDX AND PMZ.PRD_MST_CD = #{PRD_MST_CD}
+												            LEFT OUTER JOIN T_CMM_FLE CMF ON CMF.CMM_FLE_TB_PK = MMT.MGZ_MST_IDX AND CMF.CMM_FLE_TB_NM = #{CMM_FLE_TB_NM} AND CMF.CMM_FLE_USE_YN = 'Y' AND CMF.CMM_FLE_TB_TYPE = #{PRD_CTG_ENV}            
+												        WHERE
+												            MMT.MGZ_MST_YN = 'Y'
+                                                            <if test="MGZ_MST_CTG_TYPE != null and MGZ_MST_CTG_TYPE != ''">
+                                                                <choose>
+                                                                    <when test="MGZ_MST_CTG_TYPE.equals('N'.toString())">
+                                                                        AND MGZ.MGZ_MST_CTG = #{MGZ_MST_CTG}
+                                                                    </when>    
+                                                                    <when test="MGZ_MST_CTG_TYPE.equals('Y'.toString())">
+                                                                        AND MGZ.MGZ_MST_CTG NOT IN ('2016','2017') 
+                                                                    </when>                                        
+                                                                </choose>
+                                                            </if>
+												        AND
+															MMT.MGZ_MST_IDX = MGZ.MGZ_MST_IDX
+													)
+						
+								)TA
+							ORDER BY TA.MGZ_MST_REG_DT DESC
+					 )TB
+			)TC
+        WHERE
+            TC.RUNM <![CDATA[<]]> #{ROW_NUM}
+    </select>
+    
+    <!-- 상품고시정보 -->
+    <select id="selectproductNotificationInfo" parameterType="HashMap" resultType="HashMap">
+        /* Product.selectproductNotificationInfo */
+        SELECT
+            CMN.PRD_NFI_IDX,
+            CMN.PRD_NFI_NM,
+            CMN.PRD_NFI_LEVEL,
+            CMN.PRD_NFI_UP_IDX,
+            CMN.PRD_NFI_INFO,
+            CMN.PRD_NFI_INFO_CODE,
+            CMN.PRD_NFI_INFO_YN,
+            CMN.PRD_NFI_USE_YN,
+            CMN.PRD_NFI_REG_DT,
+            CMN.PRD_NFI_REG_IP,
+            CMN.PRD_NFI_REG_ID,
+            CMN.PRD_NFI_UPD_DT,
+            CMN.PRD_NFI_UPD_IP,
+            CMN.PRD_NFI_UPD_ID,
+            CMN.PRD_NFI_INFO_EXE 
+        FROM
+            T_PRD_NFI CMN 
+        WHERE
+            PRD_NFI_UP_IDX = #{PRD_NFI_IDX}
+        ORDER BY PRD_NFI_IDX ASC
+    </select>
+    
+    <!-- 상품 고객체험단 리뷰 리스트 -->
+	<select id="selectProductKingerList" parameterType="HashMap" resultType="HashMap">
+		/* Product.selectProductKingerList */
+		SELECT
+			  TA.EXP_REV_IDX
+			, TA.EXP_MST_CD
+			, TA.EXP_REV_NM
+			, TA.EXP_IMG
+			, TA.RUM
+			, CMN_FLE_ALT_TXT
+		FROM
+			(
+			    SELECT ROWNUM AS RUM
+			    	   , ERV.EXP_REV_IDX
+					   , ERV.EXP_MST_CD
+					   , EXP_REV_NM
+					   , CMF.CMM_FLE_ATT_PATH||CMF.CMM_FLE_SYS_NM  EXP_IMG
+		               , CMF.CMN_FLE_ALT_TXT
+				FROM T_EXP_REV ERV
+				LEFT OUTER JOIN T_CMM_FLE CMF ON CMF.CMM_FLE_TB_PK = ERV.EXP_REV_IDX AND CMF.CMM_FLE_TB_NM =  'T_EXP_REV' AND CMF.CMM_FLE_USE_YN = 'Y'
+				WHERE
+					ERV.EXP_REV_BST_YN = 'Y'
+				ORDER BY ERV.EXP_REV_REG_DT DESC
+			) TA
+		WHERE
+			RUM <![CDATA[<]]> 5
+    </select>
+    
+    <!-- 타임세일 내용 -->
+    <select id="selectProductTimeSaleInfo" parameterType="HashMap" resultType="HashMap">
+        /* Product.selectProductTimeSaleInfo */
+        SELECT
+            D.TIM_SAL_IDX, 
+            D.PRD_MST_CD,
+            D.TIM_SAL_NM, 
+            D.TIM_SAL_CTS,
+            D.TIM_SAL_ST_DT, 
+            D.TIM_SAL_ST_HH, 
+            D.TIM_SAL_ST_MM,
+            D.TIM_SAL_ED_DT, 
+            D.TIM_SAL_ED_HH, 
+            D.TIM_SAL_ED_MM,
+            D.TIM_SAL_USE_YN,
+            D.TIM_SAL_REG_DT, 
+            D.TIM_SAL_REG_IP, 
+            D.TIM_SAL_REG_ID,
+            (SELECT ADM_MST_NM FROM T_ADM_MST WHERE ADM_MST_ID = D.TIM_SAL_REG_ID) TIM_SAL_REG_NM,
+            P.PRD_MST_NM,
+            P.PRD_MST_PRC,
+            P.PRD_MST_SEL_CNT,
+            NVL(D.TIM_SAL_UPD_DT,D.TIM_SAL_REG_DT) TIM_SAL_UPD_DT,
+            (SELECT ADM_MST_NM FROM T_ADM_MST WHERE ADM_MST_ID = NVL(D.TIM_SAL_UPD_ID,D.TIM_SAL_REG_ID)) TIM_SAL_UPD_NM,
+            NVL(D.TIM_SAL_UPD_ID,D.TIM_SAL_REG_ID) TIM_SAL_UPD_ID
+        FROM
+            T_TIM_SAL D, T_PRD_MST P
+        WHERE
+        	D.PRD_MST_CD = P.PRD_MST_CD
+        	AND TIM_SAL_IDX = #{salIdx}
+        	AND P.PRD_MST_CD = #{PRD_MST_CD}
+        	--AND D.TIM_SAL_USE_YN = 'Y'
+        	--AND TO_CHAR(SYSDATE,'YYYYMMDDHH24MI') BETWEEN D.TIM_SAL_ST_DT||D.TIM_SAL_ST_HH||D.TIM_SAL_ST_MM AND D.TIM_SAL_ED_DT||D.TIM_SAL_ED_HH||D.TIM_SAL_ED_MM
+    </select>
+    
+    <!-- 타임세일 내용 -->
+    <select id="selectMainTimeSaleInfo" parameterType="HashMap" resultType="HashMap">
+        /* Product.selectMainTimeSaleInfo */
+        SELECT
+			S2.*
+		FROM(
+				SELECT
+					ROWNUM AS RUNM,
+					S1.TIM_SAL_IDX,
+					S1.PRD_MST_CD,
+					S1.TIM_SAL_NM,
+					S1.TIM_SAL_CTS,
+					S1.TIM_SAL_ST_DT,
+					S1.TIM_SAL_ST_HH,
+					S1.TIM_SAL_ST_MM,
+					S1.TIM_SAL_ED_DT,
+					S1.TIM_SAL_ED_HH,
+					S1.TIM_SAL_ED_MM,
+					S1.TIM_SAL_USE_YN,
+					S1.PRD_IMAGE,
+					S1.PRD_IMAGE_ALT,
+					S1.PRD_MST_CPS_MDL,
+					S1.PRD_MST_BRAND_NM,
+					S1.PRD_MST_PRC,
+					S1.PRD_MST_SEL_CNT,
+					S1.TIM_SAL_PRD_CNT
+				FROM(
+						SELECT
+				            D.TIM_SAL_IDX, 
+				            D.PRD_MST_CD,
+				            D.TIM_SAL_NM, 
+				            D.TIM_SAL_CTS,
+				            D.TIM_SAL_ST_DT, 
+				            D.TIM_SAL_ST_HH, 
+				            D.TIM_SAL_ST_MM,
+				            D.TIM_SAL_ED_DT, 
+				            D.TIM_SAL_ED_HH, 
+				            D.TIM_SAL_ED_MM,
+				            D.TIM_SAL_USE_YN,
+				            FN_PRODUCT_IMG(P.PRD_MST_CD, #{THUMBNAIL_SIZE}) PRD_IMAGE,
+		                    FN_PRODUCT_IMG_ALT(P.PRD_MST_CD, #{THUMBNAIL_SIZE}) PRD_IMAGE_ALT,
+							<![CDATA[CASE WHEN P.PRD_MST_CPS_MDL IS NOT NULL
+						   		THEN
+						   			CASE WHEN LOWER(P.PRD_MST_CPS_MDL) <> 'xxxx'
+						   				THEN
+								   			CASE WHEN INSTR(P.PRD_MST_CPS_MDL,'.') > 0
+								   				THEN SUBSTR(P.PRD_MST_CPS_MDL,0,INSTR(P.PRD_MST_CPS_MDL,'.')-1)
+								   			ELSE
+								   				P.PRD_MST_CPS_MDL
+								   			END
+								   		ELSE
+								   			NULL
+								   	END
+						   		ELSE NULL
+						    END]]> AS PRD_MST_CPS_MDL,
+	   				 		(SELECT BND_MST_BRAND_NM FROM T_BND_MST WHERE BND_MST_IDX = P.PRD_MST_BRD_IDX ) AS PRD_MST_BRAND_NM,
+	   				 		P.PRD_MST_PRC,
+	   				 		NVL(P.PRD_MST_SEL_CNT,0) AS PRD_MST_SEL_CNT,
+	   				 		NVL(D.TIM_SAL_DSP_CNT,0) - (NVL(D.TIM_SAL_PRD_CNT,0) - NVL(P.PRD_MST_SEL_CNT,0)) AS TIM_SAL_PRD_CNT
+				        FROM
+				            T_TIM_SAL D, T_PRD_MST P 
+				        WHERE
+				        	D.PRD_MST_CD = P.PRD_MST_CD
+				        	AND D.TIM_SAL_USE_YN = 'Y'
+				        	AND TO_CHAR(SYSDATE,'YYYYMMDDHH24MI') BETWEEN D.TIM_SAL_ST_DT||D.TIM_SAL_ST_HH||D.TIM_SAL_ST_MM AND D.TIM_SAL_ED_DT||D.TIM_SAL_ED_HH||D.TIM_SAL_ED_MM
+				        	<if test="PRD_CTG_ENV != null and PRD_CTG_ENV != ''">
+                                <choose>
+                                    <when test="PRD_CTG_ENV.equals('P'.toString())">
+                                        AND P.PRD_MST_CNL_PC_YN = 'Y'
+                                    </when>                                
+                                    <when test="PRD_CTG_ENV.equals('M'.toString())">
+                                        AND P.PRD_MST_CNL_MB_YN = 'Y'
+                                    </when>
+                                </choose>
+                            </if>
+				        ORDER BY TIM_SAL_REG_DT DESC
+					)S1
+			)S2
+		WHERE S2.RUNM = 1
+    </select>
+    
+    <select id="selectProductEmagazineRevList" parameterType="HashMap" resultType="HashMap">
+        /*Product.selectProductEmagazineRevList*/
+		SELECT
+			TA.RUNM,
+			TA.MGZ_MST_IDX,
+			TA.MGZ_MST_TITLE,
+		    TA.MGZ_REV_IMG,
+		    TA.CMN_FLE_ALT_TXT,
+		    TA.MGZ_MST_CTS
+		FROM	(		
+					SELECT
+						ROWNUM AS RUNM,
+			            MGZ.MGZ_MST_IDX,    
+			            CMF.CMM_FLE_ATT_PATH||CMF.CMM_FLE_SYS_NM AS MGZ_REV_IMG ,
+			            CMF.CMN_FLE_ALT_TXT,
+			            MGZ.MGZ_MST_CTS,
+			            CASE WHEN LENGTH(MGZ.MGZ_MST_TITLE) > 14
+				             THEN SUBSTR(MGZ.MGZ_MST_TITLE,0,14)||'...'
+				        ELSE MGZ.MGZ_MST_TITLE END AS MGZ_MST_TITLE
+			        FROM
+			            T_MGZ_MST MGZ            
+			            INNER JOIN T_PRD_MGZ PMZ ON MGZ.MGZ_MST_IDX = PMZ.MGZ_MST_IDX AND PMZ.PRD_MST_CD = #{PRD_MST_CD}
+			            INNER JOIN T_CMM_FLE CMF ON CMF.CMM_FLE_TB_PK = MGZ.MGZ_MST_IDX               
+			        WHERE
+			            MGZ.MGZ_MST_YN = 'Y'
+			        AND 
+			        	CMF.CMM_FLE_TB_NM = #{CMM_FLE_TB_NM}
+			        AND 
+			        	CMF.CMM_FLE_USE_YN = 'Y'
+			        AND
+			        	CMF.CMM_FLE_TB_TYPE = #{PRD_CTG_ENV}
+                    <if test="MGZ_MST_CTG_TYPE != null and MGZ_MST_CTG_TYPE != ''">
+                        AND MGZ.MGZ_MST_CTG = #{MGZ_MST_CTG}
+                    </if>
+			        ORDER BY MGZ.MGZ_MST_REG_DT DESC
+				)TA
+        WHERE
+            TA.RUNM <![CDATA[<]]> #{ROW_NUM}
+    </select>
+    
+    <!-- 원데이특가 내용 -->
+    <select id="selectMainOneDayInfo" parameterType="HashMap" resultType="HashMap">
+        /* Product.selectMainOneDayInfo */
+        SELECT
+			S1.*
+			, 0 AS PRD_NOW_DST_POINT
+		FROM (
+		        SELECT
+		               ROWNUM AS RUNM,
+		               D.ONE_DAY_IDX,
+		               D.PRD_MST_CD,
+		               D.ONE_DAY_NM,
+		               P.PRD_MST_NM,
+		               P.PRD_MST_PRC,
+		               P.PRD_MST_SEL_CNT,
+		               D.ONE_DAY_ST_DT,
+		               D.ONE_DAY_ST_HH,
+		               D.ONE_DAY_ST_MM,
+		               D.ONE_DAY_ED_HH,
+		               D.ONE_DAY_ED_MM,
+		               D.ONE_DAY_USE_YN,
+		               D.ONE_DAY_REG_DT,
+		               FN_PRODUCT_IMG(P.PRD_MST_CD, #{THUMBNAIL_SIZE}) PRD_IMAGE,
+				       FN_PRODUCT_IMG_ALT(P.PRD_MST_CD, #{THUMBNAIL_SIZE}) PRD_IMAGE_ALT,
+					   <![CDATA[CASE WHEN P.PRD_MST_CPS_MDL IS NOT NULL
+					   		THEN
+					   			CASE WHEN LOWER(P.PRD_MST_CPS_MDL) <> 'xxxx'
+					   				THEN
+							   			CASE WHEN INSTR(P.PRD_MST_CPS_MDL,'.') > 0
+							   				THEN SUBSTR(P.PRD_MST_CPS_MDL,0,INSTR(P.PRD_MST_CPS_MDL,'.')-1)
+							   			ELSE
+							   				P.PRD_MST_CPS_MDL
+							   			END
+							   		ELSE
+							   			NULL
+							   	END
+					   		ELSE NULL
+					   END]]> AS PRD_MST_CPS_MDL,
+	   				   (SELECT BND_MST_BRAND_NM FROM T_BND_MST WHERE BND_MST_IDX = P.PRD_MST_BRD_IDX ) AS PRD_MST_BRAND_NM
+		        FROM
+		            T_ONE_DAY D, T_PRD_MST P 
+		        WHERE
+		        	D.PRD_MST_CD = P.PRD_MST_CD
+		        	AND D.ONE_DAY_USE_YN = 'Y'
+		        	AND TO_CHAR(SYSDATE,'YYYYMMDDHH24MI') BETWEEN D.ONE_DAY_ST_DT||D.ONE_DAY_ST_HH||D.ONE_DAY_ST_MM AND D.ONE_DAY_ST_DT||D.ONE_DAY_ED_HH||D.ONE_DAY_ED_MM
+		        	<if test="PRD_CTG_ENV != null and PRD_CTG_ENV != ''">
+                        <choose>
+                            <when test="PRD_CTG_ENV.equals('P'.toString())">
+                                AND P.PRD_MST_CNL_PC_YN = 'Y'
+                            </when>                        
+                            <when test="PRD_CTG_ENV.equals('M'.toString())">
+                                AND P.PRD_MST_CNL_MB_YN = 'Y'
+                            </when>
+                        </choose>
+                    </if>
+		        	ORDER BY D.ONE_DAY_REG_DT DESC
+			 ) S1
+		WHERE RUNM = 1
+    </select>
+    
+    <!-- 원데이특가 내용 -->
+    <select id="selectProductOneDayInfo" parameterType="HashMap" resultType="HashMap">
+        /* Product.selectProductOneDayInfo */
+        SELECT
+               D.ONE_DAY_IDX,
+               D.PRD_MST_CD,
+               D.ONE_DAY_NM,
+               P.PRD_MST_NM,
+               P.PRD_MST_PRC,
+               P.PRD_MST_SEL_CNT,
+               D.ONE_DAY_ST_DT,
+               D.ONE_DAY_ST_HH,
+               D.ONE_DAY_ST_MM,
+               D.ONE_DAY_ED_HH,
+               D.ONE_DAY_ED_MM,
+               D.ONE_DAY_USE_YN,
+               D.ONE_DAY_REG_DT
+        FROM
+            T_ONE_DAY D, T_PRD_MST P 
+        WHERE
+        	D.PRD_MST_CD = P.PRD_MST_CD
+        	AND ONE_DAY_IDX = #{oneDayIdx}
+        	AND P.PRD_MST_CD = #{PRD_MST_CD}
+        	--AND D.ONE_DAY_USE_YN = 'Y'
+        	--AND TO_CHAR(SYSDATE,'YYYYMMDDHH24MI') BETWEEN D.ONE_DAY_ST_DT||D.ONE_DAY_ST_HH||D.ONE_DAY_ST_MM AND D.ONE_DAY_ST_DT||D.ONE_DAY_ED_HH||D.ONE_DAY_ED_MM
+    </select>
+    
+    <!-- 상품 리스트 갯수 -->
+    <select id="selectSearchProductCount" parameterType="hashMap" resultType="integer">
+        /* Product.selectSearchProductCount */
+        SELECT COUNT(0)
+		FROM T_PRD_MST PM 
+		LEFT OUTER JOIN T_PRD_IMG PIG ON PM.PRD_MST_CD = PIG.PRD_PRD_MST_CD AND PIG.PRD_IMG_IDX = 0 AND PIG.PRD_IMG_ATT_SIZE = #{THUMBNAIL_SIZE}
+           	 ,(
+		    	SELECT 
+			    	DISTINCT DSP_PRD_MST_CD
+	            FROM T_DSP_CTG
+	            WHERE DSP_PRD_CTG_IDX IN
+	            	(
+	                	SELECT 
+	                    	PC.PRD_CTG_IDX
+	                    FROM T_PRD_CTG PC
+	                    <include refid="productCategoryWhere"/>
+				    )
+			)TPC
+		WHERE PM.PRD_MST_CD = TPC.DSP_PRD_MST_CD
+		<include refid="productWhere"/>       
+    </select> 
+ 
+    <!-- 상품 리스트 조회 2015.04.09 jesong -->
+    <select id="selectSearchProductList" parameterType="hashMap" resultType="hashMap">
+        /* Product.selectSearchProductList */
+	        SELECT 
+	       		RNUM
+	        	, PRD_MST_CD
+	        	, PRD_MST_NM
+	        	, PRD_MST_PRC
+	        	, ERP_MST_SELL_PRC
+	        	, PRD_MST_PRICE
+	        FROM 
+	        (   
+		        SELECT 
+		        	 ROWNUM RNUM
+		        	 , PM.PRD_MST_CD
+		             , FN_GET_PRODUCT_NM(PM.PRD_MST_CD,34) AS PRD_MST_NM
+		             , PM.PRD_MST_PRC
+		             , 0 AS ERP_MST_SELL_PRC
+		             , FN_PRODUCT_LIST_PRICE(PM.PRD_MST_CD,#{USER_ENV_TYPE},#{MEM_CRT_SES_ID}) AS PRD_MST_PRICE
+		        FROM T_PRD_MST PM 
+					 ,(
+			        	SELECT DISTINCT DSP_PRD_MST_CD
+	              		 FROM T_DSP_CTG
+	              		WHERE DSP_PRD_CTG_IDX IN
+	                      (
+	                        SELECT 
+	                          PC.PRD_CTG_IDX
+	                        FROM T_PRD_CTG PC
+	                        <include refid="productCategoryWhere"/>
+	                      )
+			    	 ) TPC
+		        WHERE PM.PRD_MST_CD = TPC.DSP_PRD_MST_CD
+				<include refid="productWhere"/>	
+				ORDER BY PM.PRD_MST_REG_DT DESC
+			)PR
+        <if test="usePaging == null and usePaging == ''">
+            WHERE PR.RNUM BETWEEN #{startNum} AND #{endNum}
+        </if>
+    </select>
+    
+    <!-- 선택 옵션 상세 정보 -->
+    <select id="selectOptionDetailInfo" parameterType="hashMap" resultType="hashMap">
+    	/* Product.selectOptionDetailInfo */
+    	SELECT 
+			<![CDATA[CASE 
+		    	WHEN NVL(OPD.OPT_DTL_ADD_PRC,0) > 0 THEN 
+		    		POT.PRD_OPT_NM||' : '||OPD.OPT_DTL_NM||'(+'||OPD.OPT_DTL_ADD_PRC||')'
+		    	WHEN NVL(OPD.OPT_DTL_ADD_PRC,0) < 0 THEN
+		    		POT.PRD_OPT_NM||' : '||OPD.OPT_DTL_NM||'('||OPD.OPT_DTL_ADD_PRC||')'
+		    	ELSE
+		    		OPD.OPT_DTL_NM
+		    END]]> AS OPT_DTL_ADD_PRC_NM
+		    , OPD.OPT_DTL_IDX
+		FROM T_OPT_DTL OPD
+		INNER JOIN T_PRD_OPT POT ON POT.PRD_OPT_IDX = OPD.PRD_OPT_IDX
+		WHERE OPD.OPT_DTL_IDX = #{OPT_DTL_IDX}
+		AND POT.PRD_MST_CD = #{PRD_MST_CD}
+    </select>
+    
+    <!-- 매장코드로 지점 불러오기 -->
+    <select id="selectStoreList" parameterType="hashMap" resultType="hashMap">
+    	/* Product.selectStoreList */
+    	SELECT
+			S1.RNUM
+			, S1.SHP_MST_IDX
+			, S1.SHP_MST_NM
+			, S1.SHP_MST_ERP_CD
+			, S1.SHP_MST_O2O_ST_HH	
+			, S1.SHP_MST_O2O_ST_MM	
+			, S1.SHP_MST_O2O_ED_HH
+			, S1.SHP_MST_O2O_ED_MM
+			, S1.SHP_MST_PIUP
+			, S1.SHP_MST_PIUP_DAY
+			, S1.SHP_MST_PIUP_TIME
+			, S1.SHP_MST_PIUP_NEXT_DAY
+			, S1.ST_CAL_NOW_ST_DAY
+			, S1.ST_CAL_NEXT_ST_DAY
+			, S1.ST_CAL_NOW_ED_DAY
+			, S1.ST_CAL_NEXT_ED_DAY
+			, S1.SHP_MST_LTTD
+			, S1.SHP_MST_LGTD
+			, S1.SHP_MST_TEL
+			, S1.SHP_MST_MAS_TRS
+			, S1.SHP_WEK_TIME
+			, SHP_MST_WEK_END_TIME
+			, S1.ST_CAL_NOW_FULL_ST_DAY
+			, S1.ST_CAL_NEXT_FULL_ST_DAY
+			, S1.ST_CAL_NOW_FULL_ST_DAY_NM
+			, S1.ST_CAL_NEXT_FULL_ST_DAY_NM
+		FROM(
+			SELECT
+				ROWNUM AS RNUM
+				, SHP_MST_IDX 
+				, SHP_MST_NM
+				, SHP_MST_ERP_CD
+				, NVL(SHP_MST_O2O_ST_HH,00)	AS SHP_MST_O2O_ST_HH
+				, NVL(SHP_MST_O2O_ST_MM,00)	AS SHP_MST_O2O_ST_MM
+				, NVL(SHP_MST_O2O_ED_HH,23) AS SHP_MST_O2O_ED_HH
+				, NVL(SHP_MST_O2O_ED_MM,59) AS SHP_MST_O2O_ED_MM
+				, CASE WHEN TO_CHAR(SYSDATE  + 2/24,'HH24MI') <![CDATA[<=]]> (NVL(SHP_MST_O2O_ED_HH,23)-2)||NVL(SHP_MST_O2O_ED_MM,59)
+					THEN 'NOW'
+				  ELSE
+				  	'NEXT'
+				  END AS SHP_MST_PIUP
+				, <![CDATA[TO_CHAR(SYSDATE, 'YYYY"년"MM"월"DD"일"' )]]> AS SHP_MST_PIUP_DAY
+				, <![CDATA[CASE WHEN SHP_MST_O2O_ED_HH = 00
+					THEN
+						TO_CHAR(TO_DATE(22||SHP_MST_O2O_ED_MM,'hh24mi'),'hh24"시"mi"분"')
+				  ELSE
+						TO_CHAR(TO_DATE((SHP_MST_O2O_ED_HH-2)||SHP_MST_O2O_ED_MM,'hh24mi'),'hh24"시"mi"분"')
+				  END]]> AS SHP_MST_PIUP_TIME
+				, <![CDATA[TO_CHAR(SYSDATE + 1, 'YYYY"년"MM"월"DD"일"' )]]> AS SHP_MST_PIUP_NEXT_DAY
+				, TO_CHAR(SYSDATE,'YYYY-MM-DD') AS ST_CAL_NOW_ST_DAY
+				, TO_CHAR(SYSDATE + 1,'YYYY-MM-DD') AS ST_CAL_NEXT_ST_DAY
+				, TO_CHAR(SYSDATE + 3,'YYYY-MM-DD') AS ST_CAL_NOW_ED_DAY
+				, TO_CHAR(SYSDATE + 4,'YYYY-MM-DD') AS ST_CAL_NEXT_ED_DAY
+				, TO_CHAR(SYSDATE,'YYYY-MM-DD') ||','|| TO_CHAR(SYSDATE + 1,'YYYY-MM-DD') ||','|| TO_CHAR(SYSDATE + 2,'YYYY-MM-DD') ||','|| TO_CHAR(SYSDATE + 3,'YYYY-MM-DD') AS ST_CAL_NOW_FULL_ST_DAY
+				, TO_CHAR(SYSDATE +1,'YYYY-MM-DD') ||','|| TO_CHAR(SYSDATE + 2,'YYYY-MM-DD') ||','|| TO_CHAR(SYSDATE + 3,'YYYY-MM-DD') ||','|| TO_CHAR(SYSDATE + 4,'YYYY-MM-DD') AS ST_CAL_NEXT_FULL_ST_DAY
+				, TO_CHAR(SYSDATE,'DY','NLS_DATE_LANGUAGE=KOREAN') ||','|| TO_CHAR(SYSDATE + 1,'DY','NLS_DATE_LANGUAGE=KOREAN') ||','|| TO_CHAR(SYSDATE + 2,'DY','NLS_DATE_LANGUAGE=KOREAN') ||','|| TO_CHAR(SYSDATE + 3,'DY','NLS_DATE_LANGUAGE=KOREAN') AS ST_CAL_NOW_FULL_ST_DAY_NM
+				, TO_CHAR(SYSDATE +1,'DY','NLS_DATE_LANGUAGE=KOREAN') ||','|| TO_CHAR(SYSDATE + 2,'DY','NLS_DATE_LANGUAGE=KOREAN') ||','|| TO_CHAR(SYSDATE + 3,'DY','NLS_DATE_LANGUAGE=KOREAN') ||','|| TO_CHAR(SYSDATE + 4,'DY','NLS_DATE_LANGUAGE=KOREAN') AS ST_CAL_NEXT_FULL_ST_DAY_NM
+				, NVL(SHP_MST_LTTD,0) AS SHP_MST_LTTD
+				, NVL(SHP_MST_LGTD,0) AS SHP_MST_LGTD
+				, SHP_MST_TEL
+				, SHP_MST_MAS_TRS
+				, <![CDATA[CASE SHP_MST_WEK_DAY_GBN WHEN 'H'
+					THEN '평일 : '||SHP_MST_WEK_DAY_ST_HH ||':'||SHP_MST_WEK_DAY_ST_MM ||'~'|| SHP_MST_WEK_DAY_ED_HH ||':'|| SHP_MST_WEK_DAY_ED_MM
+				  ELSE
+				  	'평일 : '||SHP_MST_WEK_DAY_TXT
+				  END]]> AS SHP_WEK_TIME
+				, <![CDATA[CASE SHP_MST_WEK_END_GBN WHEN 'H'
+					THEN '주말 : '||SHP_MST_WEK_END_ST_HH ||':'||SHP_MST_WEK_END_ST_MM ||'~'|| SHP_MST_WEK_END_ED_HH ||':'|| SHP_MST_WEK_END_ED_MM
+				  ELSE
+				  	'주말 : '||SHP_MST_WEK_END_TXT
+				  END]]> AS SHP_MST_WEK_END_TIME
+			FROM T_SHP_MST
+			WHERE
+				SHP_MST_O2O_YN = 'Y'
+			AND
+				SHP_MST_USE_YN = 'Y'
+			AND
+				SHP_MST_ERP_CD IN 
+                    <foreach collection="searchErpShpCodeList" item="searchErpShpCode" open="(" close=")" separator=",">#{searchErpShpCode}</foreach>
+	            <if test="searchShpMstArea != null and searchShpMstArea != ''">
+                    AND SHP_MST_AREA = #{searchShpMstArea}
+                </if>
+            	
+			)S1
+		WHERE
+			S1.RNUM BETWEEN #{startNum} AND #{endNum}
+            <if test="searchShpMstNow != null and searchShpMstNow != ''">
+                <if test="searchShpMstNow.equals('Y'.toString())">
+                    AND SHP_MST_PIUP = 'NOW'
+                </if>
+            </if>
+    </select>
+    
+    <select id="selectStoreCount" parameterType="hashMap" resultType="integer">
+    	/* Product.selectStoreCount */
+    	SELECT
+			COUNT(0)
+		FROM T_SHP_MST
+		WHERE
+			SHP_MST_O2O_YN = 'Y'
+		AND
+			SHP_MST_USE_YN = 'Y'
+		AND
+			SHP_MST_ERP_CD IN 
+                <foreach collection="searchErpShpCodeList" item="searchErpShpCode" open="(" close=")" separator=",">#{searchErpShpCode}</foreach>
+            <if test="searchShpMstArea != null and searchShpMstArea != ''">
+                AND SHP_MST_AREA = #{searchShpMstArea} 
+            </if>
+    </select>
+    
+    <!-- 견적코드 자동 생성 -->
+    <select id="selectEstimateManagementMasterCd" parameterType="hashMap" resultType="String">
+        /* Product.selectEstimateManagementList */
+		SELECT TO_CHAR(SYSDATE, 'YYYYMMDDHH24') || LPAD(SEQ_ESM_MST_CD.NEXTVAL ,6,'0') FROM DUAL
+    </select> 
+    
+    <!-- MD견적 직접 등록 -->
+    <insert id="insertEstimateManagement" parameterType="hashmap" >
+    	<selectKey keyProperty="ESM_MST_IDX" resultType="integer" order="BEFORE"> 
+            SELECT SEQ_ESM_MST_IDX.NEXTVAL FROM DUAL 
+        </selectKey> 
+        <![CDATA[
+        /* Product.insertEstimateManagement */
+        INSERT INTO T_ESM_MST (
+            ESM_MST_IDX,
+			ESM_MST_CD,
+			ESM_MST_TYPE,
+			ESM_MST_MEM_ID,
+			ESM_MST_MEM_NM,
+			ESM_MST_HP1,
+			ESM_MST_HP2,
+			ESM_MST_HP3,
+			ESM_MST_MAIL,
+			ESM_MST_QST_TYPE,
+			ESM_MST_QST,
+			ESM_MST_WSH_TOT_PRICE,
+			ESM_MST_ESM_TOT_PRICE,
+			ESM_MST_ADV_TYPE,
+			ESM_MST_OPN_YN,
+			ESM_MST_REG_DT,
+			ESM_MST_REG_ID,
+			ESM_MST_REG_IP,
+			ESM_MST_USE_YN,
+			ESM_MST_PRD_CHANGE_YN,
+			ESM_MST_MAIL_SEND_YN
+        )VALUES (
+            #{ESM_MST_IDX},
+			#{ESM_MST_CD},
+			#{ESM_MST_TYPE},
+			#{ESM_MST_MEM_ID},
+			#{ESM_MST_MEM_NM},
+			#{ESM_MST_HP1},
+			#{ESM_MST_HP2},
+			#{ESM_MST_HP3},
+			#{ESM_MST_MAIL},
+			#{ESM_MST_QST_TYPE},
+			#{ESM_MST_QST},
+			#{ESM_MST_WSH_TOT_PRICE},
+			#{ESM_MST_ESM_TOT_PRICE},
+			#{ESM_MST_ADV_TYPE},
+			#{ESM_MST_OPN_YN},
+			TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+			#{ESM_MST_REG_ID},
+			#{ESM_MST_REG_IP},
+			#{ESM_MST_USE_YN},
+			#{ESM_MST_PRD_CHANGE_YN},
+			NVL(#{ESM_MST_MAIL_SEND_YN},'N')
+        )
+        ]]>
+    </insert>
+    <!-- 견적 상품 등록 -->
+    <insert id="insertEstimateProduct" parameterType="hashmap" >
+        /* Product.insertEstimateProduct */
+        INSERT INTO T_ESM_PRD (
+            ESM_PRD_IDX,
+			ESM_PRD_MST_IDX,
+			ESM_PRD_MST_CD,
+			ESM_PRD_PCH_IDX,
+			PRD_MST_CD,
+			ESM_PRD_WSH_PRICE,
+			OPT_DTL_IDX,
+			ESM_PRD_CNT
+        )VALUES (
+            SEQ_ESM_PRD_IDX.NEXTVAL,
+			#{ESM_PRD_MST_IDX},
+			#{ESM_PRD_MST_CD},
+			#{ESM_PRD_PCH_IDX},
+			#{PRD_MST_CD},
+			#{ESM_PRD_WSH_PRICE},
+			#{OPT_DTL_IDX},
+			#{ESM_PRD_CNT}
+        )
+    </insert>
+    
+    <select id="selectStoreInfo" parameterType="HashMap" resultType="HashMap">
+        /* Product.selectStoreInfo */
+        SELECT  SHP_MST_IDX,
+				SHP_MST_ERP_CD,
+				SHP_MST_NM,
+				SHP_MST_ENG_NM,
+				SHP_MST_TYPE,
+				SHP_MST_AREA,
+				SHP_MST_MNG_NM ,
+				SHP_MST_MNG_HP,
+				SHP_MST_MNG_MAIL,
+				SHP_MST_ZIP_CDE5,
+				SHP_MST_JBN_ADR1,
+				SHP_MST_JBN_ADR2,
+				SHP_MST_DRO_ADR1,
+				SHP_MST_DRO_ADR2,
+				SHP_MST_LTTD,
+				SHP_MST_LGTD,
+				SHP_MST_PST,
+				SHP_MST_TEL,
+				SHP_MST_FAX,
+				SHP_MST_PRK,
+				SHP_MST_URL,
+				SHP_MST_MAS_TRS,
+				SHP_MST_MAP_TXT,
+				SHP_MST_WEK_DAY_GBN,
+				SHP_MST_WEK_DAY_ST_HH,
+				SHP_MST_WEK_DAY_ST_MM,
+				SHP_MST_WEK_DAY_ED_HH,
+				SHP_MST_WEK_DAY_ED_MM,
+				SHP_MST_WEK_DAY_TXT,
+				SHP_MST_WEK_END_GBN,
+				SHP_MST_WEK_END_ST_HH,
+				SHP_MST_WEK_END_ST_MM,
+				SHP_MST_WEK_END_ED_HH,
+				SHP_MST_WEK_END_ED_MM,
+				SHP_MST_WEK_END_TXT,
+				SHP_MST_O2O_ST_HH,
+				SHP_MST_O2O_ST_MM,
+				SHP_MST_O2O_ED_HH,
+				SHP_MST_O2O_ED_MM,
+				SHP_MST_IMG1_TXT,
+				SHP_MST_IMG2_TXT,
+				SHP_MST_IMG3_TXT,
+				SHP_MST_IMG4_TXT,
+				SHP_MST_IMG5_TXT,
+				SHP_MST_IMG6_TXT,
+				SHP_MST_IMG7_TXT,
+				SHP_MST_IMG8_TXT,
+				SHP_MST_IMG9_TXT,
+				SHP_MST_IMG10_TXT,
+				SHP_MST_BRC,
+				SHP_MST_HED_OFC,
+				SHP_MST_O2O_YN,
+				SHP_MST_USE_YN,
+				SHP_MST_REG_DT,
+				SHP_MST_REG_IP,
+				SHP_MST_REG_ID,
+				SHP_MST_UPD_DT,
+				SHP_MST_UPD_IP,
+				SHP_MST_UPD_ID,
+	            (
+	            SELECT
+	                ADM_MST_NM
+	            FROM
+	                T_ADM_MST
+	            WHERE
+	                ADM_MST_ID = SHP_MST_REG_ID
+	            )
+	            AS ADM_MST_NM,
+	             (
+	            SELECT
+	                ADM_MST_NM
+	            FROM
+	                T_ADM_MST
+	            WHERE
+	                ADM_MST_ID = SHP_MST_UPD_ID
+	            )
+	            AS ADM_MST_NM_UPD
+        FROM
+            T_SHP_MST
+        WHERE
+            SHP_MST_IDX = #{SHP_MST_IDX}
+    </select>
+    
+    <!-- 장기할부인 경우 사용가능 카드사 코드 목록 -->
+	<select id="selectProductLngDivCardNm" parameterType="HashMap" resultType="HashMap">
+	  /* Product.selectProductLngDivCardNm */
+	  <![CDATA[
+		SELECT
+			WM_CONCAT(T2.CRD_INF_NM) AS CRD_INF_NM
+		FROM
+		(
+			SELECT
+				T1.*
+				, DENSE_RANK() OVER(PARTITION BY DIV_DTL_CD ORDER BY CRD_DIV_IDX DESC) as CRD_DIV_RANK /* 프로모션 순위(최신순) */
+				, DENSE_RANK() OVER(PARTITION BY DIV_DTL_CD ORDER BY DIV_DTL_PRC DESC) as DTL_PRC_RANK /* 기준금액 순위(높은금액순) */
+			FROM
+			(
+				SELECT
+					TCD.CRD_DIV_IDX
+					, TCD.CRD_DIV_ST_DT || NVL(TCD.CRD_DIV_ST_HH,'00') || NVL(TCD.CRD_DIV_ST_MM,'00') as DIV_ST_DATE
+					, TCD.CRD_DIV_ED_DT || NVL(TCD.CRD_DIV_ED_HH,'23') || NVL(TCD.CRD_DIV_ED_MM,'59') as DIV_ED_DATE
+					, TO_CHAR(SYSDATE, 'YYYYMMDDHH24MI') as NOW_DATE
+					, TCD.CRD_DIV_USE_YN /* 프로모션 사용 여부 */
+					, TDD.DIV_DTL_CD /* 카드사 코드 */ 
+					, TDD.DIV_DTL_PRC /* 기준금액 */
+					, TDD.DIV_DTL_PRC*10000 as MINIMUM_PRC /* 기준금액*10000 */
+					, TDI.DIV_INF_MNT /* 할부개월수 */
+					, TDI.DIV_INF_GBN /* 무이자구분 */
+					, TDI.DIV_INF_NTC /* 안내 */
+					, TDI.DIV_INF_USE_YN /* 할부개월 적용여부 */
+					, (SELECT CRD_INF_NM FROM T_CRD_INF WHERE CRD_INF_IDX = TDD.DIV_DTL_CD) AS CRD_INF_NM
+				FROM T_CRD_DIV TCD, T_DIV_DTL TDD, T_DIV_INF TDI
+				WHERE TCD.CRD_DIV_IDX = TDD.CRD_DIV_IDX
+				AND TDD.DIV_DTL_IDX = TDI.DIV_DTL_IDX
+				AND TDI.DIV_INF_MNT = #{ORD_TMP_LNG_DIV}
+				AND TDI.DIV_INF_GBN = #{CARD_DIV_TYPE_FREE_INTEREST}
+			) T1
+			WHERE NOW_DATE BETWEEN DIV_ST_DATE AND DIV_ED_DATE
+			AND CRD_DIV_USE_YN = 'Y'
+			AND DIV_INF_USE_YN = 'Y'
+			AND MINIMUM_PRC <= #{cart_total}
+		) T2
+		WHERE CRD_DIV_RANK = 1 AND DTL_PRC_RANK = 1
+		ORDER BY DIV_INF_MNT ASC
+		]]>
+	</select>
+    
+    <!-- 추가혜택 목록 -->
+    <select id="selectBenefitList" parameterType="HashMap" resultType="HashMap">
+        /* Product.selectBenefitList */
+        SELECT
+        	TBM.BNF_MST_IDX, 
+        	TBM.BNF_MST_NM,
+        	TBM.BNF_MST_IDX
+        FROM 
+        	T_BNF_MST TBM
+        WHERE 
+        	BNF_MST_USE_YN = 'Y' 
+        	AND BNF_MST_DEL_YN !='Y'
+            <![CDATA[
+        	AND TBM.BNF_MST_ST_DT <= TO_CHAR(SYSDATE, 'YYYYMMDD')
+            AND TBM.BNF_MST_ED_DT >= TO_CHAR(SYSDATE, 'YYYYMMDD')
+            ]]> 
+    </select>
+    
+    <!-- 추가혜택 상세 목록 -->
+    <select id="selectBenefitDetailList" parameterType="HashMap" resultType="HashMap">
+        /* Product.selectBenefitDetailList */
+        SELECT
+            TBD.BNF_DTL_IDX,
+            TBD.BNF_DTL_NM,
+            TBD.BNF_DTL_DESC
+        FROM 
+            T_BNF_DTL TBD
+        WHERE
+            TBD.BNF_MST_IDX = #{BNF_MST_IDX}
+            AND BNF_DTL_DPL_USE_YN = 'Y'
+    </select>
+    
+    <!-- 상품 배송비  -->
+    <select id="selectDeliveryFee" parameterType="HashMap" resultType="HashMap">
+        /* Product.selectDeliveryFee */
+        SELECT 
+            TVM.VDR_MST_DLV_PRICE
+        FROM
+            T_VDR_MST TVM, T_PRD_MST TPM
+        WHERE 
+            TVM.VDR_MST_IDX = TPM.PRD_MST_VDR_IDX
+            AND TPM.PRD_MST_CD = #{PRD_MST_CD}
+    </select>
+    
+    <!-- 마이핏 기본 정보 -->
+    <select id="selectMyFitInfo" parameterType="HashMap" resultType="HashMap">
+        /* Product.selectMyFitInfo */
+       SELECT tfm.FIT_MST_IDX, 
+       		tcc.CMN_COM_IDX AS FIT_CTG_IDX, tcc.CMN_COM_NM AS FIT_CTG_NM, 
+       		tcc2.CMN_COM_IDX AS FIT_INFO_IDX, tcc2.CMN_COM_NM AS FIT_INFO_NM,
+       		(
+       		SELECT NVL(MAX(mem.MEM_FIT_VAL), 0)
+       		FROM T_MEM_FIT mem 
+       		WHERE mem.FIT_MST_IDX = tfm.FIT_MST_IDX 
+       		AND mem.CMN_COM_IDX = tfi.CMN_COM_IDX
+       		AND mem.MEM_MST_MEM_ID = #{MEM_MST_MEM_ID}
+       		) AS MEM_FIT_VAL
+       FROM T_FIT_MST tfm, T_CMM_COM tcc, T_FIT_INFO tfi, T_CMM_COM tcc2 
+       WHERE tfm.FIT_MST_USE_YN = 'Y'
+       AND tfm.FIT_MST_CTG = #{PRD_CTG_IDX}
+       AND tfm.CMN_COM_IDX  = tcc.CMN_COM_IDX
+       AND tfm.FIT_MST_IDX = tfi.FIT_MST_IDX
+       AND tfi.CMN_COM_IDX = tcc2.CMN_COM_IDX
+       ORDER BY tcc.CMN_COM_IDX, tfi.CMN_COM_IDX
+    </select>
+    
+    <select id="selectMyFitSampleImage" parameterType="HashMap" resultType="String">
+        /* Product.selectMyFitSampleImage */
+        SELECT tcf.CMM_FLE_ATT_PATH || tcf.CMM_FLE_SYS_NM AS FIT_IMAGE
+          FROM T_FIT_MST tfm, T_CMM_FLE tcf
+          WHERE  tfm.FIT_MST_USE_YN = 'Y'
+          AND tfm.FIT_MST_CTG = #{PRD_CTG_IDX}
+          AND tcf.CMM_FLE_TB_PK = tfm.FIT_MST_IDX
+          AND tcf.CMM_FLE_TB_NM = 'T_FIT_MST'
+          AND tcf.CMM_FLE_SORT = 2
+          AND ROWNUM = 1
+    </select>
+    
+    
+    <!-- 상품 필수 옵션(색상,사이즈) 조회 -->
+    <select id="selectProductMustOptionList" parameterType="hashMap" resultType="hashMap">
+       /* Product.selectProductMustOptionList */  
+       SELECT COLOR.CMN_COM_IDX
+		   , COLOR.UP_COM_OPT_IDX
+		   , COLOR.CMM_OPT_USE_YN
+		   , COLOR.PRD_CMM_TYPE 
+		   , COLOR.PRD_MST_CD
+		   , TO_CHAR(CMM_COLOR.CMN_COM_IDX) AS COLOR_IDX
+		   , TO_CHAR(CMM_COLOR.CMN_COM_ETC2) AS COLOR_VALUE
+		   , TO_CHAR(CMM_COLOR.CMN_COM_NM) AS COLOR_CODE
+		   , '' AS SIZE_NM
+		   , '' AS SIZE_IDX
+		   , COLOR.OPT_STK_CNT 
+		   , COLOR.CMM_OPT_HW
+		  FROM T_PRD_CMM_OPT COLOR INNER JOIN T_CMM_COM CMM_COLOR ON COLOR.CMN_COM_IDX = CMM_COLOR.CMN_COM_IDX 
+		  WHERE COLOR.PRD_CMM_TYPE ='C'
+		  AND COLOR.PRD_MST_CD = #{PRD_MST_CD}
+		UNION ALL
+		SELECT TA.*
+		FROM (
+			SELECT SZE.CMN_COM_IDX
+			   , SZE.UP_COM_OPT_IDX
+			   , SZE.CMM_OPT_USE_YN
+			   , SZE.PRD_CMM_TYPE
+			   , SZE.PRD_MST_CD
+			   , '' AS COLOR_IDX 
+			   , '' AS COLOR_VALUE
+			   , '' AS COLOR_CODE
+			   , TO_CHAR(CMM_SIZE.CMN_COM_NM) AS SIZE_IDX 
+			   , TO_CHAR(CMM_SIZE.CMN_COM_IDX) AS SIZE_NM
+			   , SZE.OPT_STK_CNT 
+			   , SZE.CMM_OPT_HW 
+			  FROM T_PRD_CMM_OPT SZE INNER JOIN T_CMM_COM CMM_SIZE ON SZE.CMM_OPT_NM = CMM_SIZE.CMN_COM_IDX 
+			  WHERE SZE.PRD_CMM_TYPE ='S' 
+			  AND SZE.PRD_MST_CD = #{PRD_MST_CD}
+			  ORDER BY SZE.UP_COM_OPT_IDX, CMM_SIZE.CMN_COM_IDX
+		  ) TA
+    </select>
+    
+    <!-- 상품 추가 옵션 조회 -->
+    <select id="selectProductAddOptionList" parameterType="hashMap" resultType="hashMap">
+       /* Product.selectProductAddOptionList */
+       SELECT
+            PRD_OPT_IDX
+            , PRD_OPT_NM
+            , PRD_OPT_USE_YN
+        FROM 
+            T_PRD_OPT
+        WHERE 
+            PRD_MST_CD = #{PRD_MST_CD}
+            AND PRD_OPT_USE_YN = 'Y'
+    </select>
+    
+    <!-- 묶음/세트 상품에 속한 하위 상품 코드 조회 -->
+    <select id="selectProductGroupList" parameterType="hashMap" resultType="hashMap">
+       /* Product.selectProductGroupList */
+        SELECT
+        	TPG.SUB_PRD_MST_CD
+        FROM 
+        	T_PRD_MST TPM , T_PRD_GRP TPG
+        WHERE 
+        	TPG.PRD_MST_CD = #{PRD_MST_CD}
+        	AND TPM.PRD_MST_CD = TPG.SUB_PRD_MST_CD
+            <if test="PRD_CTG_ENV != null and PRD_CTG_ENV.equals('P'.toString())">
+                AND TPM.PRD_MST_CNL_PC_YN = 'Y'
+            </if>
+            <if test="PRD_CTG_ENV != null and PRD_CTG_ENV.equals('M'.toString())">
+                AND TPM.PRD_MST_CNL_MB_YN = 'Y'
+            </if>
+    </select>
+
+    <!-- 묶음/세트 상품에 속한 하위 상품 상세 정보 조회 -->
+    <select id="selectProductGroupInfo" parameterType="hashMap" resultType="hashMap">
+       /* Product.selectProductGroupInfo */
+        SELECT
+            TPM.PRD_MST_CD
+            , TPM.PRD_MST_NM
+            , TPM.PRD_MST_SEL_CNT
+            , (SELECT FN_PRODUCT_DETAIL_PRICE(#{PRD_MST_CD},#{PRD_CTG_ENV},#{MEM_CRT_SES_ID},'N',#{PRD_CHL_TYPE}) FROM DUAL) AS PRD_NOW_DST_PRICE
+        FROM 
+            T_PRD_MST TPM
+        WHERE 1=1
+            AND TPM.PRD_MST_CD = #{PRD_MST_CD}
+            <if test="PRD_CTG_ENV != null and PRD_CTG_ENV.equals('P'.toString())">
+                AND PM.PRD_MST_CNL_PC_YN = 'Y'
+            </if>
+            <if test="PRD_CTG_ENV != null and PRD_CTG_ENV.equals('M'.toString())">
+                AND PM.PRD_MST_CNL_MB_YN = 'Y'
+            </if>
+
+    </select>
+	
+	<!-- 상품 후기 카운팅 -->
+	<select id="selectProductRevListCount" parameterType="hashMap" resultType="Integer">
+		/* Product.selectProductRevListCount */
+		SELECT
+			COUNT(*)
+		FROM
+			T_PRD_REV REV
+		WHERE REV.PRD_PRD_MST_CD = #{PRD_PRD_MST_CD}					
+		<if test='IS_MY_REVIEW == "Y"'>
+			AND REV.PRD_REV_REG_ID = #{MEM_MST_MEM_ID}
+		</if>
+		<if test="PRD_REV_IDX  != null and PRD_REV_IDX != ''">
+			AND REV.PRD_REV_IDX = #{PRD_REV_IDX}
+		</if>
+	</select>
+	
+	<!-- 상품 후기 -->
+	<select  id="selectProductRevList" parameterType="hashMap" resultType="hashMap">
+		/* Product.selectProductRevList */
+		SELECT
+			S2.*
+		FROM
+			(
+			SELECT
+				ROWNUM AS RNUM,
+				S1.*
+			FROM
+				(
+				SELECT
+					REV.PRD_REV_IDX,
+					REV.PRD_PRD_MST_CD,
+					MST.PRD_MST_NM,
+					MST.PRD_MST_REF_IMG_URL,
+					REV.PRD_REV_TITLE,
+					REV.PRD_REV_CONTENTS,
+					REV.PRD_REV_USE_YN,
+					TO_CHAR(TO_DATE(SUBSTR(REV.PRD_REV_REG_DT,1,8),'yyyymmdd'),'yyyy.mm.dd') AS PRD_REV_REG_DT,
+					REV.PRD_REV_REG_IP,
+					REV.PRD_REV_REG_ID,
+					REV.PRD_REV_UPD_DT,
+					REV.PRD_REV_UPD_IP,
+					REV.PRD_REV_UPD_ID,
+					REV.PRD_REV_SCORE_STAR,
+					REV.PRD_REV_FNC_STAR,
+					REV.PRD_REV_PRC_STAR,
+					REV.PRD_REV_CHN_GBN,
+					REV.PRD_REV_CLR,
+					REV.PRD_REV_SIZE,
+					TMV.MEM_MST_MEM_NM,
+					(
+					SELECT
+						COUNT(*)
+					FROM
+						T_CMM_FLE TCF
+					WHERE
+						TCF.CMM_FLE_TB_NM = 'T_PRD_REV'
+						AND TCF.CMM_FLE_TB_PK = REV.PRD_REV_IDX
+						AND TCF.CMM_FLE_TB_TYPE = REV.PRD_REV_CHN_GBN
+						AND TCF.CMM_FLE_USE_YN = 'Y') AS CMM_FLE_CNT,
+					PRD_REV_STAR,
+					NVL(REV.PRD_REV_BST_YN, 'N') AS PRD_REV_BST_YN,
+					DECODE(TMV.MEM_MST_MEM_ID, #{MEM_MST_MEM_ID}, 'Y', 'N') AS MY_REVIEW_YN
+				FROM
+					T_PRD_REV REV,
+					T_PRD_MST MST,
+					T_MEM_VIEW TMV
+				WHERE
+					REV.PRD_PRD_MST_CD = MST.PRD_MST_CD
+					AND REV.PRD_REV_REG_ID = TMV.MEM_MST_MEM_ID
+					<if test="PRD_PRD_MST_CD != null and PRD_PRD_MST_CD != ''">
+						AND REV.PRD_PRD_MST_CD = #{PRD_PRD_MST_CD}
+					</if>
+					<if test='IS_MY_REVIEW == "Y"'>
+						AND TMV.MEM_MST_MEM_ID = #{MEM_MST_MEM_ID}
+					</if>
+					<if test="PRD_REV_IDX  != null and PRD_REV_IDX != ''">
+						AND REV.PRD_REV_IDX = #{PRD_REV_IDX}
+					</if>
+				ORDER BY
+					REV.PRD_REV_REG_DT DESC ) S1 ) S2
+			<if test="startNum != null and startNum != '' and endNum != null and endNum != ''">
+				WHERE ROWNUM BETWEEN #{startNum} AND #{endNum}
+			</if>
+	</select>
+
+	<delete id="deleteProductRevInfo" parameterType="hashMap" >
+		DELETE FROM T_PRD_REV
+		WHERE PRD_REV_REG_ID = #{PRD_REV_REG_ID}
+		AND PRD_REV_IDX = #{PRD_REV_IDX}
+	</delete>
+         
+    <!-- PRODUCT MASTER 수정 -->
+    <update id="updateMaster" parameterType="HashMap">
+        /* Product.updateMaster */
+        UPDATE
+            T_PRD_MST
+        SET
+            PRD_MST_VDR_IDX  = (SELECT VDR_MST_IDX  FROM T_BND_MST WHERE BND_MST_BRAND_NM = #{BRAND_ENAME}),
+            PRD_MST_VDR_YN   = NVL((SELECT VDR_MST_USE_YN FROM T_VDR_MST WHERE VDR_MST_NM = #{BRAND_ENAME}), 'Y'),
+            PRD_MST_BRD_IDX  = (SELECT BND_MST_IDX FROM T_BND_MST WHERE BND_MST_BRAND_NM = #{BRAND_ENAME}),
+            PRD_MST_NM       = #{PROD_NAME},
+            PRD_MST_PRC      = #{TAG_PRICE},
+            PRD_MST_SCH_PRC  = #{TAG_PRICE},
+            PRD_MST_NFI_INF1 = #{COLORATION_GB},
+            PRD_MST_NFI_INF2 = #{SIZE_CODE},
+            PRD_MST_NFI_INF3 = #{COLOR_CODE},
+            PRD_MST_NFI_INF5 = #{PROD_NATION},
+            PRD_MST_NFI_INF7 = #{DELI_DATE},
+            PRD_MST_SEASON = #{PRD_MST_SEASON}
+        WHERE
+            PRD_MST_ERP_CD = #{STYLE_NO}
+    </update>
+    
+    <!-- PRODUCT IDX 가져오기 -->
+    <select id="selectProductCd" parameterType="HashMap" resultType="String">
+    SELECT PRD_MST_CD FROM T_PRD_MST
+        WHERE
+            PRD_MST_ERP_CD = #{STYLE_NO}
+    </select>
+    
+    <!-- PRODUCT OPT 삭제 -->
+    <select id="deleteOpt" parameterType="HashMap">
+        DELETE 
+            T_PRD_CMM_OPT
+        WHERE PRD_MST_CD = (SELECT PRD_MST_CD FROM T_PRD_MST WHERE PRD_MST_ERP_CD = #{STYLE_NO})
+    </select>
+    
+    <!-- 칼라 공통코드 구해오기 -->
+    <select id="selectColorCode" parameterType="HashMap" resultType="String">
+        SELECT 
+            CMN_COM_IDX 
+        FROM T_CMM_COM
+        WHERE CMN_COM_UP_IDX = '950'
+          AND CMN_COM_NM = #{COLOR_CODE}
+    </select>
+    
+    <!-- 칼라 공통코드 입력 -->
+    <insert id="insertColorCode" parameterType="HashMap">
+        INSERT INTO
+            T_CMM_COM
+        (
+            CMN_COM_IDX,
+            CMN_COM_NM,
+            CMN_COM_LEVEL,
+            CMN_COM_UP_IDX,
+            CMN_COM_TOP_IDX,
+            CMN_COM_ETC1,
+            CMN_COM_SORT,
+            CMN_COM_USE_YN,
+            CMN_COM_REG_DT,
+            CMN_COM_REG_ID
+        )
+        VALUES
+        (
+            SEQ_CMM_COM_IDX.NEXTVAL,
+            #{COLOR_CODE},
+            2,
+            950,
+            10,
+            #{COLOR_NAME},
+            (SELECT MAX(CMN_COM_SORT)+1 FROM T_CMM_COM WHERE CMN_COM_UP_IDX = 950), 
+            'Y'
+            TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+            'admin'
+        )
+        <selectKey resultType="int" keyProperty="CMN_COM_IDX" order="AFTER">
+            SELECT 
+                CMN_COM_IDX
+            FROM 
+                T_CMM_COM
+            WHERE 
+                CMN_COM_NM = #{COLOR_CODE}
+        </selectKey>
+    </insert>
+    
+    <insert id="insertColorOpt" parameterType="HashMap">
+        INSERT INTO
+            T_PRD_CMM_OPT
+        (
+            CMN_COM_IDX,        -- IDX
+            PRD_MST_CD,         -- 상품코드
+            OPT_STK_CNT,        -- 재고
+            PRD_CMM_TYPE,       -- 색상/치수 구분(C:COLOR, S:SIZE)
+            UP_COM_OPT_IDX,     -- 상위 색상 IDX
+            CMM_OPT_USE_YN      -- 옵션사용여부
+        )
+        VALUES
+        (
+            #{C_CODE},
+            #{PRD_MST_CD},
+            0,
+            'C',
+            -1,
+            'Y'
+        )
+    </insert>
+    
+    <select id="selectSizeOpt" parameterType="HashMap" resultType="String">
+        SELECT 
+            CMN_COM_IDX 
+        FROM T_CMM_COM
+        WHERE CMN_COM_UP_IDX = '2996'
+          AND CMN_COM_NM = #{SIZE_CODE}
+    </select>
+    
+    <select id="selectErpCodeCount" parameterType="HashMap" resultType="int">
+        SELECT 
+            COUNT(0)
+        FROM T_PRD_MST
+        WHERE PRD_MST_ERP_CD = #{PRD_MST_ERP_CD}
+    </select>
+    
+    <!-- 사이즈 공통코드 입력 -->
+    <insert id="insertSizeCode" parameterType="HashMap">
+        INSERT INTO
+            T_CMM_COM
+        (
+            CMN_COM_IDX,
+            CMN_COM_NM,
+            CMN_COM_LEVEL,
+            CMN_COM_UP_IDX,
+            CMN_COM_TOP_IDX,
+            CMN_COM_ETC1,
+            CMN_COM_SORT,
+            CMN_COM_USE_YN,
+            CMN_COM_REG_DT,
+            CMN_COM_REG_ID
+        )
+        VALUES
+        (
+            SEQ_CMM_COM_IDX.NEXTVAL,
+            #{SIZE_CODE},
+            2,
+            2996,
+            10,
+            (SELECT MAX(CMN_COM_ETC1)+1 FROM T_CMM_COM WHERE CMN_COM_UP_IDX = 2996), 
+            (SELECT MAX(CMN_COM_SORT)+1 FROM T_CMM_COM WHERE CMN_COM_UP_IDX = 2996), 
+            'Y',
+            TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+            'admin'
+        )
+        <selectKey resultType="int" keyProperty="CMN_COM_IDX" order="AFTER">
+            SELECT 
+                CMN_COM_IDX
+            FROM 
+                T_CMM_COM
+            WHERE 
+                CMN_COM_NM = #{SIZE_CODE}
+        </selectKey>
+    </insert>
+    
+    <insert id="insertSizeOpt" parameterType="HashMap">
+        INSERT INTO
+            T_PRD_CMM_OPT
+        (
+            CMN_COM_IDX,        -- IDX
+            PRD_MST_CD,         -- 상품코드
+            OPT_STK_CNT,        -- 재고
+            PRD_CMM_TYPE,       -- 색상/치수 구분(C:COLOR, S:SIZE)
+            UP_COM_OPT_IDX,     -- 상위 색상 IDX
+            CMM_OPT_USE_YN      -- 옵션사용여부
+        )
+        VALUES
+        (
+            #{S_CODE},
+            #{PRD_MST_CD},
+            #{STOCK_QTY},
+            'S',
+            #{C_CODE},
+            'Y'
+        )
+    </insert>
+</mapper>

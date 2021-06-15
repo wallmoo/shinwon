@@ -1,0 +1,234 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="CommentBoard">
+       
+    <!-- 관리자 > 게시판 관리 > 상품리뷰 관리 조건절 -->
+    <sql id="commentBoardWhere">
+        <if test="searchStartDate != null and searchStartDate != '' and searchEndDate != null and searchEndDate != '' ">
+            AND REV.PRD_REV_REG_DT BETWEEN REPLACE(#{searchStartDate},'-', '')||'000000' AND REPLACE(#{searchEndDate},'-', '')||'235959'
+        </if>
+        <if test="searchPrdMstNm != null and searchPrdMstNm != ''">
+            AND MST.PRD_MST_NM LIKE '%' || #{searchPrdMstNm} || '%'
+        </if>
+		<if test="arrSearchPrdMstCd != null and arrSearchPrdMstCd != ''">
+            AND REV.PRD_PRD_MST_CD IN
+            <foreach collection="arrSearchPrdMstCd" item="prdMstCd" separator="," open="(" close=")">
+		        #{prdMstCd}
+		    </foreach>
+        </if>
+        <if test="searchPrdRevRegId != null and searchPrdRevRegId != ''">
+            AND REV.PRD_REV_REG_ID LIKE '%' || #{searchPrdRevRegId}|| '%'
+        </if>
+        <if test="searchPrdRevRegNm != null and searchPrdRevRegNm != ''">
+            AND TMV.MEM_MST_MEM_NM LIKE '%' || #{searchPrdRevRegNm}|| '%'
+        </if>
+        <if test="searchPrdRevContents != null and searchPrdRevContents != ''">
+            AND REV.PRD_REV_CONTENTS LIKE '%' || #{searchPrdRevContents} || '%'
+        </if>
+        <if test="searchPrdRevUseYn != null and searchPrdRevUseYn != ''">
+            AND REV.PRD_REV_USE_YN = #{searchPrdRevUseYn}
+        </if>
+        <if test="searchVdrMstIdx != null and searchVdrMstIdx != ''">
+            AND MST.PRD_MST_VDR_IDX = #{searchVdrMstIdx}
+        </if>
+        <if test="MEM_MST_MEM_ID != null and MEM_MST_MEM_ID != ''">
+            AND TMV.MEM_MST_MEM_ID = #{MEM_MST_MEM_ID} 
+        </if>
+        <if test="searchPrdRevTitle != null and searchPrdRevTitle != ''">
+            AND REV.PRD_REV_TITLE LIKE '%'|| #{searchPrdRevTitle}||'%' 
+        </if>
+        <if test="searchPrdRevBstYn != null and searchPrdRevBstYn != ''">
+            AND REV.PRD_REV_BST_YN = #{searchPrdRevBstYn}
+        </if>
+        
+        <if test="searchPrdMstCd != null and searchPrdMstCd != ''">
+            AND REV.PRD_PRD_MST_CD LIKE '%'|| #{searchPrdMstCd}||'%' 
+        </if> 
+        
+    </sql>
+    
+    <!-- 관리자 > 게시판 관리 > 상품리뷰 관리 목록 갯수 -->
+    <select id="selectCommentBoardListCount" parameterType="HashMap" resultType="Integer">
+        /* CommentBoard.selectCommentBoardListCount */
+        SELECT
+            COUNT(REV.PRD_REV_IDX)
+        FROM
+            T_PRD_REV REV,
+            T_PRD_MST MST,
+            T_MEM_VIEW TMV
+        WHERE
+            REV.PRD_PRD_MST_CD = MST.PRD_MST_CD 
+        AND
+           	REV.PRD_REV_REG_ID = TMV.MEM_MST_MEM_ID
+            <include refid="commentBoardWhere"/>
+    </select>
+    
+    <!-- 관리자 > 게시판 관리 > 상품리뷰 관리 목록 -->
+    <resultMap id="resultCommentBoardListMap" type="HashMap">
+        <result property="PRD_REV_IDX" column="PRD_REV_IDX"/>
+        <result property="PRD_PRD_MST_CD" column="PRD_PRD_MST_CD"/>
+        <result property="PRD_MST_NM" column="PRD_MST_NM"/>
+        <result property="PRD_MST_REF_IMG_URL" column="PRD_MST_REF_IMG_URL"/>
+        <result property="PRD_REV_TITLE" column="PRD_REV_TITLE"/>
+        <result property="PRD_REV_CONTENTS" column="PRD_REV_CONTENTS" jdbcType="CLOB" javaType="java.lang.String"/>
+        <result property="PRD_REV_USE_YN" column="PRD_REV_USE_YN"/>
+        <result property="PRD_REV_REG_DT" column="PRD_REV_REG_DT"/>
+        <result property="PRD_REV_REG_IP" column="PRD_REV_REG_IP"/>
+        <result property="PRD_REV_REG_ID" column="PRD_REV_REG_ID"/>
+        <result property="PRD_REV_UPD_DT" column="PRD_REV_UPD_DT"/>
+        <result property="PRD_REV_UPD_IP" column="PRD_REV_UPD_IP"/>
+        <result property="PRD_REV_UPD_ID" column="PRD_REV_UPD_ID"/>
+        <result property="PRD_REV_FNC_STAR" column="PRD_REV_FNC_STAR"/>
+        <result property="PRD_REV_PRC_STAR" column="PRD_REV_PRC_STAR"/>
+        <result property="PRD_REV_SCORE_STAR" column="PRD_REV_SCORE_STAR"/>
+        <result property="PRD_REV_CHN_GBN" column="PRD_REV_CHN_GBN"/>
+        <result property="MEM_MST_MEM_NM" column="MEM_MST_MEM_NM"/>
+        <result property="CMM_FLE_CNT" column="CMM_FLE_CNT"/>
+        <result property="PRD_REV_AVG_STAR" column="PRD_REV_AVG_STAR"/>
+        <result property="PRD_REV_BST_YN" column="PRD_REV_BST_YN"/>
+        <result property="PRD_REV_REG_DT_CHAR" column="PRD_REV_REG_DT_CHAR"/>
+    </resultMap>
+    <select id="selectCommentBoardList" parameterType="HashMap" resultMap="resultCommentBoardListMap">
+        /* CommentBoard.selectCommentBoardList */
+        SELECT
+            S2.*            
+        FROM
+            (   SELECT
+                    ROWNUM AS RNUM,
+                    S1.*
+                FROM
+                    (   SELECT
+                            REV.PRD_REV_IDX,
+                            REV.PRD_PRD_MST_CD,
+                            MST.PRD_MST_NM,
+                            FN_PRODUCT_IMG(REV.PRD_PRD_MST_CD, #{THUMBNAIL_SIZE}) AS PRD_IMAGE,
+                            REV.PRD_REV_TITLE,
+                            REV.PRD_REV_CONTENTS,
+                            REV.PRD_REV_USE_YN,
+                            REV.PRD_REV_REG_DT,
+                            REV.PRD_REV_REG_IP,
+                            REV.PRD_REV_REG_ID,
+                            REV.PRD_REV_UPD_DT,
+                            REV.PRD_REV_UPD_IP,
+                            REV.PRD_REV_UPD_ID,   
+                            REV.PRD_REV_SCORE_STAR,
+                            REV.PRD_REV_FNC_STAR,
+                            REV.PRD_REV_PRC_STAR,
+                            REV.PRD_REV_CHN_GBN,
+                            REV.PRD_REV_CLR,
+                            REV.PRD_REV_SIZE,
+                            TMV.MEM_MST_MEM_NM,
+                            PRD_REV_STAR,
+                            NVL(REV.PRD_REV_BST_YN,'Y') AS PRD_REV_BST_YN ,
+                            TO_CHAR( TO_DATE( PRD_REV_REG_DT  ,'YYYYMMDDHH24MISS' ) , 'YYYY-MM-DD HH24:MI:SS' ) AS PRD_REV_REG_DT_CHAR
+                        FROM
+                            T_PRD_REV REV,
+                            T_PRD_MST MST,
+                            T_MEM_VIEW TMV
+                        WHERE
+                            REV.PRD_PRD_MST_CD = MST.PRD_MST_CD 
+                        AND
+                        	REV.PRD_REV_REG_ID = TMV.MEM_MST_MEM_ID
+                            <include refid="commentBoardWhere"/>
+                        ORDER BY REV.PRD_REV_REG_DT DESC 
+                    )
+                    S1 
+            )
+            S2
+		<if test="excelDown == null or !excelDown.equals('Y'.toString())">
+        WHERE
+            S2.RNUM BETWEEN #{startNum} AND #{endNum}
+        </if>
+    </select>
+    
+    <!-- 관리자 > 게시판 관리 > 상품리뷰 관리 상세정보 -->
+    <resultMap id="resultCommentBoardInfo" type="HashMap">
+        <result property="PRD_REV_IDX" column="PRD_REV_IDX"/>
+        <result property="PRD_PRD_MST_CD" column="PRD_PRD_MST_CD"/>
+        <result property="PRD_MST_NM" column="PRD_MST_NM"/>
+        <result property="PRD_REV_TITLE" column="PRD_REV_TITLE"/>
+        <result property="PRD_REV_CONTENTS" column="PRD_REV_CONTENTS" jdbcType="CLOB" javaType="java.lang.String"/>
+        <result property="PRD_REV_USE_YN" column="PRD_REV_USE_YN"/>
+        <result property="PRD_REV_REG_DT" column="PRD_REV_REG_DT"/>
+        <result property="PRD_REV_REG_IP" column="PRD_REV_REG_IP"/>
+        <result property="PRD_REV_REG_ID" column="PRD_REV_REG_ID"/>
+        <result property="MEM_MST_MEM_NM" column="MEM_MST_MEM_NM"/>
+        <result property="PRD_REV_UPD_DT" column="PRD_REV_UPD_DT"/>
+        <result property="PRD_REV_UPD_IP" column="PRD_REV_UPD_IP"/>
+        <result property="PRD_REV_UPD_ID" column="PRD_REV_UPD_ID"/>
+        <result property="PRD_REV_ADM_REG_ID" column="PRD_REV_ADM_REG_ID"/>
+        <result property="PRD_REV_ADM_REG_DT" column="PRD_REV_ADM_REG_DT"/>
+        <result property="PRD_REV_ADM_REG_NM" column="PRD_REV_ADM_REG_NM"/>
+        <result property="PRD_REV_FNC_STAR" column="PRD_REV_FNC_STAR"/>
+        <result property="PRD_REV_PRC_STAR" column="PRD_REV_PRC_STAR"/>
+        <result property="PRD_REV_SCORE_STAR" column="PRD_REV_SCORE_STAR"/>
+        <result property="PRD_REV_CHN_GBN" column="PRD_REV_CHN_GBN"/>
+        <result property="CMM_FLE_CNT" column="CMM_FLE_CNT"/>
+        <result property="PRD_REV_AVG_STAR" column="PRD_REV_AVG_STAR"/>
+        <result property="PRD_REV_BST_YN" column="PRD_REV_BST_YN"/>
+    </resultMap>
+    <select id="selectCommentBoardInfo" parameterType="HashMap" resultMap="resultCommentBoardInfo">
+        /* CommentBoard.selectCommentBoardInfo */
+        SELECT
+            REV.PRD_REV_IDX,
+            REV.PRD_REV_STAR,
+            REV.PRD_PRD_MST_CD,
+            MST.PRD_MST_NM,
+            REV.PRD_REV_TITLE,
+            REV.PRD_REV_CONTENTS,
+            REV.PRD_REV_USE_YN,
+            REV.PRD_REV_REG_DT,
+            REV.PRD_REV_REG_IP,
+            REV.PRD_REV_REG_ID,
+            TMV.MEM_MST_MEM_NM,
+            REV.PRD_REV_UPD_DT,
+            REV.PRD_REV_UPD_IP,
+            REV.PRD_REV_UPD_ID,
+            REV.PRD_REV_ADM_REG_ID,
+            REV.PRD_REV_ADM_REG_DT,
+            (   SELECT
+                     ADM_MST_NM
+                 FROM
+                     T_ADM_MST
+                 WHERE
+                     ADM_MST_ID = PRD_REV_ADM_REG_ID
+             )AS PRD_REV_ADM_REG_NM,
+             REV.PRD_REV_FNC_STAR, 
+             REV.PRD_REV_PRC_STAR,
+             REV.PRD_REV_SCORE_STAR,
+             REV.PRD_REV_CHN_GBN,
+             REV.PRD_REV_CLR,
+             REV.PRD_REV_SIZE,
+             (SELECT COUNT(0) FROM T_CMM_FLE TCF WHERE TCF.CMM_FLE_TB_PK = REV.PRD_REV_IDX AND TCF.CMM_FLE_TB_TYPE=REV.PRD_REV_CHN_GBN AND TCF.CMM_FLE_USE_YN = 'Y') AS CMM_FLE_CNT,
+             ROUND((REV.PRD_REV_FNC_STAR + REV.PRD_REV_PRC_STAR + REV.PRD_REV_SCORE_STAR)/3,2) AS PRD_REV_AVG_STAR,
+             NVL(REV.PRD_REV_BST_YN,'Y') AS PRD_REV_BST_YN
+        FROM
+            T_PRD_REV REV,
+            T_PRD_MST MST,
+            T_MEM_VIEW TMV
+        WHERE
+            REV.PRD_PRD_MST_CD = MST.PRD_MST_CD
+        AND
+        	REV.PRD_REV_REG_ID = TMV.MEM_MST_MEM_ID
+        AND 
+        	REV.PRD_REV_IDX = #{PRD_REV_IDX}
+    </select>
+    
+    <!-- 관리자 > 게시판 관리 > 상품리뷰 관리 수정 -->
+    <update id="updateCommentBoard" parameterType="HashMap">
+        /* CommentBoard.updateCommentBoard */
+        UPDATE
+            T_PRD_REV 
+        SET
+            <if test="PRD_REV_USE_YN != null and PRD_REV_USE_YN != ''">
+                PRD_REV_USE_YN = #{PRD_REV_USE_YN},
+            </if>
+            <if test="PRD_REV_BST_YN != null and PRD_REV_BST_YN != ''">
+                PRD_REV_BST_YN = #{PRD_REV_BST_YN},
+            </if>
+            PRD_REV_ADM_REG_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+            PRD_REV_ADM_REG_ID = #{PRD_REV_ADM_REG_ID}
+        WHERE
+            PRD_REV_IDX = #{PRD_REV_IDX}
+    </update>
+</mapper>

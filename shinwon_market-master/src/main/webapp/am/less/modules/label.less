@@ -1,0 +1,80 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// Labels
+// -------------------------
+.label-variant(@color, @backgroud-color: #fff, @border-color: #e2e2e2) {
+    border: solid 1px #000;
+    border-color: @border-color;
+    color: @color;
+    background-color: @backgroud-color;
+    &[href] {
+        &:hover, &:focus {
+            background-color: darken(@backgroud-color, 10%);
+        }
+    }
+}
+ 
+/* label ==================================================================== */
+span.label {
+    display: inline !important;
+    text-align: center;
+    white-space: nowrap;
+    vertical-align: baseline;
+    cursor: default;
+    line-height: 1;
+    padding: 2px 5px 2px;
+    font-size: 12px;
+    color: #fff;
+
+    &[href] {
+        .text-none();
+        &:hover,
+        &:focus {
+            color: #fff;
+            .text-none();
+            cursor: pointer;
+        }
+    }
+
+    &:empty { /* Empty labels collapse automatically (not available in IE8) */
+        display: none;
+    }
+
+    .btn & { /* Quick fix for labels in buttons */
+        .pos-relative();
+        top: -1px;
+    }
+
+    & { .label-variant(#fff, @label-default-bg, @label-default-bg); }
+
+    &.primary { .label-variant(#fff, @label-primary-bg, @label-primary-bg); }
+    &.success { .label-variant(#fff, @label-success-bg, @label-success-bg); }
+    &.info { .label-variant(#fff, @label-info-bg, @label-info-bg); }
+    &.warning { .label-variant(#fff, @label-warning-bg, @label-warning-bg); }
+
+}

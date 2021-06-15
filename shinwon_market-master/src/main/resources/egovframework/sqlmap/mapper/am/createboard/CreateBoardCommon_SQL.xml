@@ -1,0 +1,368 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="CreateBoardCommon">
+    
+    <!-- 관리자 > 게시판 관리 > 공통게시판 조건절 -->
+    <sql id="createBoardCommonWhere">
+        <if test="searchBrdDtlTitleAndContents != null and searchBrdDtlTitleAndContents != ''">
+            AND ((BRD_DTL_TITLE LIKE '%' || #{searchBrdDtlTitleAndContents} || '%') OR (BRD_DTL_CONTENTS LIKE '%' || #{searchBrdDtlTitleAndContents} || '%'))
+        </if>
+        
+        <if test="searchStartDate != null and searchStartDate != '' and searchEndDate != null and searchEndDate != ''">
+            AND BRD_DTL_REG_DT BETWEEN REPLACE(#{searchStartDate},'-', '')||'000000' AND REPLACE(#{searchEndDate},'-', '')||'235959'
+        </if>
+
+        <if test="searchBrdDtlUseYn != null and searchBrdDtlUseYn != ''">
+            AND BRD_DTL_USE_YN = #{searchBrdDtlUseYn}
+        </if>
+    </sql>
+    
+    <!-- 관리자 > 게시판 관리 > 생성된 게시판의 상위 속성 가져오기 -->
+    <select id="selectCreateBoardCommonMstInfo" parameterType="HashMap" resultType="HashMap">
+    /* CreateBoardCommon.selectCreateBoardCommonMstInfo */
+    SELECT 
+        BRD_MST_IDX,
+        BRD_MST_TYPE,
+        BRD_MST_NM,
+        BRD_MST_INTRO,
+        BRD_MST_TOP_YN,
+        BRD_MST_REPLY_YN,
+        BRD_MST_USE_YN,
+        BRD_MST_APP_YN,
+        BRD_MST_FLE_YN
+    FROM 
+        T_BRD_MST
+    WHERE 
+        BRD_MST_IDX = #{BRD_MST_IDX}
+    </select>
+    
+    <!-- 관리자 > 게시판 관리 > 공통 게시판 목록 갯수-->
+    <select id="selectCreateBoardCommonListCount" parameterType="HashMap" resultType="Integer">
+    /* CreateBoardCommon.selectCreateBoardCommonListCount */
+    SELECT COUNT(1)
+    FROM T_BRD_DTL
+    WHERE 
+        BRD_BRD_MST_IDX = #{BRD_MST_IDX}
+    AND 
+        BRD_DTL_TOP_YN = #{BRD_DTL_TOP_YN}   
+    <include refid="createBoardCommonWhere"/>
+    </select>
+    
+    <!-- 관리자 > 게시판 관리 > 공통 일반게시판 목록 -->
+    <select id="selectCreateBoardCommonNormalList" parameterType="HashMap" resultType="HashMap">
+    /* CreateBoardCommon.selectCreateBoardCommonNormalList */
+    SELECT 
+        S1.*,
+        (
+          SELECT
+              ADM_MST_NM
+          FROM
+              T_ADM_MST
+          WHERE
+              ADM_MST_ID = BRD_DTL_REG_ID
+        )
+        AS ADM_MST_NM
+    FROM
+    (
+        SELECT
+            S2.*,
+            ROWNUM AS RNUM
+        FROM
+        (
+            SELECT 
+                BRD_DTL_IDX,
+                BRD_BRD_MST_IDX,
+                BRD_DTL_TITLE,
+                BRD_DTL_CONTENTS,
+                BRD_DTL_TOP_YN,
+                BRD_DTL_READ_CNT,
+                BRD_DTL_USE_YN,
+                BRD_DTL_REG_DT,
+                BRD_DTL_REG_IP,
+                BRD_DTL_REG_ID,
+                BRD_DTL_UPD_DT,
+                BRD_DTL_UPD_IP,
+                BRD_DTL_UPD_ID,
+                BRD_CMN_COM_IDX         
+            FROM 
+                T_BRD_DTL                                       
+            WHERE 
+                BRD_BRD_MST_IDX = #{BRD_MST_IDX}
+            AND 
+                BRD_DTL_TOP_YN = #{BRD_DTL_TOP_YN}
+            <include refid="createBoardCommonWhere"/>
+            ORDER BY BRD_DTL_REG_DT DESC
+        ) S2
+    ) S1
+    <if test="BRD_DTL_TOP_YN == null or !BRD_DTL_TOP_YN.equals('Y'.toString())">
+    WHERE 
+        S1.RNUM BETWEEN #{startNum} AND #{endNum} 
+    </if>
+    </select>
+    
+    <!-- 관리자 > 게시판 관리 > 공통 이미지게시판 목록 -->
+    <select id="selectCreateBoardCommonImageList" parameterType="HashMap" resultType="HashMap">
+    /* CreateBoardCommon.selectCreateBoardCommonImageList */
+    SELECT 
+        S1.*,
+        (
+          SELECT
+              ADM_MST_NM
+          FROM
+              T_ADM_MST
+          WHERE
+              ADM_MST_ID = BRD_DTL_REG_ID
+        )
+        AS ADM_MST_NM
+    FROM
+    (
+        SELECT
+            S2.*,
+            ROWNUM AS RNUM
+        FROM
+        (
+            SELECT 
+                DTL.BRD_DTL_IDX,
+                DTL.BRD_BRD_MST_IDX,
+                DTL.BRD_DTL_TITLE,
+                DTL.BRD_DTL_CONTENTS,
+                DTL.BRD_DTL_TOP_YN,
+                DTL.BRD_DTL_READ_CNT,
+                DTL.BRD_DTL_USE_YN,
+                DTL.BRD_DTL_REG_DT,
+                DTL.BRD_DTL_REG_IP,
+                DTL.BRD_DTL_REG_ID,
+                DTL.BRD_DTL_UPD_DT,
+                DTL.BRD_DTL_UPD_IP,
+                DTL.BRD_DTL_UPD_ID,
+                DTL.BRD_CMN_COM_IDX,
+                FLE.CMM_FLE_ATT_PATH || CMM_FLE_SYS_NM AS THUMB_NM              
+            FROM 
+                T_BRD_DTL DTL               
+                    INNER JOIN T_CMM_FLE FLE
+                    ON DTL.BRD_DTL_IDX = FLE.CMM_FLE_TB_PK AND CMM_FLE_TB_TYPE = 'T' AND CMM_FLE_USE_YN = 'Y'               
+            WHERE 
+                BRD_BRD_MST_IDX = #{BRD_MST_IDX}
+            AND 
+                BRD_DTL_TOP_YN = #{BRD_DTL_TOP_YN}
+            <include refid="createBoardCommonWhere"/>
+            ORDER BY BRD_DTL_REG_DT DESC
+        ) S2
+    ) S1
+    <if test="BRD_DTL_TOP_YN == null or !BRD_DTL_TOP_YN.equals('Y'.toString())">
+    WHERE 
+        S1.RNUM BETWEEN #{startNum} AND #{endNum}
+    </if>
+    </select>
+    
+    <!-- 관리자 > 게시판 관리 > 공통 게시판 등록 -->
+    <insert id="insertCreateBoardCommon" parameterType="HashMap">
+        <selectKey keyProperty="BRD_DTL_IDX" resultType="Integer" order="BEFORE">
+            SELECT SEQ_BRD_DTL_IDX.NEXTVAL AS BRD_DTL_IDX FROM DUAL         
+        </selectKey>
+        /* CreateBoardCommon.insertCreateBoardCommon */
+        INSERT INTO
+            T_BRD_DTL
+            (
+                BRD_DTL_IDX,
+                BRD_BRD_MST_IDX,
+                BRD_DTL_TITLE,
+                BRD_DTL_CONTENTS,
+                BRD_DTL_TOP_YN,
+                BRD_DTL_READ_CNT,
+                BRD_DTL_USE_YN,
+                BRD_DTL_REG_DT,
+                BRD_DTL_REG_IP,
+                BRD_DTL_REG_ID,             
+                BRD_CMN_COM_IDX
+            )
+        VALUES
+            (
+                #{BRD_DTL_IDX},
+                #{BRD_MST_IDX},
+                #{BRD_DTL_TITLE},
+                #{BRD_DTL_CONTENTS},
+                NVL(#{BRD_DTL_TOP_YN},'N'),
+                0,
+                NVL(#{BRD_DTL_USE_YN},'Y'),
+                TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+                #{BRD_DTL_REG_IP},
+                #{BRD_DTL_REG_ID},
+                #{BRD_CMN_COM_IDX}
+            )
+    </insert>
+    
+    <!-- 관리자 > 게시판 관리 > 공통게시판의 상단 목록 갯수 -->
+    <select id="selectCreateBoardCommonTopCount" parameterType="HashMap" resultType="Integer">
+    /* CreateBoardCommon.selectCreateBoardCommonTopCount */ 
+    SELECT 
+        COUNT(1)
+    FROM 
+        T_BRD_DTL
+    WHERE 
+        BRD_BRD_MST_IDX = #{BRD_MST_IDX}
+    AND 
+        BRD_DTL_TOP_YN = 'Y'
+    AND 
+        BRD_DTL_USE_YN = 'Y'
+    <include refid="createBoardCommonWhere"/>
+    </select>
+    
+    <!-- 관리자 > 게시판 관리 > 공통 게시판 상세 보기 -->
+    <resultMap id="resultCreateBoardCommonInfo" type="HashMap">
+        <result property="BRD_DTL_IDX" column="BRD_DTL_IDX"/>
+        <result property="BRD_MST_IDX" column="BRD_BRD_MST_IDX"/>
+        <result property="BRD_DTL_TITLE" column="BRD_DTL_TITLE"/>
+        <result property="BRD_DTL_CONTENTS" column="BRD_DTL_CONTENTS" jdbcType="CLOB" javaType="java.lang.String"/>
+        <result property="BRD_DTL_TOP_YN" column="BRD_DTL_TOP_YN"/>
+        <result property="BRD_DTL_READ_CNT" column="BRD_DTL_READ_CNT"/>
+        <result property="BRD_DTL_USE_YN" column="BRD_DTL_USE_YN"/>
+        <result property="BRD_DTL_REG_DT" column="BRD_DTL_REG_DT"/>
+        <result property="BRD_DTL_REG_IP" column="BRD_DTL_REG_IP"/>
+        <result property="BRD_DTL_REG_ID" column="BRD_DTL_REG_ID"/>
+        <result property="BRD_DTL_UPD_DT" column="BRD_DTL_UPD_DT"/>
+        <result property="BRD_DTL_UPD_IP" column="BRD_DTL_UPD_IP"/>
+        <result property="BRD_DTL_UPD_ID" column="BRD_DTL_UPD_ID"/>
+        <result property="BRD_CMN_COM_IDX" column="BRD_CMN_COM_IDX"/>
+        <result property="ADM_MST_NM" column="ADM_MST_NM"/>
+    </resultMap>
+    <select id="selectCreateBoardCommonInfo" parameterType="HashMap" resultMap="resultCreateBoardCommonInfo">
+    /* CreateBoardCommon.selectCreateBoardCommonInfo */ 
+    SELECT 
+        BRD_DTL_IDX,
+        BRD_BRD_MST_IDX,
+        BRD_DTL_TITLE,
+        BRD_DTL_CONTENTS,
+        BRD_DTL_TOP_YN,
+        BRD_DTL_READ_CNT,
+        BRD_DTL_USE_YN,
+        BRD_DTL_REG_DT,
+        BRD_DTL_REG_IP,
+        BRD_DTL_REG_ID,
+        BRD_DTL_UPD_DT,
+        BRD_DTL_UPD_IP,
+        BRD_DTL_UPD_ID,
+        BRD_CMN_COM_IDX,
+        (
+          SELECT
+              ADM_MST_NM
+          FROM
+              T_ADM_MST
+          WHERE
+              ADM_MST_ID = BRD_DTL_REG_ID
+        )
+        AS ADM_MST_NM 
+    FROM 
+        T_BRD_DTL
+    WHERE 
+        BRD_DTL_IDX = #{BRD_DTL_IDX} 
+    </select>
+
+    <!-- 관리자 > 게시판 관리 > 공통 게시판 수정 -->
+    <update id="updateCreateBoardCommon" parameterType="HashMap">
+    /* CreateBoardCommon.updateCreateBoardCommon */     
+    UPDATE 
+        T_BRD_DTL 
+    SET     
+        BRD_DTL_TITLE = #{BRD_DTL_TITLE},
+        BRD_DTL_CONTENTS = #{BRD_DTL_CONTENTS},
+        BRD_DTL_TOP_YN = NVL(#{BRD_DTL_TOP_YN},'N'), 
+        BRD_DTL_USE_YN = NVL(#{BRD_DTL_USE_YN},'N'),
+        BRD_DTL_UPD_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+        BRD_DTL_UPD_IP = #{BRD_DTL_UPD_IP},
+        BRD_DTL_UPD_ID = #{BRD_DTL_UPD_ID}              
+    WHERE 
+        BRD_DTL_IDX = #{BRD_DTL_IDX}
+    </update>
+    
+    <!-- 관리자 > 게시판관리 > 공통 게시판의 덧글 목록 갯수 -->
+    <select id="selectCreateBoardCommonReplyListCount" parameterType="HashMap" resultType="Integer">
+        /* CreateBoardCommon.selectCreateBoardCommonReplyListCount */
+        SELECT 
+            COUNT(1)
+        FROM
+            T_BRD_REPLY
+        WHERE 
+            BRD_BRD_DTL_IDX = #{BRD_DTL_IDX} 
+    </select>
+    
+    <!-- 관리자 > 게시판관리 > 공통 게시판의 덧글 목록 -->
+    <select id="selectCreateBoardCommonReplyList" parameterType="HashMap" resultType="HashMap">
+        /* CreateBoardCommon.selectCreateBoardCommonReplyList */
+        SELECT 
+            S1.*,
+            (
+              SELECT
+                  ADM_MST_NM
+              FROM
+                  T_ADM_MST
+              WHERE
+                  ADM_MST_ID = BRD_REPLY_REG_ID
+            )
+            AS ADM_MST_NM
+        FROM
+        (
+            SELECT 
+                ROWNUM  AS RNUM,
+                S2.*
+            FROM 
+            (
+                SELECT 
+                    BRD_REPLY_IDX,
+                    BRD_BRD_DTL_IDX,
+                    BRD_REPLY_CONTENTS,
+                    TO_CHAR(TO_DATE(BRD_REPLY_REG_DT,'YYYYMMDDHH24MISS'),'YYYY-MM-DD HH:mi:SS') AS BRD_REPLY_REG_DT,
+                    BRD_REPLY_REG_ID,
+                    BRD_REPLY_REG_IP,
+                    BRD_REPLY_DISPLAY_YN 
+                FROM
+                    T_BRD_REPLY
+                WHERE
+                    BRD_BRD_DTL_IDX = #{BRD_DTL_IDX}
+                ORDER BY BRD_REPLY_REG_DT ASC
+            ) S2
+        ) S1
+        WHERE 
+            S1.RNUM BETWEEN #{startNum} AND #{endNum}
+    </select>
+    
+    <!-- 관리자 > 게시판 관리 > 게시판 수정 폼 > 선택된 덧글 삭제 -->
+    <update id="deleteCreateBoardCommonReply" parameterType="HashMap">
+        /* CreateBoardCommon.deleteCreateBoardCommonReply */    
+        UPDATE 
+            T_BRD_REPLY 
+        SET
+            BRD_REPLY_DISPLAY_YN = #{BRD_REPLY_DISPLAY_YN}
+        WHERE 
+            BRD_REPLY_IDX = #{BRD_REPLY_IDX}
+    </update>
+    
+    <!-- 관리자 > 게시판 관리 > 게시판 수정 폼 > 관리자 덧글 등록 -->
+    <insert id="insertCreateBoardCommonReply" parameterType="HashMap">
+        <selectKey keyProperty="BRD_REPLY_IDX" resultType="Integer" order="BEFORE">
+            SELECT SEQ_BRD_REPLY_IDX.NEXTVAL AS BRD_REPLY_IDX FROM DUAL         
+        </selectKey>
+        /* CreateBoardCommon.insertCreateBoardCommonReply */    
+        INSERT INTO
+            T_BRD_REPLY
+            (
+                BRD_REPLY_IDX,
+                BRD_BRD_DTL_IDX,
+                BRD_REPLY_CONTENTS,
+                BRD_REPLY_REG_DT,
+                BRD_REPLY_REG_ID,
+                BRD_REPLY_REG_IP,
+                BRD_REPLY_DISPLAY_YN
+            )
+        VALUES
+            (
+                #{BRD_REPLY_IDX},
+                #{BRD_DTL_IDX},
+                #{BRD_REPLY_CONTENTS},
+                TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+                #{BRD_REPLY_REG_ID},
+                #{BRD_REPLY_REG_IP},
+                NVL(#{BRD_REPLY_DISPLAY_YN},'Y')
+            )
+    </insert>
+</mapper>

@@ -1,0 +1,263 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="SpecManagement">
+
+    <!-- 스펙 카테고리 계층형 리스트 조회 -->
+    <select id="selectSpecManagementList" parameterType="hashMap" resultType="hashMap">
+        /* SpecManagement.selectSpecManagementList */
+        SELECT 
+            SPC_MST_IDX
+            , SPC_MST_NM
+            , SPC_MST_UP_IDX
+            , SPC_MST_LEVEL
+        FROM 
+            T_SPC_MST
+        WHERE SPC_MST_DEL_YN != 'Y'
+        <if test="useYn != 'all'">
+            AND SPC_MST_USE_YN = 'Y'
+        </if>
+        <if test="SPC_MST_ENV != null and SPC_MST_ENV !=''">
+            AND SPC_MST_ENV = #{SPC_MST_ENV}
+        </if>
+        START WITH SPC_MST_UP_IDX = -1
+        CONNECT BY PRIOR SPC_MST_IDX = SPC_MST_UP_IDX
+        ORDER SIBLINGS BY SPC_MST_SORT ASC
+    </select>
+
+    <!-- 하위 스펙 카테고리 리스트 조회 -->
+    <select id="selectSubSpecManagementList" parameterType="hashMap" resultType="hashMap">
+        /* SpecManagement.selectSubSpecManagementList */
+        SELECT
+            SPC_MST_IDX
+            , SPC_MST_NM
+            , SPC_MST_USE_YN
+        FROM
+            T_SPC_MST
+        WHERE
+            SPC_MST_UP_IDX = #{SPC_MST_IDX}
+        AND
+            SPC_MST_DEL_YN != 'Y'
+            <if test="useYn != 'all'">
+                AND SPC_MST_USE_YN = 'Y'
+            </if>
+            <if test="SPC_MST_ENV != null and SPC_MST_ENV != ''">
+                AND SPC_MST_ENV = #{SPC_MST_ENV}
+            </if>
+        ORDER BY SPC_MST_SORT ASC
+    </select>
+
+    <!-- 스펙 카테고리 상위 계층형 리스트 조회 -->
+    <select id="selectUpperSpecManagementList" parameterType="hashMap" resultType="hashMap">
+        /* SpecManagement.selectUpperSpecManagementList */
+        SELECT 
+            SPC_MST_IDX
+            , SPC_MST_NM
+            , SPC_MST_UP_IDX
+            , SPC_MST_LEVEL
+        FROM 
+            T_SPC_MST
+        WHERE 1=1
+            <if test="useYn != 'all'">
+                AND SPC_MST_USE_YN = 'Y'
+            </if>
+        START WITH SPC_MST_IDX = #{SPC_MST_IDX}
+        CONNECT BY SPC_MST_IDX = PRIOR SPC_MST_UP_IDX
+        ORDER BY SPC_MST_LEVEL, SPC_MST_SORT
+    </select>
+
+    <!-- 스펙 카테고리 상세 정보 조회 -->
+    <select id="selectSpecManagementInfo" parameterType="hashMap" resultType="hashMap">
+        /* SpecManagement.selectSpecManagementInfo */
+        SELECT 
+             SPC_MST_IDX
+             , (SELECT SPC_MST_NM FROM T_SPC_MST WHERE SPC_MST_IDX = A.SPC_MST_TOP_IDX) SPC_MST_TOP_NM
+             , (SELECT SPC_MST_NM FROM T_SPC_MST WHERE SPC_MST_TOP_IDX != -1 AND SPC_MST_IDX = A.SPC_MST_UP_IDX)  SPC_MST_UP_NM  
+             , SUBSTR(SYS_CONNECT_BY_PATH(SPC_MST_NM, '>'),2) AS SPC_MST_LVL_NM                        
+             , SPC_MST_NM
+             , SPC_MST_LEVEL
+             , SPC_MST_UP_IDX
+             , SPC_MST_TOP_IDX
+             , SPC_MST_SORT
+             , SPC_MST_USE_YN
+             , SPC_MST_REG_DT
+             , SPC_MST_REG_IP
+             , SPC_MST_REG_ID
+             , SPC_MST_UPD_DT
+             , SPC_MST_UPD_IP
+             , SPC_MST_UPD_ID
+             , (SELECT COUNT(SPC_MST_IDX) FROM T_SPC_MST WHERE SPC_MST_UP_IDX = #{SPC_MST_IDX} AND SPC_MST_DEL_YN != 'Y') AS CHILD_CNT
+             , SPC_MST_ENV
+         FROM 
+             T_SPC_MST A
+         WHERE 
+             SPC_MST_IDX = #{SPC_MST_IDX}
+         AND 
+             SPC_MST_DEL_YN != 'Y'
+         START WITH SPC_MST_UP_IDX = -1
+         CONNECT BY PRIOR SPC_MST_IDX = SPC_MST_UP_IDX
+    </select>
+
+    <!-- 스펙 카테고리 입력 -->
+    <insert id="insertSpecManagement" parameterType="hashmap" >
+        <selectKey keyProperty="SEQ_SPC_MST_IDX" resultType="integer" order="BEFORE"> 
+            SELECT SEQ_SPC_MST_IDX.NEXTVAL FROM DUAL 
+        </selectKey> 
+        <![CDATA[
+        /* SpecManagement.insertSpecManagement */
+        INSERT INTO T_SPC_MST (
+            SPC_MST_IDX
+            , SPC_MST_NM
+            , SPC_MST_LEVEL
+            , SPC_MST_UP_IDX
+            , SPC_MST_TOP_IDX
+            , SPC_MST_SORT
+            , SPC_MST_USE_YN
+            , SPC_MST_REG_DT
+            , SPC_MST_REG_IP
+            , SPC_MST_REG_ID
+            , SPC_MST_UPD_DT
+            , SPC_MST_UPD_IP
+            , SPC_MST_UPD_ID
+            , SPC_MST_ENV
+            , SPC_MST_DEL_YN
+        )VALUES (
+            #{SEQ_SPC_MST_IDX}
+            , #{CHILD_CODENAME}
+            , #{SPC_MST_LEVEL}+1
+            , #{SPC_MST_IDX}
+            , #{SPC_MST_TOP_IDX}
+            , (SELECT NVL((SELECT MAX(NVL(SPC_MST_SORT, 0))+1 FROM T_SPC_MST WHERE SPC_MST_UP_IDX = #{SPC_MST_IDX}), 1) AS C_SORT FROM DUAL)
+            , nvl(#{SPC_MST_USE_YN},'Y')
+            , TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS')
+            , #{SPC_MST_REG_IP}
+            , #{SPC_MST_REG_ID}
+            , TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS')
+            , #{SPC_MST_REG_IP}
+            , #{SPC_MST_REG_ID}
+            , #{SPC_MST_ENV}
+            , 'N'
+        )
+        ]]>
+    </insert>
+    
+    <!-- 상품 카테고리 수정 -->
+    <update id="updateSpecManagement" parameterType="hashmap" >
+        <![CDATA[
+        /* SpecManagement.updateSpecManagemen */
+        UPDATE 
+            T_SPC_MST
+        SET
+            SPC_MST_NM = #{SPC_MST_NM},
+            SPC_MST_USE_YN = #{SPC_MST_USE_YN},
+            SPC_MST_UPD_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+            SPC_MST_UPD_IP = #{SPC_MST_UPD_IP},
+            SPC_MST_UPD_ID = #{SPC_MST_UPD_ID}
+        WHERE 
+            SPC_MST_IDX = #{SPC_MST_IDX}
+        ]]>
+    </update>
+    
+    <!-- 스펙 카테고리 하위 정렬 수정 -->
+    <update id="updateSpecManagementSort" parameterType="hashmap" >
+        <![CDATA[
+        /* SpecManagement.updateSpecManagementSort */
+        UPDATE 
+            T_SPC_MST
+        SET
+            SPC_MST_SORT = #{SPC_MST_SORT},
+            SPC_MST_UPD_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+            SPC_MST_UPD_IP = #{SPC_MST_UPD_IP},
+            SPC_MST_UPD_ID = #{SPC_MST_UPD_ID}
+        WHERE  
+            SPC_MST_IDX = #{SPC_MST_IDX}
+        ]]>
+    </update>
+    
+    <!-- 스펙 카테고리 삭제 -->
+    <update id="deleteSpecManagement" parameterType="hashmap" >
+        <![CDATA[
+        /* SpecManagement.deleteSpecManagement */
+        UPDATE 
+            T_SPC_MST
+        SET
+            SPC_MST_USE_YN = 'N',
+            SPC_MST_DEL_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+            SPC_MST_DEL_IP = #{SPC_MST_UPD_IP},
+            SPC_MST_DEL_ID = #{SPC_MST_UPD_ID},
+            SPC_MST_DEL_YN = 'Y'
+        WHERE 
+            SPC_MST_DEL_YN != 'Y'
+        AND
+           ( SPC_MST_IDX = #{SPC_MST_IDX} OR SPC_MST_UP_IDX = #{SPC_MST_IDX} )
+        ]]>
+    </update>
+    
+    <!-- 하위 상품 카테고리 리스트 조회 -->
+    <select id="selectSpecCategoryList" parameterType="hashMap" resultType="hashMap">
+        /* CategoryProduct.selectSpecCategoryList */
+        SELECT S1.DSP_SPC_IDX
+               ,S1.DSP_PRD_CTG_IDX
+               ,S1.DSP_PRD_SPC_IDX
+               ,S1.DSP_PRD_DEL_YN
+               ,S1.PRD_CTG_LVL_NM
+               ,ROWNUM AS RNUM
+               ,S1.PRD_CTG_ENV
+        FROM (
+                SELECT TA.DSP_SPC_IDX
+               , TA.DSP_PRD_CTG_IDX
+               , TA.DSP_PRD_SPC_IDX
+               , TA.DSP_PRD_DEL_YN
+               , (
+                    SELECT 
+                              SUBSTR(SYS_CONNECT_BY_PATH(PRD_CTG_NM, '>'),2) AS PRD_CTG_LVL_NM                        
+                         FROM 
+                             T_PRD_CTG A
+                         WHERE 
+                             PRD_CTG_DEL_YN != 'Y'
+                         AND PRD_CTG_IDX = TA.DSP_PRD_CTG_IDX
+                         START WITH A.PRD_CTG_UP_IDX = -1
+                         CONNECT BY PRIOR A.PRD_CTG_IDX = A.PRD_CTG_UP_IDX
+                    ) AS PRD_CTG_LVL_NM
+                ,(SELECT PRD_CTG_ENV FROM T_PRD_CTG B WHERE B.PRD_CTG_IDX = TA.DSP_PRD_CTG_IDX) AS PRD_CTG_ENV
+                FROM T_DSP_SPC TA
+                WHERE
+                    TA.DSP_PRD_SPC_IDX = #{SPC_MST_IDX}
+                AND TA.DSP_PRD_DEL_YN = 'N'
+            ) S1
+    </select>
+    
+    <!-- 하위 상품 카테고리 리스트 조회 -->
+    <select id="subSpecManagementProductAjax" parameterType="hashMap" resultType="hashMap">
+        /* CategoryProduct.subSpecManagementProductAjax */
+        SELECT
+            SPC_MST_IDX
+            , SPC_MST_NM
+            , SPC_MST_USE_YN
+        FROM
+            T_SPC_MST
+        WHERE
+            SPC_MST_UP_IDX = #{SPC_MST_IDX}
+        AND
+            SPC_MST_DEL_YN != 'Y'
+            <if test="useYn != 'all'">
+                AND SPC_MST_USE_YN = 'Y'
+            </if>
+            <if test="SPC_MST_ENV != null and SPC_MST_ENV != ''">
+                AND SPC_MST_ENV = #{SPC_MST_ENV} 
+            </if>
+        ORDER BY SPC_MST_SORT ASC
+    </select>
+    
+    <!-- 카테고리 상품 전시에 사용 여부 -->
+    <select id="selectSpecProductCount" parameterType="HashMap" resultType="Integer">
+        /* CategoryProduct.selectSpecProductCount */
+        SELECT 
+             NVL(COUNT(PRD_SPC_IDX),0)
+         FROM 
+             T_PRD_SPC
+         WHERE 
+             SPC_MST_IDX = #{SPC_MST_IDX}
+    </select>
+   
+</mapper>

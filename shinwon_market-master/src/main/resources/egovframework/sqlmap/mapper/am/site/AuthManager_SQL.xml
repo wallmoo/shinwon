@@ -1,0 +1,160 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="AuthManager">
+
+    <!-- 관리자 > 사이트 관리 > 권한관리 조건절  -->
+    <sql id="authManagerWhere">
+        <if test="searchAutMstNm != null and searchAutMstNm != ''">
+            AND AUT_MST_NM LIKE '%' || #{searchAutMstNm} || '%'
+        </if>
+        <if test="searchAutMstState != null and searchAutMstState != ''">
+            AND AUT_MST_STATE = #{searchAutMstState}
+        </if>
+        <if test="searchStartDate != null and searchStartDate != '' and searchEndDate != null and searchEndDate != ''">
+            AND AUT_MST_REG_DT BETWEEN REPLACE(#{searchStartDate},'-', '')||'000000' AND REPLACE(#{searchEndDate},'-', '')||'235959'
+        </if>
+    </sql>
+    
+    <!-- 관리자 > 사이트 관리 > 권한관리 목록 갯수  -->
+    <select id="selectAuthManagerListCount" parameterType="HashMap" resultType="Integer">
+        /* AuthManager.selectAuthManagerListCount */
+        SELECT
+            COUNT(AUT_MST_IDX)
+        FROM
+            T_AUT_MST
+        WHERE
+            1=1
+            AND AUT_MST_USE_YN = 'Y'
+            <include refid="authManagerWhere"/>
+    </select>
+    
+    <!-- 관리자 > 사이트 관리 > 권한관리 목록  -->
+    <select id="selectAuthManagerList" parameterType="HashMap" resultType="HashMap">
+        /* AuthManager.selectAuthManagerList */
+        SELECT
+            S2.* 
+        FROM
+            (   SELECT
+                    ROWNUM AS RNUM,
+                    S1.* 
+                FROM
+                    (   SELECT
+                            AUT_MST_IDX,
+                            AUT_MST_NM,
+                            AUT_MST_STATE,
+                            AUT_MST_USE_YN,
+                            AUT_MST_REG_DT,
+                            AUT_MST_REG_IP,
+                            AUT_MST_REG_ID,
+                            AUT_MST_UPD_DT,
+                            AUT_MST_UPD_IP,
+                            AUT_MST_UPD_ID
+                        FROM
+                            T_AUT_MST
+                        WHERE
+                            1=1
+                            AND AUT_MST_USE_YN = 'Y'
+                            <include refid="authManagerWhere"/>
+                        ORDER BY
+                            AUT_MST_REG_DT DESC 
+                    )
+                    S1 
+            )
+            S2
+            <if test="startNum != null and startNum != '' and endNum != null and endNum != ''">
+                WHERE RNUM BETWEEN #{startNum} AND #{endNum}
+            </if>
+    </select>
+    
+    <!-- 관리자 > 사이트 관리 > 권한관리 권한 마스터 등록 -->
+    <insert id="insertAuthMaster" parameterType="HashMap">
+        <selectKey resultType="Integer" keyProperty="AUT_MST_IDX" order="BEFORE">
+            SELECT SEQ_AUT_MST_IDX.NEXTVAL AS AUT_MST_IDX FROM DUAL
+        </selectKey>
+        /* AuthManager.insertAuthMaster */
+        INSERT INTO
+            T_AUT_MST
+            (
+                AUT_MST_IDX,
+                AUT_MST_NM,
+                AUT_MST_STATE,
+                AUT_MST_USE_YN,
+                AUT_MST_REG_DT,
+                AUT_MST_REG_IP,
+                AUT_MST_REG_ID
+            )
+        VALUES
+            (
+                #{AUT_MST_IDX},
+                #{AUT_MST_NM},
+                NVL( #{AUT_MST_STATE}, 'N'),
+                NVL( #{AUT_MST_USE_YN}, 'Y'),
+                TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+                #{AUT_MST_REG_IP},
+                #{AUT_MST_REG_ID}
+            )
+    </insert>
+    
+    <!-- 관리자 > 사이트 관리 > 권한관리 권한 마스터 수정 -->
+    <update id="updateAuthMaster" parameterType="HashMap">
+        /* AuthManager.updateAuthMaster*/
+        UPDATE
+            T_AUT_MST 
+        SET
+            AUT_MST_NM = #{AUT_MST_NM},
+            AUT_MST_STATE = NVL(#{AUT_MST_STATE}, 'N'),
+            AUT_MST_USE_YN = NVL(#{AUT_MST_USE_YN}, 'Y'),
+            AUT_MST_UPD_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+            AUT_MST_UPD_IP = #{AUT_MST_UPD_IP},
+            AUT_MST_UPD_ID = #{AUT_MST_UPD_ID}
+        WHERE
+            AUT_MST_IDX = #{AUT_MST_IDX}
+    </update>
+    
+    <!-- 관리자 > 사이트 관리 > 권한관리 > 권한 등록 -->
+    <insert id="insertAuthManager" parameterType="HashMap">
+        /* AuthManager.insertAuthManager */
+        INSERT ALL
+        <foreach collection="ADM_ADM_MNU_IDX" item="ADM_MNU_IDX" separator=" ">
+            INTO
+                T_ADM_AUT
+                (
+                    ADM_AUT_MST_IDX,
+                    ADM_ADM_MNU_IDX
+                )
+                VALUES
+                (   
+                    #{AUT_MST_IDX},
+                    #{ADM_MNU_IDX}
+                )
+        </foreach>
+        SELECT * FROM DUAL
+    </insert>
+    
+    <!-- 관리자 > 사이트 관리 > 권한관리 > 권한 삭제 -->
+    <delete id="deleteAuthManager" parameterType="HashMap">
+        /* AuthManager.deleteAuthManager */
+        DELETE FROM T_ADM_AUT WHERE ADM_AUT_MST_IDX = #{AUT_MST_IDX}
+    </delete>
+    
+    <!-- 관리자 > 사이트 관리 > 권한관리 상세보기  -->
+    <select id="selectAuthManagerInfo" parameterType="HashMap" resultType="HashMap">
+        /* AuthManager.selectAuthManagerInfo */
+        SELECT
+            AUT_MST_IDX,
+            AUT_MST_NM,
+            AUT_MST_STATE,
+            AUT_MST_USE_YN,
+            AUT_MST_REG_DT,
+            AUT_MST_REG_IP,
+            AUT_MST_REG_ID,
+            AUT_MST_UPD_DT,
+            AUT_MST_UPD_IP,
+            AUT_MST_UPD_ID
+        FROM
+            T_AUT_MST
+        WHERE
+            AUT_MST_IDX = #{AUT_MST_IDX}
+    </select>
+</mapper>

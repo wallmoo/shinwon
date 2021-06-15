@@ -1,0 +1,182 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="CreateBoard">
+    <!-- 관리자 > 게시판 관리 > 게시판 생성기 조건절 -->
+    <sql id="createBoardWhere">
+        <if test="searchBrdMstNm != null and searchBrdMstNm != ''">
+            AND BRD_MST_NM LIKE '%' || #{searchBrdMstNm} || '%'
+        </if>
+        <if test="searchBrdMstUseYn != null and searchBrdMstUseYn != ''">
+            AND BRD_MST_USE_YN = #{searchBrdMstUseYn}
+        </if>
+        <if test="searchBrdMstType != null and searchBrdMstType != ''">
+            AND BRD_MST_TYPE = #{searchBrdMstType}
+        </if>
+    </sql>
+    
+    <!-- 관리자 > 게시판 관리 > 게시판 생성기 등록 -->
+    <insert id="insertCreateBoard" parameterType="HashMap">
+        <selectKey keyProperty="BRD_MST_IDX" resultType="Integer" order="BEFORE">
+            SELECT SEQ_BRD_MST_IDX.NEXTVAL AS BRD_MST_IDX FROM DUAL
+        </selectKey>
+        /* CreateBoard.insertCreateBoard */
+        INSERT INTO 
+            T_BRD_MST
+            (
+                BRD_MST_IDX,
+                BRD_MST_TYPE,
+                BRD_MST_NM,
+                BRD_MST_INTRO,
+                BRD_MST_TOP_YN,
+                BRD_MST_REPLY_YN,
+                BRD_MST_USE_YN,
+                BRD_MST_APP_YN,
+                BRD_MST_FLE_YN,
+                BRD_MST_REG_DT,
+                BRD_MST_REG_IP,
+                BRD_MST_REG_ID
+            )
+        VALUES
+            (
+                #{BRD_MST_IDX},
+                #{BRD_MST_TYPE},
+                #{BRD_MST_NM},
+                #{BRD_MST_INTRO},
+                NVL(#{BRD_MST_TOP_YN}, 'N'),
+                NVL(#{BRD_MST_REPLY_YN}, 'N'),
+                NVL(#{BRD_MST_USE_YN}, 'N'),
+                NVL(#{BRD_MST_APP_YN}, 'N'),
+                NVL(#{BRD_MST_FLE_YN}, 'N'),
+                TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+                #{BRD_MST_REG_IP},
+                #{BRD_MST_REG_ID}
+            )
+    </insert>
+    
+    <!-- 관리자 > 게시판 관리 > 게시판 생성 목록 갯수 -->
+    <select id="selectCreateBoardListCount" parameterType="HashMap" resultType="Integer">
+        /* CreateBoard.selectCreateBoardListCount */
+        SELECT 
+            COUNT(1)
+        FROM 
+            T_BRD_MST
+        WHERE 1=1
+            <include refid="createBoardWhere"/>
+    </select>
+    
+    <!-- 관리자 > 게시판 관리 > 게시판 생성 목록 -->
+    <select id="selectCreateBoardList" parameterType="HashMap" resultType="HashMap">
+        /* CreateBoard.selectCreateBoardList */
+        SELECT 
+            S1.*
+        FROM
+        (
+            SELECT
+                S2.*,
+                ROWNUM AS RNUM
+            FROM
+            (
+                SELECT 
+                    BRD_MST_IDX,
+                    BRD_MST_TYPE,
+                    BRD_MST_NM,
+                    BRD_MST_INTRO,
+                    BRD_MST_TOP_YN,
+                    BRD_MST_REPLY_YN,
+                    BRD_MST_USE_YN,
+                    BRD_MST_APP_YN,
+                    BRD_MST_FLE_YN
+                FROM 
+                    T_BRD_MST       
+                WHERE 1=1
+                    <include refid="createBoardWhere"/>
+                ORDER BY BRD_MST_IDX DESC
+            ) S2
+        ) S1
+        WHERE 
+            S1.RNUM BETWEEN #{startNum} AND #{endNum}
+    </select>
+    
+    <!-- 관리자 > 게시판 관리 > 게시판 생성 상세정보 -->
+    <select id="selectCreateBoardInfo" parameterType="HashMap" resultType="HashMap">
+        /* CreateBoard.selectCreateBoardInfo */
+        SELECT 
+            BRD_MST_IDX,
+            BRD_MST_TYPE,
+            BRD_MST_NM,
+            BRD_MST_INTRO,
+            BRD_MST_TOP_YN,
+            BRD_MST_REPLY_YN,
+            BRD_MST_USE_YN,
+            BRD_MST_APP_YN,
+            BRD_MST_FLE_YN
+        FROM 
+            T_BRD_MST
+        WHERE 
+            BRD_MST_IDX = #{BRD_MST_IDX}
+    </select>
+    
+    <!-- 관리자 > 게시판 관리 > 게시판 생성 수정 -->
+    <update id="updateCreateBoard" parameterType="HashMap">
+        /* CreateBoard.updateCreateBoard */
+        UPDATE T_BRD_MST SET
+            BRD_MST_NM = #{BRD_MST_NM},
+            BRD_MST_INTRO = #{BRD_MST_INTRO},
+            BRD_MST_TOP_YN = NVL(#{BRD_MST_TOP_YN},'N'),
+            BRD_MST_REPLY_YN = NVL(#{BRD_MST_REPLY_YN},'N'),
+            BRD_MST_USE_YN = NVL(#{BRD_MST_USE_YN},'N'),
+            BRD_MST_APP_YN = NVL(#{BRD_MST_APP_YN},'N'),
+            BRD_MST_FLE_YN = NVL(#{BRD_MST_FLE_YN},'N'),
+            BRD_MST_UPD_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+            BRD_MST_UPD_IP =  #{BRD_MST_UPD_IP},
+            BRD_MST_UPD_ID = #{BRD_MST_UPD_ID}
+        WHERE
+            BRD_MST_IDX = #{BRD_MST_IDX}
+    </update>
+    
+    <!-- 관리자 > 사이트 관리 > 메뉴관리 > 새로 생성된 게시판 메뉴에 자동 등록 -->
+    <insert id="insertMenuManager" parameterType="HashMap">
+        /* CreateBoard.insertMenuManager */
+        INSERT INTO
+            T_ADM_MNU 
+            (
+                ADM_MNU_IDX,
+                ADM_MNU_NM,
+                ADM_MNU_LEVEL,
+                ADM_MNU_UP_IDX,
+                ADM_MNU_TOP_IDX,
+                ADM_MNU_URL,
+                ADM_MNU_AUTH_URL,
+                ADM_MNU_ON_YN,
+                ADM_MNU_SORT,
+                ADM_MNU_MEMEO,
+                ADM_MNU_USE_YN,
+                ADM_MNU_REG_DT,
+                ADM_MNU_REG_IP,
+                ADM_MNU_REG_ID
+            )
+        VALUES
+            (
+                SEQ_ADM_MNU_IDX.NEXTVAL,
+                #{BRD_MST_NM},
+                1,
+                NVL(#{ADM_MNU_UP_IDX}, 0),
+                NVL(#{ADM_MNU_UP_IDX}, 0),
+                #{ADM_MNU_URL},
+                #{ADM_MNU_AUTH_URL},
+                NVL(#{ADM_MNU_ON_YN}, 'N'),
+                (   SELECT
+                        NVL(MAX(ADM_MNU_SORT), 0) + 1 
+                    FROM
+                        T_ADM_MNU 
+                    WHERE
+                        ADM_MNU_UP_IDX = NVL(#{ADM_MNU_UP_IDX}, 0) 
+                ),
+                #{ADM_MNU_MEMEO},
+                NVL(#{ADM_MNU_USE_YN}, 'Y'),
+                TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+                #{ADM_MNU_REG_IP},
+                #{ADM_MNU_REG_ID} 
+            )
+    </insert>        
+</mapper>

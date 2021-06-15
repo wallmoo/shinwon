@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="MakerManager">
+	<!-- 관리자 > 시스템 관리 > 제조사 관리 > 조건절  -->
+    <sql id="MakerManagerWhere">
+        <if test="searchMakerNm != null and searchMakerNm != ''">
+            AND MRK_MST_BRAND_NM LIKE '%' || UPPER(#{searchMakerNm}) || '%'
+        </if>
+        <if test="searchMrkMstUseYn != null and searchMrkMstUseYn != ''">
+            AND MRK_MST_USE_YN = #{searchMrkMstUseYn}
+        </if>
+    </sql>
+    
+    <!-- 관리자 > 시스템관리 > 제조사 관리 목록 갯수 -->
+    <select id="selectMakerManagerListCount" parameterType="HashMap" resultType="Integer">
+    	/* MakerManager.selectMakerManagerListCount */
+    	SELECT
+    		COUNT(1)
+    	FROM
+    		T_MRK_MST
+    	WHERE
+    		1=1
+    		<include refid="MakerManagerWhere"/>
+    </select>
+    
+    <!-- 관리자 > 시스템관리 > 제조사 관리 목록 -->
+    <select id="selectMakerManagerList" parameterType="HashMap" resultType="HashMap">
+    	/* MakerManager.selectMakerManagerList */
+    	SELECT
+    		S2.*
+    	FROM
+    	(
+    		SELECT
+	    		ROWNUM AS RNUM,
+	    		S1.*
+	    	FROM
+	    	(
+	    		SELECT
+		    		MRK_MST_IDX,
+		    		MRK_MST_BRAND_NM,
+		    		MRK_MST_USE_YN,
+		    		MRK_MST_REG_DT
+		    	FROM
+		    		T_MRK_MST
+		    	WHERE
+		    		1=1
+		    		<include refid="MakerManagerWhere"/>
+		    	ORDER BY MRK_MST_REG_DT DESC
+	    	) S1
+    	) S2
+        <if test="startNum != null and startNum != '' and endNum != null and endNum != '' and excelDown == null or !excelDown.equals('Y'.toString())">
+            WHERE 
+                S2.RNUM BETWEEN #{startNum} AND #{endNum}
+        </if>
+    </select>
+    
+    <!-- 관리자 > 시스템관리 > 제조사관리 등록 -->
+    <insert id="insertMakerManager" parameterType="HashMap">
+    	<selectKey keyProperty="MRK_MST_IDX" resultType="Integer" order="BEFORE">
+            SELECT SEQ_MRK_MST_IDX.NEXTVAL AS MRK_MST_IDX FROM DUAL
+        </selectKey>
+    	/* MakerManager.insertMakerManager */
+    	INSERT INTO
+    		T_MRK_MST
+    		(
+    			MRK_MST_IDX,
+    			MRK_MST_BRAND_NM,
+    			MRK_MST_USE_YN,
+    			MRK_MST_REG_DT,
+    			MRK_MST_REG_ID,
+    			MRK_MST_REG_IP
+    		)
+    	VALUES
+    		(
+    			#{MRK_MST_IDX},
+    			#{MRK_MST_BRAND_NM},
+    			NVL(#{MRK_MST_USE_YN},'Y'),
+    			TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+    			#{MRK_MST_REG_ID},
+    			#{MRK_MST_REG_IP}
+    		)
+    </insert>
+    
+    <!-- 관리자 > 시스템관리 > 제조사관리 상세정보  -->
+    <select id="selectMakerManagerInfo" parameterType="HashMap" resultType="HashMap">
+    	/* MakerManager.selectMakerManagerInfo */
+    	SELECT
+    		MRK_MST_IDX,
+    		MRK_MST_BRAND_NM,
+    		MRK_MST_USE_YN
+    	FROM
+    		T_MRK_MST
+    	WHERE
+    		MRK_MST_IDX = #{MRK_MST_IDX}
+    </select>
+    
+    <!-- 관리자 > 시스템관리 > 제조사관리 수정 -->
+    <update id="updateMakerManager" parameterType="HashMap">
+    	/* MakerManager.updateMakerManager */
+    	UPDATE 
+    		T_MRK_MST
+    	SET
+    		MRK_MST_USE_YN = NVL(#{MRK_MST_USE_YN},'Y'),
+    		MRK_MST_UPD_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+    		MRK_MST_UPD_ID = #{MRK_MST_UPD_ID},
+    		MRK_MST_UPD_IP = #{MRK_MST_UPD_IP}
+    	WHERE
+    		MRK_MST_IDX = #{MRK_MST_IDX}
+    </update>
+    
+    <!-- 관리자 > 시스템관리 > 제조사관리 > 제조사명 중복체크 -->
+    <select id="selectMakerManagerNmCheckCount" parameterType="HashMap" resultType="Integer">
+    	/* MakerManager.selectMakerManagerNmCheckCount */
+    	SELECT
+			COUNT(1)
+		FROM
+			T_MRK_MST
+		WHERE
+			MRK_MST_BRAND_NM = #{MRK_MST_BRAND_NM}
+    </select>
+    
+	<!-- 관리자 > 시스템관리 > 제조사관리 > 제조사 목록 사용여부 수정 -->
+    <update id="updateMakerList" parameterType="HashMap">
+        /* MakerManager.updateMakerList */
+        <foreach collection="selectedMakerList" item="item" index="index" open="DECLARE BEGIN" close="; END;" separator=";">
+			UPDATE
+	            T_MRK_MST
+	        SET
+	            MRK_MST_USE_YN = NVL(#{item.MRK_MST_USE_YN}, 'Y'),
+	            MRK_MST_UPD_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+	            MRK_MST_UPD_IP = #{MRK_MST_UPD_IP},
+	            MRK_MST_UPD_ID = #{MRK_MST_UPD_ID}
+	        WHERE
+	            MRK_MST_IDX = #{item.MRK_MST_IDX}        
+        </foreach>
+
+    </update>
+</mapper>

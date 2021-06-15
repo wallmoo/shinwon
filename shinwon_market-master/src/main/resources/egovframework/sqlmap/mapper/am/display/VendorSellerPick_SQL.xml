@@ -1,0 +1,292 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="VendorSellerPick">
+
+<!-- 관리자 > 입점업체관리 > 셀러픽관리 조건절 -->
+    <sql id="vendorSellerPickWhere">
+    
+        <if test="searchCntMstTitle != null and searchCntMstTitle != ''">
+            AND TCM.CNT_MST_TITLE LIKE '%' || #{searchCntMstTitle} || '%'    
+        </if>
+        
+        <if test="searchCntMstStDt != null and searchCntMstStDt != '' and searchCntMstEdDt != null and searchCntMstEdDt != ''">
+            AND TCM.CNT_MST_REG_DT BETWEEN REPLACE(#{searchCntMstStDt},'-', '')||'000000' AND REPLACE(#{searchCntMstEdDt},'-', '')||'235959'
+        </if>
+        <if test="searchMemID != null and searchMemID != ''">
+            AND TCM.CNT_MST_REG_ID LIKE '%' || #{searchMemID} || '%'
+        </if>
+        <if test="searchCntMstUseYn != null and searchCntMstUseYn != ''">
+            AND TCM.CNT_MST_USE_YN = #{searchCntMstUseYn}
+        </if>
+    </sql>
+
+    <!-- 입점업체 관리자 > 전시관리 > 셀러픽관리 목록 갯수 -->
+    <select id="selectSellerPickListCount" parameterType="HashMap" resultType="Integer">
+        /* VendorSellerPick.selectSellerPickListCount */
+        SELECT
+            COUNT(TCM.CNT_MST_IDX)
+        FROM
+            T_CNT_MST TCM          
+        WHERE
+            1 = 1
+            AND TCM.CNT_MST_TYPE = 'TYPE_SELLER_PICK'
+            AND TCM.VDR_MST_IDX = #{ADM_MST_SUB_IDX}
+            <include refid="vendorSellerPickWhere"/> 
+    </select>
+    
+    <!-- 입점업체 관리자 > 전시관리 > 셀러픽관리 목록 -->
+    <select id="selectSellerPickList" parameterType="HashMap" resultType="HashMap">
+        /* VendorSellerPick.selectSellerPickList */
+        SELECT
+            S2.*
+        FROM
+        (
+            SELECT
+                ROWNUM AS RNUM
+                , S1.*
+            FROM
+            (
+                SELECT
+                    TCM.CNT_MST_IDX
+                    , TCM.CNT_MST_TITLE
+                    , TVM.VDR_MST_NM
+                    , TCM.CNT_MST_REG_ID
+                    , TO_CHAR(TO_DATE(CNT_MST_REG_DT,'YYYYMMDDHH24MISS'),'YYYY-MM-DD HH24:MI:SS') AS CNT_MST_REG_DT
+                    , TCM.CNT_MST_USE_YN
+                    , (SELECT COUNT(TLH.CNT_MST_ID) FROM T_LIK_HIS TLH WHERE TLH.CNT_MST_ID = TCM.CNT_MST_IDX AND TLH.CNT_MST_TYPE = 'TYPE_SELLER_PICK') AS LIKE_COUNTS
+                FROM T_CNT_MST TCM, T_VDR_MST TVM
+                WHERE 
+                    TCM.CNT_MST_TYPE = 'TYPE_SELLER_PICK'
+                    AND TCM.VDR_MST_IDX = #{ADM_MST_SUB_IDX}
+                    AND TCM.VDR_MST_IDX = TVM.VDR_MST_IDX
+                    <include refid="vendorSellerPickWhere"/>         
+                ORDER BY CNT_MST_REG_DT DESC
+            ) S1
+        ) S2
+        WHERE 
+            S2.RNUM BETWEEN #{startNum} AND #{endNum}
+    </select>
+    
+    <!-- 입점업체 관리자 > 전시관리 > 셀러픽 기본 정보 등록 -->
+    <insert id="insertSellerPick" parameterType="java.util.HashMap">
+        <selectKey keyProperty="CNT_MST_IDX" resultType="Integer" order="BEFORE">
+            SELECT SEQ_CNT_MST_IDX.NEXTVAL AS CNT_MST_IDX FROM DUAL
+        </selectKey>
+        /* VendorSellerPick.insertSellerPick */
+        INSERT INTO
+            T_CNT_MST
+            (
+                CNT_MST_IDX,                                
+                CNT_MST_TITLE,
+                CNT_MST_USE_YN,
+                CNT_MST_REG_DT,
+                CNT_MST_REG_IP,
+                CNT_MST_REG_ID,
+                CNT_MST_TYPE,
+                CNT_MST_DESC,
+                CNT_MST_PC_BANNER,
+                CNT_MST_MOBILE_BANNER,
+                CNT_MST_DETAIL_TYPE,
+                CNT_MST_PC_SCRIPT,
+                CNT_MST_MOBILE_SCRIPT,
+                VDR_MST_IDX
+            )
+        VALUES
+            (
+                #{CNT_MST_IDX},
+                #{CNT_MST_TITLE},
+                NVL(#{CNT_MST_USE_YN},'Y'),               
+                TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+                #{CNT_MST_REG_IP},
+                #{CNT_MST_REG_ID},
+                #{CNT_MST_TYPE},
+                #{CNT_MST_DESC},
+                #{CNT_MST_PC_BANNER:CLOB},
+                #{CNT_MST_MOBILE_BANNER:CLOB},
+                #{CNT_MST_DETAIL_TYPE},
+                #{CNT_MST_PC_SCRIPT:CLOB},
+                #{CNT_MST_MOBILE_SCRIPT:CLOB},
+                #{VDR_MST_IDX}
+            )
+    </insert>
+    
+    <!-- 입점업체 관리자 > 전시관리 > 셀러픽 기본 정보 -->
+    <resultMap id="resultSellerPickInfo" type="HashMap">
+        <result property="CNT_MST_REG_NM" column="CNT_MST_REG_NM"/>
+        <result property="CNT_MST_IDX" column="CNT_MST_IDX"/>
+        <result property="CNT_MST_CHANNEL_PC_YN" column="CNT_MST_CHANNEL_PC_YN"/>  
+        <result property="CNT_MST_CHANNEL_MOBILE_YN" column="CNT_MST_CHANNEL_MOBILE_YN"/>           
+        <result property="CNT_MST_TITLE" column="CNT_MST_TITLE"/>
+        <result property="CNT_MST_USE_YN" column="CNT_MST_USE_YN"/>
+        <result property="CNT_MST_REG_DT" column="CNT_MST_REG_DT"/>
+        <result property="CNT_MST_REG_IP" column="CNT_MST_REG_IP"/>
+        <result property="CNT_MST_REG_ID" column="CNT_MST_REG_ID"/>
+        <result property="CNT_MST_UPD_DT" column="CNT_MST_UPD_DT"/>
+        <result property="CNT_MST_UPD_IP" column="CNT_MST_UPD_IP"/>
+        <result property="CNT_MST_UPD_ID" column="CNT_MST_UPD_ID"/>
+        <result property="CNT_MST_DESC" column="CNT_MST_DESC"/>
+        <result property="CNT_MST_DETAIL_TYPE" column="CNT_MST_DETAIL_TYPE"/>
+        <result property="CNT_MST_PC_BANNER" column="CNT_MST_PC_BANNER" jdbcType="CLOB" javaType="java.lang.String"/>
+        <result property="CNT_MST_MOBILE_BANNER" column="CNT_MST_MOBILE_BANNER" jdbcType="CLOB" javaType="java.lang.String"/>
+        <result property="CNT_MST_PC_SCRIPT" column="CNT_MST_PC_SCRIPT" jdbcType="CLOB" javaType="java.lang.String"/>
+        <result property="CNT_MST_MOBILE_SCRIPT" column="CNT_MST_MOBILE_SCRIPT" jdbcType="CLOB" javaType="java.lang.String"/>
+    </resultMap>
+    <select id="selectSellerPickInfo" parameterType="HashMap" resultMap="resultSellerPickInfo">
+        /* VendorSellerPick.selectSellerPickInfo */
+        SELECT
+            (SELECT ADM_MST_NM FROM T_ADM_MST WHERE ADM_MST_ID = TCM.CNT_MST_REG_ID ) AS CNT_MST_REG_NM,
+            TCM.CNT_MST_IDX,
+            TCM.CNT_MST_CHANNEL_PC_YN,
+            TCM.CNT_MST_CHANNEL_MOBILE_YN,            
+            TCM.CNT_MST_TITLE,
+            TCM.CNT_MST_USE_YN,
+            TCM.CNT_MST_REG_DT,
+            TCM.CNT_MST_REG_IP,
+            TCM.CNT_MST_REG_ID,
+            TCM.CNT_MST_UPD_DT,
+            TCM.CNT_MST_UPD_IP,
+            TCM.CNT_MST_UPD_ID,
+            TCM.CNT_MST_PC_BANNER,
+            TCM.CNT_MST_MOBILE_BANNER,
+            TCM.CNT_MST_DESC,
+            TCM.CNT_MST_TYPE,
+            TCM.CNT_MST_DETAIL_TYPE,
+            TCM.CNT_MST_PC_SCRIPT,
+            TCM.CNT_MST_MOBILE_SCRIPT
+        FROM
+            T_CNT_MST TCM
+        WHERE
+            TCM.CNT_MST_IDX = #{CNT_MST_IDX}
+            AND TCM.CNT_MST_TYPE = 'TYPE_SELLER_PICK'
+    </select>
+    
+    <!-- 입점업체 관리자 > 전시관리 > 셀러픽관리 상세정보 > 상품구성 등록 -->
+    <insert id="insertSellerPickDetail" parameterType="HashMap">
+        /* VendorSellerPick.insertSellerPickDetail */
+        INSERT INTO
+            T_CNT_DTL
+            (
+                CNT_DTL_IDX,
+                CNT_MST_IDX,
+                CNT_PRD_MST_CD,
+                CNT_DTL_ORDER
+            )
+        VALUES
+            (
+                SEQ_CNT_DTL_IDX.NEXTVAL,
+                #{CNT_MST_IDX},
+                #{CNT_PRD_MST_CD},
+                NVL(#{CNT_DTL_ORDER}, 0)
+            )
+
+        INSERT ALL
+        <foreach collection="productList" item="item" separator=" "> 
+            INTO 
+                T_CNT_DTL (
+                    CNT_DTL_IDX,
+                    CNT_MST_IDX,
+                    CNT_PRD_MST_CD,
+                    CNT_DTL_ORDER             
+                ) 
+                VALUES 
+                (
+                    SEQ_CNT_DTL_IDX.NEXTVAL,
+                    #{item.CNT_MST_IDX},
+                    #{item.CNT_PRD_MST_CD},
+                    NVL(#{item.CNT_DTL_ORDER}, 0)
+                ) 
+        </foreach>
+        SELECT * FROM DUAL
+
+    </insert>
+    
+    <insert id="insertProductBatch" parameterType="HashMap">
+        /* VendorSellerPick.insertProductBatch */
+        INSERT ALL
+        <foreach collection="productList" item="product" separator=" "> 
+            INTO 
+                T_CNT_DTL (
+                    CNT_DTL_IDX,
+                    CNT_MST_IDX,
+                    CNT_PRD_MST_CD,
+                    CNT_DTL_ORDER             
+                ) 
+                VALUES 
+                (
+                    SEQ_CNT_DTL_IDX.NEXTVAL,
+                    #{CNT_MST_IDX},
+                    #{product.CNT_PRD_MST_CD},
+                    NVL(#{product.CNT_DTL_ORDER}, 0)
+                ) 
+        </foreach>
+        SELECT * FROM DUAL
+    </insert>
+    
+    <!-- 입점업체 관리자 > 전시관리 > 셀러픽관리 상세정보 > 상품구성 상세 목록 -->
+    <select id="selectSellerPickDetailList" parameterType="HashMap" resultType="HashMap">
+        /* VendorSellerPick.selectSellerPickDetailList */
+        SELECT
+            TCD.CNT_GRP_IDX
+            , FN_PRODUCT_IMG(PM.PRD_MST_CD, #{THUMBNAIL_SIZE}) AS PRD_IMAGE
+            , (SELECT TBM.BND_MST_BRAND_NM FROM T_BND_MST TBM WHERE PM.PRD_MST_BRD_IDX = TBM.BND_MST_IDX) AS BND_MST_BRAND_NM 
+            , TCD.CNT_DTL_ORDER 
+            , TCD.CNT_PRD_MST_CD 
+            , PM.PRD_MST_NM
+            , PM.PRD_MST_SEL_STATE
+            , PM.PRD_MST_PRC
+            , PM.PRD_MST_DPL_STATE 
+        FROM 
+            T_CNT_DTL TCD, T_PRD_MST PM
+        WHERE
+            TCD.CNT_PRD_MST_CD = PM.PRD_MST_CD
+            AND CNT_MST_IDX = #{CNT_MST_IDX}
+        ORDER BY TCD.CNT_DTL_ORDER
+    </select>
+    
+    <!-- 입점업체 관리자 > 전시관리 > 셀러픽 수정 -->
+    <update id="updateSellerPick" parameterType="HashMap">
+        /* VendorSellerPick.updateSellerPick */
+        UPDATE
+            T_CNT_MST
+        SET
+            CNT_MST_TITLE = #{CNT_MST_TITLE}
+            ,CNT_MST_DESC = #{CNT_MST_DESC}
+            , CNT_MST_UPD_ID = #{CNT_MST_UPD_ID}
+            , CNT_MST_UPD_IP = #{CNT_MST_UPD_IP}
+            , CNT_MST_UPD_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS')
+            , CNT_MST_DETAIL_TYPE = #{CNT_MST_DETAIL_TYPE}
+            , CNT_MST_PC_BANNER = #{CNT_MST_PC_BANNER:CLOB}
+            , CNT_MST_MOBILE_BANNER = #{CNT_MST_MOBILE_BANNER:CLOB}
+            , CNT_MST_PC_SCRIPT = #{CNT_MST_PC_SCRIPT:CLOB}
+            , CNT_MST_MOBILE_SCRIPT = #{CNT_MST_MOBILE_SCRIPT:CLOB}
+            , CNT_MST_USE_YN = #{CNT_MST_USE_YN}
+        WHERE
+            CNT_MST_IDX = #{CNT_MST_IDX}
+            AND CNT_MST_TYPE = 'TYPE_SELLER_PICK'
+    </update>
+    
+    <!-- 입점업체 관리자 > 전시관리 > 셀러픽 상품구성 삭제 -->
+    <delete id="deleteSellerPickDetail" parameterType="HashMap">
+        /* VendorSellerPick.deleteSellerPickDetail */
+        DELETE FROM T_CNT_DTL WHERE CNT_MST_IDX = #{CNT_MST_IDX}
+    </delete>
+    
+    <!-- 입점업체 관리자 > 프로모션 관리 > 셀러픽 목록 사용여부 수정 -->
+    <update id="updateSellerPickList" parameterType="HashMap">
+        /* VendorSellerPick.updateSellerPickList */
+        <foreach collection="selectedSellerPickList" item="item" index="index" open="DECLARE BEGIN" close="; END;" separator=";">
+			UPDATE
+	            T_CNT_MST 
+	        SET
+	            CNT_MST_USE_YN = NVL(#{item.CNT_MST_USE_YN}, 'N'),
+	            CNT_MST_UPD_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+	            CNT_MST_UPD_IP = #{CNT_MST_UPD_IP},
+	            CNT_MST_UPD_ID = #{CNT_MST_UPD_ID}
+	        WHERE
+	            CNT_MST_IDX = #{item.CNT_MST_IDX}        
+        </foreach>
+
+    </update>
+    
+</mapper>

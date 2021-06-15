@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="BatchOrderSendEnd">
+    
+    <!-- 배송후 2주 지난 주문 리스트 -->
+    <select id="selectSendingOrder" parameterType="HashMap" resultType="HashMap">
+        /* BatchOrderSendEnd.selectSendingOrder */
+        <![CDATA[
+            SELECT
+                ORD_ORD_MST_CD AS ORD_MST_CD
+                , ORD_PRD_IDX
+                , SEND_DT
+            FROM
+            (
+            SELECT
+                TOP.ORD_ORD_MST_CD
+                , ORD_PRD_IDX    
+                , ORD_PRD_ORG_IDX
+                , (
+                        SELECT MAX(ORD_PRD_REG_DT) KEEP(DENSE_RANK FIRST ORDER BY ORD_PRD_HIS_IDX DESC) FROM T_ORD_PRD_HIS HIS
+                        WHERE HIS.ORD_ORD_PRD_IDX = TOP.ORD_PRD_IDX
+                        AND HIS.ORD_PRD_ORD_STATE = #{ORD_PRD_ORD_STATE}
+                    ) as SEND_DT
+            FROM T_ORD_PRD TOP
+            WHERE TOP.ORD_PRD_ORD_STATE = #{ORD_PRD_ORD_STATE}
+            ORDER BY ORD_ORD_MST_CD DESC
+            )
+            WHERE SEND_DT BETWEEN TO_CHAR(SYSDATE-14,'YYYYMMDD')||'000000' AND TO_CHAR(SYSDATE-14,'YYYYMMDD')||'235959'
+        ]]>
+    </select>
+    
+</mapper>

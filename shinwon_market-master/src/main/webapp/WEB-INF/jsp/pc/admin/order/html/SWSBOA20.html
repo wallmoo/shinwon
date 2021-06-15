@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="ko" dir="ltr">
+    <head>
+        <meta charset="utf-8">
+        <title></title>
+		<link href="http://bo.marketplanta.epasscni.com:8080/am/css/font-awesome.css" rel="stylesheet">
+		<link rel="stylesheet" href="http://bo.marketplanta.epasscni.com:8080/am/css/import.css">
+        <link rel="stylesheet" href="style.css">
+		<script src="http://bo.marketplanta.epasscni.com:8080/am/js/vendor/modernizr-2.6.2-respond-1.1.0.min.js"></script>
+		<script src="http://bo.marketplanta.epasscni.com:8080/am/js/vendor/jquery-1.11.2.min.js"></script>
+    </head>
+    <style>
+        .table-row.table-a th, .table-row.table-a td{text-align:center;}
+    </style>
+<body class="page-popup">
+
+<div class="modal">
+	<div class="modal-wrapper">
+	    <div class="modal-inner">
+
+            <div class="push-guide instant"><!-- push-guide -->
+                <i class="icon"><!-- icon --></i>
+                <h3 class="title"><span>교환상세</span></h3>
+            </div><!-- // push-guide -->
+
+            <form id="frm" name="frm">
+			    <input type="hidden" name="ORD_MST_CD" value="<c:out value="${commandMap.ORD_MST_CD}"/>"/>
+			    <input type="hidden" id="ORD_PRD_ORD_STATE" name="ORD_PRD_ORD_STATE" value="<c:out value="${commandMap.STATE}"/>"/>
+			    <input type="hidden" id="ORD_PRD_IDX_ARR" name="ORD_PRD_IDX_ARR" value=""/>
+		        <input type="hidden" name="ORD_PRD_IDX" value="${commandMap.ORD_PRD_IDXs }"/>
+		        <input type="hidden" name="ORD_PG_TYPE" value="LG"/>
+
+	        	<h4 class="title"><span><c:out value="${title2}"/></span></h4>
+
+		        <table cellspacing="0" class="table-row table-a" style="margin-bottom: 0;"><!-- table -->
+		            <colgroup>
+						<col style="width: 10%;" />
+						<col style="width: 8%;" />
+						<col style="width: auto;" />
+						<col style="width: 7%;" />
+						<col style="width: 10%;" />
+						<col style="width: 10%;" />
+		            </colgroup>
+		            <thead>
+					<tr>
+						<th>상품유형</th>
+                        <th>이미지</th>
+						<th>상품/옵션정보</th>
+						<th>수량</th>
+						<th>교환사이즈</th>
+						<th>주문상태</th>
+					</tr>
+				</thead>
+				<tbody>
+					<c:forEach items="${orderProductList}" var="data" varStatus="i">
+						<tr>
+							<td>
+								<c:out value="${data.PRD_MST_TYPE eq 'G' ? '일반' : '패키지'}" />
+							</td>
+                            <td><span class="thumbnail_img"><img src="../profile.jpg"></span></td>
+		                    <td class="subject" style="text-align:left;">
+		                        <p>
+		                        	<c:choose>
+										<c:when test="${data.ORD_PRD_OPT_DTL_IDX gt 0}">
+											<c:if test="${not empty data.OPT_DTL_ERP_CD}">
+												<span class="block name"><c:out value="${data.OPT_DTL_ERP_CD}"/></span>
+											</c:if>
+										</c:when>
+										<c:otherwise>
+											<c:if test="${not empty data.PRD_MST_ERP_CD}">
+												<span class="block name"><c:out value="${data.PRD_MST_ERP_CD}"/></span>
+											</c:if>
+										</c:otherwise>
+									</c:choose>
+
+	                                <span class="block name"><c:out value="${data.ORD_PRD_MST_CD }" /></span>
+	                                <span class="block desc"><c:out value="${data.PRD_MST_NM }" /></span>
+	                                <c:if test="${data.ORD_PRD_OPT_DTL_IDX gt 0}" >
+										<span class="block size"><c:out value="${data.OPT_DTL_NM }" /></span>
+									</c:if>
+		                        </p>
+		                    </td>
+							<td><fmt:formatNumber value="${data.ORD_PRD_ORD_CNT}" type="number"/></td>
+                            <td>
+                                <select class="select">
+                                    <option value="">80</option>
+                                    <option value="">90</option>
+                                    <option value="">100</option>
+                                    <option value="">110</option>
+                                </select>
+                            </td>
+							<td>
+						    	<c:out value="${data.ORD_PRD_ORD_STATE_NM}"/>
+							</td>
+						</tr>
+					</c:forEach>
+					</tbody>
+		        </table><!-- // table -->
+
+	    		<h4 class="title"><span>교환사유</span></h4>
+
+		    	<table cellspacing="0" class="table-row table-a" style="margin-bottom: 0;"><!-- table -->
+		            <colgroup>
+		                <col style="width: 15%;" />
+						<col style="width: auto;" />
+		            </colgroup>
+					<tbody>
+						<tr>
+							<th><span>사유</span></th>
+							<td style="text-align : left;">
+			                   단순변심
+							</td>
+						</tr>
+						<tr>
+							<th><span>상세사유</span></th>
+							<td style="text-align : left;">
+                                상세 사유 내용은 없고, 교환해주세요.
+							</td>
+						</tr>
+					</tbody>
+		        </table><!-- // table -->
+
+                <h4 class="title"><span>교환정보</span></h4>
+
+                <p>
+                   <span><i class="require"><em>필수입력</em></i></span> 표시된 항목은 필수 입력 사항입니다.
+                </p>
+
+		    	<table cellspacing="0" class="table-row table-a" style="margin-bottom: 0;"><!-- table -->
+		            <colgroup>
+		                <col style="width: 15%;" />
+						<col style="width: auto;" />
+		            </colgroup>
+					<tbody>
+						<tr>
+							<th><span>교환방법</span></th>
+							<td class="text-left">
+		                        <input type="radio" name="changeProduct" id="changeProduct1" value="A" checked>
+                                <label for="changeProduct1">자동 수거</label>
+                                <input type="radio" name="changeProduct" id="changeProduct2" value="B">
+                                <label for="changeProduct2">직접 발송</label>
+                                <input type="radio" name="changeProduct" id="changeProduct3" value="C">
+                                <label for="changeProduct3">이미 발송</label>
+							</td>
+						</tr>
+					</tbody>
+		        </table><!-- // table -->
+
+                <!-- 자동수거 -->
+                <table cellspacing="0" class="table-row table-a mt10 autoDelivery" style="margin-bottom: 0;"><!-- table -->
+		            <colgroup>
+		                <col style="width: 15%;" />
+						<col style="width: auto;" />
+                        <col style="width: 15%;" />
+						<col style="width: auto;" />
+                        <col style="width: 15%;" />
+						<col style="width: auto;" />
+		            </colgroup>
+                    <thead>
+                        <tr>
+                            <th style="background:#e7e7e7"><span>반품 수거지</span></th>
+                            <td colspan="5" style="background:#e7e7e7">
+                                <div class="grid section-button-search text-right"><!-- 검색 하단 버튼 -->
+                	                <a href="#none" class="button button-a changeBtn"><span>수거지 변경</span></a>
+                				</div>
+                            </td>
+                        </tr>
+                    </thead>
+					<tbody>
+                        <tr>
+							<th><span>수령인<i class="require"><em>필수입력</em></i></span></th>
+							<td>
+		                        홍길동
+							</td>
+                            <th><span>휴대폰<i class="require"><em>필수입력</em></i></span></th>
+							<td>
+		                        010-1234-5678
+							</td>
+                            <th><span>전화번호</span></th>
+							<td>
+                                02-123-4567
+							</td>
+						</tr>
+                        <tr>
+							<th><span>배송지 주소<i class="require"><em>필수입력</em></i></span></th>
+							<td colspan="5">
+                                    [14043] 서울 광진구 경변북로 332, APT 1523-102<br/>
+                                    [143-200] 서울 광진구 구의동 573, APT 1523-102
+							</td>
+						</tr>
+                        <tr>
+							<th><span>배송메모</span></th>
+							<td colspan="5"></td>
+						</tr>
+					</tbody>
+		        </table><!-- // table -->
+                <!-- //자동수거 -->
+
+                <!-- 직접 발송, 이미 발송 -->
+                <table cellspacing="0" class="table-row table-a mt10 deliveryTbl" style="margin-bottom: 0; display:none;"><!-- table -->
+		            <colgroup>
+		                <col style="width: 15%;" />
+						<col style="width: auto;" />
+		            </colgroup>
+                    <thead>
+                        <tr>
+                            <th style="background:#e7e7e7"><span class="deliveryTit">반품지 정보</span></th>
+                            <td colspan="5" style="background:#e7e7e7">
+                                <div class="grid section-button-search text-right"><!-- 검색 하단 버튼 -->
+                	                <a href="#none" class="button button-a changeBtn"><span>수거지 변경</span></a>
+                				</div>
+                            </td>
+                        </tr>
+                    </thead>
+					<tbody>
+                        <tr class="selfDelivery">
+							<th><span>판매자 정보</span></th>
+							<td>
+                                신원 / 서울 마포구 독막로 328(도화동) / 1661-2585
+							</td>
+						</tr>
+                        <tr>
+							<th><span>택배사/송장번호</span></th>
+							<td colspan="5">
+                                <select class="select">
+                                    <option value=""></option>
+                                </select>
+                                <input type="text" class="text">
+							</td>
+						</tr>
+					</tbody>
+		        </table><!-- // table -->
+                <!-- //직접 발송, 이미 발송-->
+
+                <table cellspacing="0" class="table-row table-a mt10" style="margin-bottom: 0;"><!-- table -->
+		            <colgroup>
+		                <col style="width: 15%;" />
+						<col style="width: auto;" />
+                        <col style="width: 15%;" />
+						<col style="width: auto;" />
+                        <col style="width: 15%;" />
+						<col style="width: auto;" />
+		            </colgroup>
+                    <thead>
+                        <tr>
+                            <th style="background:#e7e7e7"><span>교환 배송지</span></th>
+                            <td colspan="5" style="background:#e7e7e7">
+                                <div class="grid section-button-search text-right"><!-- 검색 하단 버튼 -->
+                	                <a href="" class="button button-a"><span>배송지 변경</span></a>
+                				</div>
+                            </td>
+                        </tr>
+                    </thead>
+					<tbody>
+						<tr>
+							<th><span>수령인<i class="require"><em>필수입력</em></i></span></th>
+							<td>
+		                        홍길동
+							</td>
+                            <th><span>휴대폰<i class="require"><em>필수입력</em></i></span></th>
+							<td>
+		                        010-1234-5678
+							</td>
+                            <th><span>전화번호</span></th>
+							<td>
+                                02-123-4567
+							</td>
+						</tr>
+                        <tr>
+							<th><span>배송지 주소<i class="require"><em>필수입력</em></i></span></th>
+							<td colspan="5">
+                                    [14043] 서울 광진구 경변북로 332, APT 1523-102<br/>
+                                    [143-200] 서울 광진구 구의동 573, APT 1523-102
+							</td>
+						</tr>
+                        <tr>
+							<th><span>배송메모</span></th>
+							<td colspan="5"></td>
+						</tr>
+					</tbody>
+		        </table><!-- // table -->
+
+                <h4 class="title"><span>교환 배송비</span></h4>
+
+                <table cellspacing="0" class="table-row table-a mt10" style="margin-bottom: 0;"><!-- table -->
+		            <colgroup>
+		                <col style="width: 20%;" />
+						<col style="width: auto;" />
+                        <col style="width: 20%;" />
+						<col style="width: auto;" />
+		            </colgroup>
+					<tbody>
+						<tr>
+							<th><span>귀책자</span></th>
+							<td>
+		                        구매자 책임
+							</td>
+							<th><span>고객부담 택배비</span></th>
+							<td>
+		                        <input type="text" class="text large"> 원
+							</td>
+						</tr>
+                        <tr>
+							<th><span>택배비 결제방법</span></th>
+							<td colspan="3">
+                                <div>
+                                    <input type="radio" name="delivery" id="delivery1">
+                                    <label for="delivery1">동봉(5,000원)</label>
+                                    <input type="radio" name="delivery" id="delivery1">
+                                    <label for="delivery1">선불+2,500원</label>
+                                    <input type="radio" name="delivery" id="delivery1">
+                                    <label for="delivery1">계좌이체(5,000원)</label>
+                                    <input type="radio" name="delivery" id="delivery1">
+                                    <label for="delivery1">기타면제</label>
+                                </div>
+		                        <input type="text" class="text xlarge mt10">
+							</td>
+						</tr>
+					</tbody>
+		        </table><!-- // table -->
+
+                <h4 class="title"><span>메모</span></h4>
+
+		    	<table cellspacing="0" class="table-row table-a" style="margin-bottom: 0;"><!-- table -->
+		            <colgroup>
+		                <col style="width: 15%;" />
+						<col style="width: auto;" />
+		            </colgroup>
+					<tbody>
+						<tr>
+							<th><span>메모 이력</span></th>
+							<td>
+                                <table cellspacing="0" class="table-row table-a" style="margin-bottom: 0;"><!-- table -->
+                		            <colgroup>
+                		                <col style="width: 15%;" />
+                						<col style="width: auto;" />
+                		            </colgroup>
+                                    <thead>
+                                        <tr>
+                                            <th>NO</th>
+                                            <th>메모 내용 / 첨부파일</th>
+                                            <th>작성자</th>
+                                            <th>등록일</th>
+                                        </tr>
+                                    </thead>
+                					<tbody>
+                						<tr>
+                							<td>3</td>
+                                            <td>
+                                                <p class="clearboth">
+                                                    <span class="fl_left">포인트 환불 안내 하였음</span>
+                                                    <a href="#none" id="" class="button button-a small fl_right"><span>삭제</span></a>
+                                                </p>
+                                            </td>
+                                            <td>admin (홍길동)</td>
+                                            <td>2019-01-02 09:23:12</td>
+                						</tr>
+                                        <tr>
+                							<td>2</td>
+                                            <td>
+                                                <div class="clearboth">
+                                                    <p class="fl_left text-left">결제 취소가 되지 않는다고 재문의<br/><a href="#">WF7A1018.jpg</a></p>
+                                                    <a href="#none" id="" class="button button-a small fl_right"><span>삭제</span></a>
+                                                </div>
+                                            </td>
+                                            <td>admin (홍길동)</td>
+                                            <td>2019-01-02 09:23:12</td>
+                						</tr>
+                                        <tr>
+                							<td>2</td>
+                                            <td>
+                                                <div class="clearboth">
+                                                    <p class="fl_left text-left">회원이 취소 신청하였음</p>
+                                                    <a href="#none" id="" class="button button-a small fl_right"><span>삭제</span></a>
+                                                </div>
+                                            </td>
+                                            <td>admin (홍길동)</td>
+                                            <td>2019-01-02 09:23:12</td>
+                						</tr>
+                					</tbody>
+                		        </table><!-- // table -->
+							</td>
+						</tr>
+						<tr>
+							<th><span>메모 내용</span></th>
+							<td>
+								<textarea rows="8" cols="80"></textarea>
+							</td>
+						</tr>
+                        <tr>
+							<th><span>첨부파일</span></th>
+							<td class="text-left">
+                                <input type="text" class="large" disabled>
+								<input type="file" id="fileUpload" class="file_inp" value="파일첨부">
+								<label for="fileUpload" class="button small btn_file_upload primary">파일첨부</label>
+                                <a href="javascript:addCardDiv2('\${NUM}')"class="button button-a small"><span>+</span></a>
+								<a href="#none" id="" class="button small"><span>파일지우기</span></a> <br />
+								<small style="margin-left:10px;color:red;">업로드 가능 파일 : hwp, doc/docx, xls/xlsx, ppt/pptx, jpg, gif, png, pdf * 업로드 용량 : 20MB </small>
+							</td>
+						</tr>
+					</tbody>
+		        </table><!-- // table -->
+
+		    </form>
+
+
+		    <div class="section-button"><!-- section-button -->
+                <div class="wrap text-center">
+                    <a href="javascript:save();" class="button button-b primary"><span>저장</span></a>
+                    <a href="javascript:self.close();" id="goList" class="button button-a"><span>취소</span></a>
+                </div>
+            </div><!-- // section-button -->
+
+        </div>
+    </div>
+</div>
+
+<footer><!-- footer -->
+    <%@ include file="/WEB-INF/jsp/am/include/footer.jsp" %>
+</footer><!-- // footer -->
+
+<script src="http://bo.marketplanta.epasscni.com:8080/am/js/plugins.js" /></script>
+<script src="http://bo.marketplanta.epasscni.com:8080/am/js/ui.js"></script>
+<script src="http://bo.marketplanta.epasscni.com:8080/am/js/common.js"></script>
+<script type="text/javascript">
+$(document).ready(function () {
+
+    $(document).on("click", "input[name=changeProduct]", function () {
+     if($(this).val() == "A"){
+        $(".deliveryTbl").hide();
+        $(".autoDelivery").show();
+    }else if($(this).val() == "B"){
+        $(".deliveryTbl").show();
+        $(".selfDelivery").show();
+        $(".autoDelivery").hide();
+        $(".deliveryTit").text('반품지 정보');
+     }
+     else{
+         $(".deliveryTbl").show();
+         $(".autoDelivery").hide();
+         $(".selfDelivery").hide();
+         $(".deliveryTit").text('발송정보');
+     }
+  });
+
+});
+
+</script>
+</body>
+</html>

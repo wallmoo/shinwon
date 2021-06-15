@@ -1,0 +1,264 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="FaqBoard">
+    
+    <sql id="faqBoardWhere">
+        <if test="searchBrdFaqTitle != null and searchBrdFaqTitle != ''">
+            AND BRD_FAQ_TITLE LIKE '%' || #{searchBrdFaqTitle} || '%'
+        </if>
+        <if test="searchBrdFaqContents != null and searchBrdFaqContents != ''">
+            AND BRD_FAQ_CONTENTS LIKE '%' || #{searchBrdFaqContents} || '%'
+        </if>
+        <if test="searchBrdFaqTitleAndContents != null and searchBrdFaqTitleAndContents != ''">
+            AND ((BRD_FAQ_TITLE LIKE '%' || #{searchBrdFaqTitleAndContents} || '%') OR (BRD_FAQ_CONTENTS LIKE '%' || #{searchBrdFaqTitleAndContents} || '%'))
+        </if>
+        <if test="searchBrdCmnComUpIdx != null and searchBrdCmnComUpIdx != ''">
+            AND BRD_CMN_COM_UP_IDX = #{searchBrdCmnComUpIdx} 
+        </if>
+        <if test="searchBrdCmnComIdx != null and searchBrdCmnComIdx != ''">
+            AND BRD_CMN_COM_IDX = #{searchBrdCmnComIdx} 
+        </if>
+        <if test="searchBrdFaqOftenYn != null and searchBrdFaqOftenYn != ''">
+            AND BRD_FAQ_OFTEN_YN = #{searchBrdFaqOftenYn}
+        </if>
+        <if test="serachBrdFaqUseYn != null and serachBrdFaqUseYn != ''">
+            AND BRD_FAQ_USE_YN = #{serachBrdFaqUseYn}
+        </if>
+        <if test="BRAND_CD != null and BRAND_CD != ''">
+            AND BRD_FAQ_BRAND_CD = #{BRAND_CD}
+        </if>
+        <if test="searchStartDate != null and searchStartDate != '' and searchEndDate != null and searchEndDate != ''">
+            AND BRD_FAQ_REG_DT BETWEEN REPLACE(#{searchStartDate},'-', '')||'000000' AND REPLACE(#{searchEndDate},'-', '')||'235959'
+        </if>
+    </sql>
+    
+    <!-- 관리자 >  게시판 관리 > FAQ 관리 목록 갯수 -->
+    <select id="selectFaqBoardListCount" parameterType="HashMap" resultType="Integer">
+        /* FaqBoard.selectFaqBoardListCount */
+        SELECT
+            COUNT(BRD_FAQ_IDX)
+        FROM
+            T_BRD_FAQ
+        WHERE
+            1=1
+            <include refid="faqBoardWhere"/>
+    </select>
+    
+    <!-- 관리자 >  게시판 관리 > FAQ 관리 목록 -->
+    <select id="selectFaqBoardList" parameterType="HashMap" resultType="HashMap">
+        /* FaqBoard.selectFaqBoardList */
+        SELECT
+            S2.* ,
+            (   SELECT
+                    CMN_COM_NM 
+                FROM
+                    T_CMM_COM 
+                WHERE
+                    CMN_COM_UP_IDX = #{FAQ_INQUIRY_TYPE_CODE}
+                    AND CMN_COM_ETC1 = S2.BRD_FAQ_BRAND_CD
+            )AS BRD_FAQ_BRAND_NM,
+            (   SELECT
+                    CMN_COM_NM 
+                FROM
+                    T_CMM_COM 
+                WHERE
+                    CMN_COM_IDX = S2.BRD_CMN_COM_UP_IDX 
+            )AS BRD_CMN_COM_UP_NM,
+            (   SELECT
+                    CMN_COM_NM 
+                FROM
+                    T_CMM_COM 
+                WHERE
+                    CMN_COM_IDX = S2.BRD_CMN_COM_IDX 
+            )AS BRD_CMN_COM_NM,
+            (   SELECT
+                    ADM_MST_NM
+                FROM
+                    T_ADM_MST
+                WHERE
+                    ADM_MST_ID = S2.BRD_FAQ_REG_ID
+            )AS BRD_FAQ_REG_NM
+        FROM
+            (   SELECT
+                    ROWNUM AS RNUM,
+                    S1.* 
+                FROM
+                    (   SELECT
+                            BRD_FAQ_IDX,
+                            BRD_FAQ_OFTEN_YN,
+                            BRD_CMN_COM_UP_IDX,
+                            BRD_CMN_COM_IDX,
+                            BRD_FAQ_TITLE,
+                            BRD_FAQ_CONTENTS,
+                            NVL(BRD_FAQ_READ_CNT, 0) AS BRD_FAQ_READ_CNT,
+                            BRD_FAQ_USE_YN,
+                            BRD_FAQ_REG_DT,
+                            BRD_FAQ_REG_IP,
+                            BRD_FAQ_REG_ID,
+                            BRD_FAQ_UPD_DT,
+                            BRD_FAQ_UPD_IP,
+                            BRD_FAQ_UPD_ID,
+                            BRD_FAQ_BRAND_CD 
+                        FROM
+                            T_BRD_FAQ 
+                        WHERE
+                            1=1
+                            <include refid="faqBoardWhere"/>
+                        ORDER BY BRD_FAQ_REG_DT DESC 
+                    )
+                    S1 
+            )
+            S2 
+        WHERE
+            S2.RNUM BETWEEN #{startNum} AND #{endNum}
+    </select>
+    
+    <!-- 관리자 >  게시판 관리 > FAQ 관리 상세정보 -->
+    <resultMap id="resultFaqBoardInfo" type="HashMap">
+        <result property="BRD_FAQ_IDX" column="BRD_FAQ_IDX"/>
+        <result property="BRD_FAQ_OFTEN_YN" column="BRD_FAQ_OFTEN_YN"/>
+        <result property="BRD_CMN_COM_IDX" column="BRD_CMN_COM_IDX"/>
+        <result property="BRD_FAQ_TITLE" column="BRD_FAQ_TITLE"/>
+        <result property="BRD_FAQ_CONTENTS" column="BRD_FAQ_CONTENTS" jdbcType="CLOB" javaType="java.lang.String"/>
+        <result property="BRD_FAQ_READ_CNT" column="BRD_FAQ_READ_CNT"/>
+        <result property="BRD_FAQ_USE_YN" column="BRD_FAQ_USE_YN"/>
+        <result property="BRD_FAQ_REG_DT" column="BRD_FAQ_REG_DT"/>
+        <result property="BRD_FAQ_REG_IP" column="BRD_FAQ_REG_IP"/>
+        <result property="BRD_FAQ_REG_ID" column="BRD_FAQ_REG_ID"/>
+        <result property="BRD_FAQ_UPD_DT" column="BRD_FAQ_UPD_DT"/>
+        <result property="BRD_FAQ_UPD_IP" column="BRD_FAQ_UPD_IP"/>
+        <result property="BRD_FAQ_UPD_ID" column="BRD_FAQ_UPD_ID"/>
+        <result property="BRD_FAQ_REG_NM" column="BRD_FAQ_REG_NM"/>
+        <result property="BRD_FAQ_BRAND_CD" column="BRD_FAQ_BRAND_CD"/>
+        <result property="BRD_CMN_COM_UP_IDX" column="BRD_CMN_COM_UP_IDX"/>
+        <result property="BRD_FAQ_BRAND_IDX" column="BRD_FAQ_BRAND_IDX"/>
+    </resultMap>
+    <select id="selectFaqBoardInfo" parameterType="HashMap" resultMap="resultFaqBoardInfo">
+        /* FaqBoard.selectFaqBoardInfo */
+        SELECT
+            BRD_FAQ_IDX,
+            BRD_FAQ_OFTEN_YN,
+            BRD_CMN_COM_IDX,
+            BRD_FAQ_TITLE,
+            BRD_FAQ_CONTENTS,
+            NVL(BRD_FAQ_READ_CNT, 0) AS BRD_FAQ_READ_CNT,
+            BRD_FAQ_USE_YN,
+            BRD_FAQ_REG_DT,
+            BRD_FAQ_REG_IP,
+            BRD_FAQ_REG_ID,
+            BRD_FAQ_UPD_DT,
+            BRD_FAQ_UPD_IP,
+            BRD_FAQ_UPD_ID,
+            BRD_FAQ_BRAND_CD,
+            BRD_CMN_COM_UP_IDX,
+             (   SELECT
+                    ADM_MST_NM
+                FROM
+                    T_ADM_MST
+                WHERE
+                    ADM_MST_ID = BRD_FAQ_REG_ID
+            )AS BRD_FAQ_REG_NM,
+           	(	SELECT
+           			CMN_COM_IDX
+           		FROM
+           			T_CMM_COM
+           		WHERE 
+           			CMN_COM_ETC1 = BRD_FAQ_BRAND_CD
+           		AND
+           			CMN_COM_TOP_IDX = #{CMN_COM_TOP_IDX}
+            )AS BRD_FAQ_BRAND_IDX
+        FROM
+            T_BRD_FAQ
+        WHERE
+            BRD_FAQ_IDX = #{BRD_FAQ_IDX}
+    </select>
+    
+    <!-- 관리자 >  게시판 관리 > FAQ 관리 자주사용하는 FAQ 갯수 -->
+    <select id="selectFaqBoardOftenTopCount" parameterType="HashMap" resultType="Integer">
+        /* FaqBoard.selectFaqBoardOftenTopCount */
+        SELECT
+            COUNT(BRD_FAQ_IDX)
+        FROM
+            T_BRD_FAQ
+        WHERE
+            BRD_FAQ_USE_YN = 'Y'
+            AND BRD_FAQ_OFTEN_YN = 'Y'
+            AND BRD_FAQ_BRAND_CD = #{BRD_FAQ_BRAND_CD}
+    </select>
+    
+    <!-- 관리자 >  게시판 관리 > FAQ 관리 등록 -->
+    <insert id="insertFaqBoard" parameterType="HashMap">
+        /* FaqBoard.insertFaqBoard */
+        INSERT INTO
+            T_BRD_FAQ
+            (
+                BRD_FAQ_IDX,
+                BRD_FAQ_OFTEN_YN,
+                BRD_CMN_COM_IDX,
+                BRD_FAQ_TITLE,
+                BRD_FAQ_CONTENTS,
+                BRD_FAQ_READ_CNT,
+                BRD_FAQ_USE_YN,
+                BRD_FAQ_REG_DT,
+                BRD_FAQ_REG_IP,
+                BRD_FAQ_REG_ID,
+                BRD_FAQ_BRAND_CD,
+                BRD_CMN_COM_UP_IDX
+            )
+        VALUES
+            (
+                SEQ_BRD_FAQ_IDX.NEXTVAL,
+                NVL(#{BRD_FAQ_OFTEN_YN}, 'N'),
+                #{BRD_CMN_COM_IDX},
+                #{BRD_FAQ_TITLE},
+                #{BRD_FAQ_CONTENTS:CLOB},
+                0,
+                NVL(#{BRD_FAQ_USE_YN}, 'N'),
+                TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+                #{BRD_FAQ_REG_IP},
+                #{BRD_FAQ_REG_ID},
+                #{BRAND_CD},
+                #{BRD_CMN_COM_UP_IDX}
+            )
+    </insert>
+    
+    <!-- 관리자 >  게시판 관리 > FAQ 관리 수정 -->
+    <update id="updateFaqBoard" parameterType="HashMap">
+        /* FaqBoard.updateFaqBoard */
+        UPDATE
+            T_BRD_FAQ 
+        SET
+            BRD_FAQ_OFTEN_YN = NVL(#{BRD_FAQ_OFTEN_YN}, 'N'),
+            BRD_CMN_COM_IDX = #{BRD_CMN_COM_IDX},
+            BRD_FAQ_TITLE = #{BRD_FAQ_TITLE},
+            BRD_FAQ_CONTENTS = #{BRD_FAQ_CONTENTS:CLOB},
+            BRD_FAQ_USE_YN = NVL(#{BRD_FAQ_USE_YN}, 'N'),
+            BRD_FAQ_UPD_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+            BRD_FAQ_UPD_IP = #{BRD_FAQ_UPD_IP},
+            BRD_FAQ_UPD_ID = #{BRD_FAQ_UPD_ID}, 
+            BRD_CMN_COM_UP_IDX = #{BRD_CMN_COM_UP_IDX}
+        WHERE
+            BRD_FAQ_IDX = #{BRD_FAQ_IDX}
+    </update>
+    
+    <!-- 관리자 >  게시판 관리 > FAQ 문의 유형 리스트 -->
+    <select id="selectFaqCategoryList" parameterType="hashMap" resultType="hashMap">
+        /* FaqBoard.selectFaqCategoryList */
+        SELECT  
+        	CMN_COM_IDX,
+            CMN_COM_NM,
+            CMN_COM_LEVEL,
+            CMN_COM_UP_IDX,
+            CMN_COM_TOP_IDX,
+            CMN_COM_ETC1,
+            CMN_COM_ETC2,
+            CMN_COM_ETC3,
+            CMN_COM_SORT,
+            CMN_COM_USE_YN
+        FROM 
+         T_CMM_COM 
+        WHERE 
+        	CMN_COM_UP_IDX=#{CMN_COM_IDX}
+        ORDER BY CMN_COM_SORT ASC    	
+    </select>
+</mapper>

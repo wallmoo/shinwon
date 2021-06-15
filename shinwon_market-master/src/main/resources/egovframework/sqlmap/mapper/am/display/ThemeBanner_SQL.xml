@@ -1,0 +1,452 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="ThemeBanner">
+
+    <!-- 관리자 > 전시관리 > 배너관리 조건절 -->
+    <sql id="bannerDisplayWhere">
+        <if test="searchBnrMstTitle != null and searchBnrMstTitle != ''">
+            AND BM.BNR_MST_TITLE LIKE '%' || #{searchBnrMstTitle} || '%'
+        </if>
+
+        <if test="searchType != null and searchType.equals('S_REG_DT'.toString())">
+            <if test="searchStartDate != null and searchStartDate != '' and searchEndDate != null and searchEndDate != ''">
+                AND BM.BNR_MST_REG_DT BETWEEN REPLACE(#{searchStartDate},'-', '')||'000000' AND REPLACE(#{searchEndDate},'-', '')||'235959'
+            </if>
+        </if>
+        <if test="searchType != null and searchType.equals('S_DIS_DT'.toString())">
+            <if test="searchStartDate != null and searchStartDate != '' and searchEndDate != null and searchEndDate != ''">
+                <![CDATA[
+                    AND BM.BNR_MST_ST_DT >= REPLACE(#{searchStartDate}, '-', '')||'0000'
+                    AND BM.BNR_MST_ED_DT <= REPLACE(#{searchEndDate}, '-', '')||'2359'
+                ]]>
+            </if>
+        </if>
+
+        <if test="searchBnrMstUseYn != null and searchBnrMstUseYn != ''">
+            AND BM.BNR_MST_USE_YN = #{searchBnrMstUseYn}
+        </if>
+
+        <if test="searchGubun != null and searchGubun != ''">
+            AND BM.BNR_MST_ENV = #{searchGubun}
+        </if>
+    </sql>
+    
+    <!-- 관리자 > 전시관리 > 배너관리 목록 갯수 -->
+    <select id="selectThemeBannerListCount" parameterType="HashMap" resultType="Integer">
+        /* ThemeBanner.selectThemeBannerListCount */
+        SELECT
+            COUNT(BM.BNR_MST_IDX)
+        FROM
+            T_BNR_MST BM, T_BNR_DTL BD 
+        WHERE
+            BM.BNR_MST_IDX = BD.BNR_BNR_MST_IDX
+            AND CMN_COM_IDX = #{CMN_COM_IDX}
+    </select>
+    
+    <!-- 관리자 > 전시관리 > 배너관리 목록 -->
+    <select id="selectThemeBannerList" parameterType="HashMap" resultType="HashMap">
+        /* ThemeBanner.selectThemeBannerList */
+        SELECT
+            ROWNUM RNUM
+            , BM.BNR_MST_IDX 
+            , BM.BNR_MST_TITLE
+            , (SELECT TBM.BND_MST_URL FROM T_BND_MST TBM WHERE TBM.BND_MST_IDX = BM.BND_MST_IDX) AS BND_MST_URL
+            , (SELECT TBM.BND_MST_BRAND_NM FROM T_BND_MST TBM WHERE TBM.BND_MST_IDX = BM.BND_MST_IDX) AS BND_MST_BRAND_NM
+            , (SELECT TBM.BND_MST_SEL_NM FROM T_BND_MST TBM WHERE TBM.VDR_MST_IDX = BM.VDR_MST_IDX) AS BND_MST_SEL_NM  
+            , BM.CMN_COM_IDX 
+            , BM.BNR_MST_ST_DT
+            , BM.BNR_MST_ST_HH 
+            , BM.BNR_MST_ST_MM 
+            , BM.BNR_MST_ED_DT 
+            , BM.BNR_MST_ED_HH 
+            , BM.BNR_MST_ED_MM
+            , BM.BNR_MST_USE_YN 
+            , BM.BNR_MST_REG_DT 
+            , BM.BNR_MST_REG_IP 
+            , BM.BNR_MST_REG_ID 
+            , FL.CMM_FLE_ATT_PATH
+            , FL.CMM_FLE_SYS_NM
+            , BM.BNR_MST_MIL_ADD
+            , BM.BNR_MST_GFT
+            , BM.BNR_MST_URL
+            , BM.BNR_MST_MOV_URL
+            , (SELECT TBM.BND_MST_URL FROM T_BND_MST TBM WHERE TBM.VDR_MST_IDX = BM.VDR_MST_IDX) AS BND_MST_URL 
+            , CASE WHEN SYSDATE BETWEEN TO_DATE(BM.BNR_MST_ST_DT||BM.BNR_MST_ST_HH||BM.BNR_MST_ST_MM||'00','yyyymmddhh24miss') 
+                                        AND TO_DATE(BM.BNR_MST_ED_DT||BM.BNR_MST_ED_HH||BM.BNR_MST_ED_MM||'59','yyyymmddhh24miss') THEN 'ON'
+              ELSE 'OFF' END BNR_PROGRESS
+        FROM
+         T_BNR_MST BM, T_CMM_FLE FL
+        WHERE
+            BM.BNR_MST_IDX = FL.CMM_FLE_TB_PK(+)
+            AND FL.CMM_FLE_TB_NM(+) = 'T_BNR_MST'
+            AND CMN_COM_IDX = #{CMN_COM_IDX}
+            AND FL.CMM_FLE_USE_YN(+) ='Y'
+            AND BM.BNR_MST_ENV = #{searchGubun} 
+        ORDER BY BM.BNR_MST_REG_DT ASC 
+    </select>
+    
+    <!-- 관리자 > 전시관리 > 배너관리 상세정보 -->
+    <select id="selectThemeBannerInfo" parameterType="HashMap" resultType="HashMap">
+        /* ThemeBanner.selectThemeBannerInfo */
+        SELECT
+            BM.BNR_MST_IDX 
+            , BM.BNR_MST_TITLE 
+            , BM.CMN_COM_IDX 
+            , BM.BNR_MST_ST_DT
+            , BM.BNR_MST_ST_HH 
+            , BM.BNR_MST_ST_MM  
+            , BM.BNR_MST_ED_DT 
+            , BM.BNR_MST_ED_HH 
+            , BM.BNR_MST_ED_MM 
+            , BM.BNR_MST_USE_YN
+            , CF.CMM_FLE_IDX 
+            , CF.CMM_FLE_SYS_PATH 
+            , CF.CMM_FLE_ATT_PATH 
+            , CF.CMM_FLE_ORG_NM 
+            , CF.CMM_FLE_SYS_NM 
+            , CF.CMN_FLE_ALT_TXT 
+            , BM.BNR_MST_MIL_ADD
+            , BM.BNR_MST_GFT
+            , BM.BNR_MST_URL
+            , BM.BNR_MST_TGT
+            , BM.BND_MST_IDX
+            , BM.VDR_MST_IDX
+            ,(SELECT TBM.BND_MST_BRAND_NM FROM T_BND_MST TBM WHERE BM.BND_MST_IDX = TBM.BND_MST_IDX) AS BND_MST_BRAND_NM
+            ,(SELECT TBM.BND_MST_SEL_NM FROM T_BND_MST TBM WHERE BM.VDR_MST_IDX = TBM.VDR_MST_IDX) AS BND_MST_SEL_NM
+            , BM.BNR_MST_DESC
+            , BM.BNR_MST_CLS_USE_YN
+            , BM.BNR_MST_URL_POP
+            , BM.BNR_MST_MOV_URL
+        FROM
+            T_BNR_MST BM , T_CMM_FLE CF
+        WHERE
+            BM.BNR_MST_IDX = CF.CMM_FLE_TB_PK(+) 
+            AND CF.CMM_FLE_TB_NM(+) = 'T_BNR_MST' 
+            AND CF.CMM_FLE_USE_YN(+) = 'Y'
+            AND BM.BNR_MST_IDX = #{BNR_MST_IDX}
+            
+    </select>
+    
+    <!-- 관리자 > 전시관리 > 배너관리 등록 -->
+    <insert id="insertThemeBanner" parameterType="HashMap">
+        <selectKey keyProperty="BNR_MST_IDX" resultType="Integer" order="BEFORE">
+            SELECT SEQ_BNR_MST_IDX.NEXTVAL AS BNR_MST_IDX  FROM DUAL
+        </selectKey>
+        /* ThemeBanner.insertThemeBanner */
+        INSERT INTO
+            T_BNR_MST
+            (
+                BNR_MST_IDX,
+                BNR_MST_TITLE,
+                BNR_MST_SUB_TITLE,
+                CMN_COM_IDX,
+                BNR_MST_ST_DT,
+                BNR_MST_ST_HH,
+                BNR_MST_ST_MM,
+                BNR_MST_ED_DT,
+                BNR_MST_ED_HH,
+                BNR_MST_ED_MM,
+                BNR_MST_USE_YN,
+                BNR_MST_REG_DT,
+                BNR_MST_REG_IP,
+                BNR_MST_REG_ID,
+                BNR_MST_MIL_ADD,
+                BNR_MST_GFT,
+                BNR_MST_ENV,
+                BNR_MST_URL,
+                BNR_MST_TGT,
+                BND_MST_IDX,
+                BNR_MST_DESC,
+                VDR_MST_IDX,
+                BNR_MST_CLS_USE_YN,
+                BNR_MST_URL_POP,
+                BNR_MST_MOV_URL
+            )
+        VALUES
+            (
+                #{BNR_MST_IDX},
+                #{BNR_MST_TITLE},
+                #{BNR_MST_SUB_TITLE},
+                #{CMN_COM_IDX},
+                REPLACE(#{BNR_MST_ST_DT}, '-', ''),
+                #{BNR_MST_ST_HH},
+                #{BNR_MST_ST_MM},
+                REPLACE(#{BNR_MST_ED_DT}, '-', ''),
+                #{BNR_MST_ED_HH},
+                #{BNR_MST_ED_MM},
+                NVL(#{BNR_MST_USE_YN}, 'N'),
+                TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+                #{BNR_MST_REG_IP},
+                #{BNR_MST_REG_ID},
+                #{BNR_MST_MIL_ADD},
+                #{BNR_MST_GFT},
+                #{BNR_MST_ENV},
+                #{BNR_MST_URL},
+                #{BNR_MST_TGT},
+                #{BND_MST_IDX},
+                #{BNR_MST_DESC},
+                #{VDR_MST_IDX},
+                #{BNR_MST_CLS_USE_YN},
+                #{BNR_MST_URL_POP},
+                #{BNR_MST_MOV_URL}
+            )
+    </insert>
+    
+    <!-- 관리자 > 전시관리 > 배너 카테고리 등록 -->
+    <insert id="insertCategoryBanner" parameterType="HashMap">
+        <selectKey keyProperty="BNR_CTG_IDX" resultType="Integer" order="BEFORE">
+            SELECT SEQ_BNR_CTG_IDX.NEXTVAL AS BNR_CTG_IDX FROM DUAL
+        </selectKey>
+        /* ThemeBanner.insertCategoryBanner */
+        INSERT INTO
+            T_BNR_CTG
+            (
+                BNR_CTG_IDX,
+                BNR_MST_IDX,
+                PRD_CTG_IDX,
+                BNR_CTG_ORDER
+            )
+        VALUES
+            (
+                #{BNR_CTG_IDX},
+                #{BNR_MST_IDX},
+                #{PRD_CTG_IDX},
+                #{BNR_CTG_ORDER}
+            )
+    </insert>
+    
+    <!-- 관리자 > 전시관리 > 테마전시배너관리 대표상품 등록 -->
+    <insert id="insertProductBanner" parameterType="HashMap">
+        <selectKey keyProperty="BNR_PRD_IDX" resultType="Integer" order="BEFORE">
+            SELECT SEQ_BNR_PRD_IDX.NEXTVAL AS BNR_PRD_IDX FROM DUAL
+        </selectKey>
+        /* ThemeBanner.insertProductBanner */
+        INSERT INTO
+            T_BNR_PRD
+            (
+                BNR_PRD_IDX,
+                BNR_MST_IDX,
+                BNR_PRD_MST_CD,
+                BNR_PRD_REF_USE_YN
+            )
+        VALUES
+            (
+                #{BNR_PRD_IDX},
+                #{BNR_MST_IDX},
+                #{BNR_PRD_MST_CD},
+                #{BNR_PRD_REF_USE_YN}
+            )
+    </insert>
+
+    <!-- 관리자 > 전시관리 > 테마전시배너관리 대표상품 삭제 -->    
+    <delete id="deleteProductBanner" parameterType="HashMap">
+        /* ThemeBanner.deleteProductBanner */
+        DELETE FROM T_BNR_PRD WHERE BNR_MST_IDX = #{BNR_MST_IDX}
+    </delete>
+    
+    <!-- 관리자 > 전시관리 > 테마전시배너관리 카테고리 그룹 삭제 -->    
+    <delete id="deleteBannerCategory" parameterType="HashMap">
+        /* ThemeBanner.deleteBannerCategory */
+        DELETE FROM T_BNR_CTG WHERE BNR_MST_IDX = #{BNR_MST_IDX}
+    </delete>
+    
+    <!-- 관리자 > 전시관리 > 배너관리 수정 -->
+    <update id="updateThemeBanner" parameterType="HashMap">
+        /* ThemeBanner.updateThemeBanner */
+        UPDATE
+            T_BNR_MST 
+        SET
+            BNR_MST_TITLE = #{BNR_MST_TITLE},
+            BNR_MST_SUB_TITLE = #{BNR_MST_SUB_TITLE},
+            BNR_MST_ST_DT = REPLACE(#{BNR_MST_ST_DT}, '-', ''),
+            BNR_MST_ST_HH = #{BNR_MST_ST_HH},
+            BNR_MST_ST_MM = #{BNR_MST_ST_MM},
+            BNR_MST_ED_DT = REPLACE(#{BNR_MST_ED_DT}, '-', ''),
+            BNR_MST_ED_HH = #{BNR_MST_ED_HH},
+            BNR_MST_ED_MM = #{BNR_MST_ED_MM},
+            BNR_MST_USE_YN = #{BNR_MST_USE_YN},
+            BNR_MST_UPD_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+            BNR_MST_UPD_IP = #{BNR_MST_UPD_IP},
+            BNR_MST_UPD_ID = #{BNR_MST_UPD_ID},
+            BNR_MST_MIL_ADD = #{BNR_MST_MIL_ADD},
+            BNR_MST_GFT = #{BNR_MST_GFT},
+            BNR_MST_URL = #{BNR_MST_URL},
+            BNR_MST_TGT = #{BNR_MST_TGT},
+            BND_MST_IDX = #{BND_MST_IDX},
+            BNR_MST_DESC = #{BNR_MST_DESC},
+            BNR_MST_CLS_USE_YN = #{BNR_MST_CLS_USE_YN},
+            BNR_MST_URL_POP = #{BNR_MST_URL_POP} ,
+            BNR_MST_MOV_URL = #{BNR_MST_MOV_URL}
+        WHERE
+            BNR_MST_IDX = #{BNR_MST_IDX}
+    </update>
+    
+    <!-- 관리자 > 전시관리 > 테마전시배너관리 삭제(여러건) -->    
+    <delete id="deleteThemeBanner" parameterType="HashMap">
+        /* ThemeBanner.deleteThemeBanner */
+        DELETE FROM T_BNR_MST WHERE BNR_MST_IDX = #{BNR_MST_IDX}
+    </delete>
+    
+    <!-- 관리자 > 전시관리 > 배너관리 배너정보 등록 -->
+    <insert id="insertThemeBannerDetail" parameterType="HashMap">
+        <selectKey keyProperty="BNR_DTL_IDX" resultType="Integer" order="BEFORE">
+            SELECT SEQ_BNR_DTL_IDX.NEXTVAL AS BNR_DTL_IDX FROM DUAL
+        </selectKey>
+        /* ThemeBanner.insertThemeBannerDetail */
+        INSERT INTO
+            T_BNR_DTL
+            (
+                BNR_DTL_IDX,
+                BNR_BNR_MST_IDX,
+                BNR_DTL_TARGET,
+                BNR_DTL_URL,
+                BNR_DTL_ORDER
+            )
+        VALUES
+            (
+                #{BNR_DTL_IDX},
+                #{BNR_MST_IDX},
+                #{BNR_DTL_TARGET},
+                #{BNR_DTL_URL},
+                (   SELECT NVL(COUNT(0),0)+1
+                    FROM T_BNR_MST
+                    WHERE CMN_COM_IDX = #{CMN_COM_IDX}
+                    AND BNR_MST_IDX != #{BNR_MST_IDX}
+                )
+            )
+    </insert>
+    
+    <!-- 관리자 > 전시관리 > 배너관리 배너정보 수정 -->
+    <update id="updateThemeBannerDetail" parameterType="HashMap">
+        /* ThemeBanner.updateThemeBannerDetail */
+        UPDATE
+            T_BNR_DTL 
+        SET
+            BNR_DTL_TARGET = #{BNR_DTL_TARGET},
+            BNR_DTL_URL = #{BNR_DTL_URL} 
+        WHERE
+            BNR_DTL_IDX = #{BNR_DTL_IDX}        
+    </update>
+    
+    <!-- 관리자 > 전시관리 > 배너관리 배너정보 삭제 -->
+    <delete id="deleteThemeBannerDetail" parameterType="HashMap">
+        /* ThemeBanner.deleteThemeBannerDetail */
+        DELETE FROM T_BNR_DTL WHERE BNR_DTL_IDX = #{BNR_DTL_IDX}
+    </delete>
+    
+    <!-- 공통코드 현재 포함 하위 코드 조회 -->
+    <select id="selectBnrCatCodeList" parameterType="hashMap" resultType="hashMap">
+        /* ThemeBanner.selectBnrCatCodeList */
+        SELECT CMN_COM_LEVEL, CMN_COM_NM TITLE , CMN_COM_ETC1, CMN_COM_ETC2, CMN_COM_ETC3, CMN_COM_ETC4
+        FROM (
+            SELECT 
+                CMN_COM_LEVEL, CMN_COM_NM , CMN_COM_ETC1, CMN_COM_ETC2, CMN_COM_ETC3, CMN_COM_ETC4
+            FROM 
+                T_CMM_COM
+            WHERE
+                CMN_COM_USE_YN = 'Y'
+            START WITH CMN_COM_IDX = #{CMN_COM_IDX}
+            CONNECT BY PRIOR CMN_COM_UP_IDX = CMN_COM_IDX and CMN_COM_USE_YN = 'Y'
+            ORDER SIBLINGS BY CMN_COM_LEVEL ASC
+        ) ORDER BY CMN_COM_LEVEL DESC          
+    </select>
+    
+    <!-- 관리자 > 전시관리 > 배너관리 배너 순서 정렬 -->
+    <update id="updateThemeBannerSortArray" parameterType="HashMap">
+        /* ThemeBanner.updateThemeBannerSortArray */
+        UPDATE
+            T_BNR_DTL 
+        SET
+            BNR_DTL_ORDER = NVL(#{BNR_DTL_ORDER}, 1) 
+        WHERE
+            BNR_DTL_IDX = #{BNR_DTL_IDX}   
+    </update>   
+    
+    <!-- 관리자 > 전시관리 > 배너관리 배너 롤링 시간간격 설정 -->
+    <update id="updateThemeBannerRollingSec" parameterType="HashMap">
+        /* ThemeBanner.updateThemeBannerRollingSec */
+        UPDATE
+            T_CMM_COM 
+        SET
+            CMN_COM_ETC2 = #{ROLLING_TERM_SEC}
+        WHERE
+            CMN_COM_IDX = #{CMN_COM_IDX}
+    </update>
+    
+    
+    <!-- 공통코드 현재 포함 하위 코드 조회 -->
+    <select id="selectSubCodeList" parameterType="hashMap" resultType="hashMap">
+        /* ThemeBanner.selectSubCodeList */
+        SELECT 
+            CMN_COM_IDX,
+            CMN_COM_NM,
+            CMN_COM_LEVEL,
+            CMN_COM_UP_IDX,
+            CMN_COM_TOP_IDX,
+            CMN_COM_ETC1,
+            CMN_COM_ETC2,
+            CMN_COM_ETC3,
+            CMN_COM_SORT,
+            CMN_COM_USE_YN,
+            CMN_COM_REG_DT,
+            CMN_COM_REG_IP,
+            CMN_COM_REG_ID,
+            CMN_COM_UPD_DT,
+            CMN_COM_UPD_IP,
+            CMN_COM_UPD_ID 
+        FROM 
+            T_CMM_COM
+        WHERE
+            CMN_COM_USE_YN = 'Y'
+        START WITH CMN_COM_UP_IDX = #{CODE}
+        CONNECT BY PRIOR CMN_COM_IDX = CMN_COM_UP_IDX
+        ORDER SIBLINGS BY CMN_COM_LEVEL, CMN_COM_SORT ASC
+    </select>
+      
+      <!-- 테마전시배너관리 -> 상품전시 카테고리 리스트 조회 -->
+    <select id="selectThemeBannerCategory" parameterType="hashMap" resultType="hashMap">
+        /* ThemeBanner.selectThemeBannerCategory */
+        SELECT 
+            BNR_CTG_IDX,
+            BNR_MST_IDX,
+            PRD_CTG_IDX,
+            BNR_CTG_ORDER,
+            FN_CATEGORY_PATH(PRD_CTG_IDX) PRD_CTG_PATH
+        FROM 
+        	T_BNR_CTG
+        WHERE
+        	BNR_MST_IDX = #{BNR_MST_IDX}
+        ORDER BY T_BNR_CTG.BNR_CTG_ORDER
+    </select>
+    
+
+    <update id="updateThemeBannerStatus" parameterType="hashMap">
+        /* ThemeBanner.updateThemeBannerStatus */
+            UPDATE
+                T_BNR_MST
+            SET
+                BNR_MST_USE_YN = #{BNR_MST_USE_YN}
+            WHERE
+                BNR_MST_IDX = #{BNR_MST_IDX}
+    </update>
+    
+    <select id="selectProductBanner" parameterType="hashMap" resultType="hashMap">
+        /* ThemeBanner.selectProductBanner */
+        SELECT 
+        	TBP.BNR_PRD_IDX,
+        	TBP.BNR_MST_IDX,
+        	TBP.BNR_PRD_MST_CD,
+        	TBP.BNR_PRD_REF_USE_YN,
+        	TPM.PRD_MST_NM,
+        	TPM.PRD_MST_PRC,
+        	TPM.PRD_MST_SEL_STATE,
+        	TPM.PRD_MST_CNL_PC_YN,
+        	TPM.PRD_MST_CNL_MB_YN ,
+            FN_PRODUCT_IMG(    TPM.PRD_MST_CD, #{PRODUCT_THUMBNAIL_IMAGE_WIDTH}) AS PRD_IMAGE ,
+            FN_PRODUCT_IMG_ALT(TPM.PRD_MST_CD, #{PRODUCT_THUMBNAIL_IMAGE_WIDTH}) AS PRD_ALT         	
+          FROM T_BNR_PRD TBP, T_PRD_MST TPM
+          WHERE TBP.BNR_MST_IDX = #{BNR_MST_IDX} AND TPM.PRD_MST_CD = TBP.BNR_PRD_MST_CD
+    </select>
+    
+</mapper>

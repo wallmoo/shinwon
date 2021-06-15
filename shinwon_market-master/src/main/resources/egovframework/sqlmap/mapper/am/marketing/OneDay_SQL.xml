@@ -1,0 +1,178 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="OneDay">
+
+    <!-- 팝업관리 검색 조건 -->
+    <sql id="oneDayWhere">
+        <if test="searchPrdMstCd != null and searchPrdMstCd != ''">
+            AND D.PRD_MST_CD = #{searchPrdMstCd} 
+        </if>
+        <if test="searchPrdMstNm != null and searchPrdMstNm != ''">
+            <![CDATA[
+               AND P.PRD_MST_NM LIKE '%'||#{searchPrdMstNm}||'%'
+            ]]>
+        </if>
+        <if test="searchStartDate != null and searchStartDate != '' and searchEndDate != null and searchEndDate != ''">
+            <![CDATA[
+                AND D.ONE_DAY_ST_DT <= REPLACE(#{searchEndDate},'-', '')
+                AND REPLACE(#{searchStartDate},'-', '') <= D.ONE_DAY_ST_DT
+            ]]>
+        </if>
+        <if test="searchOneDayUesYn != null and searchOneDayUesYn != ''">
+            <![CDATA[
+                AND ONE_DAY_USE_YN = #{searchOneDayUesYn}
+            ]]>
+        </if>
+    </sql>
+    
+    <!-- 팝업관리 리스트 갯수 -->
+    <select id="selectOneDayCount" parameterType="hashMap" resultType="integer">
+        /* OneDay.selectOneDayCount */
+        SELECT
+            COUNT(0)
+        FROM
+            T_ONE_DAY D, T_PRD_MST P    
+        WHERE D.PRD_MST_CD = P.PRD_MST_CD
+        <include refid="oneDayWhere"/>
+    </select> 
+    
+    <!-- 팝업관리 리스트 조회 -->
+    <select id="selectOneDayList" parameterType="hashMap" resultType="hashMap">
+        /* OneDay.selectOneDayList */
+        SELECT
+            S2.*            
+        FROM
+            (   SELECT
+                    ROWNUM AS RNUM,
+                    S1.* 
+                FROM
+                    (   SELECT
+                               D.ONE_DAY_IDX,
+                               D.PRD_MST_CD,
+                               D.ONE_DAY_NM,
+                               P.PRD_MST_NM,
+                               P.PRD_MST_PRC,
+                               P.PRD_MST_SEL_CNT,
+                               D.ONE_DAY_ST_DT,
+                               D.ONE_DAY_ST_HH,
+                               D.ONE_DAY_ST_MM,
+                               D.ONE_DAY_ED_HH,
+                               D.ONE_DAY_ED_MM,
+                               D.ONE_DAY_USE_YN,
+                               D.ONE_DAY_REG_DT
+                        FROM
+                            T_ONE_DAY D, T_PRD_MST P                            
+                        WHERE
+                            D.PRD_MST_CD = P.PRD_MST_CD
+                            <include refid="oneDayWhere"/>
+                        ORDER BY ONE_DAY_REG_DT DESC 
+                    )
+                    S1 
+            )
+            S2 
+        WHERE
+            S2.RNUM BETWEEN #{startNum} AND #{endNum}
+    </select>
+
+ 
+    <select id="selectOneDayInfo" parameterType="hashMap" resultType="hashMap">
+        <![CDATA[
+        /* OneDay.selectOneDayInfo */
+        SELECT
+            D.ONE_DAY_IDX, 
+            D.PRD_MST_CD,
+            D.ONE_DAY_NM, 
+            D.ONE_DAY_CTS,
+            D.ONE_DAY_ST_DT, 
+            D.ONE_DAY_ST_HH, 
+            D.ONE_DAY_ST_MM, 
+            D.ONE_DAY_ED_HH, 
+            D.ONE_DAY_ED_MM,
+            D.ONE_DAY_USE_YN,
+            D.ONE_DAY_REG_DT, 
+            D.ONE_DAY_REG_IP, 
+            D.ONE_DAY_REG_ID,
+            (SELECT ADM_MST_NM FROM T_ADM_MST WHERE ADM_MST_ID = D.ONE_DAY_REG_ID) ONE_DAY_REG_NM,
+            P.PRD_MST_NM,
+            P.PRD_MST_PRC,
+            P.PRD_MST_SEL_CNT,
+            NVL(D.ONE_DAY_UPD_DT,D.ONE_DAY_REG_DT) ONE_DAY_UPD_DT,
+            (SELECT ADM_MST_NM FROM T_ADM_MST WHERE ADM_MST_ID = NVL(D.ONE_DAY_UPD_ID,D.ONE_DAY_REG_ID)) ONE_DAY_UPD_NM,
+            NVL(D.ONE_DAY_UPD_ID,D.ONE_DAY_REG_ID) ONE_DAY_UPD_ID,
+            CASE WHEN PRD_MST_PC_CPN_UNT = 'R' THEN
+				PRD_MST_PRC - (PRD_MST_PRC * (NVL(PRD_MST_PC_CPN_PRC,0) / 100 ))
+				ELSE PRD_MST_PRC - NVL(PRD_MST_PC_CPN_PRC,0)
+			END	AS PRD_MST_ORD_PRC,
+			0 AS ERP_MST_SELL_PRC
+        FROM
+            T_ONE_DAY D, T_PRD_MST P
+        WHERE
+        	D.PRD_MST_CD = P.PRD_MST_CD
+        	AND ONE_DAY_IDX = #{ONE_DAY_IDX}
+        ]]>
+    </select>
+
+    <!-- 팝업관리 등록 -->
+    <insert id="insertOneDay" parameterType="hashMap">
+    <selectKey keyProperty="ONE_DAY_IDX" resultType="Integer" order="BEFORE">
+        SELECT SEQ_ONE_DAY_IDX.NEXTVAL AS ONE_DAY_IDX  FROM DUAL
+    </selectKey>
+        <![CDATA[
+        /* OneDay.insertOneDay */
+        INSERT INTO T_ONE_DAY (
+            ONE_DAY_IDX
+            , PRD_MST_CD
+            , ONE_DAY_NM
+            , ONE_DAY_CTS
+            , ONE_DAY_ST_DT
+            , ONE_DAY_ST_HH
+            , ONE_DAY_ST_MM
+            , ONE_DAY_ED_HH
+            , ONE_DAY_ED_MM
+            , ONE_DAY_USE_YN
+            , ONE_DAY_REG_DT
+            , ONE_DAY_REG_IP
+            , ONE_DAY_REG_ID
+        )VALUES (
+            #{ONE_DAY_IDX}
+            ,#{PRD_MST_CD}
+            , #{ONE_DAY_NM}
+            , #{ONE_DAY_CTS}
+            , REPLACE(#{ONE_DAY_ST_DT},'-','')
+            , #{ONE_DAY_ST_HH}
+            , #{ONE_DAY_ST_MM}
+            , #{ONE_DAY_ED_HH}
+            , #{ONE_DAY_ED_MM}
+            , #{ONE_DAY_USE_YN}
+            , TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS')
+            , #{ONE_DAY_REG_IP}
+            , #{ONE_DAY_REG_ID}
+        ) 
+        ]]>
+    </insert>
+   
+    <!-- 팝업관리 수정 -->
+    <update id="updateOneDay" parameterType="hashMap">
+        <![CDATA[
+        /* OneDay.updateOneDay */
+        UPDATE 
+            T_ONE_DAY
+        SET
+            ONE_DAY_NM = #{ONE_DAY_NM}
+            , ONE_DAY_CTS = #{ONE_DAY_CTS}
+            , PRD_MST_CD = #{PRD_MST_CD}
+            , ONE_DAY_ST_DT = REPLACE(#{ONE_DAY_ST_DT},'-','')
+            , ONE_DAY_ST_HH = #{ONE_DAY_ST_HH}
+            , ONE_DAY_ST_MM = #{ONE_DAY_ST_MM}
+            , ONE_DAY_ED_HH = #{ONE_DAY_ED_HH}
+            , ONE_DAY_ED_MM = #{ONE_DAY_ED_MM}
+            , ONE_DAY_USE_YN = #{ONE_DAY_USE_YN}
+            , ONE_DAY_UPD_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS')
+            , ONE_DAY_UPD_IP = #{ONE_DAY_UPD_IP}
+            , ONE_DAY_UPD_ID = #{ONE_DAY_UPD_ID}
+        WHERE
+            ONE_DAY_IDX = #{ONE_DAY_IDX}
+        ]]>
+    </update>
+</mapper>

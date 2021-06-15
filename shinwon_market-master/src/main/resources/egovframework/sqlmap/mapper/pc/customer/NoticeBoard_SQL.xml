@@ -1,0 +1,504 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="PcNoticeBoard">
+    
+    <!-- 공지사항 조건절 -->
+    <sql id="noticeBoardWhere">
+        <if test="searchBrdCmnComIdx != null and searchBrdCmnComIdx != ''">
+            AND BRD_CMN_COM_IDX = #{searchBrdCmnComIdx} 
+        </if>
+        <if test="searchWord != null and searchWord !=''">
+        	AND BRD_NTS_TITLE LIKE '%' || #{searchWord} || '%'
+        </if>
+    </sql>
+    
+    <!-- 프론트 > 고객센터 > 공지사항 목록 갯수 -->
+    <select id="selectNoticeBoardListCount" parameterType="HashMap" resultType="Integer">
+        /* PcNoticeBoard.selectNoticeBoardListCount */
+        SELECT
+            COUNT(BRD_NTS_IDX)
+        FROM
+            T_BRD_NTS 
+        WHERE
+            BRD_NTS_USE_YN ='Y'
+        <if test="BRD_NTS_TOP_YN != null and BRD_NTS_TOP_YN != ''">
+            AND BRD_NTS_TOP_YN = #{BRD_NTS_TOP_YN}
+        </if>
+        <if test="BRD_NTS_TOP_YN != null and BRD_NTS_TOP_YN.equals('N'.toString())">
+            <include refid="noticeBoardWhere"/>
+        </if>
+    </select>
+
+    <!-- 프론트 > 고객센터 > 공지사항 목록 -->
+    <select id="selectNoticeBoardList" parameterType="HashMap" resultType="HashMap">
+        /* PcNoticeBoard.selectNoticeBoardList */
+        <![CDATA[
+        SELECT
+            S2.* 
+        FROM
+            (   SELECT
+                    ROWNUM AS RNUM,
+                    S1.* 
+                FROM
+                    (   SELECT
+                            BRD_NTS_IDX,
+                            BRD_NTS_TITLE,
+                            BRD_NTS_TOP_YN,
+                            BRD_NTS_READ_CNT,
+                            BRD_NTS_USE_YN,
+                            BRD_NTS_REG_DT,
+                            BRD_NTS_REG_IP,
+                            BRD_NTS_REG_ID,
+                            BRD_NTS_UPD_DT,
+                            BRD_NTS_UPD_IP,
+                            BRD_NTS_UPD_ID,
+                            (   SELECT
+                                    CMN_COM_NM 
+                                FROM
+                                    T_CMM_COM 
+                                WHERE
+                                    CMN_COM_IDX = BRD_CMN_COM_IDX 
+                            )AS BRD_CMN_COM_NM 
+                        FROM
+                            T_BRD_NTS 
+                        WHERE
+                            BRD_NTS_USE_YN ='Y'
+              ]]>       
+                        <if test="BRD_NTS_TOP_YN != null and BRD_NTS_TOP_YN != ''">
+                            AND BRD_NTS_TOP_YN = #{BRD_NTS_TOP_YN}
+                        </if>
+                        <if test="BRD_NTS_TOP_YN != null and BRD_NTS_TOP_YN.equals('N'.toString())">
+                            <include refid="noticeBoardWhere"/>
+                        </if>
+                        ORDER BY BRD_NTS_REG_DT DESC
+                    )
+                    S1
+            )
+            S2
+        <if test="startNum != null and startNum != '' and endNum != null and endNum != ''">
+            WHERE S2.RNUM BETWEEN NVL(#{startNum}, 1) AND NVL(#{endNum}, 10)
+        </if>
+    </select>
+
+    <!-- 프론트 > 고객센터 > 공지사항 상세정보 -->
+    <resultMap id="resultNoticeBoardInfo" type="HashMap">
+        <result property="BRD_NTS_IDX" column="BRD_NTS_IDX"/>
+        <result property="BRD_NTS_TITLE" column="BRD_NTS_TITLE"/>
+        <result property="BRD_NTS_CONTENTS" column="BRD_NTS_CONTENTS" jdbcType="CLOB" javaType="java.lang.String"/>
+        <result property="BRD_NTS_TOP_YN" column="BRD_NTS_TOP_YN"/>
+        <result property="BRD_NTS_READ_CNT" column="BRD_NTS_READ_CNT"/>
+        <result property="BRD_NTS_USE_YN" column="BRD_NTS_USE_YN"/>
+        <result property="BRD_NTS_REG_DT" column="BRD_NTS_REG_DT"/>
+        <result property="BRD_NTS_REG_IP" column="BRD_NTS_REG_IP"/>
+        <result property="BRD_NTS_REG_ID" column="BRD_NTS_REG_ID"/>
+        <result property="BRD_NTS_UPD_DT" column="BRD_NTS_UPD_DT"/>
+        <result property="BRD_NTS_UPD_IP" column="BRD_NTS_UPD_IP"/>
+        <result property="BRD_NTS_UPD_ID" column="BRD_NTS_UPD_ID"/>
+        <result property="BRD_CMN_COM_NM" column="BRD_CMN_COM_NM"/>
+        <result property="NEXT_TITLE_IDX" column="NEXT_TITLE_IDX"/>
+        <result property="NEXT_TITLE" column="NEXT_TITLE"/>
+        <result property="PRE_TITLE_IDX" column="PRE_TITLE_IDX"/>
+        <result property="PRE_TITLE" column="PRE_TITLE"/>
+    </resultMap>
+    <select id="selectNoticeBoardInfo" parameterType="HashMap" resultMap="resultNoticeBoardInfo">
+        /* PcNoticeBoard.selectNoticeBoardInfo */
+        SELECT
+            S1.*
+        FROM
+        (            
+        SELECT
+            BRD_NTS_IDX,
+            BRD_NTS_TITLE,
+            BRD_NTS_CONTENTS,
+            BRD_NTS_TOP_YN,
+            BRD_NTS_READ_CNT,
+            BRD_NTS_USE_YN,
+            BRD_NTS_REG_DT,
+            BRD_NTS_REG_IP,
+            BRD_NTS_REG_ID,
+            BRD_NTS_UPD_DT,
+            BRD_NTS_UPD_IP,
+            BRD_NTS_UPD_ID,
+            (   SELECT
+                    CMN_COM_NM 
+                FROM
+                    T_CMM_COM 
+                WHERE
+                    CMN_COM_IDX = BRD_CMN_COM_IDX 
+            )AS BRD_CMN_COM_NM
+            , LEAD(BRD_NTS_IDX, 1, '') OVER (ORDER BY BRD_NTS_REG_DT DESC) NEXT_TITLE_IDX
+            , LEAD(BRD_NTS_TITLE, 1, '') OVER (ORDER BY BRD_NTS_REG_DT DESC) NEXT_TITLE
+            , LAG(BRD_NTS_IDX, 1, '') OVER (ORDER BY BRD_NTS_REG_DT DESC) PRE_TITLE_IDX
+            , LAG(BRD_NTS_TITLE, 1, '') OVER (ORDER BY BRD_NTS_REG_DT DESC) PRE_TITLE     
+        FROM
+            T_BRD_NTS
+        WHERE
+            BRD_NTS_USE_YN = 'Y'
+        <if test="BRD_NTS_TOP_YN != null and BRD_NTS_TOP_YN != ''">
+            AND BRD_NTS_TOP_YN = #{BRD_NTS_TOP_YN}
+        </if>
+        <if test="BRD_NTS_TOP_YN != null and BRD_NTS_TOP_YN.equals('N'.toString())">
+            <include refid="noticeBoardWhere"/>
+        </if>
+        ) S1
+        WHERE BRD_NTS_IDX = #{BRD_NTS_IDX}
+        <if test="BRD_NTS_TOP_YN != null and BRD_NTS_TOP_YN != ''">
+            AND BRD_NTS_TOP_YN = #{BRD_NTS_TOP_YN}
+        </if>
+    </select>
+    
+    <!-- 프론트 > 고객센터 > 공지사항 조회수 증가 -->
+    <update id="updateNoticeBoardReadCount" parameterType="HashMap">
+        /* PcNoticeBoard.updateNoticeBoardReadCount */
+        UPDATE 
+            T_BRD_NTS 
+        SET 
+            BRD_NTS_READ_CNT = NVL(BRD_NTS_READ_CNT, 0) + 1 
+        WHERE 
+            BRD_NTS_USE_YN = 'Y' 
+            AND BRD_NTS_IDX = #{BRD_NTS_IDX}
+    </update>
+    
+    <!-- 프론트 > 고객센터 > 공지사항 목록 -->
+    <select id="selectMainNoticeBoardList" parameterType="HashMap" resultType="HashMap">
+        /* PcNoticeBoard.selectMainNoticeBoardList */
+        SELECT
+            S2.* 
+        FROM
+            (   SELECT
+                    ROWNUM AS RNUM,
+                    S1.* 
+                FROM
+                    (   SELECT
+                            BRD_NTS_IDX,
+                            BRD_NTS_TITLE,
+                            BRD_NTS_TOP_YN,
+                            BRD_NTS_READ_CNT,
+                            BRD_NTS_USE_YN,
+                            BRD_NTS_REG_DT,
+                            BRD_NTS_REG_IP,
+                            BRD_NTS_REG_ID,
+                            BRD_NTS_UPD_DT,
+                            BRD_NTS_UPD_IP,
+                            BRD_NTS_UPD_ID,
+                            (   SELECT
+                                    CMN_COM_NM 
+                                FROM
+                                    T_CMM_COM 
+                                WHERE
+                                    CMN_COM_IDX = BRD_CMN_COM_IDX 
+                            )AS BRD_CMN_COM_NM 
+                        FROM
+                            T_BRD_NTS 
+                        WHERE
+                            BRD_NTS_USE_YN ='Y'
+                        ORDER BY BRD_NTS_TOP_YN DESC, BRD_NTS_REG_DT DESC
+                    )
+                    S1
+            )
+            S2
+        WHERE S2.RNUM BETWEEN NVL(#{startNum}, 1) AND NVL(#{endNum}, 10)
+    </select>
+    
+     <!-- 관리자에서 게시판생성을 통해 만들어진 일반게시판 미리보기 목록 갯수 -->
+    <select id="selectPreBoardListCount" parameterType="HashMap" resultType="Integer">
+        /* PcNoticeBoard.selectPreBoardListCount */
+        SELECT
+            COUNT(0)
+        FROM
+            T_BRD_DTL TBD 
+        WHERE
+            TBD.BRD_BRD_MST_IDX = #{BRD_MST_IDX}
+        AND
+            TBD.BRD_DTL_USE_YN = 'Y'
+        <if test="BRD_DTL_TOP_YN != null and BRD_DTL_TOP_YN != ''">
+            AND TBD.BRD_DTL_TOP_YN = #{BRD_DTL_TOP_YN}
+        </if>
+    </select>
+    
+    <!-- 관리자에서 게시판생성을 통해 만들어진 일반게시판 미리보기 목록 -->
+    <select id="selectPreBoardList" parameterType="HashMap" resultType="HashMap">
+        /* PcNoticeBoard.selectPreBoardList */
+        SELECT
+            S2.*
+        FROM
+            (
+            SELECT
+                ROWNUM AS RNUM,
+                S1.*
+            FROM
+            (
+                SELECT
+                    TBD.BRD_DTL_IDX,
+                    TBD.BRD_BRD_MST_IDX,
+                    TBD.BRD_DTL_TITLE,
+                    TBD.BRD_DTL_TOP_YN,
+                    TBD.BRD_DTL_READ_CNT,
+                    TBD.BRD_DTL_USE_YN,
+                    TBD.BRD_DTL_REG_DT,
+                    TBD.BRD_DTL_REG_IP,
+                    TBD.BRD_DTL_REG_ID
+                FROM
+                    T_BRD_DTL TBD
+                WHERE
+                    TBD.BRD_BRD_MST_IDX = #{BRD_MST_IDX}
+                AND
+                    TBD.BRD_DTL_USE_YN = 'Y'
+                <if test="BRD_DTL_TOP_YN != null and BRD_DTL_TOP_YN != ''">
+                    AND TBD.BRD_DTL_TOP_YN = #{BRD_DTL_TOP_YN}
+                </if>
+            ) S1
+        ) S2
+        <if test="startNum != null and startNum != '' and endNum != null and endNum != ''">
+            WHERE S2.RNUM BETWEEN NVL(#{startNum}, 1) AND NVL(#{endNum}, 10)
+        </if>
+    </select>
+    
+    <!-- 관리자에서 게시판생성을 통해 만들어진 게시판 미리보기 상세 -->
+    <resultMap id="resultPreBoardInfo" type="HashMap">
+        <result property="BRD_DTL_IDX" column="BRD_DTL_IDX"/>
+        <result property="BRD_DTL_TITLE" column="BRD_DTL_TITLE"/>
+        <result property="BRD_DTL_CONTENTS" column="BRD_DTL_CONTENTS" jdbcType="CLOB" javaType="java.lang.String"/>
+        <result property="BRD_DTL_TOP_YN" column="BRD_DTL_TOP_YN"/>
+        <result property="BRD_DTL_READ_CNT" column="BRD_DTL_READ_CNT"/>
+        <result property="BRD_DTL_USE_YN" column="BRD_DTL_USE_YN"/>
+        <result property="BRD_DTL_REG_DT" column="BRD_DTL_REG_DT"/>
+        <result property="BRD_DTL_REG_IP" column="BRD_DTL_REG_IP"/>
+        <result property="BRD_DTL_REG_ID" column="BRD_DTL_REG_ID"/>
+        <result property="BRD_DTL_UPD_DT" column="BRD_DTL_UPD_DT"/>
+        <result property="BRD_DTL_UPD_IP" column="BRD_DTL_UPD_IP"/>
+        <result property="BRD_DTL_UPD_ID" column="BRD_DTL_UPD_ID"/>
+        <result property="BRD_MST_REPLY_YN" column="BRD_MST_REPLY_YN"/>
+        <result property="NEXT_TITLE_IDX" column="NEXT_TITLE_IDX"/>
+        <result property="NEXT_TITLE" column="NEXT_TITLE"/>
+        <result property="PRE_TITLE_IDX" column="PRE_TITLE_IDX"/>
+        <result property="PRE_TITLE" column="PRE_TITLE"/>
+    </resultMap>
+    <select id="selectPreBoardInfo" parameterType="HashMap" resultMap="resultPreBoardInfo">
+        /* PcNoticeBoard.selectPreBoardInfo */
+        SELECT
+            S1.*
+        FROM
+        (            
+        SELECT
+            TBD.BRD_DTL_IDX,
+            TBD.BRD_DTL_TITLE,
+            TBD.BRD_DTL_CONTENTS,
+            TBD.BRD_DTL_TOP_YN,
+            TBD.BRD_DTL_READ_CNT,
+            TBD.BRD_DTL_USE_YN,
+            TBD.BRD_DTL_REG_DT,
+            TBD.BRD_DTL_REG_IP,
+            TBD.BRD_DTL_REG_ID,
+            TBD.BRD_DTL_UPD_DT,
+            TBD.BRD_DTL_UPD_IP,
+            TBD.BRD_DTL_UPD_ID,
+            TBM.BRD_MST_REPLY_YN
+            , LEAD(TBD.BRD_DTL_IDX, 1, '') OVER (ORDER BY TBD.BRD_DTL_IDX DESC) NEXT_TITLE_IDX
+            , LEAD(TBD.BRD_DTL_TITLE, 1, '') OVER (ORDER BY TBD.BRD_DTL_IDX DESC) NEXT_TITLE
+            , LAG(TBD.BRD_DTL_IDX, 1, '') OVER (ORDER BY TBD.BRD_DTL_IDX DESC) PRE_TITLE_IDX
+            , LAG(TBD.BRD_DTL_TITLE, 1, '') OVER (ORDER BY TBD.BRD_DTL_IDX DESC) PRE_TITLE     
+        FROM
+            T_BRD_DTL TBD , T_BRD_MST TBM
+        WHERE
+            TBD.BRD_BRD_MST_IDX = TBM.BRD_MST_IDX
+        AND
+            TBD.BRD_DTL_USE_YN = 'Y'
+        AND 
+            TBD.BRD_BRD_MST_IDX = #{BRD_MST_IDX}
+            <if test="BRD_DTL_TOP_YN != null and BRD_DTL_TOP_YN != ''">
+                AND TBD.BRD_DTL_TOP_YN = #{BRD_DTL_TOP_YN}
+            </if>
+        ) S1
+        WHERE BRD_DTL_IDX = #BRD_DTL_IDX#
+        <if test="BRD_DTL_TOP_YN != null and BRD_DTL_TOP_YN != ''">
+            AND BRD_DTL_TOP_YN = #{BRD_DTL_TOP_YN}
+        </if>
+    </select>
+    
+    <!-- 프론트 > 고객센터 > 관리자에서 게시판생성을 통해 만들어진 게시판 조회수 증가 -->
+    <update id="updatePreBoardReadCount" parameterType="HashMap">
+        /* PcNoticeBoard.updatePreBoardReadCount */
+        UPDATE 
+            T_BRD_DTL
+        SET 
+            BRD_DTL_READ_CNT = NVL(BRD_DTL_READ_CNT, 0) + 1 
+        WHERE 
+            BRD_DTL_USE_YN = 'Y' 
+            AND BRD_DTL_IDX = #{BRD_DTL_IDX}
+    </update>
+    
+    <!-- 관리자에서 게시판생성을 통해 만들어진 게시판 미리보기 상세 > 댓글 목록 갯수 -->
+    <select id="selectReplyListCount" parameterType="HashMap" resultType="Integer">
+        /* PcNoticeBoard.selectReplyListCount */
+        SELECT 
+            COUNT(1)
+        FROM
+            T_BRD_REPLY
+        WHERE
+            BRD_REPLY_DISPLAY_YN = 'Y'
+        AND 
+            BRD_BRD_DTL_IDX = #{BRD_DTL_IDX}
+    </select>
+    
+    <!-- 관리자에서 게시판생성을 통해 만들어진 게시판 미리보기 상세 > 댓글 목록 -->
+    <select id="selectReplyList" parameterType="HashMap" resultType="HashMap">
+        /* PcNoticeBoard.selectReplyList */
+        SELECT
+            S1.*
+        FROM
+        (
+            SELECT
+                ROWNUM AS RNUM,
+                S2.*
+            FROM
+            (
+                SELECT 
+                    BRD_REPLY_IDX,
+                    BRD_BRD_DTL_IDX,
+                    BRD_REPLY_CONTENTS,
+                    BRD_REPLY_DISPLAY_YN,
+                    BRD_REPLY_REG_DT,
+                    BRD_REPLY_REG_ID,
+                    BRD_REPLY_REG_IP
+                FROM
+                    T_BRD_REPLY
+                WHERE
+                    BRD_REPLY_DISPLAY_YN = 'Y'
+                AND 
+                    BRD_BRD_DTL_IDX = #{BRD_DTL_IDX}
+                ORDER BY BRD_REPLY_REG_DT DESC
+            ) S2
+        ) S1
+        WHERE 
+            S1.RNUM BETWEEN #{startNum} AND #{endNum}
+    </select>
+    
+    <!-- 관리자에서 게시판생성을 통해 만들어진 게시판 미리보기 상세 > 댓글 등록 -->
+    <insert id="insertReply" parameterType="HashMap">
+        <selectKey keyProperty="BRD_REPLY_IDX" resultType="Integer" order="BEFORE">
+            SELECT SEQ_BRD_REPLY_IDX.NEXTVAL AS BRD_REPLY_IDX FROM DUAL         
+        </selectKey>
+        /* PcNoticeBoard.insertReply */
+        INSERT INTO
+            T_BRD_REPLY
+            (
+                BRD_REPLY_IDX,
+                BRD_BRD_DTL_IDX,
+                BRD_REPLY_CONTENTS,
+                BRD_REPLY_DISPLAY_YN,
+                BRD_REPLY_REG_DT,
+                BRD_REPLY_REG_ID,
+                BRD_REPLY_REG_IP
+            )
+        VALUES
+            (
+                #{BRD_REPLY_IDX},
+                #{BRD_DTL_IDX},
+                #{BRD_REPLY_CONTENTS},
+                NVL(#{BRD_REPLY_DISPLAY_YN},'Y'),
+                TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+                #{BRD_REPLY_REG_ID},
+                #{BRD_REPLY_REG_IP}
+            )
+    </insert>
+    
+    <!-- 관리자에서 게시판생성을 통해 만들어진 이미지게시판 미리보기 목록 갯수 -->
+    <select id="selectPreImageBoardListCount" parameterType="HashMap" resultType="Integer">
+        /* PcNoticeBoard.selectPreImageBoardListCount */
+        SELECT
+            COUNT(0)
+        FROM
+            T_BRD_DTL TBD, T_CMM_FLE TCF
+        WHERE
+            TBD.BRD_DTL_IDX = TCF.CMM_FLE_TB_PK
+        AND
+            TCF.CMM_FLE_TB_TYPE = 'T'
+        AND
+            TCF.CMM_FLE_USE_YN = 'Y'
+        AND
+            TBD.BRD_BRD_MST_IDX = #{BRD_MST_IDX}
+        AND
+            TBD.BRD_DTL_USE_YN = 'Y'
+        <if test="BRD_DTL_TOP_YN != null and BRD_DTL_TOP_YN != ''">
+            AND TBD.BRD_DTL_TOP_YN = #{BRD_DTL_TOP_YN}
+        </if>
+    </select>
+  
+    <!-- 관리자에서 게시판생성을 통해 만들어진 이미지게시판 미리보기 목록 -->
+    <select id="selectPreImageBoardList" parameterType="HashMap" resultType="HashMap">
+        /* PcNoticeBoard.selectPreImageBoardList */
+        SELECT
+            S2.*
+        FROM
+            (
+            SELECT
+                ROWNUM AS RNUM,
+                S1.*
+            FROM
+            (
+                SELECT
+                    TBD.BRD_DTL_IDX,
+                    TBD.BRD_BRD_MST_IDX,
+                    TBD.BRD_DTL_TITLE,
+                    TBD.BRD_DTL_TOP_YN,
+                    TBD.BRD_DTL_READ_CNT,
+                    TBD.BRD_DTL_USE_YN,
+                    TBD.BRD_DTL_REG_DT,
+                    TBD.BRD_DTL_REG_IP,
+                    TBD.BRD_DTL_REG_ID,
+                    TCF.CMM_FLE_ATT_PATH || CMM_FLE_SYS_NM AS THUMB_NM      
+                FROM
+                    T_BRD_DTL TBD, T_CMM_FLE TCF
+                WHERE
+                    TBD.BRD_DTL_IDX = TCF.CMM_FLE_TB_PK
+                AND
+                    TCF.CMM_FLE_TB_TYPE = 'T'
+                AND
+                    TCF.CMM_FLE_USE_YN = 'Y'
+                AND
+                    TBD.BRD_BRD_MST_IDX = #{BRD_MST_IDX}
+                AND
+                    TBD.BRD_DTL_USE_YN = 'Y'
+                <if test="BRD_DTL_TOP_YN != null and BRD_DTL_TOP_YN != ''">
+                    AND TBD.BRD_DTL_TOP_YN = #{BRD_DTL_TOP_YN}
+                </if>
+            ) S1
+        ) S2
+        <if test="startNum != null and startNum != '' and endNum != null and endNum != ''">
+            WHERE S2.RNUM BETWEEN NVL(#{startNum}, 1) AND NVL(#{endNum}, 10)
+        </if>
+    </select>
+    
+    <!-- 첨부파일 목록  -->
+    <select id="selectBoardCommonFileList" parameterType="HashMap" resultType="HashMap">
+        /* PcNoticeBoard.selectBoardCommonFileList */
+        SELECT
+            CMM_FLE_IDX,
+            CMM_FLE_TB_NM,
+            CMM_FLE_TB_PK,
+            CMM_FLE_TB_TYPE,
+            CMM_FLE_SYS_PATH,
+            CMM_FLE_ATT_PATH,
+            CMM_FLE_ORG_NM,
+            CMM_FLE_SYS_NM,
+            CMM_FLE_ATT_SIZE,
+            CMM_FLE_ATT_EXT,
+            CMM_FLE_DW_CNT,
+            CMM_FLE_SORT,
+            CMM_FLE_USE_YN,
+            CMM_FLE_REG_DT,
+            CMM_FLE_REG_ID,
+            CMN_FLE_ALT_TXT,
+            CMM_FLE_SYS_PATH || CMM_FLE_ATT_PATH || CMM_FLE_SYS_NM AS CMM_FLE_SAVE_PATH
+        FROM
+            T_CMM_FLE
+        WHERE
+            CMM_FLE_TB_NM = #{CMM_FLE_TB_NM}
+            AND CMM_FLE_TB_PK = #{CMM_FLE_TB_PK}
+            AND CMM_FLE_TB_TYPE = #{CMM_FLE_TB_TYPE}
+            AND CMM_FLE_USE_YN = 'Y'
+    </select>
+    
+</mapper>

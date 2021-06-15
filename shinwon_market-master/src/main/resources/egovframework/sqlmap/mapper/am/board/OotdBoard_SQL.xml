@@ -1,0 +1,176 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="OotdBoard">
+
+    <!-- OOTD 검색 조건  제목 상태-->
+    <sql id = "OOTDBoardSearchWhere">
+        <if test="searchMemNm != null and searchMemNm != ''">
+            AND TMM.MEM_MST_MEM_NM LIKE '%' || #{searchMemNm} || '%'
+        </if>
+        <if test="searchMemID != null and searchMemID != ''">
+            AND TCM.CNT_MST_REG_ID LIKE '%' || #{searchMemID} || '%'
+        </if>
+        <if test="searchKeyword != null and searchKeyword != ''">
+            AND TCM.CNT_MST_TITLE LIKE '%' || #{searchKeyword} || '%'
+        </if>
+        <if test="searchStatus != null and searchStatus != ''">
+            AND TCM.CNT_MST_USE_YN = #{searchStatus}
+        </if>
+        <if test="searchStartDate != null and searchStartDate != '' and searchEndDate != null and searchEndDate != '' ">
+            AND TCM.CNT_MST_REG_DT BETWEEN REPLACE(#{searchStartDate},'-', '')||'000000' AND REPLACE(#{searchEndDate},'-', '')||'235959'
+        </if>
+    </sql>
+    
+    <!-- 회원 OOTD 목록 -->
+    <select id="selectOOTDBoardList" parameterType="hashMap" resultType="hashMap">
+        /*OotdBoard.selectOOTDBoardList*/
+ 		SELECT
+            S2.*
+        FROM
+        (
+	        SELECT
+	    		ROWNUM AS RNUM
+	    		, S1.*
+	        FROM 
+	            (SELECT
+	                TCM.CNT_MST_IDX
+	                , TCM.CNT_MST_TITLE
+	                , TCM.CNT_MST_REG_ID
+	                , TCM.CNT_MST_REG_DT
+	                , (SELECT COUNT(*) FROM T_OTD_RPL TOR WHERE TOR.CNT_OTD_ID = TCM.CNT_MST_IDX ) COMMENT_COUNT
+	                , TCM.CNT_MST_USE_YN
+	                , TMM.MEM_MST_MEM_NM
+	                , TMM.MEM_MST_MEM_ID
+	            FROM
+	                T_CNT_MST TCM
+	                , T_MEM_MST TMM
+	            WHERE 
+	            	1=1
+	             	AND TCM.CNT_MST_REG_ID = TMM.MEM_MST_MEM_ID
+	             	<include refid="OOTDBoardSearchWhere" />
+	            ORDER BY TCM.CNT_MST_REG_DT DESC
+	            ) S1
+        ) S2
+    	WHERE S2.RNUM BETWEEN #{startNum} AND #{endNum}
+    </select>
+    
+    <!-- 회원 OOTD 목록 갯수 -->
+    <select id="selectOOTDBoardListCount" parameterType="java.util.HashMap" resultType="Integer">
+        /*OotdBoard.selectOOTDBoardListCount*/
+        SELECT 
+        	count(*) 
+        FROM 
+        	T_CNT_MST TCM
+            , T_MEM_MST TMM
+        WHERE 
+            1=1
+        	AND TCM.CNT_MST_REG_ID = TMM.MEM_MST_MEM_ID
+            <include refid="OOTDBoardSearchWhere" />
+    </select>
+    
+    <!-- OOTD 조회 -->
+    <select id="selectOOTDBoardInfo" parameterType="hashMap" resultType="hashMap">
+        /* OotdBoard.selectOOTDBoardInfo */
+       SELECT
+            TCM.CNT_MST_IDX
+            , TCM.CNT_MST_TITLE
+            , TCM.CNT_MST_USE_YN
+            , TCM.CNT_MST_REG_DT
+            , TCM.CNT_MST_REG_IP
+            , TCM.CNT_MST_REG_ID
+            , TCM.CNT_MST_TYPE
+            , TCM.CNT_MST_DESC
+            , TCM.CNT_MST_UPD_ID
+            , TCM.CNT_MST_UPD_DT
+            , (SELECT MEM_MST_MEM_NM FROM T_MEM_MST WHERE MEM_MST_MEM_ID = TCM.CNT_MST_REG_ID) REG_MEM_NM
+            , (SELECT MEM_MST_MEM_NM FROM T_MEM_MST WHERE MEM_MST_MEM_ID = TCM.CNT_MST_UPD_ID) UPD_MEM_NM
+            , (SELECT MEM_MST_PRF_IMG FROM T_MEM_MST WHERE MEM_MST_MEM_ID = TCM.CNT_MST_REG_ID ) AS MEM_MST_PRF_IMG
+            , DECODE(TCM.CNT_MST_REG_ID,#{MEM_MST_ID}, 'Y', 'N') AS MY_OOTD_YN 
+			, (SELECT COUNT(TLH.CNT_MST_ID) FROM T_LIK_HIS TLH WHERE TLH.CNT_MST_ID = TO_CHAR(TCM.CNT_MST_IDX) AND TLH.CNT_MST_TYPE='TYPE_OOTD') AS LIKE_COUNTS
+            , (CASE WHEN (SELECT COUNT(TLH.CNT_MST_ID) FROM T_LIK_HIS TLH WHERE TLH.CNT_MST_ID = TO_CHAR(TCM.CNT_MST_IDX) AND TLH.MEM_MST_ID = #{MEM_MST_ID})>0 THEN 'on' ELSE '' END) AS LIKE_CLS
+        FROM
+            T_CNT_MST TCM
+        WHERE
+            CNT_MST_IDX = #{CNT_MST_IDX}
+            AND CNT_MST_TYPE = 'TYPE_OOTD'
+    </select>
+
+    <!-- OOTD 등록 상품 조회 -->
+    <select id="selectOOTDProductList" parameterType="hashMap" resultType="hashMap">
+        /* OotdBoard.selectOOTDProductList */
+        SELECT TA.*, ((TA.PRD_MST_PRICE - TA.PRD_NOW_DST_PRICE) / TA.PRD_MST_PRICE * 100) AS PRD_DST_PERCENT
+        FROM (
+	        SELECT
+	            TCD.CNT_DTL_IDX
+	            , TCD.CNT_MST_IDX
+	            , TCD.CNT_PRD_MST_CD
+	            , TPM.PRD_MST_NM	            
+	            , FN_PRODUCT_IMG(TPM.PRD_MST_CD, #{THUMBNAIL_SIZE}) AS PRD_IMAGE
+	            , FN_PRODUCT_IMG_ALT(TPM.PRD_MST_CD, #{THUMBNAIL_SIZE}) PRD_IMAGE_ALT
+				, FN_PRODUCT_LIST_PRICE(TPM.PRD_MST_CD, #{USER_ENV_TYPE}, #{MEM_MST_ID}) AS PRD_MST_PRICE
+				, (SELECT FN_PRODUCT_DETAIL_PRICE(TPM.PRD_MST_CD, #{USER_ENV_TYPE}, #{MEM_MST_ID},'N',null) FROM DUAL) AS PRD_NOW_DST_PRICE
+	        FROM T_CNT_DTL TCD, T_PRD_MST TPM
+	        WHERE 
+	            TCD.CNT_MST_IDX = #{CNT_MST_IDX}
+	            AND TPM.PRD_MST_CD = TCD.CNT_PRD_MST_CD
+       ) TA
+    </select>
+    
+    <!-- OOTD 수정 -->
+    <update id="updateOOTDData" parameterType="HashMap">
+        /* OotdBoard.updateOOTDData */
+        UPDATE
+            T_CNT_MST
+        SET
+            CNT_MST_TITLE = #{CNT_MST_TITLE}
+            ,CNT_MST_DESC = #{CNT_MST_DESC}
+            , CNT_MST_UPD_ID = #{CNT_MST_UPD_ID}
+            , CNT_MST_UPD_IP = #{CNT_MST_UPD_IP}
+            , CNT_MST_UPD_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS')
+            <if test="CNT_MST_USE_YN != null and CNT_MST_USE_YN != ''">
+                , CNT_MST_USE_YN = #{CNT_MST_USE_YN}
+            </if>
+        WHERE
+            CNT_MST_IDX = #{CNT_MST_IDX}
+            AND CNT_MST_TYPE = #{CNT_MST_TYPE}
+    </update>
+    
+    <!-- OOTD 미사용 처리 -->
+    <update id="updateOOTDCommentStatus" parameterType="HashMap">
+        /* OotdBoard.updateOOTDCommentStatus */
+        UPDATE T_OTD_RPL SET
+                OTD_RPL_USE_YN = 'N'
+                , OTD_RPL_UPD_ID = #{OTD_RPL_UPD_ID}
+                , OTD_RPL_UPD_IP = #{OTD_RPL_UPD_IP}
+                , OTD_RPL_UPD_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS')
+        WHERE 
+            OTD_RPL_ID = #{OTD_RPL_ID}
+            AND CNT_OTD_ID = #{CNT_OTD_ID}
+    </update>
+
+    <!-- OOTD 상품 바인딩 -->
+    <insert id="insertOOTDWithProduct" parameterType="java.util.HashMap">
+        /* OotdBoard.insertOOTDWithProduct */
+        INSERT INTO 
+            T_CNT_DTL 
+            (    
+                CNT_DTL_IDX
+                ,CNT_MST_IDX
+                ,CNT_PRD_MST_CD
+            )
+        VALUES          
+            (
+                SEQ_CNT_DTL_IDX.NEXTVAL
+                , #{CNT_MST_IDX}
+                , #{CNT_PRD_MST_CD}
+            )
+    </insert>
+
+    <!-- OOTD 등록 상품 삭제 -->
+    <delete id="deleteOOTDProduct" parameterType="HashMap">
+        /* OotdBoard.deleteOOTDProduct */
+        DELETE FROM T_CNT_DTL WHERE CNT_MST_IDX = #{CNT_MST_IDX}
+    </delete>
+
+</mapper>

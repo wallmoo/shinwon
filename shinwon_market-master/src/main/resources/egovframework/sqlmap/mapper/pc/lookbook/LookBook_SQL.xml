@@ -1,0 +1,167 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="LookBook">
+    
+    <sql id="lookbookWhere">
+        
+    </sql>
+        
+    <!-- 최신 상단 룩북 -->
+    <select id="selectTopLookBookCount" parameterType="HashMap" resultType="integer">
+        /* LookBook.selectTopLookBookCount */
+            SELECT 
+                COUNT(0)
+            FROM 
+                T_LKB_MST
+            WHERE
+                LKB_MST_USE_YN = 'Y'
+    </select>
+    
+    <!-- 최신 상단 룩북  -->
+    <select id="selectTopLookBook" parameterType="HashMap" resultType="HashMap">
+        /* LookBook.selectTopLookBook */
+        SELECT
+            S1.*
+        FROM (
+            SELECT 
+                ROWNUM RNUM, S2.*
+            FROM (
+                SELECT 
+                    LKB_MST_IDX,
+                    LKB_MST_TITLE,
+                    LKB_MST_IMG1_ATT_PATH,
+                    LKB_MST_IMG1_SYS_NM
+                FROM 
+                    T_LKB_MST
+                WHERE
+                    LKB_MST_USE_YN = 'Y'
+                ORDER BY LKB_MST_REG_DT DESC
+            ) S2
+        )S1
+        WHERE S1.RNUM = 1
+    </select>
+    
+    <!-- 최신 상단 룩북 하위 이미지 리스트 갯수 -->
+    <select id="selectLookBookImgListCount" parameterType="HashMap" resultType="Integer">
+        /* LookBook.selectLookBookImgListCount */
+        SELECT
+            COUNT(0)
+        FROM
+            T_LKB_IMG
+        WHERE
+            LKB_LKB_MST_IDX = #{LKB_MST_IDX}
+    </select>
+    
+    <!-- 최신 상단 룩북 하위 이미지 리스트 -->
+    <select id="selectLookBookImgList" parameterType="HashMap" resultType="HashMap">
+        /* LookBook.selectLookBookImgList */
+        SELECT
+            S1.*
+        FROM
+        (
+            SELECT 
+                ROWNUM RNUM,
+                S2.*
+            FROM
+            (
+                SELECT
+                    LKB_LKB_MST_IDX,
+                    LKB_IMG_IDX,
+                    LKB_IMG_SORT,
+                    LKB_IMG_TXT,
+                    LKB_IMG_ATT_PATH,
+                    LKB_IMG_SYS_NM,
+                    LKB_IMG_REG_ID,
+                    LKB_IMG_REG_IP,
+                    LKB_IMG_REG_DT
+                FROM
+                    T_LKB_IMG
+                WHERE
+                    LKB_LKB_MST_IDX = #{LKB_MST_IDX}
+                ORDER BY LKB_IMG_SORT ASC
+            )S2
+        )S1
+<!--        WHERE -->
+<!--            S1.RNUM BETWEEN #startNum# AND #endNum# -->
+    </select>
+    
+    <!-- 하위 이미지 상세 -->
+    <select id="selectLookbookImg" parameterType="HashMap" resultType="HashMap">     
+        /* LookBook.selectLookbookImg */
+        SELECT 
+            LKB_LKB_MST_IDX,
+            LKB_IMG_IDX,
+            LKB_IMG_SORT,
+            LKB_IMG_TXT,
+            LKB_IMG_ATT_PATH,
+            LKB_IMG_SYS_NM,
+            LKB_IMG_URL_PATH
+        FROM T_LKB_IMG
+        WHERE LKB_LKB_MST_IDX = #{LKB_MST_IDX}
+        AND LKB_IMG_IDX = #{LKB_IMG_IDX}
+        ORDER BY LKB_IMG_IDX ASC    
+    </select>               
+    
+    <!-- 해당 하위 이미지 > 상품 리스트 -->
+    <select id="selectLookbookImgProductList" parameterType="HashMap" resultType="HashMap">     
+        /* LookBook.selectLookbookImgProductList */
+        SELECT 
+            TLP.LKB_LKB_MST_IDX,
+            TLP.LKB_LKB_IMG_IDX,
+            TLP.LKB_PRD_IDX,
+            TLP.LKB_PRD_MST_CD,
+            TPM.PRD_MST_SEL_STATE,
+            TPM.PRD_MST_NM,
+            FN_PRODUCT_PRM_TEXT (TPM.PRD_MST_CD) PRM_TEXT,
+            FN_PRODUCT_IMG (TPM.PRD_MST_CD, #{PRD_IMG_SIZE}) PRD_IMG,
+            FN_PRODUCT_LIST_PRICE( TPM.PRD_MST_CD , #{MEM_LOGIN_YN}) PRD_PRICE,
+            FN_PRODUCT_ICN_NEW (TPM.PRD_MST_CD) ICON_NEW,
+            FN_PRODUCT_ICN_MD (TPM.PRD_MST_CD) ICON_MD,
+            ( SELECT SUBSTR(REPLACE( TO_CHAR( WM_CONCAT(DISTINCT PRD_OPT_COLR_RGB) ),',','|'), 0,39)  PRD_RGB
+                 FROM T_PRD_OPT TPO
+               WHERE TPO.PRD_OPT_SUSPEND_SALE = 'N'
+                 AND TPO.PRD_PRD_MST_CD = TPM.PRD_MST_CD
+              GROUP BY TPO.PRD_PRD_MST_CD
+            ) PRD_RGB           
+        FROM T_LKB_PRD TLP, T_PRD_MST TPM
+        WHERE TLP.LKB_PRD_MST_CD = TPM.PRD_MST_CD
+        AND TLP.LKB_LKB_MST_IDX = #{LKB_MST_IDX}
+        AND TLP.LKB_LKB_IMG_IDX = #{LKB_IMG_IDX}
+        AND TPM.PRD_MST_SEL_STATE = 'I'
+        AND TPM.PRD_MST_DEL_YN = 'N'
+        AND TPM.PRD_MST_SEL_STATE != #{PRD_MST_SEL_STATE}
+        AND TPM.PRD_MST_ONLINE_YN = 'Y'
+        ORDER BY TLP.LKB_LKB_IMG_IDX ASC, TLP.LKB_PRD_IDX ASC   
+    </select>   
+    
+    <select id="selectLookBookRandomList" parameterType="HashMap" resultType="HashMap">
+        /* LookBook.selectLookBookRandomList */
+        SELECT 
+            LKB_MST_IDX,
+            LKB_MST_TITLE,
+            LKB_MST_IMG1_ATT_PATH,
+            LKB_MST_IMG1_SYS_NM
+        FROM 
+        <if test="maxCount != null and maxCount != ''">
+        ( SELECT LEVEL NO FROM DUAL CONNECT BY LEVEL &lt;= #{maxCount} ) ,
+        </if>
+            (
+                SELECT 
+                    LKB_MST_IDX,
+                    LKB_MST_TITLE,
+                    LKB_MST_IMG1_ATT_PATH,
+                    LKB_MST_IMG1_SYS_NM
+                FROM T_LKB_MST
+                WHERE
+                    LKB_MST_USE_YN = 'Y'
+                <if test="LKB_MST_IDX != null and LKB_MST_IDX != ''">
+                AND LKB_MST_IDX != #{LKB_MST_IDX}
+                </if>
+                ORDER BY DBMS_RANDOM.RANDOM )
+        <if test="maxCount != null and maxCount != ''">
+        WHERE ROWNUM &lt;= #{maxCount} 
+        </if>
+        ORDER BY DBMS_RANDOM.RANDOM    
+    </select>       
+</mapper>

@@ -1,0 +1,170 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="BrandPoint">
+
+    <!-- 관리자 > 상품관리 > 통합포인트 적립률 관리 등록 -->
+    <insert id="insertBrandPoint" parameterType="HashMap">
+        <selectKey keyProperty="BND_PIT_IDX" resultType="Integer" order="BEFORE">
+            SELECT SEQ_BND_PIT_IDX.NEXTVAL AS BND_PIT_IDX FROM DUAL
+        </selectKey>
+        /* BrandPoint.insertBrandPoint */
+        INSERT INTO T_BND_PIT (
+                                     BND_PIT_IDX
+                                   , BND_MST_IDX
+                                   , BND_PIT_MIN_RATE 
+                                   , BND_PIT_MAX_RATE
+                                   , BND_PIT_PIT
+                                   , BND_MST_BRAND_TYPE
+                                   , BND_PIT_DEL_YN
+                                   , BND_PIT_REG_DT
+                                   , BND_PIT_REG_IP
+                                   , BND_PIT_REG_ID 
+                      ) VALUES ( 
+                                    #{BND_PIT_IDX}
+                                   , #{BND_MST_IDX}
+                                   , #{BND_PIT_MIN_RATE}
+                                   , #{BND_PIT_MAX_RATE}
+                                   , #{BND_PIT_PIT}
+                                   , #{BND_MST_BRAND_TYPE}
+                                   , #{BND_PIT_DEL_YN}                                   
+                                   , TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS')
+                                   , #{BND_PIT_REG_IP}
+                                   , #{BND_PIT_REG_ID}
+                               )
+    </insert>
+    
+    <update id="updateBrandPoint" parameterType="HashMap"> 
+        /* BrandPoint.updateBrandPoint */   
+        UPDATE T_BND_PIT SET
+               BND_PIT_MIN_RATE = #{BND_PIT_MIN_RATE} ,     
+               BND_PIT_MAX_RATE = #{BND_PIT_MAX_RATE} ,    
+               BND_PIT_PIT      = #{BND_PIT_PIT}      ,   
+               BND_PIT_UPD_IP   = #{BND_PIT_UPD_IP}   ,    
+               BND_PIT_UPD_ID   = #{BND_PIT_UPD_ID}   ,
+               BND_PIT_UPD_DT   = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS')
+         WHERE BND_PIT_IDX = #{BND_PIT_IDX} 
+          AND  BND_MST_IDX = #{BND_MST_IDX}  
+          AND  BND_MST_BRAND_TYPE = #{BND_MST_BRAND_TYPE}
+    </update>
+    
+    
+    <update id="deleteBrandPointupd" parameterType="HashMap"> 
+        /* BrandPoint.deleteBrandPointupd */   
+        UPDATE T_BND_PIT SET
+               BND_PIT_DEL_YN = #{BND_PIT_DEL_YN} ,     
+               BND_PIT_UPD_IP = #{BND_PIT_UPD_IP} ,    
+               BND_PIT_UPD_ID = #{BND_PIT_UPD_ID} ,
+               BND_PIT_UPD_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS')
+         WHERE BND_PIT_IDX = #{BND_PIT_IDX} 
+          AND  BND_MST_IDX = #{BND_MST_IDX}  
+          AND  BND_MST_BRAND_TYPE = #{BND_MST_BRAND_TYPE}
+    </update>    
+    
+        
+    <!-- 자사 브랜드 리스트 -->
+    <select id="selectBrandList" parameterType="HashMap" resultType="HashMap">
+        /* BrandPoint.selectBrandList */
+        SELECT
+            TBM.BND_MST_IDX
+            ,TBM.BND_MST_BRAND_NM
+            ,TBM.BND_MST_USE_YN
+            ,TBM.BND_MST_BRAND_TYPE
+        FROM T_BND_MST TBM
+        WHERE 
+            TBM.BND_MST_USE_YN = 'Y'
+    </select>
+
+    <select id="selectBrandListBK" parameterType="HashMap" resultType="HashMap">
+        /* BrandPoint.selectBrandList */
+        SELECT
+            TBM.BND_MST_IDX
+            ,TBM.BND_MST_BRAND_NM
+            ,TBM.BND_MST_USE_YN
+            ,TBM.BND_MST_BRAND_TYPE
+        FROM T_BND_MST TBM
+        WHERE 
+            TBM.BND_MST_BRAND_TYPE = 'I'
+            AND TBM.BND_MST_USE_YN = 'Y'
+    </select>    
+    
+    
+    <!-- 관리자 > 상품관리 > 통합포인트 적립률 자사 입점사 관리 목록 -->
+    <select id="selectBrandPointListoL" parameterType="HashMap" resultType="HashMap">    
+        SELECT
+                TBM.BND_MST_IDX
+                ,TBM.BND_MST_BRAND_NM
+                ,TBM.BND_MST_USE_YN
+                ,TBM.BND_MST_BRAND_TYPE
+                ,NVL( TBP.BND_PIT_IDX      , 0 ) AS BND_PIT_IDX
+                ,TBP.BND_PIT_MIN_RATE 
+                ,TBP.BND_PIT_MAX_RATE                 
+                /*
+                ,NVL( TBP.BND_PIT_MIN_RATE , 0 ) AS BND_PIT_MIN_RATE
+                ,NVL( TBP.BND_PIT_MAX_RATE , 0 ) AS BND_PIT_MAX_RATE
+                */
+                ,NVL( TBP.BND_PIT_PIT      , 0 ) AS BND_PIT_PIT
+                ,NVL2( TBP.BND_PIT_IDX     , 'UPD_I' , 'NEW_I'  ) AS BND_PIT_TYPE 
+         FROM   T_BND_MST TBM 
+                  LEFT OUTER JOIN 
+                T_BND_PIT TBP
+                  ON TBM.BND_MST_IDX = TBP.BND_MST_IDX
+        WHERE   TBM.BND_MST_BRAND_TYPE = 'I'
+         AND    TBM.BND_MST_USE_YN = 'Y'
+        ORDER BY 
+             TBM.BND_MST_BRAND_NM ASC 
+    </select>         
+                 
+    
+    <!-- 관리자 > 상품관리 > 통합포인트 적립률 자사 입점사 관리 목록 -->
+    <select id="selectBrandPointList" parameterType="HashMap" resultType="HashMap">
+        /* BrandPoint.selectBrandPointList */
+        SELECT 
+            TBP.BND_PIT_IDX,
+            TBP.BND_MST_IDX,
+            TBM.BND_MST_BRAND_NM,
+            TBP.BND_PIT_MIN_RATE,
+            TBP.BND_PIT_MAX_RATE,
+            TBP.BND_PIT_PIT,
+            TBP.BND_MST_BRAND_TYPE
+        FROM 
+            T_BND_PIT TBP, T_BND_MST TBM
+        WHERE 
+            TBM.BND_MST_IDX = TBP.BND_MST_IDX
+            AND TBP.BND_PIT_DEL_YN     = 'N'
+            AND TBM.BND_MST_USE_YN     = 'Y'
+        ORDER BY TBP.BND_MST_IDX, TBP.BND_PIT_IDX ,TBP.BND_PIT_MIN_RATE
+    </select>
+    
+    <!-- 관리자 > 상품관리 > 통합포인트 적립률 타사 입점사 관리 목록 -->
+    <select id="selectOtherBrandPointList" parameterType="HashMap" resultType="HashMap">
+        /* BrandPoint.selectOtherBrandPointList */
+        SELECT
+            TBP.BND_PIT_IDX,
+            TBP.BND_PIT_MIN_RATE,
+            TBP.BND_PIT_MAX_RATE,
+            TBP.BND_PIT_PIT
+        FROM 
+            T_BND_PIT TBP
+        WHERE 
+            TBP.BND_MST_BRAND_TYPE = 'O'
+            ORDER BY TBP.BND_MST_IDX, TBP.BND_PIT_MIN_RATE
+    </select>
+    
+    <!-- 관리자 > 상품관리 > 통합포인트 적립률 타사 입점사 다건 삭제  -->
+    <delete id="deleteBrandPoint" parameterType="HashMap">
+        /* BrandPoint.deleteBrandPoint */
+        DELETE FROM T_BND_PIT WHERE BND_MST_BRAND_TYPE = 'O'
+    </delete>
+    
+    <!-- 관리자 > 상품관리 > 통합포인트 적립률 자사 입점사 다건 삭제  -->
+    <delete id="deleteBrandGroupPoint" parameterType="HashMap">
+        /* BrandPoint.deleteBrandGroupPoint */
+        DELETE FROM T_BND_PIT 
+        WHERE 
+            BND_MST_IDX IN
+            <foreach collection="arrBND_MST_IDX" item="brandCode" open="(" close=")" separator=","> 
+                #{brandCode}
+            </foreach>
+    </delete>
+    
+</mapper>

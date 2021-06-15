@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="PcMyGroupInquiry">
+	
+	<sql id="groupInquiryWhere">
+        <if test="searchStartDate != null and searchStartDate != '' and searchEndDate != null and searchEndDate != ''">
+            AND GRP_INQ_REG_DT BETWEEN REPLACE(#{searchStartDate},'-', '')||'000000' AND REPLACE(#{searchEndDate},'-', '')||'235959'
+        </if>   
+    </sql>
+    
+	<!-- 프론트 > 마이페이지 > 단체주문문의 목록 갯수 -->
+    <select id="selectMyGroupInquiryListCount" parameterType="HashMap" resultType="Integer">
+        /* PcMyInquiry.selectMyGroupInquiryListCount */
+        SELECT
+            COUNT(GRP_INQ_IDX)
+        FROM
+            T_GRP_INQ
+        WHERE
+            GRP_INQ_REG_ID = #{GRP_INQ_REG_ID}
+            AND GRP_INQ_BRAND_CD = #{GRP_INQ_BRAND_CD}
+            <include refid="groupInquiryWhere"/>
+    </select>
+    
+    <!-- 프론트 > 마이페이지 > 단체주문문의 목록 -->
+    <select id="selectMyGroupInquiryList" parameterType="HashMap" resultType="HashMap">
+        /* PcMyGroupInquiry.selectMyGroupInquiryList */
+        SELECT
+            S2.*
+        FROM
+            (   SELECT
+                    ROWNUM AS RNUM,
+                    S1.* 
+                FROM
+                    (   SELECT
+                            GRP_INQ_IDX,
+                            GRP_PRD_MST_CD,
+                            GRP_INQ_WANT_CNT,
+                            GRP_INQ_GRP_NM,
+                            GRP_INQ_CUSTOMER_NM,
+                            GRP_INQ_CUSTOMER_TEL,
+                            GRP_INQ_CUSTOMER_EMAIL,
+                            GRP_INQ_AVAIL_STIME,
+                            GRP_INQ_AVAIL_ETIME,
+                            GRP_INQ_CONTENTS,
+                            GRP_INQ_REG_DT,
+                            GRP_INQ_REG_IP,
+                            GRP_INQ_REG_ID,
+                            GRP_INQ_BRAND_CD,
+                            GRP_INQ_REPLY_YN
+                        FROM
+                            T_GRP_INQ
+                        WHERE
+            				GRP_INQ_REG_ID = #{GRP_INQ_REG_ID}
+            				AND GRP_INQ_BRAND_CD = #{GRP_INQ_BRAND_CD}
+            				<include refid="groupInquiryWhere"/>
+                        ORDER BY GRP_INQ_REG_DT DESC 
+                    )
+                    S1 
+            )
+            S2 
+        WHERE
+            S2.RNUM BETWEEN #{startNum} AND #{endNum}
+    </select>
+
+	<!-- 프론트 > 마이페이지 > 단체주문문의 상세보기 -->
+	<select id="selectMyGroupInquiryInfo" parameterType="HashMap" resultType="HashMap">
+		/* PcMyGroupInquiry.selectMyGroupInquiryInfo */
+		SELECT
+             GRP_INQ_IDX,
+             GRP_PRD_MST_CD, 
+             (   SELECT
+                    PRD_MST_NM || ' ' ||PRD_MST_CD
+                FROM
+                    T_PRD_MST
+                WHERE
+                    PRD_MST_CD = GRP_PRD_MST_CD
+             )
+             AS GRP_PRD_MST_NM,
+             GRP_INQ_WANT_CNT, 
+             GRP_INQ_WANT_DT, 
+             GRP_INQ_GRP_NM, 
+             GRP_INQ_CUSTOMER_NM, 
+             GRP_INQ_CUSTOMER_EMAIL, 
+             GRP_INQ_AVAIL_STIME, 
+             GRP_INQ_AVAIL_ETIME,
+             GRP_INQ_CONTENTS,
+             GRP_INQ_CUSTOMER_TEL,
+             GRP_INQ_REPLY_YN,
+             GRP_INQ_REG_DT,
+             GRP_INQ_REG_ID,
+             (   SELECT
+                    CUST.CUST_NM
+                FROM
+                    TSM_CUST CUST
+           				INNER JOIN TSM_CUST_SCRT SCRT
+           				ON CUST.CUST_NO = SCRT.CUST_NO				                				                
+                WHERE
+                    SCRT.CUST_ID = GRP_INQ_REG_ID
+                AND
+                	CUST.COMP_CD = #{COMP_CD}
+             )AS GRP_INQ_REG_NM,
+             GRP_INQ_REPLY_REG_ID,
+              (   SELECT
+                     ADM_MST_NM
+                 FROM
+                     T_ADM_MST
+                 WHERE
+                     ADM_MST_ID = GRP_INQ_REPLY_REG_ID
+             )AS GRP_INQ_REPLY_REG_NM,
+             GRP_INQ_REPLY_REG_DT,
+             GRP_INQ_REPLY_UPD_DT,
+             GRP_INQ_REPLY_UPD_ID,
+              (   SELECT
+                     ADM_MST_NM
+                 FROM
+                     T_ADM_MST
+                 WHERE
+                     ADM_MST_ID = GRP_INQ_REPLY_UPD_ID
+             )AS GRP_INQ_REPLY_UPD_NM,
+             GRP_INQ_REPLY_TIME_DT,
+             GRP_INQ_REPLY_TIME_SHH,
+             GRP_INQ_REPLY_TIME_SMI,
+             GRP_INQ_REPLY_TIME_EHH,
+             GRP_INQ_REPLY_TIME_EMI,
+             GRP_INQ_REPLY_CONTENTS,
+             GRP_INQ_BRAND_CD                             
+         FROM
+             T_GRP_INQ
+         WHERE GRP_INQ_IDX = #{GRP_INQ_IDX}
+	</select>
+</mapper>

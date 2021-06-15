@@ -1,0 +1,213 @@
+/* form : custom ========================================================================== */
+@form-el-width: 150px;
+@form-el-width-large: (@form-el-width + 80px);
+
+label { 
+    position: relative;
+    cursor: pointer; 
+
+    > input[type="radio"],
+    > input[type="checkbox"] { 
+        margin-top: -2px;
+    }
+
+    &.primary { 
+        color: @brand-primary;
+        .bold();
+    }
+}
+
+input {
+
+    .box-sizing(border-box);
+    vertical-align: middle;
+
+    &[type="text"], 
+    &[type="password"]
+    &[type="number"], 
+    &.text { 
+        
+        .border-radius(@border-radius);
+        padding: 0 5px;
+
+        width: @form-el-width; 
+        .height(28px);
+        max-width: 100%;
+
+        border: solid 1px #ccc;
+        background-color: #fff;
+        appearance: none;
+        -moz-appearance: none;
+        -webkit-appearance: none;
+        appearance: textfield;
+        -moz-appearance: textfield;
+        -webkit-appearance: textfield;
+        &::-webkit-inner-spin-button { 
+            -webkit-appearance: none;
+        }
+    }
+
+    &[type="date"],
+    &[type="date"]:hover {
+        appearance: none;
+        -moz-appearance: none;
+        -webkit-appearance: none;
+        appearance: textfield;
+        -moz-appearance: textfield;
+        -webkit-appearance: textfield;
+        &::-webkit-inner-spin-button { 
+            -webkit-appearance: none;
+        }
+    }
+
+    &.number {
+        -webkit-box-sizing: content-box;
+        -moz-box-sizing: content-box;
+        box-sizing: content-box;
+        padding: 0 10px;
+        width: 40px;
+        height: 23px;
+        line-height: 23px;
+        border-color: #ccc;
+    }
+
+    &.spinner {
+        -moz-appearance: button;
+        -webkit-appearance: button;
+        width: 80px;
+        &::-webkit-inner-spin-button { 
+            -webkit-appearance: button;
+        }
+    }
+
+    // size
+    &.xsmall { width: 40px; }
+    &.small { width: 110px; }
+    &.large { width: @form-el-width-large; }
+    &.half { width: 50%; }
+    &.xlarge { width: 100%; }
+
+    
+    &.lg-large {
+        // @media only screen and (min-width: @screen-desktop) { 
+        .is-lg & {
+            width: @form-el-width-large;
+        }
+    }
+
+    &[type="file"] { min-width: 200px; }
+
+    &.url {
+        width: 85%;
+        border-top: 1px #fff solid !important;
+        border-left: 1px #fff solid !important;
+        border-right: 1px #fff solid !important;
+    }
+
+    /* 앞 주소 */
+    &.address-front,
+    &.address-back {
+        .is-lg & {
+            width: 350px;
+        }
+    }
+
+}
+
+textarea.textarea {
+    .box-sizing(border-box);
+    padding: 5px 5px;
+
+    width: @form-el-width; 
+    max-width: 100%;
+
+    border: solid 1px @border-color; 
+    background-color: #fff;
+    .placeholder();
+    
+    // .focus-shadow();
+
+    &:focus {
+        border-color: @brand-primary;
+    }
+    &.xlarge {
+        width: 100%;
+    }
+}
+
+select.select { 
+
+    .box-sizing(border-box);
+    .height(28px);
+    width: @form-el-width; 
+    max-width: 100%;
+    padding-left: 5px;
+
+    border: solid 1px #ccc;
+    background-color: #fff;
+    vertical-align: middle;    
+
+    &:focus { 
+        border-color: @brand-primary;
+    }
+    &.xsmall { width: 30px; }
+    &.small { width: 60px; }
+    &.half { width: 50%; max-width: 300px;}
+    &.large { width: @form-el-width-large; }
+    &.xlarge,
+    &.full { width: 100%; }
+    &.disabled {
+        background: #eee; 
+        color:#999;
+    }
+    @media only screen and (min-width: @screen-phone) and (max-width: @screen-tablet-max) { 
+        -webkit-appearance: none;
+        -moz-appearance: none;
+        appearance: none;
+        border-radius: 0;
+        background:#fff url('../img/admin/pulldown_off.png') no-repeat right center;
+        background-size: 20px 20px;
+
+        &.sm-large {  
+            width: 70%;
+        }
+        &.sm-xlarge {
+            width: 100%;
+        }
+    }
+    // @media only screen and (min-width: @screen-desktop) { 
+    .is-lg & {
+        &.lg-large {
+            width: 200px;
+        }
+    }
+
+    .lt-ie9 & {
+        box-sizing: content-box;
+        padding: 3px 0px 3px;
+        height: 1.5em;
+        line-height: 1.2;
+        option {
+            padding: 0;
+        }
+    }
+
+    // .firefox & { 
+    //     padding: 4px 0 5px; 
+    // }
+    // .chrome & { 
+    //     padding: 4px 0 5px 0; 
+    // }
+    // .safari & { 
+    //     .height(22px);
+    // }
+    // .ie9 &, .ie10 &, .ie11 & {
+    //     .height(28px);
+    // }
+    // .ie8 & {
+    //     padding: 3px 0 4px 0;
+    // }
+
+}
+
+

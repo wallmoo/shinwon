@@ -1,0 +1,260 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="PcMyLike">
+	<select id = "selectLikeListCount" parameterType="hashMap" resultType="Integer" >
+		/* myLikeList.selectLikeListCount */
+		SELECT 
+			COUNT(0) 
+		FROM
+			T_LIK_HIS 
+		WHERE MEM_MST_ID = #{MEM_MST_ID} 
+			AND CNT_MST_TYPE = #{CNT_MST_TYPE}
+	</select>
+	
+	<!-- 마이페이지 > 좋아요 - 상품목록  -->
+	<select id="selectLikeProductList" parameterType="HashMap" resultType="HashMap">
+		/* myLikeList.likeProductList */
+		SELECT
+           S1.*
+           , FN_PRODUCT_IMG(S1.PRD_MST_CD, #{THUMBNAIL_SIZE}) PRD_IMAGE
+           , (SELECT PRD_IMG_ATT_PATH||PRD_IMG_SYS_NM FROM T_PRD_IMG WHERE PRD_PRD_MST_CD = S1.PRD_MST_CD AND PRD_IMG_IDX = '1' AND PRD_IMG_ATT_SIZE = #{THUMBNAIL_SIZE}) AS PRD_ROLL_OVER_IMG
+           , FN_PRODUCT_IMG_ALT(S1.PRD_MST_CD, #{THUMBNAIL_SIZE}) PRD_IMAGE_ALT
+        FROM (
+                SELECT 
+                    ROWNUM AS RNUM
+                    , A.*
+                    , A.BND_MST_BRAND_NM AS PRD_MST_BRAND_NM
+                FROM ( 
+                    SELECT 
+                        PR.*
+                        , (SELECT COUNT(TLH.CNT_MST_ID) FROM T_LIK_HIS TLH WHERE TLH.CNT_MST_ID = PRD_MST_CD AND TLH.CNT_MST_TYPE= #{TAG_BND_TYPE})
+                        	AS LIKE_COUNTS
+                        , ( CASE WHEN (SELECT COUNT(TLH.CNT_MST_ID) FROM T_LIK_HIS TLH WHERE TLH.CNT_MST_ID = PRD_MST_CD AND TLH.MEM_MST_ID = #{MEM_MST_ID}) > 0 THEN 'Y' ELSE 'N' END )
+                        	AS MY_LIKE
+                    FROM 
+                    (   
+                        SELECT PM.PRD_MST_CD
+                             , PM.PRD_MST_TYPE
+                             , TTM.TAG_MST_TITLE
+                             , BND_MST_BRAND_NM
+                             , PRD_MST_URL
+                             , FN_GET_PRODUCT_NM(PM.PRD_MST_CD,34) AS PRD_MST_NM
+                             , PM.PRD_MST_PRC
+                             , FN_PRODUCT_LIST_PRICE(PM.PRD_MST_CD, #{USER_ENV_TYPE}, #{MEM_CRT_SES_ID}) AS PRD_MST_PRICE
+                             , PM.PRD_MST_SEL_STATE
+                             , (SELECT FN_PRODUCT_DETAIL_PRICE(PM.PRD_MST_CD, #{USER_ENV_TYPE}, #{MEM_CRT_SES_ID},'N',null) FROM DUAL) AS PRD_NOW_DST_PRICE
+                        FROM T_PRD_MST PM, T_TAG_MST TTM, T_TAG_BND TTB, T_BND_MST TBM, 
+                            (
+                                SELECT DISTINCT DSP_PRD_MST_CD
+                                 FROM T_DSP_CTG
+                                WHERE DSP_PRD_CTG_IDX IN
+                                  (
+                                    SELECT 
+                                      PC.PRD_CTG_IDX
+                                    FROM T_PRD_CTG PC
+                                    <include refid="productCategoryWhere"/>
+                                  ) AND DSP_CTG_USE_YN = 'Y'
+                             ) TPC
+                        WHERE PM.PRD_MST_CD = TPC.DSP_PRD_MST_CD
+                        AND TTB.TAG_BND_ID = TO_CHAR(PM.PRD_MST_CD)
+                        AND TTB.TAG_BND_TYPE = #{TAG_BND_TYPE}
+                        AND TTB.TAG_BND_REP = 'Y'
+                        AND TTB.TAG_MST_ID = TTM.TAG_MST_ID
+                        AND TBM.BND_MST_IDX = PM.PRD_MST_BRD_IDX
+                        <include refid="productWhere"/> 
+                     
+                    <if test="orderType != null and orderType != ''">
+                        <choose>
+                            <when test="orderType.equals('hit'.toString())">
+                                ORDER BY NVL(PM.PRD_MST_ORD_CNT,0) + NVL(PM.PRD_MST_RED_CNT,0) DESC
+                            </when>              
+                            <when test="orderType.equals('new'.toString())">
+                                ORDER BY PM.PRD_MST_REG_DT DESC , PRD_MST_PRICE , PRD_MST_NM ASC
+                            </when> 
+                            <when test="orderType.equals('dwn'.toString())">
+                                ORDER BY PRD_MST_PRICE ASC
+                            </when> 
+                            <when test="orderType.equals('up'.toString())">
+                                ORDER BY PRD_MST_PRICE DESC
+                            </when>        
+                        </choose>
+                    </if>
+                    )PR
+
+                ) A
+                WHERE MY_LIKE = 'Y'
+        )S1
+        <if test="startNum != null and startNum != '' and endNum != null and  endNum != ''">
+            WHERE RNUM BETWEEN #{startNum} AND #{endNum}
+        </if>
+        
+	</select>
+	
+	<sql id="productWhere">
+        AND PM.PRD_MST_SEL_STATE != 'S' 
+        AND PM.PRD_MST_APV_STATE = 'A'
+        AND PM.PRD_MST_DPL_STATE = 'Y'
+        AND PM.PRD_MST_DEL_YN <![CDATA[<>]]> 'Y'
+        <if test="USER_ENV_TYPE != null and USER_ENV_TYPE != ''">
+            <if test="USER_ENV_TYPE.equals('P'.toString())">
+                AND PM.PRD_MST_CNL_PC_YN = 'Y'
+            </if>
+            <if test="USER_ENV_TYPE.equals('M'.toString())">
+                AND PM.PRD_MST_CNL_MB_YN = 'Y'
+            </if>
+        </if>
+	</sql>
+	
+	<sql id="productCategoryWhere">
+		WHERE PC.PRD_CTG_USE_YN = 'Y'
+		AND PC.PRD_CTG_DSP_YN = 'Y'
+        AND PC.PRD_CTG_DEL_YN != 'Y'
+        <if test="PRD_CTG_ENV != null and PRD_CTG_ENV != ''">
+            AND PC.PRD_CTG_ENV = #{PRD_CTG_ENV}
+        </if>
+        <if test="catIdx != null and catIdx != ''">
+            START WITH PC.PRD_CTG_IDX = NVL(#{productSubCategory}, #{catIdx} ) AND PC.PRD_CTG_USE_YN = 'Y' AND PC.PRD_CTG_DSP_YN='Y' AND PC.PRD_CTG_DEL_YN != 'Y'
+            CONNECT BY PRIOR PC.PRD_CTG_IDX = PC.PRD_CTG_UP_IDX AND PC.PRD_CTG_USE_YN = 'Y' AND PC.PRD_CTG_DSP_YN='Y' AND PC.PRD_CTG_DEL_YN != 'Y'
+        </if>   
+	</sql>
+	
+	<!-- 마이페이지 > 좋아요 - 셀러 상품 리스트 -->
+    <select id="selectLikeSellerList" parameterType="HashMap" resultType="HashMap">
+        /* PcTopSeller.selectLikeSellerList */
+        SELECT ROWNUM, S2.* FROM(
+	        SELECT S1.*
+	        FROM
+	            (SELECT
+	                ROW_NUMBER() OVER (PARTITION BY TBM.VDR_MST_IDX ORDER BY TPM.PRD_MST_REG_DT DESC)
+	                	AS VDR_RANK
+	                , TBM.VDR_MST_IDX												/* 브랜드 IDX */	
+	                , TBM.BND_MST_SEL_NM											/* 셀러 이름 */	
+	                , TBM.BND_MST_SEL_DESC											/* 안내 텍스트 */	
+	                , TBM.BND_MST_URL												/* 브랜드 URL */	
+	                , (SELECT CMM_FLE_ATT_PATH || CMM_FLE_SYS_NM 
+	                	FROM T_CMM_FLE 
+	                	WHERE CMM_FLE_TB_NM = 'T_VDR_MST' 
+	                		AND CMM_FLE_TB_PK = TBM.VDR_MST_IDX AND CMM_FLE_SORT = 1 
+	                		AND CMM_FLE_USE_YN = 'Y' AND ROWNUM = 1 ) AS SELLER_IMG
+	                , (SELECT CMN_FLE_ALT_TXT FROM T_CMM_FLE 						/* 파일 */
+	                	WHERE CMM_FLE_TB_NM = 'T_VDR_MST' 
+	                		AND CMM_FLE_TB_PK = TBM.VDR_MST_IDX 
+	                		AND CMM_FLE_SORT = 1 AND CMM_FLE_USE_YN = 'Y' 
+	                		AND ROWNUM = 1 ) AS CMM_FLE_ALT_TXT						/* 파일 ALT */
+	                , TPM.PRD_MST_CD												/* 상품 IDX */	
+	                , FN_PRODUCT_IMG(TPM.PRD_MST_CD, #{THUMBNAIL_SIZE}) PRD_IMAGE	/* 상품 이미지 */	
+	                , FN_PRODUCT_IMG_ALT(TPM.PRD_MST_CD, #{THUMBNAIL_SIZE}) PRD_IMAGE_ALT	/* 이미지 ALT */
+	                , (SELECT COUNT(TLH.CNT_MST_ID) FROM T_LIK_HIS TLH 
+	                	WHERE TLH.CNT_MST_ID = TO_CHAR(TBM.VDR_MST_IDX) 
+	                		AND TLH.CNT_MST_TYPE= #{CNT_MST_TYPE}) AS LIKE_COUNTS	/* 셀러의 좋아요 수 */
+	                , (CASE WHEN 
+	                	(SELECT COUNT(TLH.CNT_MST_ID) FROM T_LIK_HIS TLH 
+	                		WHERE TLH.CNT_MST_ID = TO_CHAR(TBM.VDR_MST_IDX) 
+	                			AND TLH.MEM_MST_ID = #{MEM_MST_ID}) > 0 
+	                	THEN 'Y' ELSE 'N' END ) AS MY_LIKE							/* 나의 좋아요 클릭 여부(Y/N) */	
+	            FROM 
+	                T_BND_MST TBM, T_PRD_MST TPM
+	            WHERE
+	                TPM.PRD_MST_VDR_IDX(+) = TBM.VDR_MST_IDX
+	                <!-- AND FN_GET_PRODUCT_STATUS(TPM.PRD_MST_CD) = 'true' -->
+	            ORDER BY TPM.PRD_MST_REG_DT DESC) S1
+			WHERE 
+				MY_LIKE = 'Y'
+	            AND VDR_RANK = 1
+	        ) S2
+       <if test="startNum != null and startNum != '' and endNum != null and  endNum != ''">
+           WHERE ROWNUM BETWEEN #{startNum} AND #{endNum}
+       </if>
+    
+    </select>
+    
+    
+    <!-- 마이페이지 > 좋아요 - 셀러픽 상품 리스트 -->
+    <select id="selectSellerpickProductList" parameterType="HashMap" resultType="HashMap">
+		SELECT
+            S1.*
+           , FN_PRODUCT_IMG(S1.PRD_MST_CD, #{THUMBNAIL_SIZE}) PRD_IMAGE
+           , (SELECT PRD_IMG_ATT_PATH||PRD_IMG_SYS_NM FROM T_PRD_IMG WHERE PRD_PRD_MST_CD = S1.PRD_MST_CD AND PRD_IMG_IDX = '1' AND PRD_IMG_ATT_SIZE = #{THUMBNAIL_SIZE}) 
+           		AS PRD_ROLL_OVER_IMG
+           , FN_PRODUCT_IMG_ALT(S1.PRD_MST_CD, #{THUMBNAIL_SIZE}) PRD_IMAGE_ALT
+           , (
+            	SELECT tmp02.TAG_MST_TITLE
+            	FROM T_TAG_BND tmp01, T_TAG_MST tmp02 
+            	WHERE tmp01.TAG_BND_ID = TO_CHAR(PRD_MST_CD)
+            	AND tmp01.TAG_BND_TYPE = 'TYPE_PRODUCT'
+            	AND tmp01.TAG_BND_REP = 'Y'
+            	AND tmp01.TAG_MST_ID = tmp02.TAG_MST_ID
+            ) AS TAG_MST_TITLE
+            , ( 
+             	SELECT tmp01.BND_MST_BRAND_NM 
+             	FROM T_BND_MST tmp01 
+             	WHERE tmp01.BND_MST_IDX = PRD_MST_BRD_IDX
+             ) AS PRD_MST_BRAND_NM
+        FROM (
+                SELECT 
+                    ROWNUM AS RNUM
+                    , A.*
+                FROM ( 
+                    SELECT 
+                        PR.*
+                        , (SELECT COUNT(TLH.CNT_MST_ID) FROM T_LIK_HIS TLH WHERE TLH.CNT_MST_ID = PRD_MST_CD AND TLH.CNT_MST_TYPE= 'TYPE_PRODUCT') 
+                        	AS LIKE_COUNTS
+                        , ( CASE WHEN (SELECT COUNT(TLH.CNT_MST_ID) FROM T_LIK_HIS TLH WHERE TLH.CNT_MST_ID = PRD_MST_CD AND TLH.MEM_MST_ID = #{MEM_MST_ID}) > 0 THEN 'Y' ELSE 'N' END ) 
+                        	AS MY_LIKE
+                    FROM 
+                    (   
+                        SELECT PM.PRD_MST_CD
+                             , PM.PRD_MST_TYPE
+                             , PRD_MST_URL
+                             , FN_GET_PRODUCT_NM(PM.PRD_MST_CD,34) AS PRD_MST_NM
+                             , PM.PRD_MST_PRC
+                             , PM.PRD_MST_BRD_IDX
+                             , FN_PRODUCT_LIST_PRICE(PM.PRD_MST_CD, #{USER_ENV_TYPE}, #{MEM_MST_ID}) AS PRD_MST_PRICE
+                             , PM.PRD_MST_SEL_STATE
+                             , (SELECT FN_PRODUCT_DETAIL_PRICE(PM.PRD_MST_CD, #{USER_ENV_TYPE}, #{MEM_MST_ID},'N',null) FROM DUAL) AS PRD_NOW_DST_PRICE
+                        FROM T_CNT_DTL TCD, T_PRD_MST PM
+                        WHERE TCD.CNT_MST_IDX = #{CNT_MST_IDX}
+            			AND TCD.CNT_PRD_MST_CD = PM.PRD_MST_CD
+                        <include refid="productWhere"/> 
+                     
+                    <if test="orderType != null and orderType != ''">
+                        <choose>
+                            <when test="orderType.equals('hit'.toString())">
+                                ORDER BY NVL(PM.PRD_MST_ORD_CNT,0) + NVL(PM.PRD_MST_RED_CNT,0) DESC
+                            </when>              
+                            <when test="orderType.equals('new'.toString())">
+                                ORDER BY PM.PRD_MST_REG_DT DESC , PRD_MST_PRICE , PRD_MST_NM ASC
+                            </when> 
+                            <when test="orderType.equals('dwn'.toString())">
+                                ORDER BY PRD_MST_PRICE ASC
+                            </when> 
+                            <when test="orderType.equals('up'.toString())">
+                                ORDER BY PRD_MST_PRICE DESC
+                            </when>        
+                        </choose>
+                    </if>
+                    )PR
+
+                ) A
+                <if test="searchOptionYN != null and searchOptionYN.equals('Y'.toString()) ">
+                    INNER JOIN T_PRD_CMM_OPT TPCO ON A.PRD_MST_CD = TPCO.PRD_MST_CD
+                        <if test="arrSearchColor != null and arrSearchColor.size != 0 ">
+                            AND TPCO.PRD_CMM_TYPE = 'C' 
+                            AND TPCO.CMN_COM_IDX IN
+                            <foreach collection="arrSearchColor" item="searchColor" open="(" close=")" separator=","> #{searchColor}</foreach>
+                        </if> 
+                        <if test="arrSearchSize != null and arrSearchSize.size != 0">
+                            AND TPCO.PRD_CMM_TYPE = 'S' 
+                            AND TPCO.CMM_OPT_NM IN
+                            <foreach collection="arrSearchSize" item="searchSize" open="(" close=")" separator=","> #{searchSize}</foreach> 
+                        </if>
+                </if>
+        )S1
+        <if test="startNum != null and startNum != '' and endNum != null and  endNum != ''">
+            WHERE RNUM BETWEEN #{startNum} AND #{endNum}
+        </if>
+        
+	</select>
+
+</mapper>

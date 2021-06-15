@@ -1,0 +1,157 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="WishTag">
+
+    <sql id="wishTagWhere">
+        <choose>
+            <when test="searchType != null and searchType.equals('S_ALL'.toString())">
+                AND ( WSH_TAG_TITLE LIKE '%' || #{searchKeyword} || '%' OR WSH_TAG_REG_ID LIKE '%' || #{searchKeyword} || '%')        
+            </when>
+            <when test="searchType != null and searchType.equals('S_TITLE'.toString())">
+                AND WSH_TAG_TITLE LIKE '%' || #{searchKeyword} || '%'       
+            </when>
+            <when test="searchType != null and searchType.equals('S_ID'.toString())">
+                AND WSH_TAG_REG_ID = #{searchKeyword}      
+            </when>
+        </choose>
+        
+        <if test="searchStartDate != null and searchStartDate != '' and searchEndDate != null and searchEndDate != '' ">
+            AND WSH_TAG_REG_DT BETWEEN REPLACE(#{searchStartDate},'-', '')||'000000' AND REPLACE(#{searchEndDate},'-', '')||'235959'
+        </if>
+        
+    </sql>
+
+    <insert id="insertWishTag" parameterType="java.util.HashMap">
+        /* WishTag.insertWishTag */
+        INSERT
+            INTO T_WSH_TAG ( WSH_TAG_ID
+            ,WSH_TAG_TITLE
+            ,WSH_TAG_REG_ID
+            ,WSH_TAG_REG_DT
+            ,WSH_TAG_STATUS
+            ,WSH_TAG_TYPE
+            ,WSH_TAG_BND_ID
+            )
+        VALUES ( #{WSH_TAG_ID}
+            , #{WSH_TAG_TITLE}
+            , #{REG_ID}
+            , TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS')
+            , #{WSH_TAG_STATUS}
+            , #{WSH_TAG_TYPE}
+            , #{WSH_TAG_BND_ID}
+        )
+    </insert>
+
+    <!-- 희망 태그 리스트 조회 -->
+    <select id="selectWishTagList" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+        /* WishTag.selectWishTagList */
+        SELECT S2.* FROM (SELECT 
+            ROWNUM AS RNUM, S1.*
+        FROM 
+            (SELECT
+                SS.SUB_DT 
+                ,COUNT(DISTINCT SS.WSH_TAG_REG_ID) AS USER_COUNT
+                ,LISTAGG(SS.WSH_TAG_TITLE, ' ') WITHIN GROUP (
+                ORDER BY SS.SUB_DT) AS TAG_LIST
+            FROM
+                (
+                SELECT
+                    WSH_TAG_TITLE
+                    ,WSH_TAG_REG_DT
+                    ,WSH_TAG_REG_ID
+                    ,SUBSTR(WSH_TAG_REG_DT, 0, 8) AS SUB_DT
+                FROM
+                    T_WSH_TAG
+                WHERE 
+                    1=1
+                    <include refid = "wishTagWhere"/>
+                ) SS
+            GROUP BY
+                SS.SUB_DT
+            ) S1) S2       
+            <if test="startNum != null and startNum != '' and endNum != null and endNum != ''">
+            WHERE S2.RNUM BETWEEN #{startNum} AND #{endNum}
+            </if>
+            ORDER BY S2.SUB_DT DESC
+    </select>
+
+    <!-- 희망 태그 조회 -->
+    <select id="selectWishTagById" parameterType="java.util.HashMap"
+        resultType="java.util.HashMap">
+        /* WishTag.selectWishTagById */
+        SELECT
+        	WSH_TAG_ID
+            , WSH_TAG_TITLE
+            , WSH_TAG_REG_ID
+            , WSH_TAG_REG_DT
+        FROM 
+            T_WSH_TAG
+        WHERE
+            WSH_TAG_ID = #{WSH_TAG_ID}
+    </select>
+
+    <!-- 희망 태그 목록 갯수 -->
+    <select id="selectWishTagCount" parameterType="java.util.HashMap" resultType="Integer">
+        /* WishTag.selectWishTagCount */
+        SELECT
+        	COUNT(WSH_TAG_ID)
+        FROM
+        	T_WSH_TAG
+        WHERE 1=1
+        <include refid="wishTagWhere" />
+    </select>
+
+	<!-- 희망 태그 아이디별 리스트 -->
+    <select id="selectWishTagListByUserId" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+        /* WishTag.selectWishTagListByUserId */
+        SELECT 
+            WSH_TAG_ID
+            , TO_CHAR(WSH_TAG_REG_DT,'YYYY-MM-DD')AS WSH_TAG_REG_DT
+            , WSH_TAG_REG_ID
+            , WSH_TAG_TITLE 
+        FROM 
+            T_WSH_TAG
+        GROUP BY 
+            WSH_TAG_REG_DT, WSH_TAG_REG_ID, WSH_TAG_TITLE
+        ORDER BY WSH_TAG_REG_ID DESC
+    </select>
+    
+    <!-- 슈퍼관리자 > 태그관리 > 희망 태그 아이디별 리스트 -->
+    <select id="selectWishTagListByAdmin" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+        /* WishTag.selectWishTagListByAdmin */
+        SELECT LISTAGG(TWT.WSH_TAG_TITLE,' ') WITHIN GROUP (ORDER BY TWT.WSH_TAG_REG_DT) AS WISH_TAG_LIST
+		FROM T_WSH_TAG TWT
+		WHERE TWT.WSH_TAG_REG_ID = #{WSH_TAG_REG_ID}
+		<include refid="wishTagWhere"/>
+    </select>
+
+    <!-- 컨텐츠에 바인딩된 희망 태그 목록  -->
+    <select id="selectWishTagListById" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+        /* WishTag.selectWishTagListById */
+        SELECT
+            TWT.WSH_TAG_ID
+            , TWT.WSH_TAG_TITLE
+            , TWT.WSH_TAG_REG_ID
+            , TWT.WSH_TAG_REG_DT
+            , TWT.WSH_TAG_STATUS
+            , TWT.WSH_TAG_TYPE
+            , TWT.WSH_TAG_BND_ID
+        FROM
+            T_WSH_TAG TWT
+        WHERE 
+            TWT.WSH_TAG_BND_ID = #{WSH_TAG_BND_ID}
+            AND TWT.WSH_TAG_TYPE = #{WSH_TAG_TYPE}
+    </select>
+    
+    <delete id="deleteWishTag" parameterType="hashmap">
+        /*WishTag.deleteWishTag*/
+        DELETE FROM T_WSH_TAG WHERE WSH_TAG_ID = #{WSH_TAG_ID}
+    </delete>
+    
+    <delete id="deleteWishTagBind" parameterType="hashmap">
+        /*WishTag.deleteWishTagBind*/
+        DELETE FROM T_WSH_TAG WHERE WSH_TAG_BND_ID = #{WSH_TAG_BND_ID} AND WSH_TAG_TYPE = #{WSH_TAG_TYPE}
+    </delete>
+    
+</mapper>

@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="pcBrandTech">
+	
+	<!-- 사용자 > tech > technology / equipmentKeep / useMenual 목록 갯수  -->
+	<select id="selectBrandTechCount" parameterType="HashMap" resultType="Integer">
+		/* pcBrandTech.selectBrandTechCount */
+		SELECT 
+			COUNT(TBS.BRD_SHG_IDX)
+		FROM
+			T_BRD_SHG TBS , T_CMM_FLE TCF
+		WHERE
+			TBS.BRD_SHG_IDX = TCF.CMM_FLE_TB_PK
+        AND TCF.CMM_FLE_TB_NM =  #{CMM_FLE_TB_NM}
+        AND TCF.CMM_FLE_USE_YN= 'Y'
+		AND TBS.BRD_SHG_BRAND_CD = #{BRAND_CD}
+		AND TBS.BRD_CMN_COM_IDX = #{BRD_CMN_COM_IDX}
+		AND TBS.BRD_SHG_USE_YN = 'Y'
+	</select>
+	
+	<!-- 사용자 > tech > technology / equipmentKeep / useMenual 목록 -->
+	<select id="selectBrandTechList" parameterType="HashMap" resultType="HashMap">
+		/* pcBrandTech.selectBrandTechList */
+		SELECT
+			S1.*
+		FROM
+		(
+			SELECT
+				ROWNUM AS RNUM,
+				S2.*
+			FROM
+			(
+				SELECT 
+					TBS.BRD_SHG_IDX,
+					TBS.BRD_SHG_TITLE,
+					TBS.BRD_SHG_CONTENTS,
+					TBS.BRD_SHG_BRAND_CD,
+					TBS.BRD_CMN_COM_IDX,
+					TBS.BRD_SHG_READ_CNT,
+					TBS.BRD_SHG_USE_YN,
+					TBS.BRD_SHG_REG_DT,
+					TBS.BRD_SHG_REG_IP,
+					TBS.BRD_SHG_REG_ID,
+					TCF.CMM_FLE_ATT_PATH,
+          		    TCF.CMM_FLE_SYS_NM	
+				FROM
+					T_BRD_SHG TBS , T_CMM_FLE TCF
+				WHERE
+					TBS.BRD_SHG_IDX = TCF.CMM_FLE_TB_PK
+		        AND TCF.CMM_FLE_TB_NM =  #{CMM_FLE_TB_NM}
+		        AND TCF.CMM_FLE_USE_YN= 'Y'
+				AND TBS.BRD_SHG_BRAND_CD = #{BRAND_CD}
+				AND TBS.BRD_CMN_COM_IDX = #{BRD_CMN_COM_IDX}
+				AND TBS.BRD_SHG_USE_YN = 'Y'
+				ORDER BY BRD_SHG_REG_DT DESC
+			) S2
+		) S1
+		WHERE
+			S1.RNUM BETWEEN #{startNum} AND #{endNum}
+	</select>
+	
+</mapper>

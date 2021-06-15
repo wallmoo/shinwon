@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="pcBrandStoreOpen">
+	
+	<!-- 사용자 > 매장개설문의 등록 -->
+	<insert id="insertBrandStoreOpen" parameterType="HashMap">
+        <selectKey keyProperty="SHP_REQ_IDX" resultType="Integer" order="BEFORE">
+            SELECT SEQ_SHP_REQ_IDX.NEXTVAL AS SHP_REQ_IDX FROM DUAL
+        </selectKey>
+        /* pcBrandStoreOpen.insertBrandStoreOpen */
+        INSERT INTO
+            T_SHP_REQ
+            (
+                SHP_REQ_IDX,
+                COMP_CD,
+                BRAND_CD,
+                SHP_REQ_MEMBER_NM,
+                SHP_REQ_BIRTH,
+                SHP_REQ_BIRTH_YN,
+                SHP_REQ_SEC_EMAIL,
+                SHP_REQ_TEL1,
+                SHP_REQ_TEL2,
+                SHP_REQ_SEC_TEL3,
+                SHP_REQ_HP1,
+                SHP_REQ_HP2,
+                SHP_REQ_SEC_HP3,
+                SHP_REQ_ASSET,
+                SHP_REQ_OBJECT,
+                SHP_REQ_CAREER,
+                SHP_REQ_SHOP_NM,
+                SHP_REQ_SHOP_TEL1,
+                SHP_REQ_SHOP_TEL2,
+                SHP_REQ_SEC_SHOP_TEL3,
+                SHP_REQ_POST,
+                SHP_REQ_ADDRESS1,
+                SHP_REQ_ADDRESS2,
+                SHP_REQ_AREA,
+                SHP_REQ_STORAGE,
+                SHP_REQ_WIDTH,
+                SHP_REQ_HEIGHT,
+                SHP_REQ_PARKING,
+                SHP_REQ_PAK_NUM,
+                SHP_REQ_BSN_TYPE,
+                SHP_REQ_MAIN_CUST,
+                SHP_REQ_INCOME,
+                SHP_REQ_UNUSUAL,
+                SHP_REQ_LANUCHING,
+                SHP_REQ_REG_DT,
+                SHP_REQ_REG_ID,
+                SHP_REQ_REG_IP             
+            )
+        VALUES
+            (
+            	#{SHP_REQ_IDX},
+                #{COMP_CD},
+                #{BRAND_CD},
+                #{SHP_REQ_MEMBER_NM},
+                #{SHP_REQ_BIRTH},
+                #{SHP_REQ_BIRTH_YN},
+                #{SHP_REQ_SEC_EMAIL},
+                #{SHP_REQ_TEL1},
+                #{SHP_REQ_TEL2},
+                #{SHP_REQ_SEC_TEL3},
+                #{SHP_REQ_HP1},
+                #{SHP_REQ_HP2},
+                #{SHP_REQ_SEC_HP3},
+                #{SHP_REQ_ASSET},
+                #{SHP_REQ_OBJECT},
+                #{SHP_REQ_CAREER},
+                #{SHP_REQ_SHOP_NM},
+                #{SHP_REQ_SHOP_TEL1},
+                #{SHP_REQ_SHOP_TEL2},
+                #{SHP_REQ_SEC_SHOP_TEL3}),
+                #{SHP_REQ_POST},
+                #{SHP_REQ_ADDRESS1},
+                #{SHP_REQ_ADDRESS2},
+                #{SHP_REQ_AREA},
+                #{SHP_REQ_STORAGE},
+                #{SHP_REQ_WIDTH},
+                #{SHP_REQ_HEIGHT},
+                #{SHP_REQ_PARKING},
+                #{SHP_REQ_PAK_NUM},
+                #{SHP_REQ_BSN_TYPE},
+                #{SHP_REQ_MAIN_CUST},
+                #{SHP_REQ_INCOME},
+                #{SHP_REQ_UNUSUAL},
+                #{SHP_REQ_LANUCHING},
+                TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+                #{SHP_REQ_REG_ID},
+                #{SHP_REQ_REG_IP} 
+            )
+    </insert>
+    
+</mapper>

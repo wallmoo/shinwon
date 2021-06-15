@@ -1,0 +1,4 @@
+[15:03:24] [T0001981siVHcXl1gqB] START:mall_id=[T0001981]+tr_cd=[00101000]+order_no=[2016082903297]
+[15:03:24] [T0001981siVHcXl1gqB] DATA:pay_data=common=tot_amt=52500currency=00client_ip=0:0:0:0:0:0:0:1escrow_yn=Ncomplex_yn=Ncli_ver=N8pnt=pnt_txtype=10pnt_amt=52500cp_cd=OCBorder_data=order_no=2016082903297product_amt=52500
+[15:03:24] [T0001981siVHcXl1gqB] RESULT:res_cd=E943res_msg=카드번호(식별값) 없음
+[15:03:24] [T0001981siVHcXl1gqB] ENDED :mall_id=[T0001981]+tr_cd=[00101000]+order_no=[2016082903297]

@@ -1,0 +1,274 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="PcMyPoint">
+ 
+    <!-- 프론트 > 마이페이지 > 쇼핑혜택 > 포인트 사용 목록 갯수-->
+    <select id="selectMyPointListCount" parameterType="hashMap" resultType="integer">
+        /* PcMyPoint.selectMyPointListCount */
+ 		SELECT 
+ 			COUNT(0)
+ 		FROM
+ 			T_MEM_PIT
+ 		WHERE
+ 			MEM_PIT_MEM_ID = #{MEM_MST_MEM_ID} 
+    </select>
+
+    <!-- 프론트 > 마이페이지 > 쇼핑혜택 > 포인트 사용 목록 -->
+    <select id="selectMyPointList" parameterType="hashMap" resultType="hashMap">
+        /* PcMyPoint.selectMyPointList */
+		SELECT
+			S1.RNUM,
+			S1.PAGE,
+			S1.MEM_PIT_GBN,
+			S1.MEM_PIT_BRK_DWN_NM,
+			S1.MEM_GET_PIT,
+			S1.MEM_PIT_TOT_PIT,
+			S1.MEM_PIT_PLS,
+			S1.MEM_PIT_MNS,
+			S1.MEM_PIT_EXT,
+			TO_DATE(S1.MEM_PIT_REG_DT,'YYYY-MM-DD HH24:MI:SS') AS MEM_PIT_REG_DT_LABEL,
+			S1.MEM_PIT_REG_DT
+		FROM
+		(
+			SELECT
+				ROWNUM AS RNUM,
+				CEIL(ROWNUM/10) as PAGE,
+				S2.MEM_PIT_GBN,
+				S2.MEM_PIT_BRK_DWN_NM,
+				S2.MEM_GET_PIT,
+				S2.MEM_PIT_TOT_PIT,
+				S2.MEM_PIT_PLS,
+				S2.MEM_PIT_MNS,
+				S2.MEM_PIT_EXT,
+				S2.MEM_PIT_REG_DT
+			FROM
+			(
+				SELECT				
+					TMP.MEM_PIT_GBN,
+					(SELECT CMN_COM_NM FROM T_CMM_COM TCC WHERE TCC.CMN_COM_IDX = TMP.MEM_PIT_BRK_DWN) AS MEM_PIT_BRK_DWN_NM,
+					<![CDATA[
+					CASE TMP.MEM_PIT_GBN 
+						WHEN 'P' THEN TMP.MEM_PIT_PLS
+						WHEN 'M' THEN TMP.MEM_PIT_MNS
+						WHEN 'D' THEN TMP.MEM_PIT_EXT
+					END AS MEM_GET_PIT,
+					]]>
+					TMP.MEM_PIT_PLS,
+					TMP.MEM_PIT_MNS,
+					TMP.MEM_PIT_EXT,					
+					TMP.MEM_PIT_TOT_PIT,
+					TMP.MEM_PIT_REG_DT
+				FROM
+					T_MEM_PIT TMP
+				WHERE
+					TMP.MEM_PIT_MEM_ID = #{MEM_MST_MEM_ID}
+				AND TO_DATE(TMP.MEM_PIT_REG_DT,'YYYY-MM-DD HH24:MI:SS') BETWEEN #{fromDate} AND (TO_DATE(#{toDate},'YYYY-MM-DD')+1)	/* 2020.06.17 조건절추가 */	
+				ORDER BY TMP.MEM_PIT_REG_DT DESC
+			) S2
+		) S1
+		<if test="cPage != null and cPage != ''">
+            WHERE S1.PAGE = #{cPage}
+        </if>
+        <if test="startNum != null and startNum != '' and endNum != null and endNum != ''">
+            WHERE S1.RNUM BETWEEN #{startNum} AND #{endNum}
+        </if>
+    </select>
+    
+    <!-- 2020.06.16 프론트 > 마이페이지 > 사용가능한 E포인트 조회  -->    
+    <select id="selectMyEpoint" parameterType="hashMap" resultType="hashMap">
+        /* PcMyPoint.selectMyEpoint */
+ 		SELECT NVL(MAX(A.MEM_PIT_TOT_PIT) ,0) AS MEM_PIT_TOT_PIT
+		FROM ( SELECT  TMP.MEM_PIT_MEM_ID 		
+					 , TMP.MEM_PIT_PLS
+					 , TMP.MEM_PIT_MNS 
+					 , TMP.MEM_PIT_EXT
+					 , TMP.MEM_PIT_TOT_PIT
+					 , TMP.MEM_PIT_REG_DT
+					 , TMP.MEM_PIT_REG_IP
+					 , TMP.MEM_PIT_REG_ID
+					 , TMP.MEM_PIT_UPD_DT
+					 , TMP.MEM_PIT_UPD_IP 
+					 , TMP.MEM_PIT_UPD_ID 
+					 , TMP.EVT_MST_IDX
+				FROM T_MEM_PIT TMP
+				WHERE 1=1
+				AND TMP.MEM_PIT_MEM_ID = #{MEM_MST_MEM_ID}
+				ORDER BY TMP.MEM_PIT_REG_DT DESC
+			 )A
+		WHERE 1=1
+		AND ROWNUM = 1
+    </select>    
+    
+    <!-- 2020.06.16 프론트 > 마이페이지 > 회원정보조회-->
+    <select id="selectMyInfo" parameterType="hashMap" resultType="hashMap">
+        /* PcMyPoint.selectMyInfo */
+ 		SELECT TMM.MEM_MST_MEM_ID 
+			 , TMM.MEM_MST_MEM_NM
+			 , TMM.MEM_MST_SW_ID
+			 , TMM.MEM_MST_SW_TYPE
+		FROM T_MEM_MST TMM
+		WHERE 1=1
+		AND TMM.MEM_MST_MEM_ID = #{MEM_MST_MEM_ID}
+    </select>
+    
+    <!-- 
+    	2020.06.16 프론트 > 마이페이지 > 임직원 포인트조회 
+    	포인트 정책이 확정되면 수정예정
+    -->
+    <select id="selectMyPointSwOne" parameterType="hashMap" resultType="hashMap">
+        /* PcMyPoint.selectMyPointSwOne */
+ 		SELECT TPMS.*
+		FROM T_PIT_MST_SW TPMS
+		INNER JOIN T_MEM_PIT TMP 
+		ON TPMS.PIT_MST_IDX = TMP.PIT_MST_IDX 
+		WHERE 1=1
+		AND TMP.MEM_PIT_MEM_ID = #{MEM_MST_MEM_ID}
+    </select>       
+    
+    <!-- 2020.06.24 통합포인트 마스터 테이블 INSERT  -->
+    <insert id="insertPitMstTot" parameterType="java.util.HashMap">
+  		/* PcMyPoint.insertPitMstTot */
+    	INSERT INTO T_PIT_MST_TOT
+    	(
+    		 PIT_MST_IDX
+    	   , PIT_MST_GBN
+    	   , PIT_MST_BRK_DWN
+    	   , PIT_MST_MEMO
+    	   , PIT_MST_PIT
+    	   , PIT_MST_REG_DT
+    	   , PIT_MST_REG_IP
+    	   , PIT_MST_REG_ID	
+    	)
+    	VALUES
+    	(
+    		 #{PIT_MST_IDX}
+    	   , #{PIT_MST_GBN}
+    	   , #{PIT_MST_BRK_DWN}
+    	   , #{PIT_MST_MEMO}
+    	   , #{PIT_MST_PIT}
+    	   , TO_CHAR(SYSDATE,'YYYYMMDDHH24MISS')
+    	   , #{PIT_MST_REG_IP}
+    	   , #{PIT_MST_REG_ID}	
+    	)    
+    </insert>
+    
+    <!-- 2020.06.24 통합포인트 회원 테이블 INSERT  -->
+    <insert id="insertMemPitTot" parameterType="java.util.HashMap">
+    	/* PcMyPoint.insertMemPitTot */
+    	INSERT INTO T_MEM_PIT_TOT
+    	(
+    		 MEM_PIT_IDX
+   		     <if test='PIT_MST_IDX != null and PIT_MST_IDX != ""'>
+   		     	, PIT_MST_IDX
+   		     </if>    	   
+    	   , MEM_PIT_MEM_ID
+    	   , MEM_PIT_GBN
+    	   , MEM_PIT_BRK_DWN
+    	   , MEM_PIT_PLS
+    	   , MEM_PIT_MNS
+    	   , MEM_PIT_EXT
+    	   , MEM_PIT_TOT_PIT
+    	   , MEM_PIT_REG_DT
+    	   , MEM_PIT_REG_IP
+    	   , MEM_PIT_REG_ID 
+    	   <if test='ORD_MST_CD != null and ORD_MST_CD != ""'>
+    	   		, ORD_MST_CD
+    	   </if>    	   	
+    	)
+    	VALUES
+    	(
+    		 #{MEM_PIT_IDX}
+    		 <if test='PIT_MST_IDX != null and PIT_MST_IDX != ""'>
+    		 	, #{PIT_MST_IDX}
+    		 </if>    	   
+    	   , #{MEM_PIT_MEM_ID}
+    	   , #{MEM_PIT_GBN}
+    	   , #{MEM_PIT_BRK_DWN}
+    	   , #{MEM_PIT_PLS}
+    	   , #{MEM_PIT_MNS}
+    	   , #{MEM_PIT_EXT}
+    	   , #{MEM_PIT_TOT_PIT}
+    	   , TO_CHAR(SYSDATE,'YYYYMMDDHH24MISS')
+    	   , #{PIT_MST_REG_IP}
+    	   , #{PIT_MST_REG_ID}
+    	   <if test='ORD_MST_CD != null and ORD_MST_CD != ""'>
+    	   		, #{ORD_MST_CD}
+    	   </if>	    	   
+    	)    	    	
+    </insert>
+    
+    <!-- 2020.06.24 임직원포인트 마스터 테이블 INSERT  -->
+    <insert id="insertPitMstSw" parameterType="java.util.HashMap">
+    	/* PcMyPoint.insertPitMstSw */
+    	INSERT INTO T_PIT_MST_SW
+    	(
+    		 PIT_MST_IDX
+    	   , PIT_MST_GBN
+    	   , PIT_MST_BRK_DWN
+    	   , PIT_MST_MEMO
+    	   , PIT_MST_PIT
+    	   , PIT_MST_REG_DT
+    	   , PIT_MST_REG_IP
+    	   , PIT_MST_REG_ID	
+    	)
+    	VALUES
+    	(
+    		 #{PIT_MST_IDX}
+    	   , #{PIT_MST_GBN}
+    	   , #{PIT_MST_BRK_DWN}
+    	   , #{PIT_MST_MEMO}
+    	   , #{PIT_MST_PIT}
+    	   , TO_CHAR(SYSDATE,'YYYYMMDDHH24MISS')
+    	   , #{PIT_MST_REG_IP}
+    	   , #{PIT_MST_REG_ID}	
+    	)  
+    </insert>
+    
+    <!-- 2020.06.24 임직원포인트 회원 테이블 INSERT  -->
+    <insert id="insertMemPitSw" parameterType="java.util.HashMap">
+    	/* PcMyPoint.insertMemPitTot */
+    	INSERT INTO T_MEM_PIT_SW
+    	(
+    		 MEM_PIT_IDX
+   		     <if test='PIT_MST_IDX != null and PIT_MST_IDX != ""'>
+   		     	, PIT_MST_IDX
+   		     </if>    	   
+    	   , MEM_PIT_MEM_ID
+    	   , MEM_PIT_GBN
+    	   , MEM_PIT_BRK_DWN
+    	   , MEM_PIT_PLS
+    	   , MEM_PIT_MNS
+    	   , MEM_PIT_EXT
+    	   , MEM_PIT_TOT_PIT
+    	   , MEM_PIT_REG_DT
+    	   , MEM_PIT_REG_IP
+    	   , MEM_PIT_REG_ID 
+    	   <if test='ORD_MST_CD != null and ORD_MST_CD != ""'>
+    	   		, ORD_MST_CD
+    	   </if>    	   	
+    	)
+    	VALUES
+    	(
+    		 #{MEM_PIT_IDX}
+    		 <if test='PIT_MST_IDX != null and PIT_MST_IDX != ""'>
+    		 	, #{PIT_MST_IDX}
+    		 </if>    	   
+    	   , #{MEM_PIT_MEM_ID}
+    	   , #{MEM_PIT_GBN}
+    	   , #{MEM_PIT_BRK_DWN}
+    	   , #{MEM_PIT_PLS}
+    	   , #{MEM_PIT_MNS}
+    	   , #{MEM_PIT_EXT}
+    	   , #{MEM_PIT_TOT_PIT}
+    	   , TO_CHAR(SYSDATE,'YYYYMMDDHH24MISS')
+    	   , #{PIT_MST_REG_IP}
+    	   , #{PIT_MST_REG_ID}
+    	   <if test='ORD_MST_CD != null and ORD_MST_CD != ""'>
+    	   		, #{ORD_MST_CD}
+    	   </if>	    	   
+    	)    	    	
+    </insert>
+    
+    
+</mapper>

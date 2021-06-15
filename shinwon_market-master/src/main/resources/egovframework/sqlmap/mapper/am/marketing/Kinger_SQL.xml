@@ -1,0 +1,727 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="Kinger">
+    <!-- 관리자 > 마케팅 관리 > 이벤트 관리 조건절 -->
+    <sql id="kingerWhere">
+        <if test="searchExpMstCd != null and searchExpMstCd != ''">
+            AND EXP.EXP_MST_CD = #{searchExpMstCd}
+        </if>
+        <if test="searchExpMstStDt != null and searchExpMstStDt != '' and searchExpMstEdDt != null and searchExpMstEdDt != ''">
+            <![CDATA[
+                AND 
+                (
+                    (EXP.EXP_MST_RCT_ST_DT BETWEEN REPLACE(#{searchExpMstStDt}, '-', '') AND REPLACE(#{searchExpMstEdDt}, '-', ''))
+                    OR
+                    (EXP.EXP_MST_RCT_ED_DT BETWEEN REPLACE(#{searchExpMstStDt}, '-', '') AND REPLACE(#{searchExpMstEdDt}, '-', ''))
+                )
+            ]]>
+        </if>
+        <if test="searchExpMstStDt != null and searchExpMstStDt != '' and (searchExpMstEdDt == null or searchExpMstEdDt == '')">
+            <![CDATA[
+                AND EXP.EXP_MST_RCT_ST_DT >= REPLACE(#{searchExpMstStDt}, '-', '')
+            ]]>
+        </if>
+        <if test="(searchExpMstStDt == null or searchExpMstStDt == '') and searchExpMstEdDt != null and searchExpMstEdDt != ''">
+            <![CDATA[
+                AND EXP.EXP_MST_RCT_ED_DT <= REPLACE(#{searchExpMstEdDt}, '-', '')
+            ]]>
+        </if>
+        <if test="searchPrdMstCd != null and searchPrdMstCd != ''">
+            AND EXP.PRD_MST_CD =  #{searchPrdMstCd}
+        </if>
+		<if test="searchPrdMstNm != null and searchPrdMstNm != ''">
+            AND TPM.PRD_MST_NM LIKE '%' || #{searchPrdMstNm} || '%'
+        </if>
+        <if test="searchExpMstNm != null and searchExpMstNm != ''">
+            AND EXP.EXP_MST_NM LIKE '%' || #{searchExpMstNm} || '%'
+        </if>
+        <if test="searchExpMstUseYn != null and searchExpMstUseYn != ''">
+            AND EXP.EXP_MST_USE_YN = #{searchExpMstUseYn}
+        </if>
+		<if test="searchExpMstStatus != null and searchExpMstStatus.equals('ing'.toString())">
+			AND TO_CHAR(SYSDATE,'YYYYMMDD') BETWEEN EXP.EXP_MST_RCT_ST_DT AND EXP.EXP_MST_RCT_ED_DT
+        </if>
+		<if test="searchExpMstStatus != null and searchExpMstStatus.equals('end'.toString())">
+			<![CDATA[
+			AND TO_CHAR(SYSDATE,'YYYYMMDD') > EXP.EXP_MST_WIN_DT
+			]]>
+        </if>
+		<if test="searchExpMstStatus != null and searchExpMstStatus.equals('win'.toString())">
+			<![CDATA[
+			AND TO_CHAR(SYSDATE,'YYYYMMDD') = EXP.EXP_MST_WIN_DT
+			]]>
+        </if>
+    </sql>
+    
+    <sql id="kingerEntryWhere">
+        <if test="searchMemMstMemId != null and searchMemMstMemId != ''">
+            AND E.MEM_MST_MEM_ID =  #{searchMemMstMemId} 
+        </if>
+        <if test="searchMemMstMemNm != null and searchMemMstMemNm != ''">
+            AND E.MEM_MST_MEM_ID IN (SELECT MEM_MST_MEM_ID FROM T_MEM_MST WHERE MEM_MST_MEM_NM LIKE '%'||#{searchMemMstMemNm}||'%')
+        </if>
+        <if test="searchExpEtrWinYn != null and searchExpEtrWinYn != ''">
+            AND EXP_ETR_WIN_YN LIKE '%' || #{searchExpEtrWinYn} || '%'
+        </if>
+        <if test="searchExpEtrAgrYn != null and searchExpEtrAgrYn != ''">
+            AND EXP_ETR_AGR_YN = #{searchExpEtrAgrYn}
+        </if>
+    </sql>
+    
+    <!-- 관리자 > 프로모션 관리 > 리뷰어모집 상단노출 갯수 -->
+    <select id="selectKingerTopDspCount" parameterType="HashMap" resultType="Integer">
+        /*Kinger.selectKingerTopDspCount*/
+        SELECT
+            NVL(COUNT(EXP.EXP_MST_TOP_DSP_YN), 0) CNT
+        FROM
+            T_EXP_MST EXP 
+            , T_PRD_MST TPM 
+        WHERE
+        	EXP.PRD_MST_CD = TPM.PRD_MST_CD
+            AND EXP.EXP_MST_TOP_DSP_YN = 'Y'
+    </select>
+    
+    <!-- 관리자 > 프로모션 관리 > 리뷰어모집 목록 갯수 -->
+    <select id="selectKingerListCount" parameterType="HashMap" resultType="Integer">
+        /*Kinger.selectKingerListCount*/
+        SELECT
+            COUNT(EXP.EXP_MST_CD)
+        FROM
+            T_EXP_MST EXP 
+            , T_PRD_MST TPM 
+        WHERE
+            EXP.PRD_MST_CD = TPM.PRD_MST_CD
+            <include refid="kingerWhere"/>
+    </select>
+    
+    <!-- 관리자 > 프로모션 관리 > 리뷰어모집 목록 -->
+    <select id="selectKingerList" parameterType="HashMap" resultType="HashMap">
+        /* Kinger.selectKingerList */
+        SELECT
+            CASE WHEN S2.EXP_MST_TOP_DSP_YN = 'Y' THEN '상단' ELSE TO_CHAR(S2.RNUM) END NUM,
+            S2.* 
+        FROM
+            (   SELECT
+                    ROWNUM AS RNUM,
+                    S1.* 
+                FROM
+                    (   SELECT
+                    		EXP.EXP_MST_TOP_DSP_YN,
+                            EXP.EXP_MST_CD,
+                            EXP.PRD_MST_CD,
+							FN_PRODUCT_IMG(EXP.PRD_MST_CD, #{THUMBNAIL_SIZE}) AS PRD_IMAGE,
+	            			FN_PRODUCT_IMG_ALT(EXP.PRD_MST_CD, #{THUMBNAIL_SIZE}) PRD_IMAGE_ALT,
+	            			TPM.PRD_MST_NM,
+                            EXP.EXP_MST_NM,
+                            EXP.EXP_MST_SUB_NM,
+                            EXP.EXP_MST_RCT_ST_DT,
+                            EXP.EXP_MST_RCT_ED_DT,
+                            (SELECT COUNT(*) FROM T_EXP_ETR WHERE EXP_MST_CD = EXP.EXP_MST_CD) AS EXP_MST_ETR_CNT,
+                            (SELECT COUNT(*) FROM T_EXP_REV WHERE EXP_MST_CD = EXP.EXP_MST_CD) AS EXP_MST_REV_CNT,
+                            EXP.EXP_MST_WIN_CNT,
+                            EXP.EXP_MST_REG_DT,
+                            EXP.EXP_MST_USE_YN,
+                            EXP.EXP_KINGER_CD,
+				            CASE WHEN TO_CHAR(SYSDATE,'YYYYMMDDHH24MISS') BETWEEN EXP.EXP_MST_RCT_ST_DT AND EXP.EXP_MST_RCT_ED_DT THEN '진행중'
+				            WHEN TO_CHAR(SYSDATE,'YYYYMMDD') = EXP.EXP_MST_WIN_DT THEN '당첨자발표'
+				            WHEN TO_CHAR(SYSDATE,'YYYYMMDDHH24MISS') > EXP.EXP_MST_RCT_ED_DT THEN '모집종료'
+				            ELSE '' END AS EXP_MST_STATE
+                        FROM
+                            T_EXP_MST EXP
+                            , T_PRD_MST TPM 
+                        WHERE
+                            EXP.PRD_MST_CD = TPM.PRD_MST_CD
+                            <include refid="kingerWhere"/> 
+                        ORDER BY NVL(EXP.EXP_MST_TOP_DSP_YN, 'N'), EXP.EXP_MST_REG_DT 
+                    )
+                    S1 
+            )
+            S2 
+        WHERE
+            S2.RNUM BETWEEN #{startNum} AND #{endNum}
+        ORDER BY S2.RNUM DESC
+    </select>
+    
+	<resultMap id="resultKingerInfo" type="HashMap">
+        <result property="EXP_MST_CD" column="EXP_MST_CD"/>
+        <result property="PRD_MST_CD" column="PRD_MST_CD"/>
+        <result property="EXP_MST_NM" column="EXP_MST_NM"/>  
+        <result property="EXP_MST_DESC" column="EXP_MST_DESC"/>           
+        <result property="EXP_MST_SUB_NM" column="EXP_MST_SUB_NM"/>
+        <result property="EXP_MST_RCT_ST_DT" column="EXP_MST_RCT_ST_DT"/>
+        <result property="EXP_MST_RCT_ED_DT" column="EXP_MST_RCT_ED_DT"/>
+        <result property="EXP_MST_BNF" column="EXP_MST_BNF"/>
+        <result property="EXP_MST_ATV_ST_DT" column="EXP_MST_ATV_ST_DT"/>
+        <result property="EXP_MST_ATV_ED_DT" column="EXP_MST_ATV_ED_DT"/>
+        <result property="EXP_MST_WIN_DT" column="EXP_MST_WIN_DT"/>
+        <result property="EXP_MST_WIN_CNT" column="EXP_MST_WIN_CNT"/>
+        <result property="EXP_MST_USE_YN" column="EXP_MST_USE_YN"/>
+        <result property="EXP_MST_REG_ID" column="EXP_MST_REG_ID"/>
+        <result property="EXP_MST_REG_IP" column="EXP_MST_REG_IP"/>
+        <result property="EXP_MST_REG_DT" column="EXP_MST_REG_DT"/>
+        <result property="EXP_MST_UPD_DT" column="EXP_MST_UPD_DT"/>
+        <result property="EXP_MST_UPD_IP" column="EXP_MST_UPD_IP"/>
+        <result property="EXP_MST_UPD_ID" column="EXP_MST_UPD_ID"/>
+        <result property="EXP_KINGER_CD" column="EXP_KINGER_CD"/>
+        <result property="EXP_MST_SCRIPT" column="EXP_MST_SCRIPT" jdbcType="CLOB" javaType="java.lang.String"/>
+        <result property="EXP_MST_TOP_DSP_YN" column="EXP_MST_TOP_DSP_YN"/>
+    </resultMap>
+    <!-- 관리자 > 마케팅 관리 > 고객체험단 상세정보-->
+    <select id="selectKingerInfo" parameterType="HashMap" resultMap="resultKingerInfo">
+        /* Kinger.selectKingerInfo */
+        SELECT
+            EXP.EXP_MST_CD,
+            EXP.PRD_MST_CD,
+            EXP.EXP_MST_NM,
+            EXP.EXP_MST_DESC,
+            EXP.EXP_MST_SUB_NM,
+            EXP.EXP_MST_RCT_ST_DT,
+            EXP.EXP_MST_RCT_ED_DT,
+            EXP.EXP_MST_BNF,
+            EXP.EXP_MST_ATV_ST_DT,
+            EXP.EXP_MST_ATV_ED_DT,
+            EXP.EXP_MST_WIN_DT,
+            EXP.EXP_MST_WIN_CNT,
+            EXP.EXP_MST_USE_YN,
+            (SELECT ADM_MST_NM FROM T_ADM_MST WHERE ADM_MST_ID = EXP.EXP_MST_REG_ID) EXP_MST_REG_NM,
+            EXP.EXP_MST_REG_ID,
+            EXP.EXP_MST_REG_IP,
+            EXP.EXP_MST_REG_DT,
+            (SELECT ADM_MST_NM FROM T_ADM_MST WHERE ADM_MST_ID = EXP.EXP_MST_UPD_ID) EXP_MST_UPD_NM,
+            EXP.EXP_MST_UPD_DT,
+            EXP.EXP_MST_UPD_IP,
+            EXP.EXP_MST_UPD_ID,
+            EXP.EXP_KINGER_CD,
+            EXP.EXP_MST_SCRIPT,
+            EXP_MST_TOP_DSP_YN,
+            CASE WHEN TO_CHAR(SYSDATE,'YYYYMMDDHH24MISS') BETWEEN EXP.EXP_MST_RCT_ST_DT AND EXP.EXP_MST_RCT_ED_DT THEN '진행중'
+            WHEN TO_CHAR(SYSDATE,'YYYYMMDD') = EXP.EXP_MST_WIN_DT THEN '당첨자발표'
+            WHEN TO_CHAR(SYSDATE,'YYYYMMDDHH24MISS') > EXP.EXP_MST_RCT_ED_DT THEN '모집종료'
+            ELSE '' END AS EXP_MST_STATE
+        FROM
+            T_EXP_MST EXP
+        WHERE
+             EXP_MST_CD = #{EXP_MST_CD}
+    </select>
+   
+    <!-- 관리자 > 마케팅 관리 > 이벤트 관리 등록 -->
+    <insert id="insertKinger" parameterType="HashMap">
+        <selectKey keyProperty="EXP_MST_CD" resultType="Integer" order="BEFORE">
+            SELECT SEQ_EXP_MST_CD.NEXTVAL AS EXP_MST_CD FROM DUAL
+        </selectKey>
+        /* Kinger.insertKinger */
+        INSERT INTO
+            T_EXP_MST
+            (
+			    EXP_MST_CD,
+			    PRD_MST_CD,
+				EXP_MST_NM,
+				EXP_MST_DESC,
+				EXP_MST_SUB_NM,
+				EXP_MST_RCT_ST_DT,
+				EXP_MST_RCT_ED_DT,
+				EXP_MST_BNF,
+				EXP_MST_ATV_ST_DT,
+				EXP_MST_ATV_ED_DT,
+				EXP_MST_WIN_DT,
+				EXP_MST_WIN_CNT,
+				EXP_MST_USE_YN,
+				EXP_MST_REG_DT,
+				EXP_MST_REG_IP,
+				EXP_MST_REG_ID,
+				EXP_KINGER_CD,
+				EXP_MST_SCRIPT,
+				EXP_MST_TOP_DSP_YN
+			 )
+        VALUES
+            (
+                TRIM(TO_CHAR(#{EXP_MST_CD},'000')),
+                #{PRD_MST_CD},
+                #{EXP_MST_NM},
+                #{EXP_MST_DESC},
+                #{EXP_MST_SUB_NM},
+                REPLACE(#{EXP_MST_RCT_ST_DT}, '-', ''),
+                REPLACE(#{EXP_MST_RCT_ED_DT}, '-', ''),
+                #{EXP_MST_BNF},
+                REPLACE(#{EXP_MST_ATV_ST_DT}, '-', ''),
+                REPLACE(#{EXP_MST_ATV_ED_DT}, '-', ''),                
+                REPLACE(#{EXP_MST_WIN_DT}, '-', ''),
+                #{EXP_MST_WIN_CNT},
+                #{EXP_MST_USE_YN},
+                TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+                #{EXP_MST_REG_IP},
+                #{EXP_MST_REG_ID},
+                #{EXP_KINGER_CD},
+                #{EXP_MST_SCRIPT:CLOB},
+                #{EXP_MST_TOP_DSP_YN}
+            )
+    </insert>
+    
+    <!-- 관리자 > 프로모션 관리 > 리뷰어모집 상단 노출 수정 -->
+    <update id="updateTopDspKingerN" parameterType="HashMap">
+        /* Kinger.updateKinger */
+        UPDATE
+            T_EXP_MST 
+        SET            
+            EXP_MST_TOP_DSP_YN = 'N'
+        WHERE
+            EXP_MST_TOP_DSP_YN = 'Y'
+    </update>
+
+    <!-- 관리자 > 프로모션 관리 > 리뷰어모집 수정 -->
+    <update id="updateKinger" parameterType="HashMap">
+        /* Kinger.updateKinger */
+        UPDATE
+            T_EXP_MST 
+        SET            
+            PRD_MST_CD = #{PRD_MST_CD},
+            EXP_MST_NM = #{EXP_MST_NM},
+            EXP_MST_DESC = #{EXP_MST_DESC},
+            EXP_MST_SUB_NM = #{EXP_MST_SUB_NM},
+            EXP_MST_RCT_ST_DT = REPLACE(#{EXP_MST_RCT_ST_DT}, '-', ''),
+            EXP_MST_RCT_ED_DT = REPLACE(#{EXP_MST_RCT_ED_DT}, '-', ''),
+            EXP_MST_BNF = #{EXP_MST_BNF},
+            EXP_MST_ATV_ST_DT = REPLACE(#{EXP_MST_ATV_ST_DT}, '-', ''),
+            EXP_MST_ATV_ED_DT = REPLACE(#{EXP_MST_ATV_ED_DT}, '-', ''),
+            EXP_MST_WIN_DT = REPLACE(#{EXP_MST_WIN_DT}, '-', ''),
+            EXP_MST_WIN_CNT = #{EXP_MST_WIN_CNT},
+            EXP_MST_USE_YN = #{EXP_MST_USE_YN},
+            EXP_MST_UPD_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+            EXP_MST_UPD_IP = #{EXP_MST_UPD_IP},
+            EXP_MST_UPD_ID = #{EXP_MST_UPD_ID},
+            EXP_KINGER_CD = #{EXP_KINGER_CD},
+            EXP_MST_SCRIPT = #{EXP_MST_SCRIPT:CLOB},
+            EXP_MST_TOP_DSP_YN = #{EXP_MST_TOP_DSP_YN}
+        WHERE
+            EXP_MST_CD = #{EXP_MST_CD}        
+    </update>
+    
+    <!-- 관리자 > 프로모션 관리 > 리뷰어모집 수정 -->
+    <update id="updateKingerList" parameterType="HashMap">
+        /* Kinger.updateKinger */
+        <foreach collection="selectedExpMstList" item="item" index="index" open="DECLARE BEGIN" close="; END;" separator=";">
+			UPDATE
+	            T_EXP_MST 
+	        SET
+	            EXP_MST_USE_YN = NVL(#{item.EXP_MST_USE_YN}, 'Y'),
+	            EXP_MST_UPD_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+	            EXP_MST_UPD_IP = #{TIM_SAL_UPD_IP},
+	            EXP_MST_UPD_ID = #{TIM_SAL_UPD_ID}
+	        WHERE
+	            EXP_MST_CD = #{item.EXP_MST_CD}        
+        </foreach>
+    </update>
+    
+    <!-- 관리자 > 마케팅 관리 > 이벤트 관리 응모자 / 당첨자 목록 갯수 -->
+    <select id="selectKingerEntryListCount" parameterType="HashMap" resultType="Integer">
+        /* Kinger.selectKingerEntryListCount */
+        SELECT
+            COUNT(EXP_ETR_IDX)
+        FROM
+            T_EXP_ETR E
+        WHERE
+            EXP_MST_CD = #{EXP_MST_CD}
+            <include refid="kingerEntryWhere"/>
+          
+    </select>
+    
+     <!-- 관리자 > 마케팅 관리 > 고객체험단 리뷰 목록 갯수 -->
+    <select id="selectKingerReviewListCount" parameterType="HashMap" resultType="Integer">
+        /* Kinger.selectKingerReviewListCount */
+        SELECT
+            COUNT(EXP_REV_IDX)
+        FROM
+            T_EXP_REV
+        WHERE
+            EXP_MST_CD = #{EXP_MST_CD}
+          
+    </select>
+    
+     <!-- 관리자 > 마케팅 관리 > 고객체험단 리뷰 목록 -->
+    <select id="selectKingerReviewList" parameterType="HashMap" resultType="HashMap">
+        /* Kinger.selectKingerReviewList */
+        SELECT
+            S2.*          
+        FROM
+            (   SELECT
+                    ROWNUM AS RNUM,
+                    S1.* 
+                FROM
+                    (   SELECT E.EXP_REV_IDX,
+                    			M.MEM_MST_MEM_ID,
+                    			M.MEM_MST_MEM_NM, 
+                    			E.EXP_REV_NM,
+				    			E.EXP_REV_URL,
+				    			DECODE(M.MEM_MST_HP3,null,'-',M.MEM_MST_HP1||'-'||M.MEM_MST_HP2||'-'||M.MEM_MST_HP3) AS TEL_NO,
+				    			E.EXP_REV_BST_YN,
+				    			E.EXP_REV_USE_YN,
+				    			E.EXP_REV_REG_IP,
+				    			E.EXP_REV_REG_DT,
+				    			DECODE(M.MEM_MST_HP3,null,'',M.MEM_MST_HP1||M.MEM_MST_HP2||M.MEM_MST_HP3) AS TEL_NO_SMS
+				    	FROM T_MEM_MST M, T_EXP_REV E
+				    	WHERE E.MEM_MST_MEM_ID = M.MEM_MST_MEM_ID
+                            AND E.EXP_MST_CD = #{EXP_MST_CD}
+                        ORDER BY EXP_REV_REG_DT DESC 
+                    )
+                    S1 
+            )
+            S2
+        <if test="startNum != null and startNum != '' and endNum != null and endNum != ''">
+            WHERE S2.RNUM BETWEEN #{startNum} AND #{endNum}
+        </if>
+    </select>
+    
+    <!-- 관리자 > 마케팅 관리 > 이벤트 관리 응모자 / 당첨자 목록 -->
+    <select id="selectKingerEntryList" parameterType="HashMap" resultType="HashMap">
+        /* Kinger.selectKingerEntryList */
+        SELECT
+            S2.*          
+        FROM
+            (   SELECT
+                    ROWNUM AS RNUM,
+                    S1.* 
+                FROM
+                    (   SELECT E.EXP_ETR_IDX,
+                    			M.MEM_MST_MEM_ID,
+                    			(SELECT COUNT(*) FROM T_EXP_ETR WHERE MEM_MST_MEM_ID = E.MEM_MST_MEM_ID ) AS ETR_CNT,
+				    			M.MEM_MST_MEM_NM, 
+				    			(SELECT LISTAGG(TEEU.EXP_ETR_URL, ' ') WITHIN GROUP (ORDER BY TEEU.EXP_ETR_URL) FROM T_EXP_ETR_URL TEEU WHERE E.MEM_MST_MEM_ID = TEEU.MEM_MST_MEM_ID) AS URL_LIST,
+				    			DECODE(M.MEM_MST_HP3,null,'-',M.MEM_MST_HP1||'-'||M.MEM_MST_HP2||'-'||M.MEM_MST_HP3) AS TEL_NO,
+				    			M.MEM_MST_DRO_ADR1||' '||M.MEM_MST_DRO_ADR2 AS ADDR,
+				    			MEM_MST_MAIL,
+				    			(SELECT COUNT(*) FROM T_EXP_ETR WHERE MEM_MST_MEM_ID = E.MEM_MST_MEM_ID AND EXP_ETR_WIN_YN = 'Y') AS ATV_CNT,
+				    			(SELECT COUNT(*) FROM T_EXP_REV WHERE MEM_MST_MEM_ID = E.MEM_MST_MEM_ID ) AS REV_CNT,
+				    			E.EXP_ETR_WIN_YN,
+				    			E.EXP_ETR_AGR_YN, /* 동의서승인여부 */
+				    			E.EXP_ETR_REG_IP,
+				    			E.EXP_ETR_REG_DT
+				    	FROM T_MEM_MST M, T_EXP_ETR E
+				    	WHERE E.MEM_MST_MEM_ID = M.MEM_MST_MEM_ID
+                            AND E.EXP_MST_CD = #{EXP_MST_CD}
+                        <include refid="kingerEntryWhere"/>
+                        ORDER BY EXP_ETR_REG_DT DESC 
+                    )
+                    S1 
+            )
+            S2
+        <if test="startNum != null and startNum != '' and endNum != null and endNum != ''">
+            WHERE S2.RNUM BETWEEN #{startNum} AND #{endNum}
+        </if>
+    </select>
+    
+    <!-- 관리자 > 마케팅 관리 > 이벤트 관리 덧글형응모자 / 당첨자 목록 -->
+    <select id="selectKingerReplyList" parameterType="HashMap" resultType="HashMap">
+        /* Kinger.selectKingerReplyList */
+        SELECT
+            S2.*          
+        FROM
+            (   SELECT
+                    ROWNUM AS RNUM,
+                    S1.* 
+                FROM
+                    (   SELECT  E.EXP_RPL_IDX,
+                    			M.MEM_MST_MEM_ID,
+				    			SUBSTR(MEM_MST_MEM_NM,1, LENGTH(MEM_MST_MEM_NM) - 1)||'*' AS MEM_MST_MEM_NM, 
+				    			NVL((SELECT CMN_COM_NM FROM T_CMM_COM WHERE CMN_COM_IDX = M.MEM_MST_MEM_GRD),'-') AS MEM_GRD_NM,
+				    			DECODE(M.MEM_MST_HP3,null,'-',M.MEM_MST_HP1||'-****-'||M.MEM_MST_HP3) AS TEL_NO,
+				    			NVL((SELECT COUNT(EXP_MST_IDX) FROM T_EXP_ETR WHERE EXP_ETR_REG_ID = M.MEM_MST_MEM_ID GROUP BY EXP_MST_IDX),0) +
+				    			NVL((SELECT COUNT(EXP_MST_IDX) FROM T_EXP_IMG WHERE EXP_IMG_REG_ID = M.MEM_MST_MEM_ID GROUP BY EXP_MST_IDX),0) + 
+				    			NVL((SELECT COUNT(EXP_MST_IDX) FROM T_EXP_RPL WHERE EXP_RPL_REG_ID = M.MEM_MST_MEM_ID GROUP BY EXP_MST_IDX),0) +
+				    			NVL((SELECT COUNT(B.EXP_MST_IDX) FROM T_EXP_SVY A, T_EXP_DTL B WHERE A.EXP_DTL_IDX = B.EXP_DTL_IDX AND EXP_SVY_REG_ID = M.MEM_MST_MEM_ID GROUP BY B.EXP_MST_IDX),0) AS EXP_CNT,
+				    			NVL((SELECT COUNT(EXP_MST_IDX) FROM T_EXP_ETR WHERE EXP_ETR_REG_ID = M.MEM_MST_MEM_ID AND EXP_ETR_WIN_YN = 'Y'  GROUP BY EXP_MST_IDX),0) +
+				    			NVL((SELECT COUNT(EXP_MST_IDX) FROM T_EXP_IMG WHERE EXP_IMG_REG_ID = M.MEM_MST_MEM_ID AND EXP_IMG_WIN_YN = 'Y'  GROUP BY EXP_MST_IDX),0) + 
+				    			NVL((SELECT COUNT(EXP_MST_IDX) FROM T_EXP_RPL WHERE EXP_RPL_REG_ID = M.MEM_MST_MEM_ID AND EXP_RPL_WIN_YN = 'Y'  GROUP BY EXP_MST_IDX),0) +
+				    			NVL((SELECT COUNT(B.EXP_MST_IDX) FROM T_EXP_SVY A, T_EXP_DTL B WHERE A.EXP_DTL_IDX = B.EXP_DTL_IDX AND EXP_SVY_REG_ID = M.MEM_MST_MEM_ID AND EXP_SVY_WIN_YN = 'Y' GROUP BY B.EXP_MST_IDX),0) AS EXP_WIN_CNT,
+				    			(SELECT COUNT(*) FROM T_ORD_MST OM WHERE ORD_MST_ORD_ID = M.MEM_MST_MEM_ID AND NOT EXISTS (SELECT ORD_PRD_IDX FROM T_ORD_PRD WHERE ORD_ORD_MST_CD = OM.ORD_MST_CD AND ORD_PRD_ORD_STATE NOT IN('409'))) AS ORD_CNT,
+				    			E.EXP_RPL_CTS,
+				    			E.EXP_RPL_DPL_YN,
+				    			E.EXP_RPL_REG_IP,
+				    			TO_CHAR(TO_DATE(E.EXP_RPL_REG_DT,'yyyymmddhh24miss'),'yyyy/mm/dd hh24:mi:ss') AS EXP_RPL_REG_DT
+				    	FROM T_MEM_MST M, T_EXP_RPL E
+				    	WHERE E.EXP_RPL_REG_ID = M.MEM_MST_MEM_ID
+                            AND E.EXP_MST_IDX = #{EXP_MST_IDX}
+                            <if test="EXP_RPL_WIN_YN != null and EXP_RPL_WIN_YN != ''">
+                                AND EXP_RPL_WIN_YN = #{EXP_RPL_WIN_YN}
+                            </if>
+                        ORDER BY EXP_RPL_REG_DT DESC 
+                    )
+                    S1 
+            )
+            S2
+        <if test="startNum != null and startNum != '' and endNum != null and endNum != ''">
+            WHERE S2.RNUM BETWEEN #{startNum} AND #{endNum}
+        </if>
+    </select>
+    
+    <!-- 관리자 > 마케팅 관리 > 응모자확인 / 당첨자 신청 > URL 목록 -->
+    <select id="selectKingerEntryUrlList" parameterType="HashMap" resultType="HashMap">
+        /* Kinger.selectKingerEntryUrlList */
+		SELECT
+			TEEU.MEM_MST_MEM_ID
+			, TEEU.EXP_ETR_URL
+		FROM 
+			T_EXP_ETR TEE, T_EXP_ETR_URL TEEU
+		WHERE 
+			TEE.MEM_MST_MEM_ID = TEEU.MEM_MST_MEM_ID
+			AND TEE.EXP_MST_CD = TEEU.EXP_MST_CD
+		ORDER BY TEEU.MEM_MST_MEM_ID DESC
+    </select>
+    
+    <!-- 관리자 > 마케팅 관리 > 고객체험단 > 당첨여부 변경 삭제 -->
+    <update id="updateKingerWin" parameterType="HashMap">
+	    /* Kinger.updateKingerWin */	
+	    UPDATE 
+	    	T_EXP_ETR
+	    SET
+	    	EXP_ETR_WIN_YN = #{EXP_ETR_WIN_YN}
+	    WHERE 
+	    	EXP_ETR_IDX = #{EXP_ETR_IDX}
+    </update>
+    
+    <!-- 관리자 > 마케팅 관리 > 고객체험단 > 리뷰 베스트여부 변경 -->
+    <update id="updateKingerReviewBest" parameterType="HashMap">
+	    /* Kinger.updateKingerReviewBest */	
+	    UPDATE 
+	    	T_EXP_REV
+	    SET
+	    	EXP_REV_BST_YN = #{EXP_REV_BST_YN},
+	    	EXP_REV_USE_YN = #{EXP_REV_USE_YN}
+	    WHERE 
+    	    EXP_REV_IDX = #{EXP_REV_IDX}
+    </update>
+    
+    <!-- 관리자 > 마케팅 관리 > 이벤트 관리  당첨자발표 목록 -->
+    <select id="selectKingerWinList" parameterType="HashMap" resultType="HashMap">
+        /* Kinger.selectKingerWinList */
+        SELECT
+            S2.*          
+        FROM
+            (   SELECT
+                    ROWNUM AS RNUM,
+                    S1.* 
+                FROM
+                    (   SELECT EXP_MST_CD,
+							   EXP_WIN_NM,
+							   EXP_WIN_REG_DT,
+							   EXP_WIN_REG_ID,
+							   (SELECT ADM_MST_NM FROM T_ADM_MST WHERE ADM_MST_ID = EXP_WIN_REG_ID) EXP_WIN_REG_NM,
+							   EXP_WIN_USE_YN
+						FROM T_EXP_WIN
+						WHERE EXP_MST_CD = #{EXP_MST_CD}
+                        ORDER BY EXP_WIN_REG_DT DESC 
+                    )
+                    S1 
+            )
+            S2
+        <if test="startNum != null and startNum != '' and endNum != null and endNum != ''">
+            WHERE S2.RNUM BETWEEN #{startNum} AND #{endNum}    
+        </if>
+    </select>
+    
+    <!-- 관리자 > 마케팅 관리 > 이벤트 관리  당첨자발표 목록 -->
+    <select id="selectKingerWinInfo" parameterType="HashMap" resultType="HashMap">
+        /* Kinger.selectKingerWinInfo */
+        SELECT EXP_MST_CD,
+        	   EXP_WIN_NM,
+			   EXP_WIN_MAN_CPY,
+			   EXP_WIN_SUB_CPY,
+			   EXP_WIN_ATN,
+			   NVL(EXP_WIN_UPD_DT,EXP_WIN_REG_DT) AS EXP_WIN_REG_DT,
+			   NVL(EXP_WIN_UPD_ID, EXP_WIN_REG_ID) AS EXP_WIN_REG_ID,
+			   (SELECT ADM_MST_NM FROM T_ADM_MST WHERE ADM_MST_ID = NVL(EXP_WIN_UPD_ID, EXP_WIN_REG_ID)) EXP_WIN_REG_NM,
+			   EXP_WIN_USE_YN
+		FROM T_EXP_WIN
+		WHERE EXP_MST_CD = #{EXP_MST_CD}
+    </select>
+    
+    <!-- 관리자 > 마케팅 관리 > 이벤트 관리  당첨자발표 목록 -->
+    <select id="selectKingerWinMailInfo" parameterType="HashMap" resultType="HashMap">
+        /* Kinger.selectKingerWinMailInfo */
+		SELECT
+            EXP.EXP_MST_CD, /* 킹저코드 */
+            EXP.PRD_MST_CD, /* 상품코드 */
+            (SELECT PRD_MST_NM FROM T_PRD_MST WHERE PRD_MST_CD = EXP.PRD_MST_CD) AS PRD_MST_NM, 
+            EXP.EXP_MST_NM,          /* 제목 */
+            EXP.EXP_MST_SUB_NM,       /* 서브제목 */
+            EXP.EXP_MST_RCT_ST_DT,  /* 모집기간 시작일 */
+            EXP.EXP_MST_RCT_ED_DT,  /* 모집기간 종료일 */
+            EXP.EXP_MST_BNF,    /* KINGER 혜택안내 */
+            TO_CHAR(TO_DATE(EXP.EXP_MST_ATV_ST_DT,'yyyymmdd'),'yyyy.mm.dd') AS EXP_MST_ATV_ST_DT, 
+            TO_CHAR(TO_DATE(EXP.EXP_MST_ATV_ED_DT,'yyyymmdd'),'yyyy.mm.dd') AS EXP_MST_ATV_ED_DT, 
+            EXP.EXP_MST_WIN_DT,   /* 당첨자 발표날짜 */
+            EXP.EXP_MST_WIN_CNT,     /* 당첨인원 */
+            EXP.EXP_MST_USE_YN,   /* 전시상태 */
+            EE.EXP_ETR_WIN_YN,    /* 응모 당첨여부 */
+            EE.MEM_MST_MEM_ID,       /* 응모 당첨자 아이디 */
+            TMV.MEM_MST_MEM_NM,  /*  응모 당첨자 이름 */
+            TMV.MEM_MST_MAIL, /* 응모 당첨자 이메일 */
+            (SELECT CMM_FLE_ATT_PATH || CMM_FLE_SYS_NM 
+               FROM T_CMM_FLE 
+               WHERE CMM_FLE_TB_NM = 'T_EXP_MST'
+               AND   CMM_FLE_TB_PK = EXP.EXP_MST_CD 
+               AND CMM_FLE_TB_TYPE = 'S'
+               AND CMM_FLE_USE_YN = 'Y'
+               AND ROWNUM = 1
+               ) AS EXP_DOWNLOAD,
+            FN_PRODUCT_IMG(EXP.PRD_MST_CD,#{THUMBNAIL_SIZE}) AS EXP_PRD_IMG,
+            EXP.EXP_KINGER_CD
+        FROM
+            T_EXP_MST EXP, T_EXP_ETR EE, T_MEM_VIEW TMV 
+        WHERE 1=1
+          AND EXP.EXP_MST_CD = EE.EXP_MST_CD
+          AND EE.MEM_MST_MEM_ID = TMV.MEM_MST_MEM_ID
+          AND EE.EXP_ETR_WIN_YN = 'Y'
+          AND EXP.EXP_MST_CD = #{EXP_MST_CD}
+    </select>
+    
+    <!-- 관리자 > 마케팅 관리 > 고객체험단  리뷰등록메일 목록 -->
+    <select id="selectKingerReviewMailInfo" parameterType="HashMap" resultType="HashMap">
+        /* Kinger.selectKingerReviewMailInfo */
+		SELECT
+            EXP.EXP_MST_CD, /* 킹저코드 */
+            EXP.PRD_MST_CD, /* 상품코드 */
+            (SELECT PRD_MST_NM FROM T_PRD_MST WHERE PRD_MST_CD = EXP.PRD_MST_CD) AS PRD_MST_NM, 
+            EXP.EXP_MST_NM,          /* 제목 */
+            EXP.EXP_MST_SUB_NM,       /* 서브제목 */
+            TO_CHAR(TO_DATE(EXP.EXP_MST_ATV_ST_DT,'yyyymmdd'),'yyyy.mm.dd') AS EXP_MST_ATV_ST_DT, 
+            TO_CHAR(TO_DATE(EXP.EXP_MST_ATV_ED_DT,'yyyymmdd'),'yyyy.mm.dd') AS EXP_MST_ATV_ED_DT, 
+            EE.MEM_MST_MEM_ID,       /* 응모 당첨자 아이디 */
+            TMV.MEM_MST_MEM_NM,  /*  응모 당첨자 이름 */
+            TMV.MEM_MST_MAIL, /* 응모 당첨자 이메일 */
+            FN_PRODUCT_IMG(EXP.PRD_MST_CD,#{THUMBNAIL_SIZE}) AS EXP_PRD_IMG,
+            EXP.EXP_KINGER_CD
+        FROM
+            T_EXP_MST EXP, T_EXP_ETR EE, T_MEM_VIEW TMV 
+        WHERE 1=1
+          AND EXP.EXP_MST_CD = EE.EXP_MST_CD
+          AND EE.MEM_MST_MEM_ID = TMV.MEM_MST_MEM_ID
+          AND EE.EXP_ETR_WIN_YN = 'Y'
+          AND EXP.EXP_MST_CD = #{EXP_MST_CD}
+          AND EE.MEM_MST_MEM_ID NOT IN (SELECT MEM_MST_MEM_ID
+										FROM (SELECT MEM_MST_MEM_ID, COUNT(*) AS CNT from T_EXP_REV WHERE EXP_MST_CD = #EXP_MST_CD# GROUP BY MEM_MST_MEM_ID) 
+										WHERE CNT > 1)
+    </select>
+
+     <!-- 관리자 > 마케팅 관리 > 이벤트 관리 목록 갯수 -->
+    <select id="selectKingerWinListCount" parameterType="HashMap" resultType="Integer">
+        /*Kinger.selectKingerListCount*/
+        SELECT
+            COUNT(*)
+        FROM
+            T_EXP_WIN 
+        WHERE EXP_MST_CD = #{EXP_MST_CD}
+    </select>
+    
+	<!-- 관리자 > 마케팅 관리 > 이벤트 관리 당첨자발표 등록 -->
+    <insert id="insertKingerWin" parameterType="HashMap">
+        /* Kinger.insertKingerWin */
+        INSERT INTO
+            T_EXP_WIN
+            (
+            	EXP_MST_CD,
+				EXP_WIN_NM,
+				EXP_WIN_MAN_CPY,
+				EXP_WIN_SUB_CPY,
+ 				EXP_WIN_ATN,
+ 				EXP_WIN_USE_YN,
+				EXP_WIN_REG_DT,
+				EXP_WIN_REG_IP,
+				EXP_WIN_REG_ID
+			)
+        VALUES
+            (
+                #{EXP_MST_CD},
+                #{EXP_WIN_NM},
+                #{EXP_WIN_MAN_CPY},
+                #{EXP_WIN_SUB_CPY},
+                #{EXP_WIN_ATN},
+                #{EXP_WIN_USE_YN},
+                TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+                #{EXP_WIN_REG_IP},
+                #{EXP_WIN_REG_ID}
+            )
+    </insert>    
+    
+    <!-- 관리자 > 마케팅 관리 > 이벤트 관리 당첨자 수정 -->
+    <update id="updateKingerWinMst" parameterType="HashMap">
+        /* Kinger.updateKingerWinMst */
+        UPDATE 
+            T_EXP_WIN
+        SET
+        	EXP_WIN_NM		= #{EXP_WIN_NM},
+            EXP_WIN_MAN_CPY = #{EXP_WIN_MAN_CPY},
+            EXP_WIN_SUB_CPY = #{EXP_WIN_SUB_CPY},
+            EXP_WIN_ATN = #{EXP_WIN_ATN},
+            EXP_WIN_USE_YN = #{EXP_WIN_USE_YN},
+            EXP_WIN_UPD_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+            EXP_WIN_UPD_ID = #{EXP_WIN_UPD_ID},
+            EXP_WIN_UPD_IP = #{EXP_WIN_UPD_IP}                
+        WHERE
+            EXP_MST_CD = #{EXP_MST_CD}
+    </update>
+    
+    <!-- 관리자 > 마케팅 관리 > 응모형 이벤트 관리 당첨자 수정 -->
+    <update id="updateKingerEntryWinner" parameterType="HashMap">
+        /* Kinger.updateKingerEntryWinner */
+        UPDATE 
+            T_EXP_ETR
+        SET
+            EXP_ETR_WIN_YN = 'Y'    
+        WHERE
+            EXP_MST_CD = #{EXP_MST_CD}
+            AND MEM_MST_MEM_ID = #{MEM_MST_MEM_ID}
+    </update>
+    
+   
+ 
+	 <!-- 관리자 > 마케팅 관리 > 응모형 이벤트 관리 당첨자 초기화 수정 -->
+    <update id="updateKingerEntryWinnerDel" parameterType="HashMap">
+        /* Kinger.updateKingerEntryWinnerDel */
+        UPDATE 
+            T_EXP_ETR
+        SET
+            EXP_ETR_WIN_YN = 'N'             
+        WHERE
+            EXP_MST_CD = #{EXP_MST_CD}
+    </update>
+    
+    <!-- 관리자 > 마케팅 관리 > 고객체험단 팝업 목록 -->
+    <select id="selectKingerActivePopupList" parameterType="HashMap" resultType="HashMap">
+        /* Kinger.selectKingerActivePopupList */
+        SELECT
+            S2.* 
+        FROM
+            (   SELECT
+                    ROWNUM AS RNUM,
+                    S1.* 
+                FROM
+                    (   SELECT
+                            EXP.EXP_MST_CD,
+                            EXP.PRD_MST_CD,
+                            EXP.EXP_MST_NM,
+                            EXP.EXP_MST_SUB_NM,
+                            EXP.EXP_MST_ATV_ST_DT,
+                            EXP.EXP_MST_ATV_ED_DT,
+                            EXP.EXP_KINGER_CD
+                        FROM
+                            T_EXP_MST EXP 
+                        WHERE
+                           EXP_MST_CD IN (SELECT EXP_MST_CD FROM T_EXP_ETR WHERE MEM_MST_MEM_ID = #{MEM_MST_MEM_ID} AND EXP_ETR_WIN_YN = 'Y')
+                        ORDER BY EXP.EXP_MST_REG_DT DESC 
+                    )
+                    S1 
+            )
+            S2 
+        WHERE
+            S2.RNUM BETWEEN #{startNum} AND #{endNum}
+    </select>
+    <!-- 관리자 > 마케팅 관리 > 고객체험단 팝업 목록 갯수-->
+    <select id="selectKingerActivePopupListCount" parameterType="HashMap" resultType="Integer">
+        /* Kinger.selectKingerActivePopupListCount */
+        SELECT COUNT(EXP.EXP_MST_CD)
+        FROM T_EXP_MST EXP 
+        WHERE EXP_MST_CD IN (SELECT EXP_MST_CD FROM T_EXP_ETR WHERE MEM_MST_MEM_ID = #{MEM_MST_MEM_ID}  AND EXP_ETR_WIN_YN = 'Y')
+    </select>
+	 
+</mapper>

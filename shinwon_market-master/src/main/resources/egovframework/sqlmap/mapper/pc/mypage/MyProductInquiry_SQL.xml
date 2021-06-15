@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="PcMyProductInquiry">
+
+	<sql id="searchWhere">
+		<![CDATA[
+		AND to_date(SUBSTR(BRD_INQ_REG_DT,0,8), 'yyyy-mm-dd') >= to_date(#{startDt}, 'yyyy-mm-dd')
+		AND to_date(SUBSTR(BRD_INQ_REG_DT,0,8), 'yyyy-mm-dd') <= to_date(#{endDt}, 'yyyy-mm-dd')
+		]]>
+	</sql>
+	
+	<!-- 프론트 > MY LAND > 상품Q&A 목록 갯수 -->
+	<select id="selectMyProductInquiryListCount" parameterType="HashMap" resultType="Integer">
+		/* PcMyProductInquiry.selectMyProductInquiryListCount */
+		SELECT
+			COUNT(0)
+		FROM
+			T_BRD_INQ
+		WHERE
+			BRD_INQ_TYPE= #{BRD_INQ_TYPE}
+		AND
+			BRD_INQ_REG_ID = #{BRD_INQ_REG_ID}
+		<if test="BRD_INQ_REPLY_CD != null and BRD_INQ_REPLY_CD != ''">
+		AND BRD_INQ_REPLY_CD = #{BRD_INQ_REPLY_CD}
+ 		</if> 
+ 		<include refid="searchWhere" />
+		
+	</select>
+	
+	<!-- 프론트 > MY LAND > 상품Q&A 목록 -->
+	<select id="selectMyProductInquiryList" parameterType="HashMap" resultType="HashMap">
+		/* PcMyProductInquiry.selectMyProductInquiryList */
+		SELECT
+			S1.*
+		FROM
+		(
+			SELECT
+				ROWNUM AS RNUM,
+				S2.*
+			FROM
+			(
+				SELECT
+					BRD_INQ_IDX,
+					BRD_INQ_TITLE,
+					TO_CHAR(SUBSTR(BRD_INQ_CONTENTS, 1, 3200)) AS BRD_INQ_CONTENTS,
+					BRD_INQ_REPLY_CD,
+					TO_CHAR(SUBSTR(BRD_INQ_REPLY_CONTENTS, 1, 3200)) AS BRD_INQ_REPLY_CONTENTS,
+					BRD_INQ_REG_ID,
+					BRD_INQ_REG_DT,
+					BRD_INQ_CHN_GBN,
+					BRD_PRD_MST_CD,
+					BRD_INQ_PUB_YN,
+					BRD_INQ_RET_YN,
+					FN_GET_PRODUCT_NM(BRD_PRD_MST_CD,30) AS PRD_MST_NM,
+					FN_PRODUCT_IMG(BRD_PRD_MST_CD, #{THUMBNAIL_SIZE}) PRD_IMG
+				FROM
+					T_BRD_INQ
+				WHERE
+					BRD_INQ_TYPE = #{BRD_INQ_TYPE}
+				 AND BRD_INQ_REG_ID = #{BRD_INQ_REG_ID}
+				 <if test="BRD_INQ_REPLY_CD != null and BRD_INQ_REPLY_CD != ''"> 
+				 AND BRD_INQ_REPLY_CD = #{BRD_INQ_REPLY_CD}
+		 		 </if>
+		 		<include refid="searchWhere" />
+				ORDER BY BRD_INQ_REG_DT DESC
+			) S2
+		) S1
+        <if test="startNum != null and startNum != '' and endNum != null and endNum != ''">
+            WHERE S1.RNUM BETWEEN #{startNum} AND #{endNum}
+        </if>
+        
+	</select>
+	
+	<!-- 마이페이지 메인 > 상품Q&A > 미답변/답변 갯수 -->
+	<select id="selectMyProductInquiryRplCountMap" parameterType="HashMap" resultType="HashMap">
+		/* PcMyProductInquiry.selectMyProductInquiryRplCountMap */
+		SELECT
+			(NVL(SUM(DECODE(BRD_INQ_REPLY_CD, 'Y' ,1,0)),0)) AS BRD_INQ_REPLY_Y_CNT
+			, (NVL(SUM(DECODE(BRD_INQ_REPLY_CD, 'N' ,1,0)),0)) AS BRD_INQ_REPLY_N_CNT
+		FROM
+		   T_BRD_INQ 
+        WHERE
+			BRD_INQ_TYPE= #{BRD_INQ_TYPE}
+		AND
+			BRD_INQ_REG_ID = #{MEM_MST_MEM_ID}
+	</select>
+	
+	<select id="selectMyQnaInfo" parameterType="HashMap" resultType="HashMap">
+        /* PcMyProductInquiry.selectMyQnaInfo */
+        SELECT
+			BRD_INQ_TITLE,
+			BRD_INQ_IDX,
+			TO_CHAR(SUBSTR(BRD_INQ_CONTENTS, 1, 4000)) AS BRD_INQ_CONTENTS,
+			BRD_INQ_PUB_YN
+        FROM T_BRD_INQ
+        WHERE
+		BRD_INQ_IDX = #{BRD_INQ_IDX}
+		AND BRD_INQ_REG_ID = #{MEM_MST_MEM_ID}
+		AND BRD_INQ_USE_YN = 'Y'
+    </select>
+    
+     <!-- QNA 수정 -->
+	<update id="updateMyQna" parameterType="HashMap">
+		/* PcMyProductInquiry.updateMyQna */
+		UPDATE
+			T_BRD_INQ
+		SET
+			BRD_INQ_TITLE = #{BRD_INQ_TITLE},
+			BRD_INQ_CONTENTS = #{BRD_INQ_CONTENTS:CLOB},
+			BRD_INQ_UPD_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+			BRD_INQ_PUB_YN = #{BRD_INQ_PUB_YN},
+			BRD_INQ_UPD_ID = #{MEM_MST_MEM_ID},
+			BRD_INQ_UPD_IP = #{MEM_MST_WEB_IP}		
+		WHERE
+			BRD_INQ_IDX = #{BRD_INQ_IDX}
+	</update>
+	
+	
+	<!-- QNA 삭제 -->
+	<delete id="deleteMyQna" parameterType="HashMap">
+		/* PcMyProductInquiry.updateMyQna */
+		DELETE
+			T_BRD_INQ
+		WHERE
+			BRD_INQ_IDX = #{BRD_INQ_IDX}		
+	</delete>
+    
+    
+</mapper>

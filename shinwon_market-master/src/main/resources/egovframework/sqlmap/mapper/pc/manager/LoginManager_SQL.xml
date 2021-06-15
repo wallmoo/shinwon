@@ -1,0 +1,784 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="PcLoginManager">
+
+    <!-- 프론트 > 로그인 > 사용자 정보 조회 -->
+    <select id="selectLoginManagerInfo" parameterType="com.market.mall.model.User" resultType="java.util.HashMap">
+        /* PcLoginManager.selectLoginManagerInfo */
+        <![CDATA[
+        	SELECT
+        		MEM_MST_MEM_ID
+                , MEM_MST_MEM_NM
+                , MEM_MST_LEV_YN
+                , RST_YN
+                , MEM_MST_TMP_PW_YN
+                , MEM_MST_TMP_PW_DT
+                , MEM_MST_MEM_GBN
+                , '' LOGIN_PIT_YN 
+    			, MEM_MST_MEM_GRD	
+    			, MEM_MST_MEM_PW_CHG_DT
+        	FROM
+        		T_MEM_VIEW
+        	WHERE
+        		MEM_MST_MEM_ID = #{MEM_MST_MEM_ID}
+        ]]>
+            <if test="autoLoginYn != null and autoLoginYn.equals('N'.toString())">
+                AND MEM_MST_PW = #{MEM_MST_WEB_PWD}
+            </if>
+    </select>
+    
+    
+    <!-- 프론트 > 로그인 > 탈퇴회원 여부 조회 -->
+    <select id="selectLoginMemberLevYn" parameterType="com.market.mall.model.User" resultType="String">
+        /* PcLoginManager.selectLoginMemberLevYn */
+        SELECT 
+            CASE MEM_MST_LEV_YN WHEN 'N' THEN 'N'
+            ELSE 'Y'
+            END MEM_MST_LEV_YN
+        FROM
+            T_MEM_VIEW
+        WHERE
+            MEM_MST_MEM_ID = #{MEM_MST_MEM_ID}
+    </select>
+    
+    <!-- 프론트 > 로그인 > 회원 최근방문일, 방문횟수 update -->
+    <update id="updateVisitInfo" parameterType="String">
+        /* PcLoginManager.updateVisitInfo */
+        UPDATE 
+            T_MEM_MST
+        SET 
+            MEM_MST_VST_CNT = MEM_MST_VST_CNT + 1,
+            MEM_MST_VST_LAT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS')
+        WHERE
+            MEM_MST_MEM_ID = #{MEM_MST_MEM_ID}
+    </update>
+    
+    <!-- 프론트 > 로그인 > 회원 로그인 이력 저장 -->
+    <insert id="insertLoginHistory" parameterType="HashMap">
+        <selectKey keyProperty="LGI_HIS_IDX" resultType="Integer" order="BEFORE">
+            SELECT SEQ_LGI_HIS_IDX.NEXTVAL AS LGI_HIS_IDX FROM DUAL
+        </selectKey>
+        /* PcLoginManager.insertLoginHistory */
+        INSERT INTO
+            T_LGI_HIS
+            (
+                LGI_HIS_IDX,
+                MEM_MST_MEM_ID,
+                LGI_HIS_REG_DT,
+                LGI_HIS_REG_IP,
+                LGI_HIS_REG_ID
+            )
+        VALUES
+            (
+                #{LGI_HIS_IDX},
+                #{MEM_MST_MEM_ID},
+                TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+                #{LGI_HIS_REG_IP},
+                #{MEM_MST_MEM_ID}
+            )
+    </insert>
+    
+    <!-- 프론트 > 로그인 > 비회원 주문정보 조회 -->
+    <select id="selectLoginManagerOrderInfo" parameterType="com.market.mall.model.User" resultType="java.util.HashMap">
+        /* PcLoginManager.selectLoginManagerOrderInfo */
+        SELECT     
+            ORD_MST_CD,
+            ORD_MST_ORD_NM                        
+        FROM
+            T_ORD_MST 
+        WHERE
+            ORD_MST_CD = #{ORD_MST_CD} AND
+            ORD_MST_ORD_NM = #{ORD_MST_ORD_NM}
+    </select>
+    
+    <!-- 프론트 > 로그인 > SNS 계정 사용자 정보 조회 -->
+    <select id="selectLoginSnsManagerInfo" parameterType="com.market.mall.model.User" resultType="java.util.HashMap">
+        /* PcLoginManager.selectLoginSnsManagerInfo */
+        SELECT   
+            TMV.MEM_MST_MEM_ID,
+            TMV.MEM_MST_MEM_NM,  
+            TMV.MEM_MST_HP1 || TMV.MEM_MST_HP2 || TMV.MEM_MST_HP3 AS MEM_MST_HP,
+            TMV.MEM_MST_MAIL,
+            TMV.MEM_MST_MEM_GBN
+        FROM T_MEM_VIEW TMV
+            INNER JOIN T_MEM_SNS TMS
+            ON TMV.MEM_MST_MEM_ID = TMS.MEM_MST_MEM_ID
+        WHERE
+            TMS.MEM_SNS_ID = #{MEM_SNS_ID}
+    </select>
+    
+    <!-- 로그인 성공 시 포인트 지급 > 로그인 한 회원 전체 포인트 조회 -->
+    <select id="selectMemTotalPoint" parameterType="HashMap" resultType="Integer">
+    	/* PcLoginManager.selectMemTotalPoint */
+    	SELECT 
+           	NVL(SUM(NVL(MEM_PIT_PLS,0)) - (SUM(NVL(MEM_PIT_MNS,0)) + SUM(NVL(MEM_PIT_EXT,0))),0) AS MEM_PIT_TOT_PIT
+	    FROM 
+	    	T_MEM_PIT
+	    WHERE 
+	    	MEM_PIT_MEM_ID = #{MEM_MST_MEM_ID}
+    </select>
+    
+    <!-- 로그인 성공 시 포인트 지급 > 포인트 적립/차감 관리에 내역 추가 -->
+    <insert id="insertLoginPoint" parameterType="HashMap">
+    	<selectKey keyProperty="PIT_MST_IDX" resultType="Integer" order="BEFORE">
+            SELECT SEQ_PIT_MST_IDX.NEXTVAL AS PIT_MST_IDX FROM DUAL
+        </selectKey>
+    	/* PcLoginManager.insertLoginPoint */
+    	INSERT INTO
+    		T_PIT_MST
+    		(
+    			PIT_MST_IDX,
+    			PIT_MST_GBN,
+    			PIT_MST_BRK_DWN,
+    			PIT_MST_PIT,
+    			PIT_MST_REG_DT,
+    			PIT_MST_REG_ID
+    		)
+    	VALUES
+    		(
+    			#{PIT_MST_IDX},
+    			#{PIT_MST_GBN},
+    			#{PIT_MST_BRK_DWN},
+    			#{PIT_MST_PIT},
+    			TO_CHAR(SYSDATE,'YYYYMMDDHH24MISS'),
+    			'SYSTEM'
+    		)
+    </insert>
+    
+    <!-- 로그인 성공 시 포인트 지급 > 포인트 적립/차감 관리에 내역 추가 -->
+    <insert id="insertLoginPointMember" parameterType="HashMap">
+    	/* PcLoginManager.insertLoginPointMember */
+    	INSERT INTO
+    		T_MEM_PIT
+    		(
+    			MEM_PIT_IDX,
+    			PIT_MST_IDX,
+    			MEM_PIT_MEM_ID,
+    			MEM_PIT_GBN,
+    			MEM_PIT_BRK_DWN,
+    			MEM_PIT_PLS,
+    			MEM_PIT_MNS,
+    			MEM_PIT_EXT,
+    			MEM_PIT_TOT_PIT,
+    			MEM_PIT_REG_DT,    			
+    			MEM_PIT_REG_ID
+    		)
+    	VALUES
+    		(
+    			SEQ_MEM_PIT_IDX.NEXTVAL,
+    			#{PIT_MST_IDX},
+    			#{MEM_MST_MEM_ID},
+    			#{PIT_MST_GBN},
+    			#{PIT_MST_BRK_DWN},
+    			NVL(#{PIT_MST_PIT},0),
+    			NVL(#{MEM_PIT_MNS},0),
+    			NVL(#{MEM_PIT_EXT},0),
+    			#{MEM_PIT_TOT_PIT},
+    			TO_CHAR(SYSDATE,'YYYYMMDDHH24MISS'),
+    			'SYSTEM'
+    		)
+    </insert>
+    
+    <!-- 비밀번호 인코딩 -->
+    <select id="pwdEncoding" parameterType="com.market.mall.model.User" resultType="String">
+    	/* PcLoginManager.pwdEncoding */
+    	SELECT #{MEM_MST_WEB_PWD} FROM DUAL
+    </select>   
+    
+    <!-- 임시비밀번호 발급받은 회원 > 유효시간 체크(4시간) -->
+ 	<select id="selectCheckPwDtCount" parameterType="HashMap" resultType="Integer">
+ 		/* PcLoginManager.selectCheckPwDtCount */
+ 		SELECT
+			COUNT(0)
+		FROM	
+			T_MEM_VIEW
+		WHERE
+			MEM_MST_MEM_ID = #{MEM_MST_MEM_ID}
+		AND
+			MEM_MST_TMP_PW_YN = 'Y'
+		AND
+			<![CDATA[
+			MEM_MST_TMP_PW_DT BETWEEN TO_CHAR(TO_DATE(TO_CHAR(SYSDATE,'YYYYMMDDHH24MISS'),'YYYYMMDDHH24MISS') - 4/24,'YYYYMMDDHH24MISS') AND TO_CHAR(SYSDATE,'YYYYMMDDHH24MISS')
+			]]>
+ 	</select>
+ 	
+ 	<!-- 휴면회원 > 회원정보 조회 -->
+ 	<select id="selectRestMemberInfo" parameterType="HashMap" resultType="HashMap">
+ 		/* PcLoginManager.selectRestMemberInfo */
+ 		SELECT
+ 			TO_DATE(SUBSTR(MEM_MST_RST_DT,0,8))+1 - TO_DATE(SUBSTR(MEM_MST_VST_LAT,0,8)) + TO_DATE(TO_CHAR(SYSDATE,'YYYYMMDD')) - TO_DATE(SUBSTR(MEM_MST_RST_DT,0,8)) AS UNUSED_DT,
+ 			SUBSTR(MEM_MST_RST_DT,0,8) AS MEM_MST_RST_DT,
+ 			TO_CHAR(SYSDATE,'YYYYMMDDHH24MISS') AS TODAY,
+ 			MEM_MST_MEM_GBN,
+ 			MEM_MST_ERP_YN,
+ 			MEM_MST_JOI_RTE,
+ 			MEM_MST_ERP_ID,
+ 			MEM_MST_MEM_ID,
+ 			CASE  				
+		 		WHEN MEM_MST_MEM_GBN = #{MEMBER_TYPE_PRI} AND MEM_MST_JOI_RTE = #{MEMBER_JOIN_TYPE_ONLINE} THEN 'Y'
+		 		WHEN MEM_MST_MEM_GBN = #{MEMBER_TYPE_PRI} AND MEM_MST_JOI_RTE = #{MEMBER_JOIN_TYPE_ONOFF} AND MEM_MST_OCB_NO IS NULL THEN 'Y'
+			ELSE 'N'
+			END AS ONLINE_YN,
+			DECODE(MEM_MST_MEM_GBN,#{MEMBER_TYPE_PRI},'02',#{MEMBER_TYPE_COMP},'22',#{MEMBER_TYPE_SIMPLE},'12') AS P8E1URCD4
+ 		FROM
+ 			T_MEM_RST
+ 		WHERE
+ 			MEM_MST_MEM_ID = #{MEM_MST_MEM_ID}
+ 	</select>
+ 	
+ 	<!-- 휴면회원 > 휴면계정 해제 -->
+ 	<insert id="updateRestMember" parameterType="HashMap">
+ 		/* PcLoginManager.updateRestMember */
+ 		INSERT INTO
+ 			T_MEM_MST
+ 			(
+ 				MEM_MST_MEM_ID           
+				, MEM_MST_MEM_NM           
+				, MEM_MST_PW               
+				, MEM_MST_MAIL             
+				, MEM_MST_MEM_GB           
+				, MEM_MST_MEM_GBN          
+				, MEM_MST_MEM_GRD          
+				, MEM_MST_RST_ID           
+				, MEM_MST_RCM_ID           
+				, MEM_MST_JOB              
+				, MEM_MST_ZIP_CDE6         
+				, MEM_MST_JBN_ADR1         
+				, MEM_MST_JBN_ADR2         
+				, MEM_MST_ZIP_CDE5         
+				, MEM_MST_DRO_ADR1         
+				, MEM_MST_DRO_ADR2         
+				, MEM_MST_TEL1             
+				, MEM_MST_TEL2             
+				, MEM_MST_TEL3             
+				, MEM_MST_HP1              
+				, MEM_MST_HP2              
+				, MEM_MST_HP3              
+				, MEM_MST_STATUS           
+				, MEM_MST_EMP_NO           
+				, MEM_MST_FML_CD           
+				, MEM_MST_LEV_DT           
+				, MEM_MST_LEV_YN           
+				, MEM_MST_LEV_RSN_CD       
+				, MEM_MST_LEV_RSN          
+				, MEM_MST_NOTE             
+				, MEM_MST_JIN_CHN          
+				, MEM_MST_BIR_DT           
+				, MEM_MST_BIR_GB           
+				, MEM_MST_VST_CNT          
+				, MEM_MST_OCB_NO           
+				, MEM_MST_JOI_RTE          
+				, MEM_MST_VST_LAT          
+				, MEM_MST_OCB_REQ_YN       
+				, MEM_MST_PRM_NO           
+				, MEM_MST_ERP_ID           
+				, MEM_MST_JIN_MDM          
+				, MEM_MST_SEX              
+				, MEM_MST_EVT_YN           
+				, MEM_MST_CUT_CD           
+				, MEM_MST_CUT_RSN          
+				, MEM_MST_CUT_MEMO         
+				, MEM_MST_CUT_DT           
+				, MEM_MST_CUT_ID           
+				, MEM_MST_BLK_YN           
+				, MEM_MST_BLK_CD           
+				, MEM_MST_BLK_ST           
+				, MEM_MST_BLK_ED           
+				, MEM_MST_BLK_RSN          
+				, MEM_MST_BLK_MEMO         
+				, MEM_MST_BLK_DT           
+				, MEM_MST_BLK_ID           
+				, MEM_MST_OUT_RSN          
+				, MEM_MST_OUT_MEMO         
+				, MEM_MST_OUT_DT           
+				, MEM_MST_OUT_ID           
+				, MEM_MST_REG_DT           
+				, MEM_MST_REG_IP           
+				, MEM_MST_REG_ID           
+				, MEM_MST_UPD_DT           
+				, MEM_MST_UPD_IP           
+				, MEM_MST_UPD_ID           
+				, MEM_MST_TMP_PW_YN        
+				, MEM_MST_TMP_PW_DT        
+				, MEM_MST_DCT_YN
+				, MEM_MST_RST_CNL_DT
+ 			) 
+ 			SELECT
+ 				MEM_MST_MEM_ID               
+				, MEM_MST_MEM_NM         
+				, MEM_MST_PW             
+				, MEM_MST_MAIL           
+				, MEM_MST_MEM_GB         
+				, MEM_MST_MEM_GBN        
+				, MEM_MST_MEM_GRD        
+				, MEM_MST_RST_ID         
+				, MEM_MST_RCM_ID         
+				, MEM_MST_JOB            
+				, MEM_MST_ZIP_CDE6       
+				, MEM_MST_JBN_ADR1       
+				, MEM_MST_JBN_ADR2       
+				, MEM_MST_ZIP_CDE5       
+				, MEM_MST_DRO_ADR1       
+				, MEM_MST_DRO_ADR2       
+				, MEM_MST_TEL1           
+				, MEM_MST_TEL2           
+				, MEM_MST_TEL3           
+				, MEM_MST_HP1            
+				, MEM_MST_HP2            
+				, MEM_MST_HP3            
+				, MEM_MST_STATUS         
+				, MEM_MST_EMP_NO         
+				, MEM_MST_FML_CD         
+				, MEM_MST_LEV_DT         
+				, MEM_MST_LEV_YN         
+				, MEM_MST_LEV_RSN_CD     
+				, MEM_MST_LEV_RSN        
+				, MEM_MST_NOTE           
+				, MEM_MST_JIN_CHN        
+				, MEM_MST_BIR_DT         
+				, MEM_MST_BIR_GB         
+				, MEM_MST_VST_CNT + 1       
+				, MEM_MST_OCB_NO         
+				, MEM_MST_JOI_RTE        
+				, TO_CHAR(SYSDATE,'YYYYMMDDHH24MISS')        
+				, MEM_MST_OCB_REQ_YN     
+				, MEM_MST_PRM_NO         
+				, MEM_MST_ERP_ID         
+				, MEM_MST_JIN_MDM        
+				, MEM_MST_SEX            
+				, MEM_MST_EVT_YN         
+				, MEM_MST_CUT_CD         
+				, MEM_MST_CUT_RSN        
+				, MEM_MST_CUT_MEMO       
+				, MEM_MST_CUT_DT         
+				, MEM_MST_CUT_ID         
+				, MEM_MST_BLK_YN         
+				, MEM_MST_BLK_CD         
+				, MEM_MST_BLK_ST         
+				, MEM_MST_BLK_ED         
+				, MEM_MST_BLK_RSN        
+				, MEM_MST_BLK_MEMO       
+				, MEM_MST_BLK_DT         
+				, MEM_MST_BLK_ID         
+				, MEM_MST_OUT_RSN        
+				, MEM_MST_OUT_MEMO       
+				, MEM_MST_OUT_DT         
+				, MEM_MST_OUT_ID         
+				, MEM_MST_REG_DT         
+				, MEM_MST_REG_IP         
+				, MEM_MST_REG_ID         
+				, TO_CHAR(SYSDATE,'YYYYMMDDHH24MISS')       
+				, #{MEM_MST_UPD_IP}         
+				, MEM_MST_MEM_ID                  
+				, MEM_MST_TMP_PW_YN      
+				, MEM_MST_TMP_PW_DT      
+				, MEM_MST_DCT_YN 
+				, TO_CHAR(SYSDATE,'YYYYMMDDHH24MISS')
+			FROM
+				T_MEM_RST
+			WHERE
+				MEM_MST_MEM_ID = #{MEM_MST_MEM_ID}
+ 	</insert>
+ 	
+ 	<!-- 휴면회원테이블의 회원정보 삭제 -->
+ 	<delete id="deleteRestMember" parameterType="HashMap">
+ 		/* PcLoginManager.deleteRestMember */
+ 		DELETE FROM T_MEM_RST WHERE MEM_MST_MEM_ID = #{MEM_MST_MEM_ID}
+ 	</delete>
+    
+    <!-- siren 본인인증(휴대폰, 아이핀) CI값으로 회원 조회 -->
+    <select id="selectCertifyIntegrationUserInfo" parameterType="HashMap" resultType="HashMap">
+    	/* PcLoginManager.selectCertifyInfo */
+    	SELECT	TMV.MEM_MST_MEM_ID,
+    		TMV.MEM_MST_MEM_NM,
+    		TMV.RST_YN,
+    		TMS.MEM_SNS_ID, 
+    		(SELECT TCC.CMN_COM_NM FROM T_CMM_COM TCC WHERE TCC.CMN_COM_IDX = TMS.MEM_SNS_TYPE) AS MEM_SNS_TYPE
+		FROM T_MEM_VIEW TMV
+		INNER JOIN T_MEM_IPN TMI ON TMV.MEM_MST_MEM_ID = TMI.MEM_MST_MEM_ID
+		LEFT OUTER JOIN T_MEM_SNS TMS ON TMV.MEM_MST_MEM_ID = TMS.MEM_MST_MEM_ID
+    	WHERE
+    		TMI.MEM_IPN_CI = #{MEM_IPN_CI}
+    	AND
+    		TMV.MEM_MST_LEV_YN = 'N'
+    </select>
+    
+    <!-- siren 본인인증(휴대폰, 아이핀) CI값으로 회원 조회 -->
+    <select id="selectCertifyInfo" parameterType="HashMap" resultType="HashMap">
+    	/* PcLoginManager.selectCertifyInfo */
+    	SELECT
+    		TMV.MEM_MST_MEM_ID,
+    		TMV.RST_YN
+    	FROM	
+    		T_MEM_VIEW TMV , T_MEM_IPN TMI
+    	WHERE
+    		TMV.MEM_MST_MEM_ID = TMI.MEM_MST_MEM_ID
+    	AND
+    		TMI.MEM_IPN_CI = #{MEM_IPN_CI}
+    	AND
+    		TMV.MEM_MST_LEV_YN = 'N'
+    </select>
+    
+    
+    
+    <!-- 아이디 찾기 > 간편회원 조회 -->
+    <select id="selectSimpleMemInfo" parameterType="HashMap" resultType="HashMap">
+    	/* PcLoginManager.selectSimpleMemInfo */
+    	SELECT
+    		MEM_MST_MEM_ID
+    	FROM	
+    		T_MEM_VIEW
+    	WHERE
+    		MEM_MST_MEM_NM = #{MEM_MST_MEM_NM}
+    	AND
+    		MEM_MST_MAIL = #{MEM_MST_MAIL}
+		AND 
+			MEM_MST_MEM_GBN = #{MEM_MST_MEM_GBN}
+    	AND
+    		MEM_MST_LEV_YN = 'N'
+    </select>
+    
+    <!-- 아이디 찾기 > 기업회원 조회 -->
+    <select id="selectBusinessMemIdList" parameterType="HashMap" resultType="HashMap">
+    	/* PcLoginManager.selectBusinessMemIdList */
+    	SELECT
+    		TMV.MEM_MST_MEM_ID
+    	FROM
+    		T_MEM_VIEW TMV, T_MEM_CPR TMC
+    	WHERE
+    		TMV.MEM_MST_MEM_ID = TMC.MEM_CPR_MEM_ID
+    	AND
+    		TMC.MEM_CPR_NM = #{MEM_CPR_NM}
+    	AND
+    		TMC.MEM_CPR_NO1 = #{MEM_CPR_NO1}
+    	AND
+    		TMC.MEM_CPR_NO2 = #{MEM_CPR_NO2}
+    	AND
+    		TMC.MEM_CPR_NO3 = #{MEM_CPR_NO3}
+    	AND 
+			MEM_MST_MEM_GBN = #{MEM_MST_MEM_GBN}
+    	AND
+    		TMV.MEM_MST_LEV_YN = 'N'
+    </select>
+    
+    <!-- 비밀번호 찾기 > 통합회원 회원정보 조회 -->
+    <select id="selectCheckBasicMemInfoCount" parameterType="HashMap" resultType="Integer">
+    	/* PcLoginManager.selectCheckBasicMemInfoCount */
+    	SELECT
+    		COUNT(0)
+    	FROM
+    		T_MEM_VIEW TMV, T_MEM_IPN TMI
+    	WHERE
+    		TMV.MEM_MST_MEM_ID = TMI.MEM_MST_MEM_ID
+    	AND
+    		TMV.MEM_MST_MEM_ID = #{MEM_MST_MEM_ID}
+    	AND
+    		TMV.MEM_MST_MEM_NM = #{MEM_MST_MEM_NM}
+		AND
+			TMV.MEM_MST_MEM_GBN = #{MEM_MST_MEM_GBN}
+		AND
+			TMI.MEM_IPN_CI = #{MEM_IPN_CI}
+    	AND
+    		MEM_MST_LEV_YN = 'N'
+    </select> 
+    
+    <!-- 비밀번호찾기 결과 > 통합회원 > 비밀번호 변경 -->
+    <update id="updateBasicMemPw" parameterType="HashMap">
+    	/* PcLoginManager.updateBasicMemPw */
+    	UPDATE 
+    		T_MEM_MST
+    	SET
+    		MEM_MST_PW = #{MEM_MST_PW},
+    		MEM_MST_UPD_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+			MEM_MST_UPD_IP = #{MEM_MST_UPD_IP},
+			MEM_MST_UPD_ID = #{MEM_MST_MEM_ID},
+			MEM_MST_MEM_PW_CHG_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+			MEM_MST_TMP_PW_YN = 'N',
+			MEM_MST_TMP_PW_DT = null
+    	WHERE
+    		MEM_MST_MEM_ID = #{MEM_MST_MEM_ID}
+    	  AND
+		    MEM_MST_MEM_ID = (SELECT
+									TMP.MEM_MST_MEM_ID
+								FROM
+									T_MEM_MST TMM
+								INNER JOIN T_MEM_IPN TMP ON
+									TMM.MEM_MST_MEM_ID = TMP.MEM_MST_MEM_ID
+								WHERE TMP.MEM_IPN_DI = #{MEM_IPN_DI} )
+    </update>
+    
+    <!-- 주기적 비밀번호 변경 -->
+    <update id="updateRegularPasswordChange" parameterType="HashMap">
+    	/* PcLoginManager.updateRegularPasswordChange */
+    	UPDATE 
+    		T_MEM_MST
+    	SET
+    		MEM_MST_PW = #{MEM_MST_PW},
+    		MEM_MST_UPD_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+			MEM_MST_UPD_IP = #{MEM_MST_UPD_IP},
+			MEM_MST_UPD_ID = #{MEM_MST_MEM_ID},
+			MEM_MST_MEM_PW_CHG_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+			MEM_MST_TMP_PW_YN = 'N',
+			MEM_MST_TMP_PW_DT = null
+    	WHERE
+    		MEM_MST_MEM_ID = #{MEM_MST_MEM_ID}
+    	  AND
+		    MEM_MST_PW = #{MEM_MST_PW_OLD}
+		  AND
+		    #{MEM_MST_PW} = #{MEM_MST_PW_RE}
+    </update>
+    
+    <!-- 비밀번호찾기 결과 > 통합회원(휴면회원) > 비밀번호 변경 -->
+    <update id="updateRestBasicMemPw" parameterType="HashMap">
+    	/* PcLoginManager.updateRestBasicMemPw */
+    	UPDATE 
+    		T_MEM_RST
+    	SET
+    		MEM_MST_PW = #{MEM_MST_PW},
+    		MEM_MST_UPD_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+			MEM_MST_UPD_IP = #{MEM_MST_UPD_IP},
+			MEM_MST_UPD_ID = #{MEM_MST_MEM_ID},
+			MEM_MST_MEM_PW_CHG_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS')			
+			MEM_MST_TMP_PW_YN = 'N',
+			MEM_MST_TMP_PW_DT = null    		
+    	WHERE
+    		MEM_MST_MEM_ID = #{MEM_MST_MEM_ID}
+    	  AND
+		    MEM_MST_MEM_ID = (SELECT
+									TMP.MEM_MST_MEM_ID
+								FROM
+									T_MEM_MST TMM
+								INNER JOIN T_MEM_IPN TMP ON
+									TMM.MEM_MST_MEM_ID = TMP.MEM_MST_MEM_ID
+								WHERE TMP.MEM_IPN_DI = #{MEM_IPN_DI} )
+    </update>
+    
+    <!-- 비밀번호찾기 > 간편회원 회원정보 조회 -->
+    <select id="selectCheckSimpleMemInfo" parameterType="HashMap" resultType="HashMap">
+    	/* PcLoginManager.selectCheckSimpleMemInfo */
+    	SELECT
+    		MEM_MST_MEM_ID,
+    		RST_YN,
+    		MEM_MST_MAIL
+    	FROM	
+    		T_MEM_VIEW
+    	WHERE
+    		MEM_MST_MEM_ID = #{MEM_MST_MEM_ID}
+    	AND
+    		MEM_MST_MEM_NM = #{MEM_MST_MEM_NM}
+    	AND
+    		MEM_MST_MAIL = #{MEM_MST_MAIL}
+    	AND
+    		MEM_MST_MEM_GBN = #{MEM_MST_MEM_GBN}
+    	AND
+    		MEM_MST_LEV_YN = 'N'
+    </select>
+    
+    <!-- 비밀번호찾기 > 간편회원 회원정보 조회 -->
+    <select id="selectCheckSimpleMemInfoByCertInfo" parameterType="HashMap" resultType="HashMap">
+    	/* PcLoginManager.selectCheckSimpleMemInfoByCertInfo */
+    	SELECT
+			TMV.MEM_MST_MEM_ID,
+			TMV.MEM_MST_MEM_NM,
+			TMV.RST_YN,
+			TMV.MEM_MST_MAIL,
+			(SELECT TCC.CMN_COM_NM FROM T_CMM_COM TCC WHERE CMN_COM_IDX = TMS.MEM_SNS_TYPE) AS MEM_SNS_TYPE
+		FROM
+			T_MEM_VIEW TMV
+		INNER JOIN T_MEM_IPN TMI ON
+			TMV.MEM_MST_MEM_ID = TMI.MEM_MST_MEM_ID
+		LEFT OUTER JOIN T_MEM_SNS TMS ON 
+			TMV.MEM_MST_MEM_ID = TMS.MEM_MST_MEM_ID 
+		WHERE
+			TMV.MEM_MST_MEM_ID = #{MEM_MST_MEM_ID}
+			AND TMV.MEM_MST_MEM_NM = #{MEM_MST_MEM_NM}
+			AND TMV.MEM_MST_LEV_YN = 'N'
+			AND TMI.MEM_IPN_CI = #{MEM_IPN_CI}
+    </select>
+    
+    <!-- 비밀번호찾기 > 기업회원 회원정보 조회 -->
+    <select id="selectCheckBusinessMemInfo" parameterType="HashMap" resultType="HashMap">
+    	/* PcLoginManager.selectCheckBusinessMemInfo */
+    	SELECT
+    		TMV.MEM_MST_MEM_ID,
+    		TMV.RST_YN,
+    		MEM_MST_MAIL
+    	FROM
+    		T_MEM_VIEW TMV, T_MEM_CPR TMC
+    	WHERE
+    		TMV.MEM_MST_MEM_ID = TMC.MEM_CPR_MEM_ID
+    	AND
+    		TMV.MEM_MST_MEM_ID = #{MEM_MST_MEM_ID}
+    	AND
+    		TMC.MEM_CPR_NM = #{MEM_CPR_NM}
+    	AND
+    		TMC.MEM_CPR_NO1 = #{MEM_CPR_NO1}
+    	AND
+    		TMC.MEM_CPR_NO2 = #{MEM_CPR_NO2}
+    	AND
+    		TMC.MEM_CPR_NO3 = #{MEM_CPR_NO3}
+    	AND 
+			MEM_MST_MEM_GBN = #{MEM_MST_MEM_GBN}
+    	AND
+    		TMV.MEM_MST_LEV_YN = 'N'
+    </select>
+    
+    <!-- 간편회원, 기업회원 > 임시 비밀번호 발송 -->
+    <update id="updateMemberPw" parameterType="HashMap">
+    	/* PcLoginManager.updateMemberPw */
+    	UPDATE
+    		T_MEM_MST
+    	SET 
+    		MEM_MST_PW = #{MEM_MST_TEMP_PW},
+    		MEM_MST_UPD_IP = #{MEM_MST_UPD_IP},
+		    MEM_MST_UPD_ID = #{MEM_MST_MEM_ID},
+		    MEM_MST_MEM_PW_CHG_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+		    MEM_MST_UPD_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+		    MEM_MST_TMP_PW_YN = 'Y',
+		    MEM_MST_TMP_PW_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS')
+		WHERE
+			MEM_MST_MEM_ID = #{MEM_MST_MEM_ID}
+		  AND
+		    MEM_MST_MEM_ID = (SELECT
+									TMP.MEM_MST_MEM_ID
+								FROM
+									T_MEM_MST TMM
+								INNER JOIN T_MEM_IPN TMP ON
+									TMM.MEM_MST_MEM_ID = TMP.MEM_MST_MEM_ID
+								WHERE TMP.MEM_IPN_DI = #{MEM_IPN_DI} )
+    </update>
+    
+    <!-- 간편회원(휴면회원), 기업회원(휴면회원) > 임시 비밀번호 발송 -->
+    <update id="updateRestMemberPw" parameterType="HashMap">
+    	/* PcLoginManager.updateRestMemberPw */
+    	UPDATE
+    		T_MEM_RST
+    	SET 
+    		MEM_MST_PW = #{MEM_MST_TEMP_PW},
+    		MEM_MST_UPD_IP = #{MEM_MST_UPD_IP},
+		    MEM_MST_UPD_ID = #{MEM_MST_MEM_ID},
+		    MEM_MST_MEM_PW_CHG_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+		    MEM_MST_UPD_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+		    MEM_MST_TMP_PW_YN = 'Y',
+		    MEM_MST_TMP_PW_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS')
+		WHERE
+			MEM_MST_MEM_ID = #{MEM_MST_MEM_ID}
+		  AND
+		    MEM_MST_MEM_ID = (SELECT
+									TMP.MEM_MST_MEM_ID
+								FROM
+									T_MEM_MST TMM
+								INNER JOIN T_MEM_IPN TMP ON
+									TMM.MEM_MST_MEM_ID = TMP.MEM_MST_MEM_ID
+								WHERE TMP.MEM_IPN_DI = #{MEM_IPN_DI} )
+    </update>
+    
+    
+    <!-- 간편회원, 기업회원 > 임시 비밀번호 발송 -->
+    <update id="updateMemberTempPw" parameterType="HashMap">
+    	/* PcLoginManager.updateMemberTempPw */
+    	UPDATE
+    		T_MEM_MST
+    	SET 
+    		MEM_MST_PW = #{MEM_MST_TEMP_PW},
+    		MEM_MST_UPD_IP = #{MEM_MST_UPD_IP},
+		    MEM_MST_UPD_ID = #{MEM_MST_MEM_ID},
+		    MEM_MST_UPD_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+		    MEM_MST_TMP_PW_YN = 'Y',
+		    MEM_MST_TMP_PW_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS')
+		WHERE
+			MEM_MST_MEM_ID = #{MEM_MST_MEM_ID}
+    </update>
+    
+    <!-- 간편회원(휴면회원), 기업회원(휴면회원) > 임시 비밀번호 발송 -->
+    <update id="updateRestMemberTempPw" parameterType="HashMap">
+    	/* PcLoginManager.updateRestMemberTempPw */
+    	UPDATE
+    		T_MEM_RST
+    	SET 
+    		MEM_MST_PW = #{MEM_MST_TEMP_PW},
+    		MEM_MST_UPD_IP = #{MEM_MST_UPD_IP},
+		    MEM_MST_UPD_ID = #{MEM_MST_MEM_ID},
+		    MEM_MST_UPD_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+		    MEM_MST_TMP_PW_YN = 'Y',
+		    MEM_MST_TMP_PW_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS')
+		WHERE
+			MEM_MST_MEM_ID = #{MEM_MST_MEM_ID}
+    </update>
+    
+    <!-- 프론트  > 비밀번호 찾기 > 통합회원 비밀번호 변경에 대한 알림, 기업회원/간편회원 임시 비밀번호 발송에 대한 알림 정보 -->
+    <select id="selectChangePwMemInfo" parameterType="HashMap" resultType="HashMap">
+    	/* PcLoginManager.selectChangePwMemInfo */
+		SELECT 
+		  	MEM_MST_MEM_NM                       
+		  	,MEM_MST_MEM_ID                       
+		  	,SUBSTR(MEM_MST_MEM_ID,1,length(MEM_MST_MEM_ID)-3)||LPAD('*',3,'*') as MASK_MEM_MST_MEM_ID   
+		  	,MEM_MST_MAIL 
+		  	,TO_CHAR(SYSDATE, 'YYYY-MM-DD HH24:MI:SS') AS UPDATE_DT 		  	   
+	 	FROM 
+	  		T_MEM_VIEW
+		WHERE MEM_MST_MEM_ID= #{MEM_MST_MEM_ID}
+    </select>
+    
+    <!-- 모바일 > APP > token ID 추가  -->
+    <update id="updateToken" parameterType="HashMap">
+    	/* PcLoginManager.updateToken */
+    	UPDATE
+    		T_MEM_MST
+    	SET
+    		MEM_MST_TKN_ID = #{MEM_MST_TKN_ID}
+    		,MEM_MST_DVS   = #{MEM_MST_DVS}
+    	WHERE
+    		MEM_MST_MEM_ID = #{MEM_MST_MEM_ID}
+    </update>
+    
+    <!-- 모바일 > APP > token ID 추가  -->
+    <insert id="insertToken" parameterType="HashMap">
+		/* PcLoginManager.insertToken */
+		INSERT INTO
+			T_APP_TKN
+				(
+					 APP_TKN_IDX
+					,APP_TKN_DVS
+					,APP_TKN_ID
+				) VALUES (
+					SEQ_APP_TKN_IDX.NEXTVAL
+					,#{APP_TKN_DVS}
+					,#{APP_TKN_ID}
+				)
+ 	</insert>
+ 	
+    <!-- 모바일 > APP > token ID 있는지 여부 -->
+ 	<select id="selectTokenCount" parameterType="HashMap" resultType="Integer">
+ 		/* PcLoginManager.selectTokenCount */
+ 		SELECT
+			COUNT(0)
+		FROM	
+			T_APP_TKN
+		WHERE
+			APP_TKN_DVS = #{APP_TKN_DVS}
+		AND
+			APP_TKN_ID = #{APP_TKN_ID}
+ 	</select> 	
+    
+    <!-- 간편회원 전환 > 간략한 회원정보 가져오기 -->
+    <select id="selectSimpleChangeMemInfo" parameterType="HashMap" resultType="HashMap">
+    	/* PcLoginManager.selectSimpleChangeMemInfo */
+    	SELECT
+    		MEM_MST_JOI_RTE,
+    		MEM_MST_ERP_ID
+    	FROM
+    		T_MEM_VIEW TMV, T_MEM_IPN TMI
+    	WHERE
+    		TMV.MEM_MST_MEM_ID = TMI.MEM_MST_MEM_ID
+    	AND
+    		TMI.MEM_IPN_CI = #{MEM_IPN_CI}	
+    </select>
+    <update id="updatePwSkip" parameterType="HashMap">
+    	/* PcLoginManager.updatePwSkip */
+    	UPDATE T_MEM_MST TMM
+    	   SET TMM.MEM_MST_MEM_PW_CHG_DT = TO_CHAR(SYSDATE+(-60+7),'YYYYMMDDHH24MISS')
+    	 WHERE TMM.MEM_MST_MEM_ID = #{MEM_MST_MEM_ID}
+    </update>
+</mapper>

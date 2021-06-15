@@ -1,0 +1,189 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="AgreementBoard">
+
+	<sql id="agreementWhere">
+        <if test="searchBrdCmnComIdx != null and searchBrdCmnComIdx != ''">
+            AND BRD_AGR_TYPE = #{searchBrdCmnComIdx} 
+        </if>
+        <if test="searchKeyword != null and searchKeyword != ''">
+            AND BRD_AGR_CONTENTS LIKE '%' || #{searchKeyword} || '%'
+        </if>
+	</sql>
+    
+    <!-- 관리자 > 고객센터 > 이용약관 목록 -->
+    <resultMap id="resultAgreementList" type="HashMap">
+        <result column="RNUM" property="RNUM" />
+        <result column="BRD_AGR_IDX" property="BRD_AGR_IDX" />
+        <result column="BRD_AGR_TYPE" property="BRD_AGR_TYPE" />
+        <result column="BRD_CMN_COM_NM" property="BRD_CMN_COM_NM" />
+        <result column="BRD_AGR_CONTENTS" property="BRD_AGR_CONTENTS" jdbcType="CLOB" javaType="java.lang.String"/>
+        <result column="BRD_AGR_REG_DT" property="BRD_AGR_REG_DT" />
+    </resultMap>
+    <select id="selectAgreementList" parameterType="HashMap" resultMap="resultAgreementList">
+        /*AgreementBoard.selectAgreementList  */
+        SELECT 
+            ROWNUM AS RNUM
+            , BRD_AGR_IDX
+            , BRD_AGR_TYPE
+            ,
+            (   SELECT
+                    CMN_COM_NM 
+                FROM
+                    T_CMM_COM 
+                WHERE
+                    CMN_COM_IDX = BRD_AGR_TYPE
+            )AS BRD_CMN_COM_NM
+            ,
+            (   SELECT
+                    CMN_COM_USE_YN
+                FROM
+                    T_CMM_COM 
+                WHERE
+                    CMN_COM_IDX = BRD_AGR_TYPE
+            )AS BRD_CMN_COM_USE_YN  
+            , BRD_AGR_CONTENTS                  
+            , BRD_AGR_REG_DT
+        FROM
+            T_BRD_AGR
+        WHERE
+            1=1
+            <include refid="agreementWhere"/>
+        ORDER BY
+            BRD_AGR_REG_DT DESC
+    </select>
+    
+    <!-- 관리자 > 고객센터 > 이용약관 상세조회 -->
+    <resultMap id="resultAgreementInfo" type="HashMap">
+        <result column="BRD_AGR_IDX" property="BRD_AGR_IDX" />
+        <result column="BRD_AGR_CONTENTS" property="BRD_AGR_CONTENTS" jdbcType="CLOB" javaType="java.lang.String"/>
+        <result column="BRD_AGR_REG_DT" property="BRD_AGR_REG_DT" />
+        <result column="BRD_AGR_TYPE" property="BRD_AGR_TYPE" />
+    </resultMap>
+    <select id="selectAgreementInfo" parameterType="HashMap" resultMap="resultAgreementInfo">
+    /*AgreementBoard.selectAgreementInfo  */
+        SELECT
+           (SELECT
+            CMN_COM_NM
+            FROM T_CMM_COM WHERE CMN_COM_IDX = TBA.BRD_AGR_TYPE) AS CMN_COM_NM, 
+            BRD_AGR_IDX   
+            , BRD_AGR_CONTENTS                  
+            , BRD_AGR_REG_DT
+            , BRD_AGR_TYPE
+        FROM
+            T_BRD_AGR TBA
+        WHERE
+            BRD_AGR_IDX = #{BRD_AGR_IDX}      
+    </select>
+    
+    <!-- 관리자 > 고객센터 > 이용약관 개정이력 -->
+     <resultMap id="resultAgreementHistoryList" type="HashMap">
+        <result column="BRD_AGR_HIS_IDX" property="BRD_AGR_HIS_IDX" />
+        <result column="BRD_AGR_HIS_REG_ID" property="BRD_AGR_HIS_REG_ID" />
+        <result column="BRD_AGR_HIS_REG_NM" property="BRD_AGR_HIS_REG_NM" />
+        <result column="BRD_AGR_HIS_CONTENTS" property="BRD_AGR_HIS_CONTENTS" jdbcType="CLOB" javaType="java.lang.String"/>
+        <result column="BRD_AGR_HIS_REG_DT" property="BRD_AGR_HIS_REG_DT" />
+    </resultMap>
+    <select id="selectAgreementHistoryList" parameterType="HashMap" resultMap="resultAgreementHistoryList">
+        /*AgreementBoard.selectAgreementHistoryList  */
+        SELECT
+            BRD_AGR_HIS_IDX             
+            , BRD_AGR_HIS_REG_ID      
+            , (
+            SELECT
+                ADM_MST_NM
+            FROM
+                T_ADM_MST
+            WHERE
+                ADM_MST_ID = BRD_AGR_HIS_REG_ID
+            )
+            AS BRD_AGR_HIS_REG_NM         
+            , BRD_AGR_HIS_CONTENTS                 
+            , BRD_AGR_HIS_REG_DT
+        FROM
+            T_BRD_AGR_HIS
+        WHERE
+            BRD_AGR_IDX = #{BRD_AGR_IDX}     
+        ORDER BY
+            BRD_AGR_HIS_IDX DESC
+    </select>
+    
+    <!--  관리자 > 고객센터 > 이용약관 등록 -->
+    <insert id="insertAgreementBoard" parameterType="HashMap">
+        /*AgreementBoard.insertAgreementBoard  */
+        <selectKey keyProperty="BRD_AGR_IDX" resultType="Integer" order="BEFORE">   
+            SELECT SEQ_BRD_AGR_IDX.NEXTVAL FROM DUAL
+        </selectKey>
+        INSERT INTO
+            T_BRD_AGR 
+            (
+                BRD_AGR_IDX   
+                , BRD_AGR_TYPE                    
+                , BRD_AGR_CONTENTS                  
+                , BRD_AGR_REG_DT
+                , BRD_AGR_REG_IP
+                , BRD_AGR_REG_ID
+            )
+        VALUES 
+            (
+                #{BRD_AGR_IDX} 
+                , #{BRD_AGR_TYPE}
+                , #{BRD_AGR_CONTENTS}
+                , TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS')
+                , #{BRD_AGR_REG_IP}
+                , #{BRD_AGR_REG_ID}
+            )  
+    </insert>
+    
+    <!--  관리자 > 고객센터 > 개정이력 등록 -->
+    <insert id="insertAgreementHistory" parameterType="HashMap">
+        /*AgreementBoard.insertAgreementHistory  */
+        INSERT INTO
+            T_BRD_AGR_HIS
+            ( 
+                 BRD_AGR_HIS_IDX
+                , BRD_AGR_IDX     
+                , BRD_AGR_HIS_CONTENTS       
+                , BRD_AGR_HIS_REG_DT    
+                , BRD_AGR_HIS_REG_IP
+                , BRD_AGR_HIS_REG_ID               
+            )
+        VALUES 
+            (
+                 SEQ_BRD_AGR_HIS_IDX.NEXTVAL    
+                , #{BRD_AGR_IDX}    
+                , #{BRD_AGR_HIS_CONTENTS}
+                , TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS')
+                , #{BRD_AGR_HIS_REG_IP}
+                , #{BRD_AGR_HIS_REG_ID}
+            )            
+    </insert>
+    
+    <!-- 관리자 > 고객센터 > 이용약관 수정 -->
+    <update id="updateAgreementBoard" parameterType="HashMap">
+        /*AgreementBoard.updateAgreementBoard  */
+        UPDATE
+            T_BRD_AGR
+        SET 
+           
+             BRD_AGR_CONTENTS = #{BRD_AGR_CONTENTS}
+            , BRD_AGR_UPD_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS') 
+            , BRD_AGR_UPD_IP = #{BRD_AGR_UPD_IP}
+            , BRD_AGR_UPD_ID = #{BRD_AGR_UPD_ID}    
+        WHERE BRD_AGR_IDX = #{BRD_AGR_IDX}
+    </update>
+    
+    <!-- 관리자 > 고객센터 > 약관동의 등록, 수정시에 유형 중복 체크 -->
+    <select id="selectAgreementBoardTypeCnt" parameterType="HashMap" resultType="Integer">
+        /*AgreementBoard.selectAgreementBoardTypeCnt  */
+        SELECT
+            COUNT(1)
+        FROM
+            T_BRD_AGR 
+        WHERE 
+            BRD_AGR_TYPE = #{BRD_AGR_TYPE}
+            <if test="BRD_AGR_IDX != null and BRD_AGR_IDX != ''">
+                AND BRD_AGR_IDX != #{BRD_AGR_IDX}
+            </if>
+    </select>
+</mapper>

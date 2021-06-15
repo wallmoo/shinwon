@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="batchRestockRequest">
+    <select id="selectRestockRequestList" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+        /* batchRestockRequest.selectRestockRequestList */
+		SELECT 
+		      (SELECT MEM_MST_HP1||MEM_MST_HP2||MEM_MST_HP3 FROM T_MEM_MST
+		       WHERE MEM_MST_MEM_ID=MEM_RIP_MEM_ID) AS MEM_MST_HP
+		    , (SELECT MEM_MST_MEM_NM FROM T_MEM_MST
+		       WHERE MEM_MST_MEM_ID=MEM_RIP_MEM_ID) AS MEM_MST_MEM_NM
+			, PRD_MST_CD
+			, PRD_MST_NM
+			, MEM_RIP_REQ_DT
+			, MEM_RIP_CTG_IDX
+			, MEM_RIP_IDX
+		FROM T_MEM_RIP T
+		WHERE MEM_RIP_PRD_STS='R'
+		AND MEM_RIP_DEL_YN ='N'
+		AND MEM_RIP_REQ_DT BETWEEN TO_CHAR(SYSDATE-30,'YYYYMMDDHH24MISS') AND TO_CHAR(SYSDATE,'YYYYMMDDHH24MISS')
+    </select>  
+    
+    <select id="selectRestockRequestStat" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+        /* batchRestockRequest.selectRestockRequestStat */
+        <![CDATA[    
+			SELECT DECODE(PRD_MST_CD,NULL,'F','T') AS RST_STAT FROM T_PRD_MST
+			WHERE 1=1
+			AND PRD_MST_SEL_STATE ='I'
+			AND PRD_MST_DPL_STATE ='Y'
+			AND PRD_MST_APV_STATE ='A'
+			AND PRD_MST_DEL_YN ='N'
+			AND PRD_MST_CD=#{PRD_MST_CD}
+			AND PRD_MST_SEL_CNT > 0
+        ]]>
+    </select>
+    <update id="updateRestockRequestStat" parameterType="java.util.HashMap" >
+        /* batchRestockRequest.updateRestockRequestStat */
+        <![CDATA[    
+				UPDATE T_MEM_RIP
+				SET
+				   MEM_RIP_PRD_STS = 'S'
+				  ,MEM_RIP_PUS_DT =TO_CHAR(SYSDATE,'YYYYMMDDHH24MISS')
+				WHERE MEM_RIP_IDX =#{MEM_RIP_IDX}
+        ]]>
+    </update>
+    
+</mapper>

@@ -1,0 +1,4 @@
+[16:13:59] [T0002729Bv3hIyvS7c6] START:mall_id=[T0002729]+tr_cd=[00101000]+order_no=[2016042803105]
+[16:13:59] [T0002729Bv3hIyvS7c6] DATA:pay_data=common=tot_amt=759000currency=00client_ip=130.1.184.157escrow_yn=Ncomplex_yn=Ncli_ver=N8vacct=vacct_txtype=10vacct_amt=759000bank_cd=003expire_date=20160501expire_time=235959cash_yn=0order_data=order_no=2016042803105user_mail=everafterk@naver.comuser_phone2=01072530937product_nm=LG전자T16DH  16KG블랙라벨 6모션 프리실버product_amt=759000
+[16:13:59] [T0002729Bv3hIyvS7c6] RESULT:res_cd=0000res_msg=계좌 채번 정상cno=16042816110723539093order_no=2016042803105amount=759000tran_date=20160428161107bank_cd=003bank_nm=기업은행account_no=T8201372597815deposit_nm=epasscniexpire_date=20160501235959escrow_yn=Ncomplex_yn=Nstat_cd=TS07stat_msg=입금대기pay_type=22memb_id=T0002729memb_gubun=2bk_pay_yn=N
+[16:13:59] [T0002729Bv3hIyvS7c6] ENDED :mall_id=[T0002729]+tr_cd=[00101000]+order_no=[2016042803105]

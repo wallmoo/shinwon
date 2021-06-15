@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="MALLEDI">
+
+    <!-- 해당 주문번호의 송화인(주문자정보)와 수화인 정보 가져오기 -->
+    <select id="selectOrderDlvInfo" parameterClass="HashMap" resultClass="HashMap">
+    	/* MALLEDI.selectOrderDlvInfo */
+ 		SELECT
+             OM.ORD_MST_CD 				/* 주문번호 */
+            , OM.ORD_MST_ORD_DT 		/* 주문일시 */
+            , OM.ORD_MST_ORD_ID 		/* 주문자  아이디 */
+            , OM.ORD_MST_ORD_NM 		/* 주문자이름 */
+            , OM.ORD_MST_HP1||'-'||OM.ORD_MST_HP2||'-'||OM.ORD_MST_HP3 as ORD_MST_HP /* 주문자 핸드폰번호*/
+            , OD.ORD_DLV_NM				/* 수화인  */
+            , OD.ORD_DLV_TEL1||'-'||OD.ORD_DLV_TEL2||'-'||OD.ORD_DLV_TEL3 as ORD_DLV_TEL /* 수화인 전화번호*/                        
+            , OD.ORD_DLV_HP1||'-'||OD.ORD_DLV_HP2||'-'||OD.ORD_DLV_HP3 as ORD_DLV_HP 	/* 수화인 핸드폰번호*/            
+            , NVL(OD.ORD_DLV_ZIP_CDE5,OD.ORD_DLV_ZIP_CDE6) AS ORD_DLV_ZIP_CODE  /* 수화인 우편번호 */
+ 			, NVL(OD.ORD_DLV_DRO_ADR1, OD.ORD_DLV_JBN_ADR1) AS ORD_DLV_ADR1  /* 수화인 주소1 */
+ 			, NVL(OD.ORD_DLV_DRO_ADR2, OD.ORD_DLV_JBN_ADR2) AS ORD_DLV_ADR2  /* 수화인 주소2 */
+ 			, FN_GET_PRODUCT_NM(OP.ORD_PRD_MST_CD,30) as PRD_MST_NM /* 상품명*/		
+ 			, OP.ORD_PRD_IDX			/* 주문상품 IDX */
+ 			, OP.ORD_PRD_ORG_IDX		/* 교환시 원주문상품 IDX */
+ 			, OP.ORD_PRD_IVC_NO			/* 송장번호 */ 			
+        FROM 
+            T_ORD_MST OM, T_ORD_DLV OD, T_ORD_PRD OP
+        WHERE 1=1
+            AND OM.ORD_MST_CD = #ORD_MST_CD#
+           	AND OM.ORD_MST_CD = OD.ORD_ORD_MST_CD
+			AND OP.ORD_ORD_MST_CD = OM.ORD_MST_CD           
+           	AND OP.ORD_PRD_IDX = #ORD_PRD_IDX#
+        				    
+    </select>
+    
+</mapper>

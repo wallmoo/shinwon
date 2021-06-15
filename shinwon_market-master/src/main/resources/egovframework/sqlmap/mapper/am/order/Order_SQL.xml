@@ -1,0 +1,3521 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="Order">
+
+    <!-- 전체주문 > 검색조건 -->
+    <sql id="orderWhere">
+        <if test="searchDateType != null and searchDateType.equals('order'.toString())">
+            AND OM.ORD_MST_ORD_DT BETWEEN REPLACE(TRIM(#{searchStartDate}),'-', '')||'000000' AND REPLACE(TRIM(#{searchEndDate}),'-', '')||'235959'
+        </if>
+
+        <if test="searchDateType != null and searchDateType.equals('pay'.toString())">
+            AND OM.ORD_MST_PAY_DT BETWEEN REPLACE(TRIM(#{searchStartDate}),'-', '')||'000000' AND REPLACE(TRIM(#{searchEndDate}),'-', '')||'235959'
+        </if>    
+    
+        <if test="searchOrderNm != null and searchOrderNm != ''">
+            AND TRIM(OM.ORD_MST_ORD_NM)=TRIM(#{searchOrderNm})
+        </if>
+    
+        <if test="searchDlvNm != null and searchDlvNm != ''">
+            AND TRIM(OD.ORD_DLV_NM)=TRIM(#{searchDlvNm})
+        </if>
+
+        <if test="searchOrderCd != null and searchOrderCd != ''">
+            AND OM.ORD_MST_CD=TRIM(#{searchOrderCd})
+        </if>
+    
+        <if test="searchSlipNo != null and searchSlipNo != ''">
+            AND OP.ORD_PRD_SLP_NO=TRIM(#{searchSlipNo})
+        </if>
+
+        <if test="searchProductCd != null and searchProductCd != ''">
+            AND OP.ORD_PRD_MST_CD=TRIM(#{searchProductCd})
+        </if>
+
+        <if test="searchProductNm != null and searchProductNm != ''">
+            AND PM.PRD_MST_NM LIKE '%'||TRIM(#{searchProductNm})||'%'
+        </if>
+
+        <if test="searchOrderId != null and searchOrderId !=''">
+            AND OM.ORD_MST_ORD_ID=TRIM(#{searchOrderId})
+        </if>
+
+        <if test="searchOrderHp != null and searchOrderHp != ''">
+            AND OM.ORD_MST_HP1||OM.ORD_MST_HP2||OM.ORD_MST_HP3 = TRIM(#{searchOrderHp})
+        </if>
+
+        <if test="searchScmCancel != null and searchScmCancel != ''">
+            AND OP.ORD_PRD_SCM_CNL_YN IS NOT NULL
+        </if>
+
+        <if test="searchOrdMstCd != null and searchOrdMstCd != ''">
+            AND OM.ORD_MST_CD=TRIM(#{searchOrdMstCd})
+        </if>
+
+        <if test="searchPaymentPrice1 != null and searchPaymentPrice1 != '' and searchPaymentPrice2 != null and searchPaymentPrice2 != ''">
+            AND OM.ORD_MST_PAY_PRC BETWEEN TRIM(#{searchPaymentPrice1}) AND TRIM(#{searchPaymentPrice2})
+        </if>
+
+        <if test="searchOnlyScmOrder != null and searchOnlyScmOrder != ''">
+            AND OP.ORD_PRD_ORD_STATE NOT IN (#{OST_PAY_READY},#{OST_CANCEL_BEFORE_DEPOSIT}) /* 입점업체 주문 조회시(SCM용) 입금대기/입금전 주문취소는 나오지 않는다. */
+        </if>
+
+        <if test="searchOrdType != null and searchOrdType != ''">
+            AND OM.ORD_MST_ORD_TYPE=TRIM(#{searchOrdType})
+        </if>
+
+		<choose>
+	        <when test="searchDlvTypeArr != null and searchDlvTypeArr != ''">
+	            AND OP.ORD_PRD_DLV_TYPE IN
+	            <foreach collection="searchDlvTypeArr" item="searchDlvType" open="(" close=")" separator=",">
+	            	TRIM(#{searchDlvType})
+	            </foreach>
+	        </when>
+	        <otherwise>
+		        <if test="searchDlvType != null and searchDlvType != ''">
+		            AND OP.ORD_PRD_DLV_TYPE = TRIM(#{searchDlvType})
+		        </if>
+	        </otherwise>
+        </choose>
+
+        <if test="searchPayType != null and searchPayType != ''">
+            AND OM.ORD_MST_PAY_TYPE=TRIM(#{searchPayType})
+        </if>
+
+        <if test="searchScmOrder != null and searchScmOrder != ''">
+            AND OP.ORD_PRD_VDR_IDX <![CDATA[ <> ]]> -1 /* 입점업체 주문 조회시(통합관리자용) */
+        </if>
+
+        <if test="searchVendor != null and searchVendor != ''">
+            AND OP.ORD_PRD_VDR_IDX=TRIM(#{searchVendor})
+        </if>
+
+        <choose>
+            <when test="searchCashBagMileageUsed != null and searchCashBagMileageUsed.equals('1'.toString())">
+                AND (OM.ORD_MST_DC_OCB_PIT <![CDATA[ > ]]> 0 OR OM.ORD_MST_DC_MLG <![CDATA[ > ]]> 0)
+            </when>
+            <when test="searchCashBagMileageUsed != null and searchCashBagMileageUsed.equals('2'.toString())">
+                AND OM.ORD_MST_DC_OCB_PIT <![CDATA[ > ]]> 0
+            </when>
+            <when test="searchCashBagMileageUsed != null and searchCashBagMileageUsed.equals('3'.toString())">
+                AND OM.ORD_MST_DC_MLG <![CDATA[ > ]]> 0
+            </when>
+        </choose>
+
+        <choose>
+            <when test="searchChannel1 != null and searchChannel1.equals('sysRetail'.toString())">
+                AND OP.CHN_DTL_CD IS NULL
+            </when>
+            <when test="searchChannel1 != null and searchChannel1.equals('channel'.toString())">
+                <choose>
+                    <when test="searchChannel2 != null and searchChannel2 != ''">
+                        AND OP.CHN_DTL_CD = TRIM(#{searchChannel2})
+                    </when>
+                    <otherwise>
+                        AND OP.CHN_DTL_CD IS NOT NULL
+                    </otherwise>
+                </choose>
+            </when>
+        </choose>
+
+        <choose>
+            <when test="searchLngDiv != null and searchLngDiv.equals('1'.toString())">
+                AND OM.ORD_MST_LNG_DIV IS NOT NULL
+            </when>
+            <when test="searchLngDiv != null and searchLngDiv.equals('2'.toString())">
+                AND OM.ORD_MST_LNG_DIV = '24'
+            </when>
+            <when test="searchLngDiv != null and searchLngDiv.equals('3'.toString())">
+                AND OM.ORD_MST_LNG_DIV = '36'
+            </when>
+        </choose>
+
+        <if test="searchSysRetailPrd != null and searchSysRetailPrd != ''">
+            AND OP.ORD_PRD_VDR_IDX = -1
+        </if>
+
+        <if test="excelDown != null and excelDown.equals('Y'.toString()) and toExcelDownOrdCdArr != null and toExcelDownOrdCdArr.length > 0">
+            AND OM.ORD_MST_CD IN <foreach collection="toExcelDownOrdCdArr" item="toExcelDownOrdCd" open="(" close=")" separator=",">#{toExcelDownOrdCd}</foreach>
+        </if>
+		
+        <if test="ADM_MST_SUB_IDX != null and ADM_MST_SUB_IDX != ''">
+            AND OP.ORD_PRD_VDR_IDX = TRIM(#{ADM_MST_SUB_IDX}) /* 입점업체 주문 조회시 */
+        </if>
+
+        <if test="searchMD != null and searchMD != ''">
+            AND PM.PRD_MST_MD_ID = TRIM(#{searchMD}) /* 담당 MD */
+        </if>
+
+        <if test="searchCancelRequest != null and searchCancelRequest.equals('Y'.toString())">
+            AND OM.ORD_MST_CNL_YN = 'Y'
+        </if>
+    </sql>
+
+    <!-- 전체주문 > 목록개수 -->
+    <select id="selectOrderCount" parameterType="java.util.HashMap" resultType="Integer">
+        /* Order.selectOrderCount */
+        SELECT 
+            COUNT(0)
+        FROM 
+        (
+            SELECT 
+                ORD_MST_CD
+            FROM T_ORD_MST OM, T_ORD_PRD OP, T_PRD_MST PM, T_OPT_DTL DTL, T_ORD_DLV OD, T_DLV_CPN DC
+            WHERE OM.ORD_MST_CD = OP.ORD_ORD_MST_CD 
+            AND OP.ORD_PRD_MST_CD = PM.PRD_MST_CD
+            AND OM.ORD_MST_CD = OD.ORD_ORD_MST_CD(+)
+            AND OP.ORD_PRD_OPT_DTL_IDX= DTL.OPT_DTL_IDX(+)
+            AND OP.ORD_DLV_CPN_IDX= DC.DLV_CPN_IDX(+)                       
+            <include refid="orderWhere"/>
+            <!-- 2020.06.16 반품관리 메뉴 조회를 위해 주문상태 검색 부분을 orderWhere에서 분리함 -->
+            <if test="searchOrdPrdOrderState != null and searchOrdPrdOrderState != ''">
+	            AND OP.ORD_PRD_ORD_STATE= TRIM(#{searchOrdPrdOrderState})
+	        </if>
+            <if test="searchOrdPrdOrderState == null or searchOrdPrdOrderState == ''">
+	            <if test="searchOrdPrdOrderStateArr != null and searchOrdPrdOrderStateArr.length > 0">
+	                AND OP.ORD_PRD_ORD_STATE IN <foreach collection="searchOrdPrdOrderStateArr" item="searchOrdPrdOrderState" open="(" close=")" separator=",">#{searchOrdPrdOrderState}</foreach>
+	            </if>
+	        </if>
+            
+            <!-- 2020.06.09 검색조건 구분화  -->
+            <if test="ADM_TYPE_NUM != null and ADM_TYPE_NUM == 0">
+            	AND (SELECT TMM.MEM_MST_MEM_ID FROM T_MEM_MST TMM WHERE 1=1 AND TMM.MEM_MST_SW_ID IS NOT NULL AND TMM.MEM_MST_MEM_ID = OM.ORD_MST_ORD_ID ) IS NOT NULL
+            </if>
+            <if test="ADM_TYPE_NUM != null and ADM_TYPE_NUM == 1">
+            	AND ORD_MST_ORD_ID != '_GUEST_'
+            </if>
+            <if test="ADM_TYPE_NUM != null and ADM_TYPE_NUM == 2">
+            	AND ORD_MST_ORD_ID = '_GUEST_'
+            </if>
+            <if test="ORD_PRD_IDXs != null">
+                AND OP.ORD_PRD_IDX = #{ORD_PRD_IDXs}
+            </if>
+            GROUP BY OM.ORD_MST_CD
+        )
+    </select>
+
+    <!-- 전체주문 > 목록 -->
+    <select id="selectOrderList" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+          /* Order.selectOrderList */
+        SELECT
+            S1.*
+            , CASE
+                WHEN ESM_MST_IDX IS NULL THEN /* 일반/견적시 다름 */
+                    (SUM(((NVL(ORD_PRD_PRD_PRC,0)+NVL(ORD_PRD_OPT_ADD_PRC,0))*(DECODE(ORD_PRD_ORG_IDX, NULL, ORD_PRD_ORD_CNT, 0)) + NVL(DLV_CHARGE,0) + NVL(DLV_ADD_CHARGE,0))) OVER(PARTITION BY ORD_MST_CD)) - NVL(TOT_DC_AMT,0) - NVL(TOT_ORD_IST_CPN_PRC,0) 
+                ELSE
+                    (SUM(ORD_PRD_ORD_PRC) OVER(PARTITION BY ORD_MST_CD))
+            END CALCULATED_PAYMENT_PRICE
+            , SUM(NVL(DLV_CHARGE,0)) OVER(PARTITION BY ORD_PRD_IDX) as TOT_PRD_DLV_CHARGE /* 상품(묶음)별 총 배송비 */
+            , SUM(NVL(DLV_CHARGE,0) + NVL(DLV_ADD_CHARGE,0)) OVER(PARTITION BY ORD_MST_CD) as TOT_ORD_DLV_CHARGE /* 주문별 총 배송비 */
+            , SUM(NVL(DLV_ADD_CHARGE,0)) OVER(PARTITION BY ORD_MST_CD) as TOT_ORD_DLV_ADD_CHARGE /* 주문별 총 추가 배송비 */
+        FROM
+        (           
+        SELECT
+            T1.*
+            , COUNT(1) OVER(PARTITION BY ORD_MST_CD) AS ORD_PRD_CNT     
+            , NVL(TMP_CALCULATED_DC_COUPON,0) as CALCULATED_DC_COUPON
+            , (SELECT CMN_COM_NM FROM T_CMM_COM WHERE CMN_COM_IDX = ORD_PRD_DLV_TYPE) as ORD_PRD_DLV_TYPE_NM
+            , TO_CHAR(TO_DATE(PAYDATE, 'YYYYMMDDHH24MISS'),'MM/DD HH24:MI') as PAYDATE_NM
+            , CASE
+                WHEN ORD_PRD_DLV_BND_YN = 'Y' AND VDR_ROWNUM = 1 THEN ORD_PRD_DLV_BND_CAG
+                WHEN ORD_PRD_DLV_BND_YN = 'Y' AND VDR_ROWNUM <![CDATA[ <> ]]> 1 THEN 0
+                ELSE (DECODE(ORD_PRD_ORG_IDX, NULL, ORD_PRD_DLV_CAG, 0))
+              END DLV_CHARGE /* 묶음배송인 경우 1번만 배송비 있고 나머지는 0, 그외에는 개별배송비 */
+            , CASE
+                    WHEN VDR_ROWNUM = 1 THEN NVL(ORD_PRD_DLV_ADD_CAG,0) 
+                    ELSE 0
+                  END DLV_ADD_CHARGE /* 추가배송비는 업체별로 받는다. 업체별 첫번째 상품에만 추가 배송비 붙임. */     
+            , CASE
+                WHEN NVL(#{ADM_MST_SUB_IDX},-1) = -1 THEN NVL(TMP_CALCULATED_DC_COUPON,0) + ORD_MST_DC_PIT + ORD_MST_DC_OCB_PIT  /* MarketPlant인 경우는 총 할인 금액 */
+                WHEN NVL(#{ADM_MST_SUB_IDX},-1) <![CDATA[ <> ]]> -1 THEN NVL(TMP_CALCULATED_DC_COUPON,0) /* 입점업체인 경우 판촉쿠폰금액 + 즉시할인금액만 할인금액으로 친다 */                                   
+              END TOT_DC_AMT
+        FROM  
+            (
+                SELECT
+                    DENSE_RANK() OVER(ORDER BY ORD_MST_ORD_DT DESC) as RNUM /* 페이징 처리 위한 RANK */ 
+                    , TBM.BND_MST_BRAND_NM 
+                    , TPM.PRD_MST_TYPE
+                    , TCC.CMN_COM_ETC3 AS ORD_PRD_COLOR_VAL
+                    , TCS.CMN_COM_NM AS ORD_PRD_SIZE_VAL
+                    , FN_PRODUCT_IMG(ORD_PRD_MST_CD,'84') PRODUCT_THUM_IMG 
+                    , OM.ORD_MST_CD
+                    , OP.ORD_PRD_IDX
+                    , OM.ORD_MST_ORD_DT
+                    , OM.ORD_MST_ORD_TYPE
+                    , OM.ORD_MST_ORD_ID
+                    , OM.ORD_MST_ORD_NM
+                    , OM.ORD_MST_PAY_PRC
+                    , OM.ORD_MST_PAY_TYPE
+                    , OP.CHN_DTL_CD
+                    , OM.ESM_MST_IDX
+                    , OM.ORD_MST_CNL_YN /* 취소요청 여부 */
+                    , (SELECT CHN_DTL_NM FROM T_CHN_DTL WHERE CHN_DTL_CD = OP.CHN_DTL_CD) as CHN_DTL_NM
+                    , (SELECT CMN_COM_NM FROM T_CMM_COM WHERE CMN_COM_IDX = OM.ORD_MST_PAY_TYPE) as ORD_MST_PAY_TYPE_NM
+                    , OP.ORD_PRD_MST_CD
+                    , OP.ORD_PRD_COLOR
+                    , OP.ORD_PRD_SIZE
+                    , OP.ORD_PRD_OPT_DTL_IDX
+                    , PM.PRD_MST_NM
+                    , OP.ORD_ORD_EDI_ORD_NO
+                    , ORD_PRD_ORG_IDX
+                    , PM.PRD_MST_PRC
+                    , OP.ORD_PRD_SAL_PRC
+                    , OP.ORD_PRD_ORD_CNT
+                    , OP.ORD_PRD_ORD_PRC
+                    , OP.ORD_PRD_ORD_STATE
+                    , (SELECT 
+                            CASE /* 겟잇나우 배송은 주문상태를 다르게 보여줘야 한다. */
+                                WHEN OM.ORD_MST_DLV_GBN = 2097 AND CMN_COM_ETC2 IS NOT NULL THEN CMN_COM_ETC2
+                                ELSE CMN_COM_NM    
+                            END                      
+                        FROM T_CMM_COM WHERE CMN_COM_IDX = OP.ORD_PRD_ORD_STATE) as ORD_PRD_ORD_STATE_NM
+                    , OD.ORD_DLV_NM
+                    , OP.ORD_DLV_CPN_IDX
+                    , OP.ORD_PRD_IVC_NO
+                    , DC.DLV_CPN_URL
+                    , NVL(ORD_MST_DC_PIT,0) as ORD_MST_DC_PIT
+                    , NVL(ORD_MST_DC_OCB_PIT,0) as ORD_MST_DC_OCB_PIT
+                    , ORD_PRD_DLV_TYPE
+                    ,
+                    (
+                        SELECT PAY_MST_PAYDATE FROM T_PAY_MST WHERE PAY_MST_OID = OM.ORD_MST_CD AND PAY_MST_PAYDATE != '00000000000000' AND PAY_MST_TR_STATUS = 'A' AND ROWNUM=1
+                    ) as PAYDATE
+                    , ORD_PRD_PRD_PRC
+                    , CASE
+                        WHEN NVL(#{ADM_MST_SUB_IDX},-1) = -1 THEN ORD_MST_DC_CPN /* MarketPlant인 경우는 총 쿠폰 할인 금액 */
+                        WHEN NVL(#{ADM_MST_SUB_IDX},-1) <![CDATA[ <> ]]> -1 THEN 
+                        (                       
+                            /* 해당업체가 부담하는 쿠폰할인금액을 SUM */                                
+                            SELECT                              
+                                SUM(ORD_CPN_DC_AMT)
+                            FROM T_ORD_CPN OC
+                            	JOIN T_CPN_MST CM ON (CM.CPN_MST_IDX = OC.CPN_MST_IDX)
+                            WHERE OC.ORD_MST_CD = OM.ORD_MST_CD
+                            	AND ORD_PRD_IDX = OP.ORD_PRD_IDX
+                            	<!-- 배송비 쿠폰과 프로모션 쿠폰 할인내역은 별도로 노출하므로 여기에서는 제외함 (2020.06.26) -->
+                            	AND CM.CPN_MST_GBN != 'F'
+                            	AND CM.CPN_MST_PRM_GBN != 'A'
+                            	<!-- END - 2020.06.26 -->                
+                        )                       
+                        ELSE 0
+                      END TMP_CALCULATED_DC_COUPON  
+                    , ORD_PRD_DLV_CAG
+                    , ORD_PRD_DLV_BND_CAG
+                    , ORD_PRD_DLV_ADD_CAG
+                    , ORD_PRD_DLV_BND_YN
+                    , ORD_PRD_VDR_IDX  
+                    , (SELECT VDR_MST_NM FROM T_VDR_MST WHERE VDR_MST_IDX = ORD_PRD_VDR_IDX) as VDR_MST_NM /* 입점업체명 */
+                    , COUNT(1) OVER(PARTITION BY OP.ORD_ORD_MST_CD, ORD_PRD_VDR_IDX, ORD_PRD_DLV_BND_YN) as VDR_IDX_CNT /* 업체별 상품 개수 */ 
+                    , ROW_NUMBER() OVER(PARTITION BY OP.ORD_ORD_MST_CD, ORD_PRD_VDR_IDX, ORD_PRD_DLV_BND_YN ORDER BY ORD_ORD_EDI_ORD_NO) as VDR_ROWNUM /* 업체별 상품 ROWNUM */
+                    , 
+                    (
+                        SELECT 
+                            MAX(ORD_PRD_REG_DT) 
+                        FROM T_ORD_PRD_HIS
+                        WHERE ORD_ORD_PRD_IDX = OP.ORD_PRD_IDX
+                    ) as RECENT_ORD_PRD_DT /* 최근 주문변경 일자 */
+                    , OM.ORD_MST_PRE_CD /* 재결제이전 주문번호 */
+                    , (SELECT COUNT(1) FROM T_ORD_MST WHERE ORD_MST_PRE_CD = OM.ORD_MST_CD) as REPAY_ORD_CNT /* 재결제 주문 개수 */
+                    , OP.ORD_PRD_IST_CPN_PRC*(DECODE(OP.ORD_PRD_ORG_IDX, NULL, OP.ORD_PRD_ORD_CNT, 0)) as IST_CPN_PRC /* 즉시할인금액(즉시할인금액*수량) */
+                    , SUM(OP.ORD_PRD_IST_CPN_PRC*(DECODE(OP.ORD_PRD_ORG_IDX, NULL, OP.ORD_PRD_ORD_CNT, 0))) OVER(PARTITION BY OP.ORD_ORD_MST_CD) as TOT_ORD_IST_CPN_PRC /* 주문 총 즉시할인금액 */
+                    , ORD_PRD_SLT_YN /* 선택상품여부 */
+                    , ORD_PRD_UP_IDX /* 상위주문상품 IDX */
+                   -- ,DTL.OPT_DTL_NM /* 옵션명 */ 
+                    ,(
+                        SELECT PRD_OPT_NM FROM T_PRD_OPT BB
+                        WHERE PRD_MST_CD=OP.ORD_PRD_MST_CD
+                        AND PRD_OPT_IDX =OP.ORD_PRD_OPT_DTL_IDX
+                       ) AS OPT_DTL_NM
+                    , ORD_PRD_OPT_ADD_PRC /* 옵션추가금 */
+                    , ORD_PRD_SCM_CNL_YN
+                    , ORD_PRD_SCM_CNL_DESC
+                    , ORD_PRD_SCM_CNL_DT
+                    , OM.ORD_MST_ECR_CFM_YN /* 에스크로 구매확인/거절 여부 */
+                    <!-- 2020.06.09 검색조건 구분화  -->
+                    <if test="ADM_TYPE_NUM != null and ADM_TYPE_NUM == 0">
+	                	, (SELECT TMM.MEM_MST_MEM_ID FROM T_MEM_MST TMM WHERE 1=1 AND TMM.MEM_MST_SW_ID IS NOT NULL AND TMM.MEM_MST_MEM_ID = OM.ORD_MST_ORD_ID ) AS ID
+	                </if>
+	                <!-- END 2020.06.09 검색조건 구분화  -->
+                FROM 
+                    T_ORD_PRD OP, T_ORD_MST OM, T_PRD_MST PM, T_OPT_DTL DTL, T_ORD_DLV OD, T_DLV_CPN DC
+                    , (
+                        SELECT 
+                            ORD_MST_CD
+                        FROM T_ORD_MST OM, T_ORD_PRD OP, T_PRD_MST PM, T_OPT_DTL DTL, T_ORD_DLV OD, T_DLV_CPN DC
+                        WHERE OM.ORD_MST_CD = OP.ORD_ORD_MST_CD 
+                         AND OP.ORD_PRD_MST_CD = PM.PRD_MST_CD
+                        AND OM.ORD_MST_CD = OD.ORD_ORD_MST_CD(+)
+                        AND OP.ORD_PRD_OPT_DTL_IDX= DTL.OPT_DTL_IDX(+)
+                        AND OP.ORD_DLV_CPN_IDX= DC.DLV_CPN_IDX(+)                       
+                        <include refid="orderWhere"/>
+                        <!-- 2020.06.16 반품관리 메뉴 조회를 위해 주문상태 검색 부분을 orderWhere에서 분리함 -->
+			            <if test="searchOrdPrdOrderState != null and searchOrdPrdOrderState != ''">
+				            AND OP.ORD_PRD_ORD_STATE= TRIM(#{searchOrdPrdOrderState})
+				        </if>
+			            <if test="searchOrdPrdOrderState == null or searchOrdPrdOrderState == ''">
+				            <if test="searchOrdPrdOrderStateArr != null and searchOrdPrdOrderStateArr.length > 0">
+				                AND OP.ORD_PRD_ORD_STATE IN <foreach collection="searchOrdPrdOrderStateArr" item="searchOrdPrdOrderState" open="(" close=")" separator=",">#{searchOrdPrdOrderState}</foreach>
+				            </if>
+				        </if>
+                        
+                        GROUP BY OM.ORD_MST_CD
+                    ) OM2, T_PRD_MST TPM, T_BND_MST TBM, T_CMM_COM TCC, T_CMM_COM TCS
+                WHERE 1=1
+                AND OP.ORD_PRD_MST_CD = TPM.PRD_MST_CD 
+                AND OP.ORD_ORD_MST_CD = OM.ORD_MST_CD
+                AND TCC.CMN_COM_IDX = OP.ORD_PRD_COLOR
+                AND TCS.CMN_COM_IDX = OP.ORD_PRD_SIZE
+                AND TPM.PRD_MST_BRD_IDX  = TBM.BND_MST_IDX
+                <!-- 2020.06.09 검색조건 구분화 <- 2020.06.23 원복 -->                
+                <choose>
+                	<when test="arrOrdPrdIdxs != null and arrOrdPrdIdxs.length > 0">                		         	
+	                    <foreach collection="arrOrdPrdIdxs" item="ORD_PRD_IDX" open="AND ORD_PRD_IDX IN(" close=")" separator=",">
+	                    	#{ORD_PRD_IDX}
+	                    </foreach>                			
+                	</when>
+                	<otherwise>
+                		<if test="ORD_PRD_IDX != null and ORD_PRD_IDX != ''">
+                			AND OP.ORD_PRD_IDX = #{ORD_PRD_IDX}
+                		</if>
+                	</otherwise>                	
+                </choose>   
+                <!-- END 2020.06.09 검색조건 구분화  -->                
+                <if test="ADM_MST_SUB_IDX != null and ADM_MST_SUB_IDX != ''">
+                    AND OP.ORD_PRD_VDR_IDX = #{ADM_MST_SUB_IDX} /* 입점업체 주문 조회시 */
+                </if>
+                AND OM.ORD_MST_CD = OM2.ORD_MST_CD    
+                AND OP.ORD_PRD_MST_CD = PM.PRD_MST_CD
+                AND OM.ORD_MST_CD = OD.ORD_ORD_MST_CD(+) 
+                AND OP.ORD_PRD_OPT_DTL_IDX= DTL.OPT_DTL_IDX(+)
+                AND OP.ORD_DLV_CPN_IDX= DC.DLV_CPN_IDX(+)
+                <!-- 2020.06.09 검색조건 구분화  -->
+                <if test="ADM_TYPE_NUM != null and ADM_TYPE_NUM == 0">
+                	AND ID IS NOT NULL
+                </if>
+                <if test="ADM_TYPE_NUM != null and ADM_TYPE_NUM == 1">
+                	AND ORD_MST_ORD_ID != '_GUEST_'
+                </if>
+                <if test="ADM_TYPE_NUM != null and ADM_TYPE_NUM == 2">
+                	AND ORD_MST_ORD_ID = '_GUEST_'
+                </if>
+                <!-- END 2020.06.09 검색조건 구분화  -->	                			
+            ) T1
+        WHERE 1=1
+        <if test="excelDown == null or excelDown == ''">
+            AND RNUM BETWEEN #{startNum} AND #{endNum} 
+        </if>
+        ) S1
+        <if test="searchScmCancel == null or searchScmCancel == ''">
+            ORDER BY RNUM, ORD_ORD_EDI_ORD_NO
+        </if>
+    </select>
+
+    <!-- 전체주문 > 상세 > 주문정보 -->
+    <select id="selectOrderInfo" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+        /* Order.selectOrderInfo */
+        SELECT 
+            OM.ORD_MST_CD 
+            , OM.ORD_MST_ORD_DT 
+            , SUBSTR(OM.ORD_MST_ORD_DT,1,4) || '-' || SUBSTR(OM.ORD_MST_ORD_DT,5,2) || '-' || SUBSTR(OM.ORD_MST_ORD_DT,7,2) AS ORD_MST_ORD_DT8
+            , OM.ORD_MST_PAY_PRC 
+            , OM.ORD_MST_PAY_TYPE
+            , (SELECT CMN_COM_NM FROM T_CMM_COM WHERE CMN_COM_IDX = OM.ORD_MST_PAY_TYPE) as ORD_MST_PAY_TYPE_NM
+            , (
+                SELECT 
+                    CMN_COM_NM
+                FROM T_CMM_COM 
+                WHERE CMN_COM_IDX = (SELECT MEM_MST_MEM_GBN FROM T_MEM_VIEW WHERE MEM_MST_MEM_ID = OM.ORD_MST_ORD_ID)
+              ) as MEM_MST_GB_NM
+            , ORD_MST_ORD_TYPE
+            , OM.ORD_MST_ORD_ID 
+            , OM.ORD_MST_ORD_NM 
+            , OM.ORD_MST_HP1
+            , OM.ORD_MST_HP2
+            , OM.ORD_MST_HP3 as ORD_MST_HP3
+            , OM.ORD_MST_HP1||'-'||OM.ORD_MST_HP2||'-'||OM.ORD_MST_HP3 as ORD_MST_HP
+            , OM.ORD_MST_ORD_PRC 
+            , NVL(OM.ORD_MST_DLV_CAG,0) as ORD_MST_DLV_CAG
+            , NVL(OM.ORD_MST_DC_MLG,0) as ORD_MST_DC_MLG 
+            , NVL(OM.ORD_MST_DC_CPN,0) as ORD_MST_DC_CPN
+            , OM.ORD_MST_MAIL AS ORD_MST_MAIL
+            , OM.ORD_MST_RFD_NM
+            , DECODE(OM.ORD_MST_RFD_ACT, NULL, '', OM.ORD_MST_RFD_ACT) AS ORD_MST_RFD_ACT
+            , OM.ORD_MST_RFD_HDR
+            , OM.ORD_MST_CSH_RCP
+            , '' AS MEMBER_GROUP_NM
+            , '' as CPON_NO
+            ,  NVL(ORD_MST_DC_OCB_PIT, '0') as ORD_MST_DC_OCB_PIT
+            , ORD_MST_DPS_NM
+            , (SELECT COUNT(1) FROM T_ORD_MST WHERE ORD_MST_PRE_CD = OM.ORD_MST_CD) as REPAY_ORD_CNT /* 해당 주문에 대한 재결제 주문 존재 여부 */
+            , ORD_MST_PRE_CD /* 재결제 주문인 경우 원주문번호 */
+            , ORD_MST_DLV_GBN /* 상품배송유형 */
+            , ORD_GET_SHP_MST_IDX   
+            , (SELECT SHP_MST_NM FROM T_SHP_MST WHERE SHP_MST_IDX = ORD_GET_SHP_MST_IDX) as SHP_MST_NM
+            , (SELECT SHP_MST_TEL FROM T_SHP_MST WHERE SHP_MST_IDX = ORD_GET_SHP_MST_IDX) as SHP_MST_TEL
+            , ORD_GET_TIK       
+            , ORD_GET_TIK_YN    
+            , NVL(ORD_GET_SMS_CNT, 0) as    ORD_GET_SMS_CNT
+            , NVL(ORD_GET_ADM_SMS_CNT, 0) as    ORD_GET_ADM_SMS_CNT
+            , ORD_GET_NM        
+            , ORD_GET_GBN       
+            , ORD_GET_RLT       
+            , ORD_GET_TEL1      
+            , ORD_GET_TEL2  
+            , DECODE(ORD_GET_TEL3, NULL, '', ORD_GET_TEL3) as ORD_GET_TEL3   
+            , ORD_GET_PKU_DT    
+            , ORD_GET_PKU_HH
+            , (
+                SELECT 
+                    MAX(FN_GET_PRODUCT_NM(ORD_PRD_MST_CD,30)) KEEP(DENSE_RANK FIRST ORDER BY ORD_PRD_IDX) 
+                FROM T_ORD_PRD 
+                WHERE ORD_ORD_MST_CD = OM.ORD_MST_CD
+                <if test="ORD_PRD_IDX != null and ORD_PRD_IDX != ''">
+                    AND ORD_PRD_IDX = #{ORD_PRD_IDX}
+                </if>
+                ) as PRD_NM /* 상품명(SMS 발송용) */  
+            , (SELECT MAX(ORD_PRD_SLP_NO) FROM T_ORD_PRD WHERE ORD_ORD_MST_CD = OM.ORD_MST_CD) as ORD_SLP_NO /* 전표번호 */
+            , OM.ORD_MST_CNL_YN
+        FROM 
+            T_ORD_MST OM, T_ORD_GET OG
+        WHERE
+            OM.ORD_MST_CD = OG.ORD_MST_CD(+)
+            AND OM.ORD_MST_CD=#{ORD_MST_CD}
+    </select>
+
+    <!-- 전체주문 > 상세 > 상품정보 -->
+    <select id="selectOrderProductList" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+        /* Order.selectOrderProductList */
+        SELECT
+            S1.*
+            , (SELECT CHN_DTL_NM FROM T_CHN_DTL WHERE CHN_DTL_CD = S1.CHN_DTL_CD) as CHN_DTL_NM
+            , SUM(DECODE(ORD_PRD_ORD_STATE, #{OST_BACK_END}, 1, 0)) OVER() as BACK_END_CNT /* 반품완료 상품 개수 */
+            , SUM(BACK_PRD) OVER() as BACK_PRD_CNT /* 반품 상태 상품 개수 */
+        FROM
+        (
+            SELECT 
+                OP.ORD_ORD_MST_CD
+                , ORD_PRD_IDX
+                , ORD_PRD_OPT_DTL_IDX
+                , DTL.OPT_DTL_NM
+                , ORD_PRD_SLT_YN
+                , ORD_ORD_EDI_ORD_NO
+                , ORD_PRD_ORG_IDX
+                , FN_PRODUCT_IMG(ORD_PRD_MST_CD,'84') PRODUCT_THUM_IMG 
+                , ORD_PRD_MST_CD
+                , PM.PRD_MST_TYPE
+                , PM.PRD_MST_DLV_DSN_YN
+                , PRD_MST_NM
+                , ORD_PRD_PRD_PRC
+                , ORD_PRD_SAL_PRC
+                , ORD_PRD_ORD_CNT
+                , ORD_PRD_COLOR
+                , (SELECT cc.CMN_COM_ETC3 FROM T_CMM_COM cc WHERE ORD_PRD_COLOR = cc.CMN_COM_IDX) AS ORD_PRD_COLOR_NM
+                , ORD_PRD_SIZE
+                , (SELECT cc2.CMN_COM_NM FROM T_CMM_COM cc2 WHERE ORD_PRD_SIZE = cc2.CMN_COM_IDX) AS ORD_PRD_SIZE_NM
+                , ORD_PRD_ORD_STATE
+                , ORD_PRD_OPT_ADD_PRC
+                , (SELECT
+                        CASE /* 겟잇나우 배송은 주문상태를 다르게 보여줘야 한다. */
+                            WHEN OM.ORD_MST_DLV_GBN = 2097 AND CMN_COM_ETC2 IS NOT NULL THEN CMN_COM_ETC2
+                            ELSE CMN_COM_NM    
+                        END 
+                     FROM T_CMM_COM WHERE CMN_COM_IDX = OP.ORD_PRD_ORD_STATE) as ORD_PRD_ORD_STATE_NM
+                , ORD_PRD_IVC_NO
+                , DLV_CPN_URL
+                , (SELECT COUNT(1) FROM T_ORD_PRD WHERE ORD_PRD_ORG_IDX = OP.ORD_PRD_IDX) AS CHANGE_ORDER_CNT
+                , OP.ORD_PRD_DLV_TYPE
+                , (SELECT CMN_COM_NM FROM T_CMM_COM WHERE CMN_COM_IDX = OP.ORD_PRD_DLV_TYPE) as ORD_PRD_DLV_TYPE_NM
+                , OP.CHN_DTL_CD
+                , OP.ORD_PRD_ERP_DLV_CD
+                , (SELECT CMN_COM_NM FROM T_CMM_COM WHERE CMN_COM_IDX = OP.ORD_PRD_ERP_DLV_CD) as ORD_PRD_ERP_DLV_CD_NM
+                , OP.ORD_PRD_SLP_NO
+                , OP.ORD_PRD_DLV_DUE_DT
+                , OP.ORD_PRD_VDR_IDX
+                , (SELECT VDR_MST_NM FROM T_VDR_MST WHERE VDR_MST_IDX = OP.ORD_PRD_VDR_IDX) as VDR_MST_NM 
+                , ORD_PRD_DLV_CAG
+                , ORD_PRD_DLV_BND_CAG
+                , ORD_PRD_DLV_ADD_CAG
+                , ORD_PRD_DLV_BND_YN
+                , COUNT(1) OVER(PARTITION BY OP.ORD_ORD_MST_CD, ORD_PRD_VDR_IDX, ORD_PRD_DLV_BND_YN) as VDR_IDX_CNT /* 업체별 상품 개수 */ 
+                , ROW_NUMBER() OVER(PARTITION BY OP.ORD_ORD_MST_CD, ORD_PRD_VDR_IDX, ORD_PRD_DLV_BND_YN ORDER BY ORD_ORD_EDI_ORD_NO) as VDR_ROWNUM /* 업체별 상품 ROWNUM */
+                ,
+                CASE
+                    WHEN ORD_PRD_ORD_STATE IN
+                    <foreach collection="OST_BACK_ARR" item="OST_BACK" open="(" close=")" separator=",">#{OST_BACK}</foreach>
+                    THEN 1
+                    ELSE 0
+                 END BACK_PRD /* 반품 진행중인 상품은 1, 아니면 0 */
+                 , DC.DLV_CPN_NM /* 배송업체명 */
+                 , OP.ORD_PRD_SYS_SGS /* SYS/SGS 택배구분 */
+                 , ORD_PRD_SCM_CNL_YN
+                 , ORD_PRD_SCM_CNL_DESC
+                 , ORD_PRD_SCM_CNL_DT
+                 , PM.PRD_MST_NFI_INF4
+                 , NVL(OP.ORD_PRD_DC_PIT, 0) AS	ORD_PRD_DC_PIT			/* 사용한 E포인트 */
+                 , NVL(OP.ORD_PRD_DC_SW_PIT, 0) AS ORD_PRD_DC_SW_PIT	/* 사용한 임직원포인트 */
+                 , NVL(OP.ORD_PRD_DC_TOT_PIT, 0) AS ORD_PRD_DC_TOT_PIT	/* 사용한 통합포인트 */
+                 , NVL(OP.ORD_PRD_DC_PRM, 0) AS ORD_PRD_DC_PRM			/* 주문상품별 프로모션 코드 할인금액 */
+                 , NVL(OP.ORD_PRD_DC_CPN, 0) AS ORD_PRD_DC_CPN			/* 주문상품별 쿠폰 할인금액 */
+            FROM 
+                T_ORD_PRD OP, T_ORD_MST OM, T_PRD_MST PM, T_OPT_DTL DTL, T_DLV_CPN DC 
+            WHERE
+                <choose>
+                    <!-- <when test="STATE != null and STATE.equals(OST_EACH_CANCEL.toString())"> -->
+                    <when test="arrORD_PRD_IDXs != null and arrORD_PRD_IDXs != ''">
+                        <!-- <if test="arrORD_PRD_IDXs != null and arrORD_PRD_IDXs != ''"> -->
+                           OM.ORD_MST_CD = (   SELECT 
+                                                    ORD_ORD_MST_CD 
+                                                FROM T_ORD_PRD
+                                                WHERE ORD_PRD_IDX IN
+                                                <foreach collection="arrORD_PRD_IDXs" item="ORD_PRD_IDX" open="(" close=")" separator=",">#{ORD_PRD_IDX}</foreach>
+                                                GROUP BY ORD_ORD_MST_CD
+                                            ) 
+                           AND OP.ORD_PRD_IDX IN 
+                                <foreach collection="arrORD_PRD_IDXs" item="ORD_PRD_IDX" open="(" close=")" separator=",">#{ORD_PRD_IDX}</foreach>
+                        <!-- </if> -->
+                    </when>
+                    <otherwise>
+                        OP.ORD_ORD_MST_CD=#{ORD_MST_CD}
+                    </otherwise>
+                </choose>
+            AND ORD_PRD_MST_CD=PM.PRD_MST_CD
+            AND OP.ORD_ORD_MST_CD = OM.ORD_MST_CD
+            <if test="ADM_MST_SUB_IDX != null and ADM_MST_SUB_IDX != ''">
+                AND OP.ORD_PRD_VDR_IDX = #{ADM_MST_SUB_IDX} /* 입점업체 주문 조회시 */
+            </if>
+            <if test="targetStates != null and targetStates.length > 0">
+                AND OP.ORD_PRD_ORD_STATE IN <foreach collection="targetStates" item="targetState" open="(" close=")" separator=",">#{targetState}</foreach>
+            </if>
+            <if test="ORD_PRD_VDR_IDX != null and ORD_PRD_VDR_IDX != ''">
+                AND OP.ORD_PRD_VDR_IDX = #{ORD_PRD_VDR_IDX} /* 입점업체별 조회시 */
+            </if>
+            AND ORD_PRD_OPT_DTL_IDX=DTL.OPT_DTL_IDX(+)
+            AND ORD_DLV_CPN_IDX= DLV_CPN_IDX(+)
+            ORDER BY 
+                ORD_ORD_EDI_ORD_NO
+        ) S1
+    </select>
+
+    <!-- 전체주문 > 상세 > 수령정보 -->
+    <select id="selectDeliveryInfo" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+        /* Order.selectDeliveryInfo */
+        SELECT 
+            ORD_ORD_MST_CD 
+            , ORD_DLV_NM 
+            , ORD_DLV_HP1
+            , ORD_DLV_HP2
+            , DECODE(ORD_DLV_HP3, NULL, '', ORD_DLV_HP3) as ORD_DLV_HP3            
+            , ORD_DLV_HP1||'-'||ORD_DLV_HP2||'-'||DECODE(ORD_DLV_HP3, NULL, '', ORD_DLV_HP3) as ORD_DLV_HP
+            , ORD_DLV_TEL1
+            , ORD_DLV_TEL2
+            , ORD_DLV_TEL3 as ORD_DLV_TEL3
+            , ORD_DLV_TEL1||'-'||ORD_DLV_TEL2||'-'|| ORD_DLV_TEL3 as ORD_DLV_TEL
+            , ORD_DLV_ZIP_CDE6 
+            , ORD_DLV_JBN_ADR1 
+            , ORD_DLV_JBN_ADR2 
+            , ORD_DLV_MSG
+            , ORD_DLV_ZIP_CDE5
+            , ORD_DLV_DRO_ADR1 
+            , ORD_DLV_DRO_ADR2 
+            , ORD_MST_DLV_GBN
+            , (SELECT CMN_COM_NM FROM T_CMM_COM WHERE CMN_COM_IDX = ORD_MST_DLV_GBN) AS DLV_GBN_NM /* 상품배송유형 이름 */
+        FROM  
+            T_ORD_DLV OD
+            JOIN T_ORD_MST OM ON (OD.ORD_ORD_MST_CD = OM.ORD_MST_CD)
+        WHERE
+            ORD_ORD_MST_CD=#{ORD_MST_CD}
+    </select>
+    
+    <!-- 배송지정보 수정 -->
+    <update id="updateDeliveryInfo" parameterType="java.util.HashMap">
+        /* Order.updateDeliveryInfo */
+        UPDATE 
+            T_ORD_DLV
+        SET
+            ORD_DLV_NM = #{ORD_DLV_NM}, 
+            ORD_DLV_HP1 = #{ORD_DLV_HP1},
+            ORD_DLV_HP2 = #{ORD_DLV_HP2},
+            ORD_DLV_HP3 = #{ORD_DLV_HP3},
+            ORD_DLV_TEL1 = #{ORD_DLV_TEL1},
+            ORD_DLV_TEL2 = #{ORD_DLV_TEL2},
+            ORD_DLV_TEL3 = #{ORD_DLV_TEL3},
+            ORD_DLV_ZIP_CDE6 = #{ORD_DLV_ZIP_CDE6}, 
+            ORD_DLV_JBN_ADR1 = #{ORD_DLV_JBN_ADR1}, 
+            ORD_DLV_JBN_ADR2 = #{ORD_DLV_DRO_ADR2}, 
+            ORD_DLV_MSG = #{ORD_DLV_MSG},
+            ORD_DLV_ZIP_CDE5 = #{ORD_DLV_ZIP_CDE5},
+            ORD_DLV_DRO_ADR1 = #{ORD_DLV_DRO_ADR1}, 
+            ORD_DLV_DRO_ADR2 = #{ORD_DLV_DRO_ADR2},
+            ORD_DLV_UPD_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+            ORD_DLV_UPD_ID = #{ORD_DLV_UPD_ID},
+            ORD_DLV_UPD_IP = #{ORD_DLV_UPD_IP}
+        WHERE
+            ORD_ORD_MST_CD=#{ORD_MST_CD}
+    </update>
+    
+    <!-- 전체주문 > 상세 > 사은품정보 -->
+    <select id="selectOrderGiftList" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+        /* Order.selectOrderGiftList */
+        SELECT 
+            TGR.GFT_REQ_OPTION, TGM.GFT_MST_NAME 
+        FROM T_GFT_REQ TGR, T_GFT_MST TGM
+        WHERE TGR.GFT_MST_IDX = TGM.GFT_MST_IDX
+        AND TGR.ORD_ORD_MST_CD = #{ORD_MST_CD}
+        ORDER BY GFT_REQ_IDX DESC
+    </select>
+
+    <!-- 주문/배송 현황(할인/결제정보) -->
+    <select id="selectOrderPayInfo" parameterType="hashMap" resultType="hashMap">
+        /* Order.selectOrderPayInfo */
+        SELECT
+            T1.*
+        FROM
+        (
+        SELECT
+            ROW_NUMBER() OVER(ORDER BY PAY_MST_IDX DESC) as RNUM
+            , PAY_MST_IDX
+            , ORD_MST_CD
+            , ORD_MST_ORD_DT 
+            , ORD_MST_PAY_TYPE
+            , ORD_MST_RFD_CD /* 환불은행코드 */
+            , ORD_MST_RFD_NM /* 환불은행명 */
+            , DECODE(ORD_MST_RFD_ACT, '', '', ORD_MST_RFD_ACT) AS ORD_MST_RFD_ACT /* 환불계좌번호 */
+            , ORD_MST_RFD_HDR /* 환불예금주명 */
+            , ORD_MST_PAY_DT
+            , ORD_MST_ORD_PRC
+            , NVL(ORD_MST_DC_MLG,0) as ORD_MST_DC_MLG
+            , NVL(ORD_MST_DC_OCB_PIT,0) as ORD_MST_DC_OCB_PIT
+            
+            <!-- 포인트 및 쿠폰 할인금액 조회부분 수정 2020.06.27 -->
+            , (SELECT NVL(SUM(ORD_PRD_DC_CPN), 0) FROM T_ORD_PRD WHERE ORD_ORD_MST_CD = #{ORD_MST_CD})
+            	as ORD_MST_DC_CPN
+            , (SELECT NVL(SUM(ORD_PRD_DC_PIT), 0) FROM T_ORD_PRD WHERE ORD_ORD_MST_CD = #{ORD_MST_CD})
+            	as ORD_MST_DC_PIT
+            , (SELECT NVL(SUM(ORD_PRD_DC_SW_PIT), 0) FROM T_ORD_PRD WHERE ORD_ORD_MST_CD = #{ORD_MST_CD})
+            	as ORD_PRD_DC_SW_PIT
+            , (SELECT NVL(SUM(ORD_PRD_DC_TOT_PIT), 0) FROM T_ORD_PRD WHERE ORD_ORD_MST_CD = #{ORD_MST_CD})
+            	as ORD_PRD_DC_TOT_PIT
+            	
+            , ORD_MST_ORD_ID
+            	
+            , ORD_MST_PAY_PRC
+            , ORD_MST_DLV_CAG
+            , ORD_MST_DPS_NM
+            , PAY_MST_PRODUCTINFO
+            , PAY_MST_TID 
+            , PAY_MST_MID 
+            , PAY_MST_OID 
+            , PAY_MST_HASHDATA 
+            , PAY_MST_ESCROWYN
+            , PAY_MST_PAYDATE 
+            , PAY_MST_PAYTYPE 
+            , PAY_MST_FINANCECODE 
+            , PAY_MST_FINANCENAME 
+            , PAY_MST_AMOUNT 
+            , PAY_MST_TRANSAMOUNT 
+            , PAY_MST_EXCHANGERATE
+            , PAY_MST_BUYER 
+            , PAY_MST_BUYERID 
+            , PAY_MST_BUYERPHONE 
+            , PAY_MST_BUYEREMAIL 
+            , PAY_MST_CARDINSTALLMONTH 
+            , PAY_MST_CARDNOINTYN 
+            , PAY_MST_FINANCEAUTHNUM
+            , PAY_MST_ACCOUNTNUM 
+            , PAY_MST_CASTAMOUNT 
+            , PAY_MST_CASCAMOUNT 
+            , PAY_MST_CASFLAG 
+            , PAY_MST_CASSEQNO 
+            , PAY_MST_CLOSEDATE
+            , PAY_MST_CASHRECEIPTNUM 
+            , PAY_MST_CASHRECEIPTSELFYN 
+            , PAY_MST_CASHRECEIPTKIND
+            , PAY_MST_TELNO
+            , PAY_MST_KAKAO_AUTHCODE
+            , PAY_MST_KAKAO_CARDNAME
+            , PAY_MST_KAKAO_CARDBIN
+            , PAY_MST_KAKAO_CARDQUOTA
+            , ORD_MST_HP1
+            , ORD_MST_HP2
+            , ORD_MST_HP3 as ORD_MST_HP3
+            , PAY_MST_KICC_AUTH_NO
+            , PAY_MST_KICC_TRAN_DATE
+            , PAY_MST_KICC_CARD_NO
+            , SUBSTR(PAY_MST_KICC_CARD_NO, 0, 4)||'-'|| SUBSTR(PAY_MST_KICC_CARD_NO, 5, 4) || '-****-****' as MASKING_KICC_CARD_NO
+            , PAY_MST_KICC_ISSUER_CD
+            , PAY_MST_KICC_ISSUER_NM
+            , PAY_MST_KICC_ACQUIRER_CD
+            , PAY_MST_KICC_ACQUIRER_NM
+            , PAY_MST_KICC_INSTALL_PERIOD
+            , PAY_MST_KICC_NOINT
+            , PAY_MST_KICC_PNT_AUTH_NO
+            , PAY_MST_KICC_PNT_TRAN_DATE
+            , PAY_MST_KICC_BANK_CD
+            , PAY_MST_KICC_BANK_NM
+            , PAY_MST_KICC_ACCOUNT_NO
+            , PAY_MST_KICC_DEPOSIT_NM
+            , PAY_MST_KICC_EXPIRE_DATE
+            , PAY_MST_KICC_CASH_RES_CD
+            , PAY_MST_KICC_CASH_RES_MSG
+            , PAY_MST_KICC_CASH_AUTH_NO
+            , PAY_MST_KICC_CASH_TRAN_DATE
+            , PAY_MST_KICC_AUTH_ID
+            , PAY_MST_KICC_BILLID
+            , PAY_MST_KICC_MOBILE_NO
+            , PAY_MST_KICC_USED_PNT
+            , PAY_MST_KICC_REMAIN_PNT
+            , PAY_MST_KICC_PAY_PNT
+            , PAY_MST_KICC_ACCURE_PNT
+            , PAY_MST_KICC_ESCROW_YN
+            , PAY_MST_KICC_COMPLEX_YN
+            , PAY_MST_KICC_CANC_ACQ_DATE
+            , PAY_MST_KICC_CANC_DATE
+            , PAY_MST_KICC_REFUND_DATE
+            , PAY_MST_KICC_ARS_NO
+            , NVL(OM.ORD_MST_SAV_MLG,0) as TOT_ORD_SAV_MIL /* 총 적립예정 마일리지 */
+            , (SELECT NVL(OM.ORD_MST_SAV_MLG,0) FROM T_ORD_MST WHERE ORD_MST_CD = OM.ORD_MST_PRE_CD) as TOT_PRE_ORD_SAV_MIL /* 원 주문의 총 적립예정 마일리지 */
+            , NVL(OM.ORD_MST_SAV_OCB,0) as TOT_ORD_SAV_OCB /* 총 적립예정 캐쉬백 */
+            , (SELECT SUM(NVL(ORD_PRD_IST_CPN_PRC,0)*(DECODE(ORD_PRD_ORG_IDX, NULL, ORD_PRD_ORD_CNT, 0))) FROM T_ORD_PRD WHERE ORD_ORD_MST_CD = OM.ORD_MST_CD) as TOT_ORD_IST_CPN_PRC /* 총 즉시할인금액 */
+            , (
+                SELECT 
+                    SUM((NVL(ORD_PRD_PRD_PRC,0)+NVL(ORD_PRD_OPT_ADD_PRC,0))*(DECODE(ORD_PRD_ORG_IDX, NULL, ORD_PRD_ORD_CNT, 0))) 
+                FROM T_ORD_PRD 
+                WHERE ORD_ORD_MST_CD = OM.ORD_MST_CD
+                ) as TOT_ORD_PRD_PRD_PRC /* 총 상품금액 */
+            , OM.ESM_MST_IDX /* 견적관리 IDX */ 
+            , OM.ORD_MST_ORD_NM
+            , PAY_MST_PG_CARDNUM
+        FROM
+            T_ORD_MST OM 
+        LEFT OUTER JOIN T_PAY_MST PM
+        ON  PAY_MST_OID = OM.ORD_MST_CD
+        AND PAY_MST_TR_STATUS = 'A'
+        AND PAY_MST_RESPCODE = '0000'
+        WHERE
+            OM.ORD_MST_CD = #{ORD_MST_CD}
+        ) T1
+        WHERE RNUM = 1
+    </select>
+
+    <!-- 주문환불정보 -->
+    <select id="selectOrderRefundInfo" parameterType="hashMap" resultType="hashMap">
+        /* Order.selectOrderRefundInfo */
+        SELECT
+            ORD_MST_CD,
+            ORD_MST_ORD_DT, 
+            ORD_MST_PAY_TYPE,
+            (SELECT CMN_COM_NM FROM T_CMM_COM WHERE CMN_COM_IDX = OM.ORD_MST_PAY_TYPE) as ORD_MST_PAY_TYPE_NM,
+            ORD_MST_RFD_NM,
+            DECODE(ORD_MST_RFD_ACT, '', '', ORD_MST_RFD_ACT) AS ORD_MST_RFD_ACT, /* 환불계좌번호 */
+            ORD_MST_RFD_HDR,
+            ORD_MST_PAY_DT,
+            ORD_MST_PAY_PRC,
+            NVL(OPH1.ORD_CANCEL_DT,OPH.ORD_CANCEL_DT) as ORD_CANCEL_DT,
+            NVL(OPH1.REASON_NM,OPH.REASON_NM) as REASON_NM,
+            NVL(OPH1.REASON_DESC,OPH.REASON_DESC) as REASON_DESC,
+            PAY_MST_RESPCODE,
+            PAY_MST_PRODUCTINFO,
+            PAY_MST_PAYDATE, PAY_MST_PAYTYPE, PAY_MST_FINANCENAME, PAY_MST_AMOUNT,
+            PAY_MST_CARDINSTALLMONTH, PAY_MST_FINANCEAUTHNUM,
+            PAY_MST_ACCOUNTNUM, PAY_MST_CASTAMOUNT, PAY_MST_CASSEQNO, PAY_MST_CLOSEDATE,
+            PAY_MST_TELNO
+        FROM
+            T_ORD_MST OM
+        LEFT OUTER JOIN (
+            SELECT *
+            FROM T_PAY_MST
+            WHERE PAY_MST_IDX IN(
+                SELECT MAX(PAY_MST_IDX)
+                FROM T_PAY_MST
+                WHERE 1=1 
+                AND PAY_MST_OID = #{ORD_MST_CD} 
+                AND PAY_MST_TR_STATUS = 'C'
+                AND PAY_MST_RESPCODE IN('0000','AV11','RF00','RF10','RF09','RF15','RF19','RF23','RF25')
+                )
+            ) PM
+        ON  PM.PAY_MST_OID = OM.ORD_MST_CD  
+        LEFT OUTER JOIN 
+            (
+            SELECT 
+                ORD_ORD_MST_CD, MAX(ORD_PRD_REG_DT) as ORD_CANCEL_DT, MAX(ORD_PRD_DSC) as REASON_DESC, MAX(CMN_COM_NM) as REASON_NM
+            FROM 
+                T_ORD_PRD_HIS, T_CMM_COM 
+            WHERE 
+                ORD_ORD_MST_CD = #{ORD_MST_CD} 
+            AND ORD_PRD_ORD_STATE IN(#{OST_CANCEL}#,#{OST_BACK})
+            AND ORD_CMN_COM_IDX = CMN_COM_IDX(+) 
+            GROUP BY 
+                ORD_ORD_MST_CD
+            ) OPH1
+        ON  OPH1.ORD_ORD_MST_CD = OM.ORD_MST_CD 
+        LEFT OUTER JOIN 
+            (
+            SELECT 
+                ORD_ORD_MST_CD, MAX(ORD_PRD_REG_DT) as ORD_CANCEL_DT, MAX(ORD_PRD_DSC) as REASON_DESC, MAX(CMN_COM_NM) as REASON_NM
+            FROM 
+                T_ORD_PRD_HIS, T_CMM_COM 
+            WHERE 
+                ORD_ORD_MST_CD = #{ORD_MST_CD} 
+            AND ORD_PRD_ORD_STATE IN(#{OST_CANCEL_END},#{OST_BACK_END})
+            AND ORD_CMN_COM_IDX = CMN_COM_IDX(+) 
+            GROUP BY 
+                ORD_ORD_MST_CD
+            ) OPH
+        ON  OPH.ORD_ORD_MST_CD = OM.ORD_MST_CD 
+        WHERE
+            OM.ORD_MST_CD = #{ORD_MST_CD}
+    </select>
+
+    <!-- 전체주문 > 상세 > 상품정보 -->
+    <select id="selectOrderProductInfo" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+        /* Order.selectOrderProductInfo */
+        SELECT 
+            OP.ORD_ORD_MST_CD
+            , ORD_PRD_IDX
+            , FN_PRODUCT_THUM_IMG (ORD_PRD_MST_CD) PRODUCT_THUM_IMG
+            , ORD_PRD_MST_CD
+            , PM.PRD_MST_NM
+            , PM.PRD_MST_TYPE
+            , ORD_PRD_PRD_PRC
+            , ORD_PRD_SAL_PRC
+            , ORD_PRD_ORD_CNT
+            , ORD_PRD_ORD_PRC
+            , ORD_PRD_ORD_STATE
+            , (SELECT 
+                    CASE /* 겟잇나우 배송은 주문상태를 다르게 보여줘야 한다. */
+                        WHEN OM.ORD_MST_DLV_GBN = 2097 AND CMN_COM_ETC2 IS NOT NULL THEN CMN_COM_ETC2
+                        ELSE CMN_COM_NM    
+                    END 
+                FROM T_CMM_COM WHERE CMN_COM_IDX = OP.ORD_PRD_ORD_STATE) as ORD_PRD_ORD_STATE_NM
+            , ORD_PRD_IVC_NO
+            , DLV_CPN_URL
+            , ORD_PRD_OPT_DTL_IDX
+            , OP.ORD_PRD_ORG_IDX
+            , NVL(DTL.OPT_DTL_ADD_PRC,0) as OPT_DTL_ADD_PRC
+            , DTL.OPT_DTL_NM
+            , NVL(OP.ORD_PRD_OPT_ADD_PRC, 0) as ORD_PRD_OPT_ADD_PRC
+            , ORD_PRD_SLT_YN /* 선택옵션 여부 */
+            , ORD_PRD_UP_IDX /* 상위옵션 IDX */
+        FROM 
+            T_ORD_PRD OP, T_ORD_MST OM, T_PRD_MST PM, T_OPT_DTL DTL, T_DLV_CPN DC
+        WHERE
+            OP.ORD_ORD_MST_CD=#{ORD_MST_CD}
+        AND ORD_PRD_IDX = #{ORD_PRD_IDX}
+        AND OP.ORD_ORD_MST_CD = OM.ORD_MST_CD
+        AND ORD_PRD_MST_CD = PM.PRD_MST_CD
+        AND ORD_PRD_OPT_DTL_IDX = DTL.OPT_DTL_IDX(+)
+        AND ORD_DLV_CPN_IDX = DLV_CPN_IDX(+)
+    </select>
+
+    <!-- 전체주문 > 상세 > 주문상태변경내역 -->
+    <select id="selectOrderHistoryList" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+        /* Order.selectOrderHistoryList */
+        SELECT 
+            ORD_ORD_MST_CD, ORD_PRD_MST_CD, ORD_ORD_PRD_IDX,
+            ORD_PRD_ORD_STATE
+            , (SELECT 
+                    CASE /* 겟잇나우 배송은 주문상태를 다르게 보여줘야 한다. */
+                        WHEN OM.ORD_MST_DLV_GBN = 2097 AND CMN_COM_ETC2 IS NOT NULL THEN CMN_COM_ETC2
+                        ELSE CMN_COM_NM    
+                    END
+                 FROM T_CMM_COM WHERE CMN_COM_IDX = ORD_PRD_ORD_STATE) as ORD_PRD_ORD_STATE_NM
+            , ORD_CMN_COM_IDX as ORD_PRD_REASON, CCR.CMN_COM_NM as ORD_PRD_REASON_NM,
+            ORD_PRD_DSC, ORD_PRD_REG_DT, ORD_PRD_REG_TYPE, ORD_PRD_REG_ID,
+            ADM_MST_NM, MEM_MST_MEM_NM,
+            ORD_PRD_IVC_NO
+        FROM 
+            T_ORD_PRD_HIS HS, T_ORD_MST OM, T_CMM_COM CCR,
+            T_ADM_MST AM, T_MEM_VIEW MM  
+        WHERE 
+            ORD_ORD_MST_CD = #{ORD_MST_CD}
+        AND ORD_ORD_PRD_IDX = #{ORD_PRD_IDX}
+        AND HS.ORD_ORD_MST_CD = OM.ORD_MST_CD
+        AND ORD_CMN_COM_IDX = CCR.CMN_COM_IDX(+)
+        AND ORD_PRD_REG_ID = ADM_MST_ID(+)
+        AND ORD_PRD_REG_ID = MEM_MST_MEM_ID(+)
+        ORDER BY 
+            ORD_PRD_HIS_IDX DESC
+    </select>
+
+    <!-- 전체주문 > 상세 > 주문상태 (일괄개수) -->
+    <select id="selectOrderStateCnt" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+        /* Order.selectOrderStateCnt */
+        SELECT
+            S1.*
+            , DECODE(TOTAL_CNT, (PAY_READY_CNT + PAY_CNT + SEND_READY_CNT), 'Y', 'N') AS WHOLE_CANCEL_PLE_YN /* WHOLE_CANCEL_POSSIBLE_YN 전체주문취소 가능 여부 */  
+            , DECODE(TOTAL_CNT, (PAY_READY_CNT + PAY_CNT), 'Y', 'N') AS FRONT_WHOLE_CANCEL_PLE_YN /* FRONT_WHOLE_CANCEL_POSSIBLE_YN FRONT 전체주문취소 가능 여부 */  
+            , DECODE(TOTAL_CNT, (PAY_READY_CNT + PAY_CNT), 'Y', 'N') AS COUPON_RESTORE_PLE_YN /* COUPON_RESTORE_POSSIBLE_YN 사용 쿠폰 복원 가능 여부 */
+            , CASE
+                WHEN 
+                    (EXCEPT_SWAP_TOTAL_CNT = BACK_CNT
+                    OR EXCEPT_SWAP_TOTAL_CNT = BACK_APPROVED_CNT
+                    OR EXCEPT_SWAP_TOTAL_CNT = BACK_COLLECT_CALL_CNT) 
+                    /* OR EXCEPT_SWAP_TOTAL_CNT = BACK_COLLECT_END_CNT erp 취소요청 후 반품불가는 불가능 */
+                THEN 'Y'
+                ELSE 'N'
+               END WHOLE_BACK_DENY_POSSIBLE_YN /* 전체반품불가 가능 여부 */
+            , DECODE(EXCEPT_SWAP_TOTAL_CNT, BACK_CNT, 'Y', 'N') AS WHOLE_BACK_APPROVED_PLE_YN /* WHOLE_BACK_APPROVED_POSSIBLE_YN 전체반품접수승인 가능 여부 */   
+            , DECODE(EXCEPT_SWAP_TOTAL_CNT, BACK_APPROVED_CNT, 'Y', 'N') AS WHOLE_BACK_CET_CALL_PLE_YN /* WHOLE_BACK_COLLECT_CALL_POSSIBLE_YN 전체반품회수지시 가능 여부 */
+            , DECODE(EXCEPT_SWAP_TOTAL_CNT, BACK_COLLECT_CALL_CNT, 'Y', 'N') AS WHOLE_BACK_CET_END_PLE_YN /* WHOLE_BACK_COLLECT_END_POSSIBLE_YN 전체반품회수완료 가능 여부 */
+            , DECODE(EXCEPT_SWAP_TOTAL_CNT, BACK_COLLECT_END_CNT, 'Y', 'N') AS WHOLE_BACK_END_PLE_YN /* WHOLE_BACK_END_POSSIBLE_YN 전체반품완료 가능 여부 */
+            , CASE
+                WHEN 
+                    (EXCEPT_SWAP_TOTAL_CNT = SEND_END_CNT 
+                    OR EXCEPT_SWAP_TOTAL_CNT = FIX_CNT)
+                THEN 'Y'
+                ELSE 'N'
+              END WHOLE_BACK_POSSIBLE_YN /* 전체반품접수 가능 여부 */  
+            , DECODE(EXCEPT_SWAP_TOTAL_CNT, REFUND_CNT, 'Y', 'N') AS WHOLE_REFUND_END_POSSIBLE_YN /* 전체환불완료 가능 여부 */   
+            , CASE
+                WHEN (BACK_CNT + BACK_APPROVED_CNT + BACK_COLLECT_CALL_CNT + BACK_COLLECT_END_CNT + BACK_END_CNT) > 0 THEN 'Y'
+                ELSE 'N'
+              END BACK_ING_YN /* 반품프로세스 진행중 여부 */
+            , CASE
+                WHEN 
+                    (EXCEPT_SWAP_TOTAL_CNT > (BACK_CNT + BACK_APPROVED_CNT + BACK_COLLECT_CALL_CNT + BACK_COLLECT_END_CNT + BACK_END_CNT) 
+                    AND (BACK_CNT + BACK_APPROVED_CNT + BACK_COLLECT_CALL_CNT + BACK_COLLECT_END_CNT + BACK_END_CNT) > 0)
+                THEN 'Y'
+                ELSE 'N'
+              END PARTIAL_BACK_ING_YN /* 부분 반품프로세스 진행중 여부 */
+            , DECODE(TOTAL_CNT, CANCEL_CNT, 'Y', 'N') AS WHOLE_CANCEL_END_POSSIBLE_YN /* 전체 취소완료 가능 여부 */           
+            , DECODE(TOTAL_CNT, (PAY_CNT+CANCEL_END_CNT), 'Y', 'N') AS ORDER_CONFIRM_POSSIBLE_YN /* 주문확정 가능 여부 */                
+            , DECODE(TOTAL_CNT,     SEND_READY_CNT, 'Y', 'N') AS ORDER_CRM_CANCEL_PLE_YN /* ORDER_CONFIRM_CANCEL_POSSIBLE_YN 확정취소 가능 여부 */     
+            , DECODE(TOTAL_CNT, (CANCEL_CNT + CANCEL_END_CNT), 'N', 'Y') AS FT_EACH_CANCEL_POSSIBLE_YN /* FRONT_WHOLE_CANCEL_POSSIBLE_YN FRONT 부분주문취소 가능 여부 */    
+        FROM
+        (
+            SELECT 
+                COUNT(0) as TOTAL_CNT,
+                SUM(DECODE(ORD_PRD_VDR_IDX,#{ADM_MST_SUB_IDX},1,0))  SCM_TOT_CNT, /* SCM인 경우 본인 업체 상품 개수. SCM 에서만 사용 */
+                SUM(DECODE(ORD_PRD_VDR_IDX,-1,0,1)) AS VDR_PRD_CNT, /* 입점업체 상품 개수 */
+                SUM(DECODE(ORD_PRD_ORD_STATE,#{OST_SWAP_END}, 0, #{OST_SWAP_READY}, 0, #{OST_SWAP_READY_CANCEL}, 0, 1)) AS EXCEPT_SWAP_TOTAL_CNT,
+                SUM(DECODE(ORD_PRD_ORD_STATE,#{OST_PAY_READY}  ,1,0))  PAY_READY_CNT,
+                SUM(DECODE(ORD_PRD_ORD_STATE,#{OST_PAY}        ,1,0))  PAY_CNT,
+                SUM(DECODE(ORD_PRD_ORD_STATE,#{OST_CANCEL_BEFORE_DEPOSIT} ,1,0))  CANCEL_BEFORE_DEPOSIT_CNT,
+                SUM(DECODE(ORD_PRD_ORD_STATE,#{OST_CANCEL}     ,1,0))  CANCEL_CNT,
+                SUM(DECODE(ORD_PRD_ORD_STATE,#{OST_CANCEL_END} ,1,0))  CANCEL_END_CNT,
+                SUM(DECODE(ORD_PRD_ORD_STATE,#{OST_SEND_READY} ,1,0))  SEND_READY_CNT,
+                SUM(DECODE(ORD_PRD_ORD_STATE,#{OST_SEND}       ,1,0))  SEND_CNT,
+                SUM(DECODE(ORD_PRD_ORD_STATE,#{OST_SEND_END}   ,1,0))  SEND_END_CNT,
+                SUM(DECODE(ORD_PRD_ORD_STATE,#{OST_SWAP}       ,1,0))  SWAP_CNT,
+                SUM(DECODE(ORD_PRD_ORD_STATE,#{OST_SWAP_READY} ,1,0))  SWAP_READY_CNT,
+                SUM(DECODE(ORD_PRD_ORD_STATE,#{OST_SWAP_READY_CANCEL} ,1,0))  SWAP_READY_CANCEL_CNT,
+                SUM(DECODE(ORD_PRD_ORD_STATE,#{OST_SWAP_END}   ,1,0))  SWAP_END_CNT,
+                SUM(DECODE(ORD_PRD_ORD_STATE,#{OST_SWAP_CANCEL},1,0))  SWAP_CANCEL_CNT,
+                SUM(DECODE(ORD_PRD_ORD_STATE,#{OST_SWAP_COLLECT_CALL} ,1,0))  SWAP_COLLECT_CALL_CNT,
+                SUM(DECODE(ORD_PRD_ORD_STATE,#{OST_SWAP_COLLECT_END} ,1,0))  SWAP_COLLECT_END_CNT,
+                SUM(DECODE(ORD_PRD_ORD_STATE,#{OST_SWAP_TARGET_COLLECT_END} ,1,0))  SWAP_TARGET_COLLECT_END_CNT,
+                SUM(DECODE(ORD_PRD_ORD_STATE,#{OST_BACK}       ,1,0))  BACK_CNT,
+                SUM(DECODE(ORD_PRD_ORD_STATE,#{OST_BACK_APPROVED}       ,1,0))  BACK_APPROVED_CNT,
+                SUM(DECODE(ORD_PRD_ORD_STATE,#{OST_BACK_END}   ,1,0))  BACK_END_CNT,
+                SUM(DECODE(ORD_PRD_ORD_STATE,#{OST_BACK_COLLECT_CALL} ,1,0))  BACK_COLLECT_CALL_CNT,
+                SUM(DECODE(ORD_PRD_ORD_STATE,#{OST_BACK_COLLECT_END} ,1,0))  BACK_COLLECT_END_CNT,
+                SUM(DECODE(ORD_PRD_ORD_STATE,#{OST_FIX} ,1,0))  FIX_CNT,
+                SUM(DECODE(ORD_PRD_ORD_STATE,#{OST_REFUND} ,1,0))  REFUND_CNT,
+                SUM(DECODE(ORD_PRD_ORD_STATE,#{OST_REFUND_END} ,1,0))  REFUND_END_CNT,
+                MAX(DECODE(ORD_MST_PAY_PRC, 0,'N','Y')) AS PG_PAY_YN
+            FROM 
+                T_ORD_MST OM, T_ORD_PRD OP
+            WHERE 
+                ORD_MST_CD=#{ORD_MST_CD}
+            AND ORD_MST_CD=ORD_ORD_MST_CD
+            <if test="ADM_MST_SUB_IDX != null and ADM_MST_SUB_IDX != '' and ADM_MST_SUB_IDX != '-1'">
+                AND OP.ORD_PRD_VDR_IDX = #{ADM_MST_SUB_IDX} /* 입점업체 주문 조회시 */
+            </if>
+        ) S1
+    </select>
+    
+    <!-- 전체주문 > 상세 > 주문상태 -->
+    <select id="selectOrderStateList" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+        /* Order.selectOrderStateList */
+        SELECT 
+        	OP.ORD_ORD_MST_CD AS ORD_MST_CD <!-- ERP연동을 위해 추가 -->
+            , OP.ORD_PRD_MST_CD
+            , OP.ORD_PRD_IDX
+            , OP.ORD_PRD_OPT_DTL_IDX            
+            , OP.ORD_PRD_ORD_STATE
+            , (SELECT 
+                    CASE /* 겟잇나우 배송은 주문상태를 다르게 보여줘야 한다. */
+                        WHEN OM.ORD_MST_DLV_GBN = 2097 AND CMN_COM_ETC2 IS NOT NULL THEN CMN_COM_ETC2
+                        ELSE CMN_COM_NM    
+                    END
+                FROM T_CMM_COM WHERE CMN_COM_IDX = OP.ORD_PRD_ORD_STATE) as ORD_PRD_ORD_STATE_NM
+            , PM.PRD_MST_NM
+            , OP.ORD_PRD_ORD_CNT
+            , OP.ORD_ORD_EDI_ORD_NO
+            , ORD_PRD_IVC_NO
+            , OP.ORD_PRD_ORG_IDX
+            , OP.ORD_PRD_DLV_TYPE
+            , OP.ORD_PRD_SAL_PRC
+            , OP.ORD_PRD_ORD_PRC
+            , (SELECT OPT_DTL_IDX FROM T_OPT_DTL WHERE OPT_DTL_IDX = (SELECT ORD_PRD_OPT_DTL_IDX FROM T_ORD_PRD WHERE ORD_PRD_IDX = OP.ORD_PRD_ORG_IDX)) AS ORG_PRD_OPT_DTL_IDX
+            , OP.ORD_PRD_SEQ /* 주문 일련번호 */
+            , (SELECT ORD_PRD_SEQ FROM T_ORD_PRD WHERE ORD_PRD_IDX = OP.ORD_PRD_ORG_IDX) as UP_ORD_PRD_SEQ /* 교환상품 원상품 주문 일련번호 */
+            , OP.ORD_PRD_SYS_SGS
+            , OM.ORD_MST_PRE_CD
+            , OP.ORD_PRD_DC_PIT
+            , OP.ORD_PRD_DC_CPN
+            , OP.ORD_PRD_DLV_CAG
+        FROM 
+            T_ORD_PRD OP, T_ORD_MST OM, T_PRD_MST PM, T_OPT_DTL DTL
+        WHERE 
+            OP.ORD_ORD_MST_CD=#{ORD_MST_CD}
+        <!--2020.06.15 입점사 상품만 취소할 수 있도록 조건절 추가  -->    
+        <if test="ADM_MST_SUB_IDX != null and ADM_MST_SUB_IDX != '' and ADM_MST_SUB_IDX != '-1'">
+            AND OP.ORD_PRD_VDR_IDX = TRIM(#{ADM_MST_SUB_IDX}) /* 입점업체 주문 조회시 */
+        </if>    
+        AND OP.ORD_ORD_MST_CD = OM.ORD_MST_CD
+        AND OP.ORD_PRD_MST_CD=PM.PRD_MST_CD
+        AND OP.ORD_PRD_OPT_DTL_IDX=DTL.OPT_DTL_IDX(+)
+        <choose>
+            <when test="ordPrdIdxs != null and ordPrdIdxs.length > 0">
+                AND OP.ORD_PRD_IDX IN <foreach collection="ordPrdIdxs" item="ordPrdIdx" open="(" close=")" separator=",">#{ordPrdIdx}</foreach>
+            </when>
+            <otherwise>
+	            <if test="ORD_PRD_IDX != null and ORD_PRD_IDX != ''">
+	                AND OP.ORD_PRD_IDX = #{ORD_PRD_IDX}
+	            </if>
+            </otherwise>
+        </choose>
+        ORDER BY
+            ORD_ORD_EDI_ORD_NO
+    </select>
+    
+        <!-- 주문API -->
+    <select id="selectOrderPrdList" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+        /* Order.selectOrderPrdList */
+        SELECT 
+        	SUBSTR(OM.ORD_MST_PAY_DT,1,8) AS ORD_MST_PAY_DATE
+        	, SUBSTR(OM.ORD_MST_ORD_DT,1,8) AS ORD_MST_ORD_DATE
+        	, OM.ORD_MST_CD
+        	, PM.PRD_MST_CD
+        	, PM.PRD_MST_YEAR
+        	, PM.PRD_MST_O2O_YN
+        	, OP.ORD_PRD_COLOR
+        	, OP.ORD_PRD_SIZE
+        	, (SELECT CC.CMN_COM_NM FROM T_CMM_COM CC WHERE OP.ORD_PRD_COLOR = CC.CMN_COM_IDX) AS ORD_PRD_COLOR_NM
+        	, (SELECT CC.CMN_COM_NM FROM T_CMM_COM CC WHERE OP.ORD_PRD_SIZE = CC.CMN_COM_IDX) AS ORD_PRD_SIZE_NM
+        	, OM.ORD_MST_ORD_ID
+            , OP.ORD_PRD_MST_CD
+            , OP.ORD_PRD_IDX
+            , OP.ORD_PRD_OPT_DTL_IDX            
+            , OP.ORD_PRD_ORD_STATE
+            , (SELECT 
+                    CASE /* 겟잇나우 배송은 주문상태를 다르게 보여줘야 한다. */
+                        WHEN OM.ORD_MST_DLV_GBN = 2097 AND CMN_COM_ETC2 IS NOT NULL THEN CMN_COM_ETC2
+                        ELSE CMN_COM_NM    
+                    END
+                FROM T_CMM_COM WHERE CMN_COM_IDX = OP.ORD_PRD_ORD_STATE) as ORD_PRD_ORD_STATE_NM
+            , PM.PRD_MST_NM
+            , OP.ORD_PRD_ORD_CNT
+            , OP.ORD_ORD_EDI_ORD_NO
+            , ORD_PRD_IVC_NO
+            , OP.ORD_PRD_ORG_IDX
+            , OP.ORD_PRD_DLV_TYPE
+            , OP.ORD_PRD_SAL_PRC
+            , OP.ORD_PRD_ORD_PRC
+            , (SELECT OPT_DTL_IDX FROM T_OPT_DTL WHERE OPT_DTL_IDX = (SELECT ORD_PRD_OPT_DTL_IDX FROM T_ORD_PRD WHERE ORD_PRD_IDX = OP.ORD_PRD_ORG_IDX)) AS ORG_PRD_OPT_DTL_IDX
+            , OP.ORD_PRD_SEQ /* 주문 일련번호 */
+            , (SELECT ORD_PRD_SEQ FROM T_ORD_PRD WHERE ORD_PRD_IDX = OP.ORD_PRD_ORG_IDX) as UP_ORD_PRD_SEQ /* 교환상품 원상품 주문 일련번호 */
+            , OP.ORD_PRD_SYS_SGS
+            , OM.ORD_MST_PRE_CD
+            , OP.ORD_PRD_DC_PIT
+            , OP.ORD_PRD_DC_CPN
+            , OP.ORD_PRD_DLV_CAG
+            , OP.ORD_PRD_VDR_IDX
+            , (SELECT VDR_MST_NM FROM T_VDR_MST WHERE VDR_MST_IDX = OP.ORD_PRD_VDR_IDX) as VDR_MST_NM
+            , OM.ORD_MST_ORD_ID 
+            , (SELECT CMN_COM_NM FROM T_CMM_COM WHERE CMN_COM_IDX = MV.MEM_MST_MEM_GBN) AS MEM_MST_MEM_GBN_NM
+        FROM 
+            T_ORD_PRD OP, T_ORD_MST OM, T_PRD_MST PM, T_MEM_VIEW MV
+        WHERE 
+            OP.ORD_ORD_MST_CD = OM.ORD_MST_CD
+        AND OP.ORD_PRD_MST_CD=PM.PRD_MST_CD
+        AND OM.ORD_MST_ORD_ID=MV.MEM_MST_MEM_ID(+)
+        AND OM.ORD_MST_CD = #{ORD_MST_CD}
+        
+        <choose>
+            <when test="ORD_PRD_IDX != null and ORD_PRD_IDX != ''">
+                AND OP.ORD_PRD_IDX = #{ORD_PRD_IDX}
+            </when>
+            <otherwise>
+                <if test="ordPrdIdxs != null and ordPrdIdxs.length > 0">
+                    AND OP.ORD_PRD_IDX IN <foreach collection="ordPrdIdxs" item="ordPrdIdx" open="(" close=")" separator=",">#{ordPrdIdx}</foreach>
+                </if>
+            </otherwise>
+        </choose>
+        ORDER BY
+            OP.ORD_PRD_IDX,OP.ORD_PRD_SEQ
+    </select>
+    
+    <update id="updateCouponUse" parameterType="java.util.HashMap">
+        /* Order.updateCouponUse */
+        UPDATE T_CPN_MEM 
+        SET CPN_MEM_USE_YN = 'Y'
+        	, CPN_MEM_USE_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS')
+        	WHERE CPN_MEM_IDX = #{useCoupon}
+    </update>
+        
+    <!-- 전체주문 > 상세 > 주문상태 변경 > 상태변경 -->
+    <update id="updateOrderState" parameterType="java.util.HashMap">
+        /* Order.updateOrderState */
+        UPDATE  T_ORD_PRD  SET 
+            ORD_PRD_ORD_STATE = #{ORD_PRD_ORD_STATE}
+            <if test="ORD_PRD_DLV_TYPE != null and ORD_PRD_DLV_TYPE != ''">
+                <choose>
+                    <when test="ORD_PRD_DLV_TYPE.equals('-1'.toString())">
+                        , ORD_PRD_DLV_TYPE = '' /* 배송구분 리셋*/
+                    </when>
+                    <otherwise>
+                        , ORD_PRD_DLV_TYPE = #{ORD_PRD_DLV_TYPE} /* 배송구분 */
+                    </otherwise>
+                </choose>
+            </if>
+            <if test="ORD_PRD_ERP_DLV_CD != null and ORD_PRD_ERP_DLV_CD != ''">
+                <choose>
+                    <when test="ORD_PRD_ERP_DLV_CD.equals('-1'.toString())">
+                        , ORD_PRD_ERP_DLV_CD = '' /* 배송처 리셋*/
+                    </when>
+                    <otherwise>
+                        , ORD_PRD_ERP_DLV_CD = #{ORD_PRD_ERP_DLV_CD} /* 배송처 */
+                    </otherwise>
+                </choose>
+            </if>
+            <if test="ORD_PRD_SYS_SGS != null and ORD_PRD_SYS_SGS != ''">
+                <choose>
+                    <when test="ORD_PRD_SYS_SGS.equals('-1'.toString())">
+                        , ORD_PRD_SYS_SGS = '' /* SYS/SGS 택배구분 리셋 */
+                    </when>
+                    <otherwise>
+                        , ORD_PRD_SYS_SGS = #{ORD_PRD_SYS_SGS} /* SYS/SGS 택배구분 */
+                    </otherwise>
+                </choose>
+            </if>
+            <if test="ORD_PRD_DLV_DUE_DT != null and ORD_PRD_DLV_DUE_DT != ''">
+                , ORD_PRD_DLV_DUE_DT = #{ORD_PRD_DLV_DUE_DT} /* 배송예정일 */
+            </if>
+            <if test="DLV_PAY_WAY != null and DLV_PAY_WAY != ''">
+                , DLV_PAY_WAY = #{DLV_PAY_WAY} /* 반품(교환)수거방법 */
+            </if>
+            <if test="DLV_PAY_WAY_MEMO != null and DLV_PAY_WAY_MEMO != ''">
+                , DLV_PAY_WAY_MEMO = #{DLV_PAY_WAY_MEMO} 
+            </if>
+            <if test="ORD_PRD_DLV_ADD_CAG_GBN != null and ORD_PRD_DLV_ADD_CAG_GBN != ''">
+                , ORD_PRD_DLV_ADD_CAG_GBN = #{ORD_PRD_DLV_ADD_CAG_GBN} 
+            </if>
+            <if test="SELECT_REASON != null and SELECT_REASON != ''">
+                , ORD_PRD_CHANGE_REASON = #{SELECT_REASON} 
+            </if>
+            <if test="ORD_PRD_CHANGE_REASON_DSC != null and ORD_PRD_CHANGE_REASON_DSC != ''">
+                , ORD_PRD_CHANGE_REASON_DSC = #{ORD_PRD_CHANGE_REASON_DSC} 
+            </if>
+            <if test="SHP_MST_ERP_CD != null and SHP_MST_ERP_CD != ''">
+                , SHP_MST_ERP_CD = #{SHP_MST_ERP_CD} 
+            </if>
+        WHERE 
+            ORD_ORD_MST_CD=#{ORD_MST_CD}
+            <!-- AND ORD_PRD_IDX=#{ORD_PRD_IDX} -->
+            <!-- 2020.06.12 전체 / 부분 구분추가  -->
+            <if test="ORD_PRD_IDX != null and ORD_PRD_IDX != ''">
+                    AND ORD_PRD_IDX = #{ORD_PRD_IDX}
+            </if>
+            <if test="ADM_MST_SUB_IDX != null and ADM_MST_SUB_IDX != ''">
+	            AND ORD_PRD_VDR_IDX = TRIM(#{ADM_MST_SUB_IDX}) /* 입점업체 주문 조회시 */
+	        </if>
+	        <!-- END 2020.06.12 전체 / 부분 구분추가  -->
+            <if test="OST_EACH_CANCEL != null and OST_EACH_CANCEL != ''">
+            	AND ORD_PRD_ORD_STATE <![CDATA[<>]]> #{OST_EACH_CANCEL}
+            </if>
+    </update>
+    
+    <!-- 전체주문 > 상세 > 주문상태 변경 > 주문상태변경내역 등록 -->
+    <insert id="insertOrderHistory" parameterType="java.util.HashMap">
+        /* Order.insertOrderHistory */
+        INSERT INTO T_ORD_PRD_HIS (
+            ORD_PRD_HIS_IDX, 
+            ORD_ORD_MST_CD, ORD_PRD_MST_CD, ORD_ORD_PRD_IDX, 
+            ORD_PRD_ORD_STATE, ORD_CMN_COM_IDX, ORD_PRD_DSC, 
+            ORD_PRD_REG_DT, ORD_PRD_REG_TYPE, ORD_PRD_REG_ID, ORD_PRD_REG_IP
+            , ORD_PRD_IVC_NO, ORD_PRD_SIZE            
+        ) SELECT
+            SEQ_ORD_PRD_HIS_IDX.NEXTVAL, 
+            ORD_ORD_MST_CD, ORD_PRD_MST_CD, ORD_PRD_IDX, 
+            ORD_PRD_ORD_STATE, #{SELECT_REASON}, #{ORD_PRD_DSC}, 
+            TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'), #{ORD_PRD_REG_TYPE}, #{REG_ID}, #{REG_IP}
+            , #{ORD_PRD_IVC_NO}, #{ORD_PRD_SIZE}
+        FROM 
+            T_ORD_PRD
+        WHERE 
+            ORD_ORD_MST_CD=#{ORD_MST_CD}
+        <!-- AND ORD_PRD_IDX=#{ORD_PRD_IDX} -->
+        <!-- 2020.06.12 전체 / 부분 구분추가  -->
+        <if test="ORD_PRD_IDX != null and ORD_PRD_IDX != ''">
+            AND ORD_PRD_IDX = #{ORD_PRD_IDX}
+        </if>
+        <if test="ADM_MST_SUB_IDX != null and ADM_MST_SUB_IDX != ''">
+            AND ORD_PRD_VDR_IDX = TRIM(#{ADM_MST_SUB_IDX}) /* 입점업체 주문 조회시 */
+        </if>
+        <!-- END 2020.06.12 전체 / 부분 구분추가  -->	
+    </insert>
+    
+    
+    <!-- 사용자 > 마이페이지 > 교환/반품신청 > 무료교환/반품 쿠폰 목록 -->
+    <select id="selectChangeCouponList" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+        /* Order.selectChangeCouponList */
+        SELECT * FROM(
+	    	SELECT CMT.CPN_MST_IDX, CMT.CPN_MST_TITLE, CMM.CPN_MEM_IDX
+				, CASE CMT.CPN_MST_ISU_DAY_GBN 
+					WHEN 'A' THEN
+						TO_DATE(CMT.CPN_MST_USE_ST_DT,'YYYYMMDDHH24MISS') 
+					ELSE
+						TO_DATE(CMM.CPN_MEM_ISU_DT,'YYYYMMDDHH24MISS')
+				END AS CPN_MST_USE_ST_DT
+				, CASE CMT.CPN_MST_ISU_DAY_GBN 
+					WHEN 'A' THEN
+						TO_DATE(CMT.CPN_MST_USE_ED_DT,'YYYYMMDDHH24MISS') + 1
+					WHEN 'B' THEN
+						TO_DATE(CMM.CPN_MEM_ISU_DT,'YYYYMMDDHH24MISS') + CMT.CPN_MST_USE_DAY + 1 
+					ELSE 
+						LAST_DAY(TO_DATE(CMM.CPN_MEM_ISU_DT,'YYYYMMDDHH24MISS')) + 1
+				END AS CPN_MST_USE_ED_DT
+				, NVL(CMT.CPN_MST_USE_DAY,0) CPN_MST_USE_DAY
+			FROM T_CPN_MST CMT, T_CPN_MEM CMM
+			WHERE CMT.CPN_MST_DLV_GBN = #{CPN_MST_DLV_GBN}
+		 		AND CMT.CPN_MST_GBN = 'F'
+		 		AND CMT.CPN_MST_IDX = CMM.CPN_MST_IDX
+		 		AND CMM.CPN_MEM_USE_YN = 'N'
+		 		AND CMM.CPN_MEM_ID = #{MEM_MST_MEM_ID}
+		 		AND (CMT.CPN_MST_MEM_GRD IS NULL 			/* 쿠폰 사용 가능 등급 확인(전체) */
+		 			OR CMT.CPN_MST_MEM_GRD = (				/* 쿠폰 사용 가능 등급 확인(특정 등급) */
+		 				SELECT MEM_MST_MEM_GRD 
+		 				FROM T_MEM_MST 
+		 				WHERE MEM_MST_MEM_ID = #{MEM_MST_MEM_ID}
+		 			)
+		 		)
+		 	)
+		 WHERE SYSDATE BETWEEN CPN_MST_USE_ST_DT AND CPN_MST_USE_ED_DT
+	</select> 
+	   
+    <!-- 관리자 > 회원조회 > 회원현황 > 주문내역 > 주문총건수 -->
+    <select id="selectOrderTotalCnt" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+        /* Order.selectOrderTotalCnt */
+        SELECT
+            SUM(CASE WHEN TOTAL_CNT = ORDER_CNT THEN ORDER_CNT ELSE 0 END) AS ORD_ORDER_CNT,
+            SUM(CASE WHEN TOTAL_CNT = ORDER_CNT THEN ORD_MST_PAY_PRC ELSE 0 END) AS ORD_PAYMENT_PRICE,
+            SUM(CASE WHEN TOTAL_CNT = CANCEL_END_CNT THEN 1 ELSE 0 END) AS ORD_CANCEL_CNT,
+            SUM(CASE WHEN TOTAL_CNT = (BACK_END_CNT) THEN 1 ELSE 0 END) AS ORD_BACK_CNT,
+            SUM(SWAP_END_CNT) AS ORD_SWAP_END_CNT
+        FROM (
+            SELECT 
+                ORD_MST_CD, ORD_MST_PAY_PRC,
+                SUM(CASE WHEN ORD_PRD_ORD_STATE IN(#{OST_SWAP_READY},#{OST_SWAP_READY_CANCEL},#{OST_SWAP_ORDER},#{OST_SWAP_END}) THEN 0 ELSE 1 END) TOTAL_CNT,
+                SUM(DECODE(ORD_PRD_ORD_STATE,#{OST_SEND_END} ,ORD_PRD_ORD_CNT,0))  ORDER_CNT,
+                SUM(DECODE(ORD_PRD_ORD_STATE,#{OST_CANCEL_END},1,0))  CANCEL_END_CNT,
+                SUM(DECODE(ORD_PRD_ORD_STATE,#{OST_BACK_END}  ,1,0))  BACK_END_CNT,
+                SUM(DECODE(ORD_PRD_ORD_STATE,#{OST_SWAP_END}  ,1,0))  SWAP_END_CNT
+            FROM 
+                T_ORD_MST OM, T_ORD_PRD OP 
+            WHERE 
+                ORD_MST_ORD_ID=#{ORD_MST_ORD_ID}
+            AND ORD_MST_CD = ORD_ORD_MST_CD
+            GROUP BY
+                ORD_MST_CD, ORD_MST_PAY_PRC
+        )
+    </select>
+    
+    <sql id="cornerWhere">
+        <if test="searchAreaCd != null and searchAreaCd != ''">
+            AND AREA_CD = #{searchAreaCd}
+        </if>
+        
+        <choose>
+            <when test="searchWord != null and searchWord != '' and searchType.equals('CORNER_CD'.toString())">
+                AND CORNER_CD LIKE '%' || #{searchWord} || '%'
+            </when>
+            <when test="searchWord != null and searchWord != '' and searchType.equals('CORNER_NM'.toString())">
+                AND CORNER_CD LIKE '%' || #{searchWord} || '%'
+            </when>
+            <when test="searchWord != null and searchWord != '' and searchType.equals('CORNER_TEL'.toString())">
+                AND CORNER_CD LIKE '%' || #{searchWord} || '%'
+            </when>
+        </choose>
+        
+        <if test="searchTradeType != null and searchTradeType != ''">
+            AND TRADE_TYPE_NM LIKE '%'||#{searchTradeType}||'%'
+        </if>
+    </sql>
+    
+    <!-- 교환접수 상품 정보 -->
+    <select id="selectChangeOrderProductInfo" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+        /* Order.selectChangeOrderProductInfo */
+        SELECT 
+            OP.ORD_ORD_MST_CD
+            , ORD_PRD_IDX
+            , ORD_PRD_MST_CD
+            , PRD_MST_NM
+            , PRD_MST_TYPE
+            , PRD_OPT_IDX
+            , ORD_PRD_SAL_PRC
+            , ORD_PRD_ORD_CNT
+            , ORD_PRD_ORD_PRC
+            , ORD_PRD_ORD_STATE
+            , ORD_PRD_IVC_NO
+            , ORD_PRD_OPT_DTL_IDX
+            , DTL.OPT_DTL_NM
+            , DTL.OPT_DTL_IDX
+            , OP.ORD_PRD_ORG_IDX
+            , FN_PRODUCT_THUM_IMG(ORD_PRD_MST_CD) AS PRODUCT_THUM_IMG
+            , OP.ORD_PRD_SIZE
+            ,
+            (SELECT OPT_DTL_IDX FROM T_OPT_DTL WHERE OPT_DTL_IDX = (SELECT ORD_PRD_OPT_DTL_IDX FROM T_ORD_PRD WHERE ORD_PRD_IDX = OP.ORD_PRD_ORG_IDX)) AS ORG_PRD_OPT_DTL_IDX
+            , 
+            (SELECT ORD_PRD_MST_CD FROM T_ORD_PRD WHERE ORD_PRD_IDX = OP.ORD_PRD_ORG_IDX) AS ORG_ORD_PRD_MST_CD
+            ,
+            (SELECT MIN(ORD_PRD_REG_DT) FROM T_ORD_PRD_HIS WHERE ORD_ORD_PRD_IDX = OP.ORD_PRD_IDX AND ORD_PRD_ORD_STATE = #{OST_SWAP}) AS CHANGE_ORDER_SUBMIT_DT
+            ,
+            (SELECT DECODE(MAX(ORD_PRD_IDX),OP.ORD_PRD_IDX,'Y','N') FROM T_ORD_PRD WHERE ORD_PRD_ORG_IDX = OP.ORD_PRD_ORG_IDX) AS RECENT_CHANGE_ORDER_YN
+            ,
+            (SELECT COUNT(1) FROM T_ORD_PRD WHERE ORD_PRD_ORG_IDX = OP.ORD_PRD_IDX) AS CHANGE_ORDER_CNT
+            ,
+            (
+                SELECT MAX(ORD_PRD_ORD_STATE) KEEP(DENSE_RANK FIRST ORDER BY ORD_PRD_HIS_IDX DESC) FROM T_ORD_PRD_HIS HIS
+                WHERE HIS.ORD_ORD_PRD_IDX = OP.ORD_PRD_IDX
+            ) as RECENT_ORD_PRD_ORD_STATE
+            ,
+            (
+                SELECT MAX(ORD_CMN_COM_IDX) KEEP(DENSE_RANK FIRST ORDER BY ORD_PRD_HIS_IDX DESC) FROM T_ORD_PRD_HIS HIS
+                WHERE HIS.ORD_ORD_PRD_IDX = OP.ORD_PRD_IDX
+                AND HIS.ORD_PRD_ORD_STATE = #{OST_SWAP_READY}
+            ) as CHANGE_ORDER_REASON_IDX
+            ,
+            (
+                SELECT MAX(ORD_PRD_DSC) KEEP(DENSE_RANK FIRST ORDER BY ORD_PRD_HIS_IDX DESC) FROM T_ORD_PRD_HIS HIS
+                WHERE HIS.ORD_ORD_PRD_IDX = OP.ORD_PRD_IDX
+                AND HIS.ORD_PRD_ORD_STATE = #{OST_SWAP_READY}
+            ) as CHANGE_ORDER_REASON_DESC
+            , (SELECT COUNT(1) FROM T_ORD_PRD WHERE ORD_PRD_UP_IDX = OP.ORD_PRD_IDX) as SUB_OPTION_CNT /* 서브 옵션 개수 */
+        FROM 
+            T_ORD_PRD OP, T_PRD_MST PM, T_OPT_DTL DTL            
+        WHERE
+            OP.ORD_ORD_MST_CD=#{ORD_MST_CD}
+            <choose>
+	        	<when test="arrOrdPrdIdxs != null and arrOrdPrdIdxs.length > 0">                		         	
+                    <foreach collection="arrOrdPrdIdxs" item="ORD_PRD_IDX" open="AND ORD_PRD_IDX IN(" close=")" separator=",">
+                    	#{ORD_PRD_IDX}
+                    </foreach>                			
+	            </when>
+	            <when test="ORD_PRD_IDX != null and ORD_PRD_IDX != ''">
+	        		AND OP.ORD_PRD_IDX=#{ORD_PRD_IDX} 
+	        	</when>
+	        	<otherwise>
+	        		AND 1 = 0 /* 맵에 arrOrdPrdIdxs 또는  ORD_PRD_IDX 가 있을 때만 검색 결과 리턴 */
+	        	</otherwise> 
+            </choose>
+        	AND OP.ORD_PRD_MST_CD=PM.PRD_MST_CD
+        	AND OP.ORD_PRD_OPT_DTL_IDX=DTL.OPT_DTL_IDX(+)
+    </select>
+  
+     <!-- 상품 크기 -->
+    <select id="selectSizeList" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+        /* Order.selectSizeList */   
+	    SELECT tcc.CMN_COM_IDX ,tcc.CMN_COM_NM 
+		FROM T_PRD_MST tpm, T_PRD_CMM_OPT tpco, T_CMM_COM tcc, T_ORD_PRD top 
+		WHERE tpm.PRD_MST_CD = tpco.PRD_MST_CD 
+		 AND tpco.CMM_OPT_NM = tcc.CMN_COM_IDX 
+		 AND tpco.PRD_CMM_TYPE = 'S'
+		 AND tpm.PRD_MST_CD = top.ORD_PRD_MST_CD 
+		 AND top.ORD_PRD_IDX = #{ORD_PRD_IDX}
+	</select>
+	 
+    <!-- 교환접수 기존상품 옵션(사이즈) 목록 -->
+    <select id="selectChangeOrderProductOptList" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+        /* Order.selectChangeOrderProductOptList */
+        SELECT
+            PRD_OPT_IDX
+            , PRD_OPT_ERP_PROD_CD
+            , PRD_OPT_COLR_CD
+            , PRD_OPT_COLR_NM
+            , PRD_OPT_SIZE_CD
+            , PRD_OPT_SIZE_NM
+        FROM T_PRD_OPT
+        WHERE
+            PRD_PRD_MST_CD = (SELECT ORD_PRD_MST_CD FROM T_ORD_PRD WHERE ORD_PRD_IDX = #{ORD_PRD_IDX})
+        ORDER BY PRD_OPT_IDX    
+    </select>
+    
+    <!-- 교환접수 등록-->
+    <insert id="insertChangeOrderProduct" parameterType="HashMap">
+        <selectKey resultType="int" keyProperty="NEW_ORD_PRD_IDX" order="BEFORE">
+            SELECT SEQ_ORD_PRD_SEQ_IDX.NEXTVAL AS ORD_PRD_IDX FROM DUAL
+        </selectKey>
+        /* Order.insertChangeOrderProduct */
+        /* 원 주문상품과 동일 데이터 insert */
+        INSERT INTO T_ORD_PRD(
+            ORD_PRD_IDX
+            ,ORD_PRD_COLOR
+            ,ORD_PRD_SIZE
+            ,ORD_ORD_MST_CD
+            ,ORD_PRD_MST_CD
+            ,ORD_PRD_OPT_DTL_IDX
+            ,ORD_PRD_ORD_CNT
+            ,ORD_PRD_ORD_STATE
+            ,ORD_PRD_IVC_NO
+            ,ORD_PRD_SAL_PRC
+            ,ORD_PRD_ORD_PRC
+            ,ORD_DLV_CPN_IDX
+            ,ORD_ORD_EDI_ORD_NO
+            ,ORD_PRD_ORG_IDX
+            ,ORD_PRD_PRD_PRC
+            ,ORD_PRD_VDR_IDX
+            ,ORD_PRD_DLV_BND_YN 
+            ,ORD_PRD_SLT_YN
+            ,ORD_PRD_DLV_CAG
+            ,ORD_PRD_DLV_BND_CAG
+            ,ORD_PRD_IST_CPN_PRC
+            ,ORD_PRD_IST_CPN_UNT
+            ,ORD_PRD_OPT_ADD_PRC
+            ,ORD_PRD_UP_IDX
+            ,ORD_PRD_BUY_PRC
+            ,ORD_PRD_SEQ
+            ,ORD_PRD_DLV_DUE_DT
+            ,ORD_PRD_DLV_TYPE
+            ,ORD_PKU_DLV_CPN_IDX
+            ,ORD_PRD_PKU_IVC_NO
+            ,ORD_PRD_DLV_ADD_CAG
+        )
+        SELECT
+            #{NEW_ORD_PRD_IDX} 
+            , ORD_PRD_COLOR
+            , #{ORD_PRD_SIZE}
+            , ORD_ORD_MST_CD
+            , ORD_PRD_MST_CD
+            , ORD_PRD_OPT_DTL_IDX
+            , ORD_PRD_ORD_CNT
+            , #{ORD_PRD_ORD_STATE}
+            , '' AS ORD_PRD_IVC_NO
+            , ORD_PRD_SAL_PRC
+            , ORD_PRD_ORD_PRC
+            , '' AS ORD_DLV_CPN_IDX
+            ,
+            SUBSTR(ORD_ORD_EDI_ORD_NO,0,18) ||
+            LPAD((
+                SELECT COUNT(1) FROM T_ORD_PRD 
+                WHERE T1.ORD_ORD_MST_CD = ORD_ORD_MST_CD
+                AND SUBSTR(T1.ORD_ORD_EDI_ORD_NO,0,18) = SUBSTR(ORD_ORD_EDI_ORD_NO,0,18)
+            ),2,0)          
+            AS ORD_ORD_EDI_ORD_NO
+            , #{ORD_PRD_ORG_IDX} AS ORD_PRD_ORG_IDX
+            ,ORD_PRD_PRD_PRC
+            ,ORD_PRD_VDR_IDX
+            ,ORD_PRD_DLV_BND_YN
+            ,ORD_PRD_SLT_YN
+            ,ORD_PRD_DLV_CAG
+            ,ORD_PRD_DLV_BND_CAG
+            ,ORD_PRD_IST_CPN_PRC
+            ,ORD_PRD_IST_CPN_UNT
+            ,ORD_PRD_OPT_ADD_PRC
+            ,ORD_PRD_UP_IDX
+            ,ORD_PRD_BUY_PRC
+            ,(SELECT 
+                MAX(NVL(ORD_PRD_SEQ,0)) + 1 
+              FROM T_ORD_MST TOM, T_ORD_PRD TOP
+              WHERE TOM.ORD_MST_CD = TOP.ORD_ORD_MST_CD
+              AND TOP.ORD_ORD_MST_CD = T1.ORD_ORD_MST_CD
+            ) AS ORD_PRD_SEQ    
+            ,ORD_PRD_DLV_DUE_DT
+            <choose>
+                <when test="isPartnerDlv != null and isPartnerDlv.equals('Y'.toString())">
+                    , #{DLV_TYPE_PARTNER}
+                </when>
+                <otherwise>
+                    , ''
+                </otherwise>
+            </choose>
+            
+            <choose>
+                <when test="changeProduct != null and (changeProduct.equals('B'.toString()) or changeProduct.equals('C'.toString()) )">
+            , #{ORD_PKU_DLV_CPN_IDX}
+            , #{ORD_PRD_PKU_IVC_NO}
+                </when>
+                <otherwise>
+                    , ''
+                    , ''
+                </otherwise>
+            </choose>
+            , #{ORD_PRD_DLV_ADD_CAG}
+        FROM T_ORD_PRD T1
+        WHERE 
+            ORD_PRD_IDX = #{ORD_PRD_ORG_IDX}
+    </insert>
+    
+    <!--교환상품 배송예약번호 가져오기 -->
+    <select id="selectPrdEdiOrdNo" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+        /* Order.selectPrdEdiOrdNo */
+        SELECT 
+            ORD_ORD_EDI_ORD_NO AS ORD_EDI_ORD_NO
+        FROM T_ORD_PRD
+        WHERE ORD_PRD_IDX = #{ORD_PRD_IDX}
+    </select>
+    
+    <!-- 관리자 > 주문관리 > 주문상세 > 상담내용 > 목록개수 -->
+    <select id="selectOrderCstCount" parameterType="java.util.HashMap" resultType="Integer">
+        /* Order.selectOrderCstCount */
+        SELECT COUNT(0)
+        FROM T_ORD_CST
+        WHERE ORD_CST_ORD_MST_CD = #{ORD_MST_CD}
+    </select>
+
+    <!-- 관리자 > 주문관리 > 주문상세 > 상담내용 > 목록 -->
+    <resultMap type="java.util.HashMap" id="resultCst">
+        <result column="ORD_CST_IDX" property="ORD_CST_IDX"/>
+        <result column="ORD_CST_ORD_MST_CD" property="ORD_CST_ORD_MST_CD"/>
+        <result column="ORD_CST_REG_DT" property="ORD_CST_REG_DT"/>
+        <result column="ORD_CST_REG_ID" property="ORD_CST_REG_ID"/>        
+        <result column="ORD_CST_REG_IP" property="ORD_CST_REG_IP"/>
+        <result column="ORD_CST_REG_NAME" property="ORD_CST_REG_NAME"/>        
+        <result column="ORD_CST_CTS" property="ORD_CST_CTS" jdbcType="CLOB" javaType="java.lang.String"/>
+        <result column="ORD_CST_GBN_IDX" property="ORD_CST_GBN_IDX"/>    
+        <result column="ORD_CS_TYPE_NM" property="ORD_CS_TYPE_NM"/>
+    </resultMap>        
+    <select id="selectOrderCstList" parameterType="java.util.HashMap" resultMap="resultCst">
+        /* Order.selectOrderCstList */
+        SELECT 
+            *
+        FROM (
+            SELECT
+                ROWNUM RNUM, A.*
+            FROM (
+                SELECT
+                    ORD_CST_IDX,
+                    ORD_CST_ORD_MST_CD,
+                    ORD_CST_REG_DT,
+                    ORD_CST_REG_ID,
+                    ORD_CST_REG_IP,
+                    ORD_CST_CTS,
+                    AM.ADM_MST_NM ORD_CST_REG_NAME,
+                    ORD_CST_GBN_IDX,
+                    (SELECT CMN_COM_NM FROM T_CMM_COM WHERE CMN_COM_IDX = OC.ORD_CST_GBN_IDX) as ORD_CS_TYPE_NM
+                FROM T_ORD_CST OC, T_ADM_MST AM
+                WHERE OC.ORD_CST_REG_ID = AM.ADM_MST_ID
+                AND OC.ORD_CST_ORD_MST_CD = #{ORD_MST_CD}
+                ORDER BY ORD_CST_REG_DT DESC
+            ) A
+        )
+        ORDER BY RNUM
+    </select>
+    
+    <!-- 관리자 > 주문관리 > 주문상세 > 상담내용 > 목록개수 -->
+    <select id="selectOtherOrderCstCount" parameterType="java.util.HashMap" resultType="Integer">
+        /* Order.selectOtherOrderCstCount */
+        SELECT COUNT(0)
+        FROM T_ORD_CST T1,
+        (SELECT 
+            ORD_MST_CD 
+         FROM T_ORD_MST 
+         WHERE ORD_MST_ORD_ID = (SELECT ORD_MST_ORD_ID FROM T_ORD_MST WHERE ORD_MST_CD = #{ORD_MST_CD})
+         AND ORD_MST_ORD_ID != '_GUEST_'
+        ) T2
+        WHERE T1.ORD_CST_ORD_MST_CD = T2.ORD_MST_CD
+        AND ORD_CST_ORD_MST_CD != #{ORD_MST_CD}
+    </select>
+
+    <!-- 관리자 > 주문관리 > 주문상세 > 상담내용 > 목록 -->
+    <resultMap type="java.util.HashMap" id="resultCst2">
+        <result column="ORD_CST_IDX" property="ORD_CST_IDX"/>
+        <result column="ORD_CST_ORD_MST_CD" property="ORD_CST_ORD_MST_CD"/>
+        <result column="ORD_CST_REG_DT" property="ORD_CST_REG_DT"/>
+        <result column="ORD_CST_REG_ID" property="ORD_CST_REG_ID"/>        
+        <result column="ORD_CST_REG_IP" property="ORD_CST_REG_IP"/>
+        <result column="ORD_CST_REG_NAME" property="ORD_CST_REG_NAME"/>        
+        <result column="ORD_CST_CTS" property="ORD_CST_CTS" jdbcType="CLOB" javaType="java.lang.String"/>
+    </resultMap>        
+    <select id="selectOtherOrderCstList" parameterType="java.util.HashMap" resultMap="resultCst2">
+        /* Order.selectOtherOrderCstList */
+        SELECT 
+            *
+        FROM (
+            SELECT
+                ROWNUM RNUM, A.*
+            FROM (
+                SELECT
+                    ORD_CST_IDX,
+                    ORD_CST_ORD_MST_CD,
+                    ORD_CST_REG_DT,
+                    ORD_CST_REG_ID,
+                    ORD_CST_REG_IP,
+                    ORD_CST_CTS,
+                    AM.ADM_MST_NM ORD_CST_REG_NAME
+                FROM T_ORD_CST OC, T_ADM_MST AM,
+                (SELECT 
+                    ORD_MST_CD 
+                 FROM T_ORD_MST 
+                 WHERE ORD_MST_ORD_ID = (SELECT ORD_MST_ORD_ID FROM T_ORD_MST WHERE ORD_MST_CD = #{ORD_MST_CD})
+                 AND ORD_MST_ORD_ID != '_GUEST_'
+                ) T2
+                WHERE OC.ORD_CST_ORD_MST_CD = T2.ORD_MST_CD
+                AND OC.ORD_CST_REG_ID = AM.ADM_MST_ID
+                AND OC.ORD_CST_ORD_MST_CD != #{ORD_MST_CD}
+                ORDER BY ORD_CST_REG_DT DESC
+            ) A
+        )
+        WHERE RNUM BETWEEN #{startNum} AND #{endNum} 
+        ORDER BY RNUM
+    </select>
+    
+    
+    <!-- 관리자 > 주문관리 > 주문상세 > 상담내용 > 저장 -->
+    <insert id="insertOrderCst" parameterType="HashMap">
+        <selectKey resultType="integer" keyProperty="ORD_CST_IDX" order="BEFORE">
+            SELECT SEQ_ORD_CST_IDX.NEXTVAL ORD_CST_IDX FROM DUAL
+        </selectKey>
+        /* Order.insertOrderCst */
+        INSERT INTO T_ORD_CST (
+            ORD_CST_IDX,
+            ORD_CST_ORD_MST_CD,
+            ORD_CST_REG_DT,
+            ORD_CST_REG_ID,
+            ORD_CST_REG_IP,
+            ORD_CST_CTS,
+            ORD_CST_GBN_IDX
+        )
+        VALUES (
+            #{ORD_CST_IDX},
+            #{ORD_MST_CD},
+            TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+            #{ORD_CST_REG_ID},
+            #{ORD_CST_REG_IP},
+            #{ORD_CST_CTS},
+            #{ORD_CST_GBN_IDX}
+        )
+    </insert>
+    
+    <!-- 환불계좌 수정 -->
+    <update id="updateRefBankAccount" parameterType="HashMap">
+        /* Order.updateRefBankAccount   */
+        UPDATE T_ORD_MST 
+        SET 
+            ORD_MST_RFD_CD = #{ORD_MST_RFD_CD} 
+            , ORD_MST_RFD_NM = (SELECT CMN_COM_NM FROM T_CMM_COM WHERE CMN_COM_UP_IDX = #{KICC_BANK_CD} AND CMN_COM_ETC1 = #{ORD_MST_RFD_CD} AND ROWNUM = 1)
+            , ORD_MST_RFD_ACT = #{ORD_MST_RFD_ACT}
+            , ORD_MST_RFD_HDR = #{ORD_MST_RFD_HDR}
+        WHERE 
+            ORD_MST_CD = #{ORD_MST_CD}
+    </update>
+    
+    <!-- 상품 마스터 테이블 재고 원복/차감-->
+     <update id="updatePrdMstStock" parameterType="HashMap">
+        /* Order.updatePrdMstStock */
+        UPDATE T_PRD_MST
+        SET PRD_MST_SEL_CNT = PRD_MST_SEL_CNT + #{ORD_PRD_ORD_CNT}
+        WHERE PRD_MST_CD = #{ORD_PRD_MST_CD}
+     </update>  
+     
+     <!-- 상품 옵션 테이블 재고 원복/차감-->
+     <update id="updatePrdOptStock" parameterType="HashMap">
+        /* Order.updatePrdOptStock */
+        UPDATE T_OPT_DTL
+        SET OPT_DTL_STK_CNT = OPT_DTL_STK_CNT + #{ORD_PRD_ORD_CNT}
+        WHERE OPT_DTL_IDX = #{ORD_PRD_OPT_DTL_IDX}
+     </update>
+     
+     <!-- 송장번호 입력 -->
+    <insert id="updateOrdPrdInvoiceNo" parameterType="java.util.HashMap">
+        /* Order.updateOrdPrdInvoiceNo */
+        UPDATE 
+            T_ORD_PRD
+        SET
+            ORD_PRD_IVC_NO = #{ORD_PRD_IVC_NO}
+            , ORD_DLV_CPN_IDX = #{ORD_DLV_CPN_IDX}
+            <if test="ORD_PRD_ORD_STATE != null and ORD_PRD_ORD_STATE != ''">
+                , ORD_PRD_ORD_STATE = #{ORD_PRD_ORD_STATE}
+            </if>
+        WHERE 
+            ORD_PRD_IDX = #{ORD_PRD_IDX} 
+    </insert>
+    
+    <!-- 매장관리자의 경우 해당 매장 주문인지 체크 -->
+    <select id="selectBcncCdCheck" parameterType="HashMap" resultType="Integer">
+        /* Order.selectBcncCdCheck */
+        <![CDATA[
+            SELECT 
+                COUNT(1)
+            FROM T_ORD_MST TOM, T_ORD_PRD TOP
+            WHERE TOM.ORD_MST_CD = TOP.ORD_ORD_MST_CD
+            AND TOM.ORD_MST_CD = #{ORD_MST_CD}
+        ]]>
+    </select>
+    
+    <!-- 교환상품(신규상품) idx 가져오기 -->
+    <select id="selectNewSwapProduct" parameterType="java.util.HashMap" resultType="String">
+        /* Order.selectNewSwapProduct */
+        <![CDATA[
+            SELECT 
+                ORD_PRD_IDX 
+            FROM T_ORD_PRD
+            WHERE ORD_PRD_ORG_IDX = #{ORD_PRD_IDX}
+            AND ORD_PRD_ORD_STATE = #{OST_SWAP_READY}
+            AND ROWNUM = 1
+         ]]>
+    </select>
+    
+    <!-- 임직원 복구할 구매한도금액 가져오기 -->
+    <select id="selectRestoreOwnerPrice" parameterType="HashMap" resultType="Integer">
+        /* Order.selectRestoreOwnerPrice */
+        <![CDATA[
+             SELECT 
+                 SUM(ORD_PRD_NORMAL_PRICE*ORD_PRD_ORD_CNT)
+             FROM T_ORD_PRD
+             WHERE ORD_ORD_MST_CD = #{ORD_MST_CD}
+             GROUP BY ORD_ORD_MST_CD
+        ]]>
+    </select>
+    
+    
+    
+    <!-- 주문상태값 조회 -->
+    <select id="selectOrderStateCodeList" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+        /* Order.selectOrderStateCodeList */
+        <![CDATA[
+        SELECT
+            CMN_COM_IDX,
+            CMN_COM_NM,
+            CMN_COM_LEVEL,
+            CMN_COM_UP_IDX,
+            CMN_COM_TOP_IDX,
+            CMN_COM_ETC1,
+            CMN_COM_ETC2,
+            CMN_COM_ETC3,
+            CMN_COM_SORT,
+            CMN_COM_USE_YN,
+            CMN_COM_REG_DT,
+            CMN_COM_REG_IP,
+            CMN_COM_REG_ID,
+            CMN_COM_UPD_DT,
+            CMN_COM_UPD_IP,
+            CMN_COM_UPD_ID 
+        FROM
+            T_CMM_COM
+        WHERE
+            CMN_COM_UP_IDX = #{OST}
+            AND CMN_COM_USE_YN = 'Y'
+            ]]>
+            <if test="searchOrdPrdOrderStateArr != null and searchOrdPrdOrderStateArr.length > 0">
+                AND CMN_COM_IDX IN <foreach collection="searchOrdPrdOrderStateArr" item="searchOrdPrdOrderState" open="(" close=")" separator=",">#{searchOrdPrdOrderState}</foreach>
+            </if>
+        <![CDATA[       
+        ORDER BY CMN_COM_LEVEL, CMN_COM_SORT ASC
+        ]]>
+    </select>
+    
+    <!-- 주문 결제 간략 정보-->
+    <!-- 2020.06.11 ORD_MST_DC_MLG 마일리지사용건 추가.  -->
+    <select id="selectOrderPaySimpleInfo" parameterType="hashMap" resultType="hashMap">
+        /* Order.selectOrderPaySimpleInfo */
+        SELECT
+            S1.ORD_MST_CD
+            , S1.ORD_MST_PAY_DT
+            , S1.ORD_MST_PAY_PRC
+            , S1.ORD_MST_ORD_PRC
+            , S1.ORD_MST_DC_MLG
+            , S1.ORD_MST_PAY_TYPE
+            , S1.ORD_MST_PAY_TYPE_NM
+            , S1.PAY_MST_FINANCENAME
+            , S1.PAY_MST_KAKAO_CARDNAME
+            , S1.PAY_MST_KICC_ISSUER_NM
+            , S1.PAY_MST_KICC_ACQUIRER_NM
+            , S1.ORD_MST_RFD_CD
+            , S1.ORD_MST_RFD_NM
+            , S1.ORD_MST_RFD_ACT
+            , S1.ORD_MST_RFD_HDR
+            , SUM(S1.ORD_PRD_DC_CPN) AS ORD_PRD_DC_CPN
+            , SUM(S1.ORD_PRD_DC_OCB) AS ORD_PRD_DC_OCB
+            , SUM(S1.ORD_PRD_DC_PIT) AS ORD_PRD_DC_PIT
+            , SUM(S1.ORD_PRD_DLV_CAG) AS ORD_PRD_DLV_CAG
+            , SUM(S1.ORD_PRD_ORD_PRC) AS ORD_PRD_ORD_PRC
+            , SUM(S1.ORD_PRD_SAL_PRC) AS ORD_PRD_SAL_PRC
+        FROM(
+            SELECT
+                TOM.ORD_MST_CD 
+                , TOM.ORD_MST_PAY_DT
+                , TOM.ORD_MST_PAY_PRC
+                , TOM.ORD_MST_ORD_PRC
+                , TOM.ORD_MST_DC_MLG
+                , TOM.ORD_MST_PAY_TYPE
+                , (SELECT CMN_COM_NM FROM T_CMM_COM WHERE CMN_COM_IDX = TOM.ORD_MST_PAY_TYPE) AS ORD_MST_PAY_TYPE_NM
+                , TPM.PAY_MST_FINANCENAME
+                , TPM.PAY_MST_KAKAO_CARDNAME
+                , TPM.PAY_MST_KICC_ISSUER_NM
+                , TPM.PAY_MST_KICC_ACQUIRER_NM
+                , TOM.ORD_MST_RFD_CD /* 환불은행코드 */
+                , TOM.ORD_MST_RFD_NM /* 환불은행명 */
+                , DECODE(TOM.ORD_MST_RFD_ACT, NULL, '', TOM.ORD_MST_RFD_ACT) as ORD_MST_RFD_ACT /* 환불계좌번호 */
+                , TOM.ORD_MST_RFD_HDR /* 환불예금주명 */
+                , NVL(TOR.ORD_PRD_DC_CPN,0) AS ORD_PRD_DC_CPN
+                , NVL(TOR.ORD_PRD_DC_OCB,0) AS ORD_PRD_DC_OCB
+                , NVL(TOR.ORD_PRD_DC_PIT,0) AS ORD_PRD_DC_PIT
+                , NVL(TOR.ORD_PRD_DLV_CAG,0) AS ORD_PRD_DLV_CAG
+                , TOR.ORD_PRD_ORD_PRC
+                , TOR.ORD_PRD_SAL_PRC
+            FROM T_ORD_MST TOM
+                INNER JOIN T_ORD_PRD TOR ON TOM.ORD_MST_CD = TOR.ORD_ORD_MST_CD 
+                <!-- 
+                <if test="arrORD_PRD_IDXs != null and arrORD_PRD_IDXs.length > 0 and STATE != null and STATE.equals(OST_EACH_CANCEL.toString())">
+                    <foreach collection="ORD_PRD_IDXs" item="ORD_PRD_IDX" open="AND ORD_PRD_IDX IN(" close=")" separator=",">#{ORD_PRD_IDX}</foreach>
+                </if>
+                 -->
+                 <!-- 2020.06.09 검색조건 구분화  -->                
+                <choose>
+                	<when test="arrOrdPrdIdxs != null and arrOrdPrdIdxs.length > 0">                		         	
+	                    <foreach collection="arrOrdPrdIdxs" item="ORD_PRD_IDX" open="AND ORD_PRD_IDX IN(" close=")" separator=",">
+	                    	#{ORD_PRD_IDX}
+	                    </foreach>                			
+                	</when>
+                	<when test="ORD_PRD_IDXs != null">
+                		AND TOR.ORD_PRD_IDX = #{ORD_PRD_IDXs}
+                	</when>                	
+                </choose>   
+                <!-- END 2020.06.09 검색조건 구분화  -->
+                <!-- <if test="STATUS_CODE == null and STATUS_CODE == STATUS and ORD_PRD_IDXs != null and RETURN_CODE == null">
+                    AND TOR.ORD_PRD_IDX = #{ORD_PRD_IDXs}
+                </if> -->
+                LEFT OUTER JOIN T_PAY_MST TPM ON TOM.ORD_MST_CD = TPM.PAY_MST_OID AND TPM.PAY_MST_TR_STATUS = 'A' AND TPM.PAY_MST_RESPCODE = '0000'
+            WHERE TOM.ORD_MST_CD = #{ORD_MST_CD}
+        ) S1
+        GROUP BY S1.ORD_MST_CD, S1.ORD_MST_PAY_DT, S1.ORD_MST_PAY_PRC, S1.ORD_MST_ORD_PRC, S1.ORD_MST_PAY_TYPE, S1.ORD_MST_PAY_TYPE_NM, S1.PAY_MST_FINANCENAME
+            , S1.PAY_MST_KAKAO_CARDNAME, S1.PAY_MST_KICC_ISSUER_NM, S1.PAY_MST_KICC_ACQUIRER_NM, S1.ORD_MST_RFD_CD, S1.ORD_MST_RFD_NM, S1.ORD_MST_RFD_ACT, S1.ORD_MST_RFD_HDR , S1.ORD_MST_DC_MLG
+    </select>
+    
+    <!-- 공통코드 하위 코드 조회 -->
+    <select id="selectCodeList" parameterType="HashMap" resultType="HashMap">
+        /* Order.selectCodeList */
+        SELECT
+            CMN_COM_IDX,
+            CMN_COM_NM,
+            CMN_COM_LEVEL,
+            CMN_COM_UP_IDX,
+            CMN_COM_TOP_IDX,
+            CMN_COM_ETC1,
+            CMN_COM_ETC2,
+            CMN_COM_ETC3,
+            CMN_COM_SORT,
+            CMN_COM_USE_YN,
+            CMN_COM_REG_DT,
+            CMN_COM_REG_IP,
+            CMN_COM_REG_ID,
+            CMN_COM_UPD_DT,
+            CMN_COM_UPD_IP,
+            CMN_COM_UPD_ID 
+        FROM
+            T_CMM_COM
+        WHERE
+            CMN_COM_UP_IDX = #{CODE}
+            AND CMN_COM_USE_YN = 'Y'
+            <if test="searchCmnComEtc1 != null and searchCmnComEtc1 != ''">
+                AND CMN_COM_ETC1 = #{searchCmnComEtc1}
+            </if>
+            <if test="searchCmnComEtc2 != null and searchCmnComEtc2 != ''">
+                AND CMN_COM_ETC2 = #{searchCmnComEtc2}
+            </if>
+            <if test="searchCmnComEtc3 != null and searchCmnComEtc3 != ''">
+                AND CMN_COM_ETC3 = #{searchCmnComEtc3}
+            </if>
+        ORDER BY CMN_COM_LEVEL, CMN_COM_SORT ASC
+    </select>
+    
+    <!-- 환불 계좌 정보 수정 -->
+    <update id="updateOrderRefundInfo" parameterType="HashMap">
+        /* Order.updateOrderRefundInfo */
+        UPDATE 
+            T_ORD_MST
+        SET
+            ORD_MST_RFD_CD = #{ORD_MST_RFD_CD}
+            , ORD_MST_RFD_ACT = #{ORD_MST_RFD_ACT}
+            , ORD_MST_RFD_HDR = #{ORD_MST_RFD_HDR}
+        WHERE ORD_MST_CD = #{ORD_MST_CD}
+     </update>
+     
+     <!-- 주문상품 옵션변경 -->
+     <update id="updateProductOption" parameterType="java.util.HashMap">
+        /* Order.updateProductOption */
+        UPDATE
+            T_ORD_PRD
+        SET ORD_PRD_OPT_DTL_IDX = #{ORD_PRD_OPT_DTL_IDX}
+        WHERE ORD_PRD_IDX = #{ORD_PRD_IDX}
+    </update>   
+    
+    <!-- 온라인 상품 상세 옵션 정보 조회 -->
+    <select id="selectBasicOnlineProductOptionList" parameterType="hashMap" resultType="hashMap">
+        /* Order.selectBasicOnlineProductOptionList */
+        SELECT 
+                PRP.PRD_OPT_IDX,
+                PRP.PRD_MST_CD, 
+                PRP.PRD_OPT_NM, 
+                PRP.PRD_OPT_EST_YN, 
+                PRP.PRD_OPT_CNT_YN,
+                (SELECT COUNT(*) FROM T_OPT_DTL WHERE PRD_OPT_IDX = PRP. PRD_OPT_IDX) AS DTL_CNT
+        FROM T_PRD_OPT PRP
+        WHERE PRP.PRD_MST_CD = #{PRD_MST_CD}
+        ORDER BY PRP.PRD_OPT_IDX
+    </select>
+    
+    <!-- 온라인 상품 상세 옵션 상세 정보 조회 -->
+    <select id="selectOrderProductOptionDetailList" parameterType="hashMap" resultType="hashMap">
+        /* Order.selectOrderProductOptionDetailList */
+        SELECT 
+                OPD.OPT_DTL_IDX,
+                OPD.PRD_OPT_IDX, 
+                OPD.OPT_DTL_NM, 
+                OPD.OPT_DTL_ADD_PRC,
+                OPD.OPT_DTL_STK_CNT,
+                OPD.OPT_DTL_ST_DT,
+                OPD.OPT_DTL_ED_DT,
+                OPD.OPT_DTL_USE_YN
+        FROM T_OPT_DTL OPD 
+        INNER JOIN T_PRD_OPT AS PRP ON OPD.PRD_OPT_IDX = PRP.PRD_OPT_IDX
+        AND PRP.PRD_MST_CD = #{PRD_MST_CD}
+        AND PRP.PRD_OPT_IDX = (
+                                            SELECT 
+                                                PRD_OPT_IDX 
+                                            FROM T_OPT_DTL WHERE OPT_DTL_IDX = (SELECT ORD_PRD_OPT_DTL_IDX FROM T_ORD_PRD WHERE ORD_PRD_IDX = #{ORD_PRD_IDX}) 
+                                            AND ROWNUM = 1
+                                           )
+        AND OPD.OPT_DTL_USE_YN = 'Y'
+        AND TO_CHAR(SYSDATE, 'YYYYMMDD') BETWEEN OPD.OPT_DTL_ST_DT AND OPD.OPT_DTL_ED_DT
+        AND OPT_DTL_STK_CNT >= NVL(#{ORD_PRD_ORD_CNT},0)
+        ORDER BY OPD.PRD_OPT_IDX
+    </select>
+    
+    <!-- 겟잇나우 수령정보 변경 -->
+    <update id="updateOrdGetInfo" parameterType="java.util.HashMap">
+        /* Order.updateOrdGetInfo */
+        UPDATE 
+            T_ORD_GET 
+        SET 
+            ORD_GET_TIK = #{ORD_GET_TIK}
+            , ORD_GET_NM = #{ORD_GET_NM}
+            , ORD_GET_TEL1 = #{ORD_GET_TEL1}
+            , ORD_GET_TEL2 = #{ORD_GET_TEL2}
+            , ORD_GET_TEL3 = #{ORD_GET_TEL3}
+            , ORD_GET_RLT = #{ORD_GET_RLT}
+            <if test="ORD_GET_ADM_SMS_CNT != null and ORD_GET_ADM_SMS_CNT != ''">
+                , ORD_GET_ADM_SMS_CNT = ORD_GET_ADM_SMS_CNT + #{ORD_GET_ADM_SMS_CNT}
+            </if>
+        WHERE ORD_MST_CD = #{ORD_MST_CD}
+    </update> 
+    
+    <!-- SCM취소요청 -->
+    <update id="updateScmCancel" parameterType="java.util.HashMap">
+        /* Order.updateScmCancel */
+        UPDATE 
+            T_ORD_PRD
+        SET
+           ORD_PRD_SCM_CNL_YN = #{ORD_PRD_SCM_CNL_YN}
+           , ORD_PRD_SCM_CNL_DESC = #{ORD_PRD_SCM_CNL_DESC}          
+           , ORD_PRD_SCM_CNL_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS')
+        WHERE
+            ORD_ORD_MST_CD = #{ORD_MST_CD}
+        AND ORD_PRD_VDR_IDX = #{ADM_MST_SUB_IDX}
+        <if test="ORD_PRD_IDX != null and ORD_PRD_IDX != ''">
+            AND ORD_PRD_IDX = #{ORD_PRD_IDX}
+        </if>
+    </update>
+    
+    
+    <!-- 출고처/배송처 리스트 -->
+    <select id="selectReleaseDeliveryList" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+        /* Order.selectReleaseDeliveryList */
+        SELECT 
+            CMN_COM_IDX,
+            CMN_COM_NM,
+            CMN_COM_LEVEL,
+            CMN_COM_UP_IDX,
+            CMN_COM_TOP_IDX,
+            CMN_COM_ETC1,
+            CMN_COM_ETC2,
+            CMN_COM_ETC3,
+            CMN_COM_SORT,
+            CMN_COM_USE_YN,
+            CMN_COM_REG_DT,
+            CMN_COM_REG_IP,
+            CMN_COM_REG_ID,
+            CMN_COM_UPD_DT,
+            CMN_COM_UPD_IP,
+            CMN_COM_UPD_ID 
+        FROM T_CMM_COM 
+        WHERE CMN_COM_UP_IDX = 
+        (
+            SELECT CMN_COM_IDX 
+            FROM T_CMM_COM 
+            WHERE CMN_COM_UP_IDX = #{CMN_COM_IDX}
+            AND CMN_COM_ETC1 = #{CMN_COM_ETC1}
+        )
+        AND CMN_COM_USE_YN = 'Y'
+        ORDER BY CMN_COM_SORT        
+    </select> 
+    
+    <!-- 주문(또는 주문 상품) 쿠폰 리스트 -->
+    <select id="selectOrderCouponList" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+        /* Order.selectOrderCouponList */
+        SELECT
+            CPN_MST_IDX
+            , (SELECT CPN_MST_TITLE FROM T_CPN_MST WHERE CPN_MST_IDX = TOC.CPN_MST_IDX) as CPN_MST_TITLE
+            , (SELECT CPN_MST_GBN FROM T_CPN_MST WHERE CPN_MST_IDX = TOC.CPN_MST_IDX) as CPN_MST_GBN
+            , SUM(ORD_CPN_DC_AMT) as SUM_ORD_CPN_DC_AMT
+            , CPN_MEM_IDX
+        FROM T_ORD_CPN TOC
+        WHERE 
+        	<choose>
+        		<when test="arrOrdPrdIdxs != null and arrOrdPrdIdxs.length > 0">                		         	
+                    <foreach collection="arrOrdPrdIdxs" item="ORD_PRD_IDX" open="ORD_PRD_IDX IN(" close=")" separator=",">
+                    	#{ORD_PRD_IDX}
+                    </foreach>                			
+                </when>
+	        	<when test="ORD_MST_CD != null and ORD_MST_CD != ''">
+	        		ORD_MST_CD = #{ORD_MST_CD}
+	        	</when>
+	        	<otherwise>
+	        		1 = 0	/* 주문번호 또는 주문상품번호가 맵에 없는 경우 결과값을 반환하지 않음 */
+	        	</otherwise> 
+        	</choose>
+        GROUP BY CPN_MST_IDX, CPN_MEM_IDX
+    </select>
+    
+    <!-- 주문 프로모션 쿠폰 -->
+    <select id="selectOrderPromotionCoupon" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+        /* Order.selectOrderPromotionCoupon */
+        SELECT
+            TOC.CPN_MST_IDX
+            , TCM.CPN_MST_TITLE
+            , TCM.CPN_MST_GBN
+            , TOC.ORD_CPN_DC_AMT
+            , TOC.CPN_MEM_IDX
+        FROM T_ORD_CPN TOC
+        	JOIN T_CPN_MST TCM ON (TOC.CPN_MST_IDX = TCM.CPN_MST_IDX)
+        WHERE ORD_MST_CD = #{ORD_MST_CD}
+        	AND CPN_MST_PRM_GBN = 'A' /* 프로모션 쿠폰만 조회함 */
+    </select>
+    
+    <!-- 쿠폰 사용 여부 업데이트 -->
+    <update id="updateCpnUseYn" parameterType="HashMap">
+        /* Order.updateCpnUseYn */
+        UPDATE 
+            T_CPN_MEM
+        SET 
+            CPN_MEM_USE_YN = #{CPN_MEM_USE_YN}
+            <choose>
+                <when test="CPN_MEM_USE_YN.equals('Y'.toString())">
+                    , CPN_MEM_USE_DT = TO_CHAR(SYSDATE,'YYYYMMDDHH24MISS')
+                </when>
+                <otherwise>
+                    , CPN_MEM_USE_DT = ''
+                </otherwise>
+            </choose>
+        WHERE CPN_MEM_ID = #{CPN_MEM_ID}
+        AND CPN_MST_IDX = #{CPN_MST_IDX}
+        AND CPN_MEM_IDX = #{CPN_MEM_IDX}
+    </update>
+    
+    <!-- 겟잇나우 교환권 번호 생성 -->
+    <select id="selectGetItNowTicketNo" parameterType="java.util.HashMap" resultType="String">
+        /* Order.selectGetItNowTicketNo */
+        SELECT TRUNC(DBMS_RANDOM.VALUE(10000000000, 99999999999)) FROM DUAL
+    </select>
+    
+    <!-- 주문상품 옵션 정보  -->
+    <select id="selectOrderProductOptionInfo" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+        /* Order.selectOrderProductOptionInfo */
+        SELECT PRD_OPT_EST_YN, PRD_OPT_CNT_YN FROM T_PRD_OPT 
+        WHERE PRD_OPT_IDX = (SELECT PRD_OPT_IDX FROM T_OPT_DTL WHERE OPT_DTL_IDX = #{ORD_PRD_OPT_DTL_IDX})
+    </select>
+    
+    <!-- 옵션 변경시 주문내 동일 상품 중복 체크 -->
+    <select id="selectOptionDupCnt" parameterType="java.util.HashMap" resultType="Integer">
+        /* Order.selectOptionDupCnt */
+        SELECT 
+            COUNT(1)
+        FROM T_ORD_PRD
+        WHERE ORD_ORD_MST_CD = #{ORD_MST_CD}
+        AND ORD_PRD_OPT_DTL_IDX = #{ORD_PRD_OPT_DTL_IDX}
+        AND ORD_PRD_IDX <![CDATA[ <> ]]> #{ORD_PRD_IDX}
+        <if test="ORD_PRD_SLT_YN != null and ORD_PRD_SLT_YN.equals('Y'.toString())">
+            AND ORD_PRD_UP_IDX = #{ORD_PRD_UP_IDX}
+        </if>
+    </select>
+    
+    <!-- 옵션 변경시 재고 체크 -->
+    <select id="selectOptionAvailableCnt" parameterType="java.util.HashMap" resultType="Integer">
+        /* Order.selectOptionAvailableCnt */
+        SELECT 
+            OPT_DTL_STK_CNT - #{ORD_PRD_ORD_CNT} as AVAILABLE_CNT
+        FROM T_OPT_DTL
+        WHERE OPT_DTL_IDX = #{ORD_PRD_OPT_DTL_IDX}
+    </select>
+    
+    <!-- 옵션 변경시 변경 대상 상품 추가금액 -->
+    <select id="selectChangeOptionAddPrc" parameterType="java.util.HashMap" resultType="Integer">
+        /* Order.selectChangeOptionAddPrc */
+        SELECT 
+            OPT_DTL_ADD_PRC 
+        FROM T_OPT_DTL
+        WHERE OPT_DTL_IDX = #{ORD_PRD_OPT_DTL_IDX}
+    </select>
+    
+    <!-- 상품 교체 -->
+    <update id="updateOrderPrdReplace" parameterType="java.util.HashMap">
+        /* Order.updateOrderPrdReplace */
+        UPDATE  T_ORD_PRD  SET 
+            ORD_PRD_MST_CD = #{REPLACE_PRD_MST_CD}
+            , ORD_PRD_OPT_DTL_IDX = #{REPLACE_OPT_DTL_IDX}
+            , ORD_PRD_BUY_PRC = #{REPLACE_PRD_BUY_PRC}
+        WHERE 
+            ORD_ORD_MST_CD=#{ORD_MST_CD}
+            AND ORD_PRD_IDX=#{ORD_PRD_IDX}
+    </update>
+    
+    <!-- 주문 채널 리스트 -->
+    <select id="selectOrderChannelList" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+        /* Order.selectOrderChannelList */
+        SELECT 
+            CHN_DTL_CD
+            , CHN_MST_IDX
+            , CHN_DTL_NM
+        FROM T_CHN_DTL
+        WHERE CHN_MST_IDX IN
+        (SELECT 
+            CHN_MST_IDX 
+        FROM T_CHN_MST 
+        WHERE CHN_MST_UP_IDX IN <foreach collection="TARGET_CHANNEL_ARR" item="TARGET_CHANNEL" open="(" close=")" separator=",">#{TARGET_CHANNEL}</foreach>
+        )
+        ORDER BY CHN_MST_IDX
+    </select>
+   
+   <!-- 상품 교체시 옵션 정보 -->
+   <select id="selectOptionInfo" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+        /* Order.selectOptionInfo */
+        SELECT
+            T1.*
+            , NVL(BUY_PRC, 0) as ERP_BUY_PRC /* ERP 매입원가 */
+        FROM
+        (
+        SELECT 
+            OPD.OPT_DTL_IDX,
+            OPD.PRD_OPT_IDX, 
+            OPD.OPT_DTL_NM, 
+            OPD.OPT_DTL_ADD_PRC,
+            OPD.OPT_DTL_STK_CNT,
+            OPD.OPT_DTL_ST_DT,
+            OPD.OPT_DTL_ED_DT,
+            OPD.OPT_DTL_USE_YN,
+            0 as BUY_PRC,
+            NVL(OPD.OPT_DTL_BUY_PRC,0) as OPT_DTL_BUY_PRC /* 매입원가 */
+        FROM T_OPT_DTL OPD
+        WHERE OPT_DTL_IDX = #{REPLACE_OPT_DTL_IDX}
+        ) T1
+    </select>
+    
+    <!-- 상품 교체시 마스터 정보-->
+   <select id="selectMasterPrdInfo" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+        /* Order.selectMasterPrdInfo */
+        SELECT
+            T1.*
+            , NVL(BUY_PRC, 0) as ERP_BUY_PRC /* ERP 매입원가 */
+        FROM
+        (
+        SELECT 
+            NVL(PRD_MST_BUY_PRC,0) as PRD_MST_BUY_PRC,
+            0 as BUY_PRC
+        FROM T_PRD_MST
+        WHERE PRD_MST_CD = #{REPLACE_PRD_MST_CD}
+        ) T1
+    </select>
+    
+    <!-- KICC 에스크로 배송완료시 마지막 상품인지 체크하기 위한 쿼리 -->
+    <select id="selectKiccSendEndInfo" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+        /* Order.selectKiccSendEndInfo */
+        SELECT
+            COUNT(1) as SEND_END_HIS_CNT /* 교환상품 제외, 배송완료 이력이 있는 상품 개수 */
+            , 
+            (
+                SELECT COUNT(1) FROM T_ORD_PRD WHERE ORD_ORD_MST_CD = #{ORD_MST_CD} AND ORD_PRD_ORG_IDX IS NULL
+            ) as TOT_CNT /* 교환상품 제외한 상품 개수. SEND_END_HIS_CNT와 TOT_CNT가 동일한 경우에만 KICC에 전송해야 한다 */
+            , 
+            (
+                SELECT MAX(ORD_PRD_IVC_NO) KEEP(DENSE_RANK FIRST ORDER BY ORD_PRD_IDX)
+                FROM T_ORD_PRD WHERE ORD_ORD_MST_CD = #{ORD_MST_CD} AND ORD_PRD_ORG_IDX IS NULL        
+            ) as IVC_NO /* 주문번호 기준 첫번째 상품 송장번호 */
+            , 
+            (
+                SELECT DLV_CPN_ESC_CD FROM T_DLV_CPN WHERE DLV_CPN_IDX = 
+                (
+                    SELECT MAX(ORD_DLV_CPN_IDX) KEEP(DENSE_RANK FIRST ORDER BY ORD_PRD_IDX)
+                    FROM T_ORD_PRD WHERE ORD_ORD_MST_CD = #{ORD_MST_CD} AND ORD_PRD_ORG_IDX IS NULL        
+                ) 
+            ) as DLV_CPN_ESC_CD /* 주문번호 기준 첫번째 상품 택배사 코드(KICC 발송용) */
+        FROM
+        (
+        SELECT 
+            MAX(ORD_PRD_HIS_IDX)
+        FROM T_ORD_PRD_HIS HIS, T_ORD_PRD TOP
+        WHERE HIS.ORD_ORD_PRD_IDX = TOP.ORD_PRD_IDX
+        AND HIS.ORD_ORD_MST_CD = #{ORD_MST_CD}
+        AND HIS.ORD_PRD_ORD_STATE = '408' /* 배송완료만 가져온다 */
+        AND TOP.ORD_PRD_ORG_IDX IS NULL
+        GROUP BY ORD_ORD_PRD_IDX
+        )
+    </select>
+    
+    
+    
+    
+    <!-- ERP 중간테이블용 ORDER INFO -->
+    <select id="selectErpOrderInfo" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+        /* Order.selectErpOrderInfo */
+        SELECT
+            T1.*
+            , NVL(TMP_CRD_INF_IST_ERP, 'M80') as CRD_INF_IST_ERP /* 없는 경우는 해외카드로 간주하고 롯데와 같은 M80 넣어준다. */
+            , NVL(TMP_PRD_CPN_PRC, 0) as PRD_CPN_PRC /* 상품쿠폰 할인 금액 */
+        FROM
+        (
+        SELECT
+            TOM.ORD_MST_CD /* 주문번호 */
+            , TOM.ORD_MST_ORD_ID /* 주문자 ID */
+            , SUBSTR(TOM.ORD_MST_ORD_DT, 0, 8) as ORD_MST_ORD_DT /* 주문일자 */
+            , TOM.ORD_MST_PAY_TYPE /* 결제수단 */
+            , SUBSTR(TOM.ORD_MST_ORD_DT, 9, 8) as ORD_DT_TIME /* 주문시간 */
+            , SUBSTR(TOM.ORD_MST_ORD_DT, 3, 2) as ORD_DT_YEAR /* 주문 연도 ex) 16 */
+            , SUBSTR(TOM.ORD_MST_ORD_DT, 5, 2) as ORD_DT_MON /* 주문 월 */
+            , TOM.ORD_MST_PAY_PRC /* 주문금액 */
+            , TOM.ORD_MST_ORD_NM /* 주문자 성명 */
+            , TOM.ORD_MST_HP1 /* 주문자 휴대폰번호1 */
+            , TOM.ORD_MST_HP2 /* 주문자 휴대폰번호2 */
+            , TOM.ORD_MST_HP3 as ORD_MST_HP3 /* 주문자 휴대폰번호3 */
+            , TOM.ORD_MST_MAIL as ORD_MST_MAIL  /* 주문자 이메일 주소 */
+            , TOM.ORD_MST_DC_MLG /* 사용 마일리지 */
+            , TOM.ORD_MST_DC_OCB_PIT /* 사용 캐쉬백 */
+            , TOM.ORD_MST_PRE_CD /* 재결제 주문인 경우 원 주문번호 */
+            , TOD.ORD_DLV_NM /* 받는사람 */
+            , TOD.ORD_DLV_MSG /* 배송메세지 */
+            , TOD.ORD_DLV_ZIP_CDE5 /* 자택우편번호 */
+            , TOD.ORD_DLV_JBN_ADR1 /* 지번주소1 */
+            , TOD.ORD_DLV_JBN_ADR2 /* 지번주소2 */
+            , SUBSTRB(TOD.ORD_DLV_JBN_ADR1,1,60) as SUBSTR_ORD_DLV_JBN_ADR1
+            , SUBSTRB(TOD.ORD_DLV_JBN_ADR2,1,40) as SUBSTR_ORD_DLV_JBN_ADR2
+            , TOD.ORD_DLV_DRO_ADR1 /* 도로명주소1 */
+            , TOD.ORD_DLV_DRO_ADR2 /* 도로명주소2 */
+            , TOD.ORD_DLV_TEL1 /* 수령자전화번호1 */
+            , TOD.ORD_DLV_TEL2 /* 수령자전화번호2 */
+            , DECODE(TOD.ORD_DLV_TEL3, NULL, '', TOD.ORD_DLV_TEL3) as ORD_DLV_TEL3 /* 수령자전화번호3 */
+            , TOD.ORD_DLV_HP1 /* 수령자핸드폰번호1 */
+            , TOD.ORD_DLV_HP2 /* 수령자핸드폰번호2 */
+            , DECODE(TOD.ORD_DLV_HP3, NULL, '', TOD.ORD_DLV_HP3) as ORD_DLV_HP3 /* 수령자핸드폰번호3 */
+            , TMV.MEM_MST_MEM_ID 
+            , NVL(TMV.MEM_MST_ERP_ID, '99999999') as MEM_MST_ERP_ID /* 고객번호 */
+            , TMV.MEM_MST_BIR_DT /* 생일 */
+            , SUBSTR(TMV.MEM_MST_BIR_DT, 0, 4) as BIR_DT_YEAR /* 생년 */
+            , SUBSTR(TMV.MEM_MST_BIR_DT, 5, 2) as BIR_DT_MON /* 생월 */
+            , SUBSTR(TMV.MEM_MST_BIR_DT, 7, 2 ) as BIR_DT_DAY /* 생일 */
+            , (SELECT MEM_AGR_TRM_YN FROM T_MEM_AGR WHERE MEM_AGR_MEM_ID = TOM.ORD_MST_ORD_ID AND MEM_AGR_TRM_CD = '0001') as SMS_AGR_YN /* SMS 수신동의 */
+            , (SELECT MEM_AGR_TRM_YN FROM T_MEM_AGR WHERE MEM_AGR_MEM_ID = TOM.ORD_MST_ORD_ID AND MEM_AGR_TRM_CD = '0004') as EMAIL_AGR_YN /* EMAIL 수신동의 */
+            , TMV.MEM_MST_TEL1 /* 자택전화번호1 */
+            , TMV.MEM_MST_TEL2 /* 자택전화번호2 */
+            , DECODE(TMV.MEM_MST_TEL3, NULL, '', TMV.MEM_MST_TEL3) as MEM_MST_TEL3 /* 자택전화번호3 */
+            , SUBSTR(TMV.MEM_MST_REG_DT, 0, 8) as MEM_MST_REG_DT /* 쇼핑몰 가입일자 */
+            , DECODE(TMV.MEM_MST_REG_DT, NULL, 'N', 'Y') as MALL_JOIN_YN /* 쇼핑몰 가입여부 */
+            , TMV.MEM_MST_MEM_GBN /* 회원구분 */
+            , TPM.PAY_MST_MID 
+            , TPM.PAY_MST_AMOUNT /* 결제금액 */
+            , TPM.PAY_MST_KICC_CARD_NO /* KICC 카드 번호 */
+            , TPM.PAY_MST_KAKAO_CARDBIN /* 카카오페이 카드 번호 */
+            , SUBSTR(TPM.PAY_MST_KICC_TRAN_DATE, 0, 8) as PAY_MST_KICC_TRAN_DATE /* KICC 카드 승인 일자 */
+            , SUBSTR(TPM.PAY_MST_KICC_TRAN_DATE, 9, 8) as KICC_AUTH_DT_TIME /* KICC 카드 승인 시간 */
+            , SUBSTR(TPM.PAY_MST_KAKAO_AUTHDATE, 0, 8) as PAY_MST_KAKAO_AUTHDATE /* 카카오페이 카드 승인 일자 */
+            , SUBSTR(TPM.PAY_MST_KAKAO_AUTHDATE, 9, 8) as KAKAO_AUTH_DT_TIME /* 카카오페이 카드 승인 일자 */
+            , TPM.PAY_MST_KICC_AUTH_NO /* KICC 승인 번호 */
+            , TPM.PAY_MST_KAKAO_AUTHCODE /* 카카오페이 승인 번호 */
+            , TPM.PAY_MST_KAKAO_CARDCODE /* 카카오페이 카드사 코드 */
+            , NVL(TOM.ORD_MST_SAV_MLG,0) as TOT_ORD_SAV_MIL /* 총 적립예정 마일리지 */
+            , NVL(TOM.ORD_MST_SAV_OCB,0) as TOT_ORD_SAV_OCB /* 총 적립예정 캐쉬백 */
+            , (SELECT CRD_INF_IST_ERP FROM T_CRD_INF WHERE CRD_INF_CD = TPM.PAY_MST_KICC_ISSUER_CD AND ROWNUM = 1) as TMP_CRD_INF_IST_ERP /* ERP 전송용 MID */         
+            , (SELECT SHP_MST_ERP_CD FROM T_SHP_MST WHERE SHP_MST_IDX = TOG.ORD_GET_SHP_MST_IDX) as GET_SHP_ERP_CD /* 겟잇나우 매장 ERP 코드 */
+            , TOG.ORD_GET_NM /* 겟잇나우 인수자명 */
+            , TOG.ORD_GET_RLT /* 겟잇나우 주문자와의 관계 */
+            , TOG.ORD_GET_TEL1 /* 겟잇나우 핸드폰 1 */
+            , TOG.ORD_GET_TEL2 /* 겟잇나우 핸드폰 2 */
+            , DECODE(TOG.ORD_GET_TEL3, NULL, '', TOG.ORD_GET_TEL3) as ORD_GET_TEL3 /* 겟잇나우 핸드폰3 */
+            , TOG.ORD_GET_PKU_DT /* 겟잇나우 방문예약일자 */
+            , TOG.ORD_GET_PKU_HH /* 겟잇나우 방문예약시간 */
+            , TOG.ORD_GET_TIK /* 겟잇나우 교환권 번호 */
+            , (
+                SELECT
+                    ADM_MST_ERP_NO
+                FROM T_ADM_MST
+                WHERE ADM_MST_ID =
+                    (
+                    SELECT PRD_MST_MD_ID 
+                    FROM T_PRD_MST
+                    WHERE PRD_MST_CD = (SELECT MAX(ORD_PRD_MST_CD) KEEP(DENSE_RANK FIRST ORDER BY ORD_PRD_IDX) FROM T_ORD_PRD 
+                                                            WHERE ORD_ORD_MST_CD = TOM.ORD_MST_CD
+                                                          )
+                    )
+                ) as FIRST_PRD_ERP_NO /* 첫번째 주문상품의 담당 MD ERP 사번(사번 없는 경우 이 값으로 넣는다) */
+            , (                     
+                /* 상품쿠폰할인금액을 SUM */                             
+                SELECT                              
+                    SUM(ORD_CPN_DC_AMT)
+                FROM T_ORD_CPN CPN, T_CPN_MST TCM 
+                WHERE CPN.CPN_MST_IDX = TCM.CPN_MST_IDX
+                AND CPN.ORD_MST_CD = TOM.ORD_MST_CD
+                AND TCM.CPN_MST_GBN <![CDATA[<>]]> 'F' /* 상품쿠폰 금액만 SUM */
+            ) as TMP_PRD_CPN_PRC /* 상품쿠폰 할인 금액 */
+        FROM T_ORD_MST TOM, T_ORD_DLV TOD, T_MEM_VIEW TMV 
+                    , (SELECT * FROM T_PAY_MST WHERE PAY_MST_TR_STATUS = 'A' AND PAY_MST_RESPCODE = '0000') TPM
+                    , T_ORD_GET TOG
+        WHERE TOM.ORD_MST_CD = TOD.ORD_ORD_MST_CD(+)
+        AND TOM.ORD_MST_CD = TPM.PAY_MST_OID(+)
+        AND TOM.ORD_MST_ORD_ID = TMV.MEM_MST_MEM_ID(+)
+        AND TOM.ORD_MST_CD = TOG.ORD_MST_CD(+)
+        AND TOM.ORD_MST_CD = #{ORD_MST_CD}
+        ) T1
+    </select>
+    
+    <!-- ERP 중간테이블용 ORDER PRODUCT LIST -->
+    <select id="selectErpOrderProductList" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+        /* Order.selectErpOrderProductList */
+        SELECT
+            TOM.ORD_MST_CD /* 주문번호 */
+            , TOM.ORD_MST_ORD_ID /* 주문자 ID */
+            , TOM.ORD_MST_ORD_DT /* 주문일자 */
+            , TOP.ORD_PRD_SEQ /* 주문 일련번호 */
+            , TOM.ORD_MST_DLV_CAG /* 배송비 */
+            , TOP.ORD_PRD_DLV_DUE_DT /* 배송지정일 */
+            , TOP.ORD_PRD_MST_CD /* 상품코드 */
+            , TOP.ORD_PRD_ORD_CNT /* 수량 */
+            , TOP.ORD_PRD_OPT_ADD_PRC /* 옵션추가금 */
+            , TOP.ORD_PRD_PRD_PRC /* 상품가격(추가금제외) */
+            , TOP.ORD_PRD_SAL_PRC /* 판매가격(추가금제외) */
+            , TOP.ORD_PRD_ORD_PRC /* 주문금액(판매가+옵션추가금)*수량 */
+            , CASE
+                WHEN TOP.ORD_PRD_DLV_TYPE = 1786 /* 물류배송 */
+                THEN 'S'
+                WHEN TOP.ORD_PRD_DLV_TYPE = 1787 /* 메이커배송 */
+                THEN 'D'
+                WHEN TOP.ORD_PRD_DLV_TYPE = 1788 /* 택배(SGS)배송 */
+                THEN 'S2'
+                WHEN TOP.ORD_PRD_DLV_TYPE = 1789 /* 물류택배 */
+                THEN 'S2'
+                WHEN TOP.ORD_PRD_DLV_TYPE = 1790 /* 겟잇나우 */
+                THEN 'S1'
+                WHEN TOP.ORD_PRD_DLV_TYPE = 1791 /* 입점상품 */
+                THEN 'S9'
+              END ERP_DLV_TYPE /* ERP 라인유형 */
+              , CASE
+                WHEN TOP.ORD_PRD_DLV_TYPE = 1786 /* 물류배송 */
+                THEN '02'
+                WHEN TOP.ORD_PRD_DLV_TYPE = 1787 /* 메이커배송 */
+                THEN '05'
+                WHEN TOP.ORD_PRD_DLV_TYPE = 1788 /* 택배(SGS)배송 */
+                THEN '08'
+                WHEN TOP.ORD_PRD_DLV_TYPE = 1789 /* 물류택배 */
+                THEN '18'
+                WHEN TOP.ORD_PRD_DLV_TYPE = 1790 /* 겟잇나우 */
+                THEN '01'
+                WHEN TOP.ORD_PRD_DLV_TYPE = 1791 /* 입점상품 */
+                THEN '90'
+              END ERP_DLV_GBN /* ERP 배송구분 */
+            , TOP.ORD_PRD_ERP_DLV_CD /* ERP 배송처 코드 */
+            , TOD.ORD_DLV_MSG /* 배송메세지 */
+            , TOD.ORD_DLV_ZIP_CDE5 /* 자택우편번호 */
+            , TOD.ORD_DLV_JBN_ADR1 /* 지번주소1 */
+            , TOD.ORD_DLV_JBN_ADR2 /* 지번주소2 */
+            , TOD.ORD_DLV_DRO_ADR1 /* 도로명주소1 */
+            , TOD.ORD_DLV_DRO_ADR2 /* 도로명주소2 */
+            , TOD.ORD_DLV_TEL1 /* 수령자전화번호1 */
+            , TOD.ORD_DLV_TEL2 /* 수령자전화번호2 */
+            , DECODE(TOD.ORD_DLV_TEL3, NULL, '', TOD.ORD_DLV_TEL3) as ORD_DLV_TEL3 /* 수령자전화번호3 */
+            , TOD.ORD_DLV_HP1 /* 수령자핸드폰번호1 */
+            , TOD.ORD_DLV_HP2 /* 수령자핸드폰번호2 */
+            , DECODE(TOD.ORD_DLV_HP3, NULL, '', TOD.ORD_DLV_HP3) as ORD_DLV_TEL3 /* 수령자핸드폰번호3 */
+            , TOD.ORD_DLV_NM /* 인수자명 */
+            , (SELECT SHP_MST_ERP_CD FROM T_SHP_MST WHERE SHP_MST_IDX = TOG.ORD_GET_SHP_MST_IDX) as GET_SHP_ERP_CD /* 겟잇나우 매장 ERP 코드 */
+            , TOP.ORD_PRD_VDR_IDX /* 입점업체 IDX */
+            , TOP.ORD_PRD_IST_CPN_PRC /* 즉시쿠폰할인금액 */
+            , TOP.ORD_PRD_CPN_OWN /* 즉시쿠폰권한 S:SGS V:입점 */
+        FROM T_ORD_MST TOM, T_ORD_PRD TOP, T_ORD_DLV TOD, T_ORD_GET TOG
+        WHERE TOM.ORD_MST_CD = TOP.ORD_ORD_MST_CD 
+        AND TOM.ORD_MST_CD = TOD.ORD_ORD_MST_CD(+)
+        AND TOM.ORD_MST_CD = TOG.ORD_MST_CD(+)
+        AND TOM.ORD_MST_CD = #{ORD_MST_CD}
+        <if test="TARGET_ORD_PRD_IDX != null and TARGET_ORD_PRD_IDX != ''">
+            AND TOP.ORD_PRD_IDX = #{TARGET_ORD_PRD_IDX}
+        </if>
+    </select>
+    
+    <!-- ERP 중간테이블용 배송비 리스트 -->
+    <select id="selectErpOrderDlvChargeList" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+        /* Order.selectErpOrderDlvChargeList */
+        SELECT
+            T4.*
+            , CASE
+                WHEN ORD_PRD_DLV_BND_YN = 'Y' THEN TOT_DLV_CHARGE /* 묶음배송인 경우 배송비 그대로 보냄 */
+                ELSE TRUNC(TOT_DLV_CHARGE/ORD_PRD_ORD_CNT) /* 개별배송인 경우 배송비/수량 계산한 금액 */
+              END FIN_DLV_CHARGE /* 최종배송비 */
+            , CASE
+                WHEN ORD_PRD_DLV_BND_YN = 'Y' THEN 1 /* 묶음배송인 경우 수량 1 */
+                ELSE ORD_PRD_ORD_CNT /* 개별배송인 경우 주문 수량 */
+              END FIN_DLV_CHARGE_CNT /* 배송비 수량 */
+        FROM
+        (
+        SELECT
+            T3.*
+        FROM
+        (
+        SELECT
+            T2.*
+            , NVL(DLV_CHARGE,0) - NVL(ORD_CPN_DC_AMT,0) as TOT_DLV_CHARGE /* 배송비 - 배송비쿠폰 할인금액 계산한 실제 배송비 */
+        FROM
+        (
+        SELECT
+            T1.*
+            , CASE
+                WHEN ORD_PRD_DLV_BND_YN = 'Y' AND VDR_ROWNUM = 1 THEN ORD_PRD_DLV_BND_CAG
+                WHEN ORD_PRD_DLV_BND_YN = 'Y' AND VDR_ROWNUM   <![CDATA[<>]]> 1 THEN 0
+                ELSE (DECODE(ORD_PRD_ORG_IDX, NULL, ORD_PRD_DLV_CAG, 0))
+              END DLV_CHARGE /* 묶음배송인 경우 1번만 배송비 있고 나머지는 0, 그외에는 개별배송비 */
+            , CASE
+                WHEN VDR_ROWNUM = 1 THEN NVL(ORD_PRD_DLV_ADD_CAG,0) 
+                ELSE 0
+              END DLV_ADD_CHARGE /* 추가배송비는 업체별로 받는다. 업체별 첫번째 상품에만 추가 배송비 붙임. */    
+            , SUM(DECODE(VDR_ROWNUM, 1, 1, 0)) OVER() as VDR_CNT /* 해당 주문의 업체 개수 */    
+        FROM
+        (
+        SELECT 
+            TOP.ORD_ORD_MST_CD
+            , TOP.ORD_PRD_IDX
+            , TOP.ORD_PRD_VDR_IDX /* 입점업체 IDX */
+            , ROW_NUMBER() OVER(PARTITION BY TOP.ORD_ORD_MST_CD, TOP.ORD_PRD_VDR_IDX, TOP.ORD_PRD_DLV_BND_YN ORDER BY TOP.ORD_ORD_EDI_ORD_NO) as VDR_ROWNUM /* 업체별 상품 ROWNUM */
+            , TOP.ORD_PRD_ORG_IDX /* 교환상품인 경우 원상품 IDX */
+            , TOP.ORD_PRD_DLV_CAG /* 개별배송비 */
+            , TOP.ORD_PRD_DLV_BND_CAG /* 묶음배송비 */
+            , TOP.ORD_PRD_DLV_ADD_CAG /* 추가배송비 */
+            , TOP.ORD_PRD_DLV_BND_YN /* 묶음배송여부 */
+            , TOP.ORD_PRD_ORD_CNT /* 주문수량 */
+            , DECODE(TCM.CPN_MST_IDX, NULL, 0, TOC.ORD_CPN_DC_AMT) AS ORD_CPN_DC_AMT/* 할인금액 */
+            , TCM.CPN_MST_IDX /* 쿠폰 IDX */
+        FROM T_ORD_PRD TOP, T_ORD_CPN TOC, 
+                    (
+                        SELECT
+                            CPN_MST_IDX
+                        FROM T_CPN_MST
+                        WHERE CPN_MST_GBN(+) = 'F' /* 배송비 쿠폰만 가져온다 */
+                    ) TCM            
+        WHERE TOP.ORD_ORD_MST_CD = TOC.ORD_MST_CD(+) AND TOP.ORD_PRD_IDX = TOC.ORD_PRD_IDX(+)
+        AND TOC.CPN_MST_IDX = TCM.CPN_MST_IDX(+) 
+        AND TOP.ORD_ORD_MST_CD = #{ORD_MST_CD}
+        ORDER BY TOP.ORD_PRD_IDX DESC
+        ) T1
+        ) T2
+        ) T3
+        WHERE TOT_DLV_CHARGE > 0  OR DLV_ADD_CHARGE > 0 /* 배송비 있는 경우만 가져온다. */
+        ) T4
+    </select>
+    
+    <!-- ERP 취소요청중인 주문 리스트 -->
+    <select id="selectErpCancelCallOrderList" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+        /* Order.selectErpCancelCallOrderList */
+        SELECT
+            T1.ORD_MST_CD
+        FROM
+        (
+        SELECT 
+            TOM.ORD_MST_CD
+            , (
+                SELECT  
+                    COUNT(ORD_PRD_IDX) FROM T_ORD_PRD
+                 WHERE 
+                    ORD_ORD_MST_CD = TOM.ORD_MST_CD
+                 AND ORD_PRD_ORD_STATE NOT IN <foreach collection="OST_SWAP_IGNORE_ARR" item="OST_SWAP_IGNORE" open="(" close=")" separator=",">#{OST_SWAP_IGNORE_ARR}</foreach>
+                 /* 교환완료, 교환대기중, 교환취소는 제외 후 카운트 한다. */
+              ) AS PRODUCT_CNT /* 주문당 상품 카운트 */
+             , (
+                SELECT  
+                    COUNT(ORD_PRD_IDX) FROM T_ORD_PRD
+                 WHERE 
+                    ORD_ORD_MST_CD = TOM.ORD_MST_CD
+                 AND ORD_PRD_ORD_STATE = #{OST_BACK_COLLECT_END} /* ERP 취소요청(반품대기중) */ 
+             ) AS COLLECT_END_CNT /* 주문당 ERP 취소요청한 상품 개수 */
+        FROM T_ORD_MST TOM
+        ) T1
+        WHERE T1.COLLECT_END_CNT > 0
+        AND T1.PRODUCT_CNT = T1.COLLECT_END_CNT
+    </select>
+    
+    <!-- 주문상품 배송 구분 -->
+    <select id="selectOrdPrdDlvTypeInfo" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+        /* Order.selectOrdPrdDlvTypeInfo */
+        SELECT 
+            ORD_ORD_MST_CD
+            , ORD_PRD_SEQ
+            , ORD_PRD_DLV_TYPE 
+            , ORD_PRD_SLT_YN
+            , ORD_PRD_ORG_IDX
+        FROM T_ORD_PRD 
+        WHERE ORD_PRD_IDX = #{ORD_PRD_IDX}
+    </select> 
+    
+    <!-- 관리자 > 추가배송비 -->
+    <select id="selectOrderAddDlvCharge" parameterType="java.util.HashMap" resultType="Integer">
+        /* Order.selectOrderAddDlvCharge */
+        SELECT
+            SUM(DLV_ADD_CHARGE) as SUM_DLV_ADD_CHARGE /* 총 추가 배송비 */
+        FROM
+            (
+                SELECT
+                    CASE
+                        WHEN VDR_ROWNUM = 1 THEN NVL(ORD_PRD_DLV_ADD_CAG,0) 
+                    ELSE 0
+                  END DLV_ADD_CHARGE /* 추가배송비는 업체별로 받는다. 업체별 첫번째 상품에만 추가 배송비 붙임. */   
+                FROM
+                (
+                    SELECT 
+                        ROW_NUMBER() OVER(PARTITION BY ORD_ORD_MST_CD, ORD_PRD_VDR_IDX, ORD_PRD_DLV_BND_YN ORDER BY ORD_ORD_EDI_ORD_NO) as VDR_ROWNUM /* 업체별 상품 ROWNUM */
+                        , ORD_PRD_DLV_ADD_CAG
+                    FROM T_ORD_PRD 
+                    WHERE ORD_ORD_MST_CD = #{ORD_MST_CD}
+                )
+            ) T1
+    </select>
+    
+    <!-- 상품 정보 가져오기 -->
+    <select id="selectOrdPrdInfo" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+        /* Order."selectOrdPrdInfo" */
+        <![CDATA[
+            SELECT 
+                ORD_PRD_IDX,
+                ORD_PRD_SEQ,
+                ORD_PRD_ORD_STATE,
+                ORD_PRD_DLV_TYPE
+            FROM T_ORD_PRD
+            WHERE ORD_ORD_MST_CD = #{ORD_MST_CD}
+            AND ORD_PRD_IDX = #{ORD_PRD_IDX}
+         ]]>
+    </select>
+    
+    <!-- 배송완료 이력이 있는지 체크 -->
+    <select id="selectOrdPrdHisSendEndCnt" parameterType="java.util.HashMap" resultType="Integer">
+        /* Order."selectOrdPrdHisSendEndCnt" */
+        <![CDATA[
+            SELECT COUNT(1)
+            FROM T_ORD_PRD_HIS HIS
+            WHERE HIS.ORD_ORD_PRD_IDX = #{ORD_PRD_IDX}
+            AND HIS.ORD_PRD_ORD_STATE = #{OST_SEND_END}
+         ]]>
+    </select>
+    
+    <!-- 취소요청 초기화 -->
+    <update id="updateOrdCnlYnReset" parameterType="java.util.HashMap">
+        /* Order.updateOrdCnlYnReset */
+        UPDATE 
+            T_ORD_MST
+        SET
+            ORD_MST_CNL_YN = ''         
+        WHERE
+            ORD_MST_CD=#{ORD_MST_CD}
+    </update>
+    
+    <!-- EDI 배송 있는지 체크 -->
+    <select id="selectOrdEdiCnt" parameterType="java.util.HashMap" resultType="Integer">
+        /* Order.selectOrdEdiCnt */ 
+            SELECT COUNT(1)
+            FROM T_ORD_PRD
+            WHERE ORD_ORD_MST_CD = #{ORD_MST_CD}
+            <if test="ORD_PRD_IDX != null and ORD_PRD_IDX != ''">
+                AND ORD_PRD_IDX = #{ORD_PRD_IDX}
+            </if>
+            AND ORD_PRD_DLV_TYPE = '1788' /* EDI 연동 주문 */
+    </select>
+    
+    <!-- ERP에 보낸 응답 인서트-->
+    <insert id="insertOrderErpResult" parameterType="HashMap">
+		INSERT INTO T_ORD_ERP_HIS
+		(
+		      ORD_ERP_HIS_IDX
+		    , ORD_PRD_ORD_STATE
+		    , ORD_ORD_MST_CD
+		    , ORD_ORD_PRD_IDX
+		    , RESULT_CODE
+		    , RESULT_ORDER_NO
+		    , RESULT_ORDER_DETAIL_NO
+		    , RESULT_ORDER_SEQ
+		    , RESULT_TEXT
+		    , ORD_PRD_REG_DT
+		    , ORD_PRD_REG_ID
+		    , ORD_PRD_REG_IP
+			, DIV
+			, ORDER_NO
+			, ORDER_DETAIL_NO
+			, ORDER_SEQ
+			, ORDER_TYPE
+			, O2O_GB
+			, ORDER_STEP
+			, ORDER_DATE
+			, STYLE_NO
+			, SEASON_YEAR
+			, COLOR_CODE
+			, SIZE_CODE
+			, PART_DIV
+			, PART_NO
+			, BRAND
+			, LINKED_ORDER_NO
+			, LINKED_ORDER_DETAIL_NO
+			, ORDER_QTY
+			, ORDER_PRICE
+			, ORDER_AMT
+			, SUPPLY_AMT
+			, VAT_AMT
+			, COUPON_NO
+			, COUPON_NAME
+			, COUPON_AMT
+			, MEMBER_ID
+			, USE_POINT
+			, OCCUR_POINT
+			, USE_EPOINT
+			, EMP_NO
+			, EMP_SALE_AMT
+			, COOPER_NM
+			, COOPER_SALE_AMT
+			, PROMOTION_AMT
+			, RSALE_AMT
+			, DELIVERY_CUST_CODE
+			, INVOICE_NO
+			, BUY_CONFM_DATE
+			, ORDER_PAYMENT_NO
+			, PAY_DATE
+			, DELI_DATE
+			, DELI_END_DATE
+			, SALE_CONFM_DATE
+			, CANCEL_DATE
+			, RECHANGE_DATE
+			, FEE_RATE
+			, SENDER_NAME
+			, SENDER_ADDR
+			, SENDER_TEL_NO
+			, SENDER_CELL_NO
+			, SENDER_MEMO
+			, RCVER_NAME
+			, RCVER_ADDR
+			, RCVER_TEL_NO
+			, RCVER_CELL_NO
+			, BUSI_NO
+			, TAG_PRICE
+			, BRAND_NM
+		    )
+		VALUES(
+		          SEQ_ORD_ERP_HIS_IDX.NEXTVAL
+		        , #{ORD_PRD_ORD_STATE} 
+		        , #{ORD_MST_CD}
+		        , #{ORD_ORD_PRD_IDX}
+		        , #{RESULT_CODE}
+		        , #{RESULT_ORDER_NO}
+		        , #{RESULT_ORDER_DETAIL_NO}
+		        , #{RESULT_ORDER_SEQ}
+		        , #{RESULT_TEXT}
+		        , TO_CHAR(sysdate ,'YYYYMMDDHH24MISS')
+		        , 'SYS_MASTER'
+		        , #{ORD_PRD_REG_IP}
+				, #{DIV}
+				, #{ORDER_NO}
+				, #{ORDER_DETAIL_NO}
+				, #{ORDER_SEQ}
+				, #{ORDER_TYPE}
+				, #{O2O_GB}
+				, #{ORDER_STEP}
+				, #{ORDER_DATE}
+				, #{STYLE_NO}
+				, #{SEASON_YEAR}
+				, #{COLOR_CODE}
+				, #{SIZE_CODE}
+				, #{PART_DIV}
+				, #{PART_NO}
+				, #{BRAND}
+				, #{LINKED_ORDER_NO}
+				, #{LINKED_ORDER_DETAIL_NO}
+				, #{ORDER_QTY}
+				, #{ORDER_PRICE}
+				, #{ORDER_AMT}
+				, #{SUPPLY_AMT}
+				, #{VAT_AMT}
+				, #{COUPON_NO}
+				, #{COUPON_NAME}
+				, #{COUPON_AMT}
+				, #{MEMBER_ID}
+				, #{USE_POINT}
+				, #{OCCUR_POINT}
+				, #{USE_EPOINT}
+				, #{EMP_NO}
+				, #{EMP_SALE_AMT}
+				, #{COOPER_NM}
+				, #{COOPER_SALE_AMT}
+				, #{PROMOTION_AMT}
+				, #{RSALE_AMT}
+				, #{DELIVERY_CUST_CODE}
+				, #{INVOICE_NO}
+				, #{BUY_CONFM_DATE}
+				, #{ORDER_PAYMENT_NO}
+				, #{PAY_DATE}
+				, #{DELI_DATE}
+				, #{DELI_END_DATE}
+				, #{SALE_CONFM_DATE}
+				, #{CANCEL_DATE}
+				, #{RECHANGE_DATE}
+				, #{FEE_RATE}
+				, #{SENDER_NAME}
+				, #{SENDER_ADDR}
+				, #{SENDER_TEL_NO}
+				, #{SENDER_CELL_NO}
+				, #{SENDER_MEMO}
+				, #{RCVER_NAME}
+				, #{RCVER_ADDR}
+				, #{RCVER_TEL_NO}
+				, #{RCVER_CELL_NO}
+				, #{BUSI_NO}
+				, #{TAG_PRICE}
+				, #{BRAND_NM}		        
+		        )    
+    </insert>
+    
+     <!-- ERP에 보내기 위한 데이터 추출 -->
+    <select id="selectOrderErpInfo" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+        /* Order.selectOrdErdInfo */
+    SELECT  
+      (SELECT 
+              CASE 
+                   WHEN BND_MST_BRAND_TYPE ='I' THEN '1'
+                   WHEN BND_MST_BRAND_TYPE ='O' THEN '2'
+                   ELSE '1'
+              END AS  DIV                              
+      FROM T_BND_MST
+      WHERE VDR_MST_IDX = TT.ORD_PRD_VDR_IDX
+      ) AS  DIV                                   -- 본사(1)/입점사(2)구분
+      , ORD_MST_CD AS ORDER_NO                    -- 주문번호
+      , ORD_PRD_IDX AS ORDER_DETAIL_NO            -- 주문상세번호
+      ,ROWNUM AS ORDER_SEQ
+      ,CASE 
+             WHEN ORD_MST_ORD_ID = '_GUEST_' THEN 'X'
+             WHEN (
+                   SELECT COUNT(*) FROM T_MEM_MST
+                   WHERE MEM_MST_MEM_ID = ORD_MST_ORD_ID
+                   AND MEM_MST_SW_TYPE IN (3077,3078) 
+                   ) > 0 THEN 'E'
+             WHEN (
+                   SELECT COUNT(*) FROM T_MEM_MST
+                   WHERE MEM_MST_MEM_ID = ORD_MST_ORD_ID
+                   AND MEM_MST_SW_TYPE IN (3077,3078) 
+                   ) = 0 THEN 'A'
+              ELSE 'Q'
+       END  AS ORDER_TYPE
+      ,(SELECT 
+               CASE   
+                    WHEN PRD_MST_O2O_YN ='Y' THEN   '1'
+                    ELSE '0'
+              END
+       FROM T_PRD_MST
+       WHERE PRD_MST_CD=ORD_PRD_MST_CD
+      ) AS O2O_GB
+      ,CASE 
+             WHEN (SELECT DISTINCT ORD_PRD_ORD_STATE FROM T_ORD_PRD_HIS WHERE ORD_ORD_MST_CD = #{ORD_MST_CD} AND ORD_PRD_ORD_STATE=#{ORD_PRD_ORD_STATE}) = 403 THEN 'C'  --취소완료
+            WHEN (SELECT DISTINCT ORD_PRD_ORD_STATE FROM T_ORD_PRD_HIS WHERE ORD_ORD_MST_CD = #{ORD_MST_CD} AND ORD_PRD_ORD_STATE=#{ORD_PRD_ORD_STATE}) = 405 THEN 'P'  --결제완료
+            WHEN (SELECT DISTINCT ORD_PRD_ORD_STATE FROM T_ORD_PRD_HIS WHERE ORD_ORD_MST_CD = #{ORD_MST_CD} AND ORD_PRD_ORD_STATE=#{ORD_PRD_ORD_STATE}) = 407 THEN 'D'  --배송중
+            WHEN (SELECT DISTINCT ORD_PRD_ORD_STATE FROM T_ORD_PRD_HIS WHERE ORD_ORD_MST_CD = #{ORD_MST_CD} AND ORD_PRD_ORD_STATE=#{ORD_PRD_ORD_STATE}) = 408 THEN 'Y'  --배송완료
+            WHEN (SELECT DISTINCT ORD_PRD_ORD_STATE FROM T_ORD_PRD_HIS WHERE ORD_ORD_MST_CD = #{ORD_MST_CD} AND ORD_PRD_ORD_STATE=#{ORD_PRD_ORD_STATE}) = 409 THEN 'E'  --구매확정
+            WHEN (SELECT DISTINCT ORD_PRD_ORD_STATE FROM T_ORD_PRD_HIS WHERE ORD_ORD_MST_CD = #{ORD_MST_CD} AND ORD_PRD_ORD_STATE=#{ORD_PRD_ORD_STATE}) = 3832 THEN 'G'  --교환완료
+            ELSE 'R'
+       END AS ORDER_STEP
+       ,SUBSTR(ORD_MST_CD,1,8) AS ORDER_DATE
+       , (
+			SELECT PRD_MST_CD FROM T_PRD_MST
+    		WHERE PRD_MST_CD =ORD_PRD_MST_CD       
+			AND ROWNUM =1
+         ) AS STYLE_NO
+       ,NVL((SELECT PRD_MST_SEASON 
+         FROM T_PRD_MST
+         WHERE PRD_MST_CD=ORD_PRD_MST_CD
+         AND ROWNUM=1),'2015') AS SEASON_YEAR 
+      , (
+          SELECT CMN_COM_NM FROM T_CMM_COM 
+          WHERE CMN_COM_IDX =ORD_PRD_COLOR
+			AND ROWNUM =1
+          ) AS COLOR_CODE
+      ,  (
+          SELECT CMN_COM_NM FROM T_CMM_COM 
+          WHERE CMN_COM_IDX =ORD_PRD_SIZE
+			AND ROWNUM =1
+          ) AS SIZE_CODE
+      , (
+         SELECT 
+               CASE   
+                    WHEN PRD_MST_O2O_YN ='Y' THEN   'G'
+                    ELSE 'O'
+              END
+         FROM T_PRD_MST
+         WHERE PRD_MST_CD=ORD_PRD_MST_CD
+        ) AS PART_DIV  
+      , (
+         SELECT 
+               CASE   
+                    WHEN PRD_MST_O2O_YN ='Y' THEN   ''
+                    ELSE '1111'
+              END
+         FROM T_PRD_MST
+         WHERE PRD_MST_CD=ORD_PRD_MST_CD
+        ) AS PART_NO  
+      , SUBSTR((
+			SELECT PRD_MST_CD FROM T_PRD_MST
+    		WHERE PRD_MST_CD =ORD_PRD_MST_CD       
+			AND ROWNUM =1
+         ),1,1) AS BRAND
+      ,DECODE(ORD_PRD_ORG_IDX ,NULL,'',ORD_PRD_ORG_IDX) AS LINKED_ORDER_NO
+      ,'' AS LINKED_ORDER_DETAIL_NO
+      ,NVL(ORD_PRD_ORD_CNT,0) AS ORDER_QTY
+      ,NVL(ORD_PRD_ORD_PRC/ORD_PRD_ORD_CNT,0) AS ORDER_PRICE
+      ,NVL(ORD_PRD_ORD_PRC,0) AS ORDER_AMT
+      ,NVL(ORD_PRD_ORD_PRC-ROUND((ORD_PRD_ORD_PRC/1.1)*0.1, 0),0) AS SUPPLY_AMT
+      ,NVL(ROUND((ORD_PRD_ORD_PRC/1.1)*0.1, 0),0) AS VAT_AMT
+      ,NVL((
+		    SELECT CPN_MST_IDX FROM T_ORD_CPN 
+		    WHERE ORD_MST_CD =TT.ORD_MST_CD
+		    AND   ORD_PRD_IDX=TT.ORD_PRD_MST_CD
+			AND ROWNUM =1
+        ),'') AS COUPON_NO
+      ,NVL((
+		    SELECT CPN_MST_TITLE FROM T_CPN_MST
+		    WHERE CPN_MST_IDX IN (
+				    SELECT CPN_MST_IDX FROM T_ORD_CPN 
+				    WHERE ORD_MST_CD =TT.ORD_MST_CD
+				    AND   ORD_PRD_IDX=TT.ORD_PRD_MST_CD
+			AND ROWNUM =1
+		    )    
+      )  ,'') AS COUPON_NAME
+      ,NVL((      SELECT 
+		           CPN_MST_SAL_PRC
+		      FROM T_CPN_MST
+		      WHERE CPN_MST_IDX IN (
+				    SELECT CPN_MST_IDX FROM T_ORD_CPN 
+				    WHERE ORD_MST_CD =TT.ORD_MST_CD
+				    AND   ORD_PRD_IDX=TT.ORD_PRD_MST_CD
+			AND ROWNUM =1
+		      )
+		),0) AS COUPON_AMT 
+	   , DECODE(ORD_MST_ORD_ID, '_GUEST_', '', ORD_MST_ORD_ID)	AS MEMBER_ID
+		, NVL(TT.ORD_PRD_DC_TOT_PIT,0) AS USE_POINT /* 2020.06.23 포인트 컬럼추가로 해당 포인트 ERP 전송 */
+		, NVL(TT.ORD_PRD_DC_SW_PIT,0) AS OCCUR_POINT
+		, NVL(TT.ORD_PRD_DC_PIT,0) AS USE_EPOINT
+	   <!-- , 0 AS USE_POINT
+	   , 0 AS OCCUR_POINT	   
+	   , 0 AS USE_EPOINT -->	
+	   ,NVL((
+			    SELECT 
+			          MEM_MST_SW_ID
+			    FROM T_MEM_MST
+			    WHERE MEM_MST_MEM_ID =ORD_MST_ORD_ID
+			    			AND ROWNUM =1
+	   ),'') AS  EMP_NO 
+	   ,0 AS EMP_SALE_AMT
+	   , (SELECT VDR_MST_NM FROM T_VDR_MST
+	      WHERE VDR_MST_IDX = TT.ORD_PRD_VDR_IDX
+			AND ROWNUM =1
+	      ) AS COOPER_NM
+	   , 0 AS COOPER_SALE_AMT
+	   , 0 AS PROMOTION_AMT
+	   , 0 AS RSALE_AMT
+	   ,NVL((SELECT DLV_CPN_NM 
+	      FROM T_DLV_CPN 
+	      WHERE DLV_CPN_IDX = ORD_DLV_CPN_IDX
+	      ),'') AS DELIVERY_CUST_CODE
+       , NVL(ORD_PRD_IVC_NO,'') AS INVOICE_NO
+      ,CASE 
+            WHEN ORD_PRD_ORD_STATE_HIS = 409 THEN NVL(SUBSTR(ORD_PRD_REG_DT,1,8),'')  --구매확정
+            ELSE ''
+       END AS BUY_CONFM_DATE
+       , ORD_MST_CD AS ORDER_PAYMENT_NO
+       ,NVL( (
+			SELECT SUBSTR(PAY_MST_PAYDATE,1,8) FROM T_PAY_MST
+			WHERE PAY_MST_OID = ORD_MST_CD  
+			AND ROWNUM =1
+       ),'') AS PAY_DATE
+	,CASE 
+            WHEN ORD_PRD_ORD_STATE_HIS = 407 THEN NVL(SUBSTR(ORD_PRD_REG_DT,1,8),'')
+            ELSE ''
+       END AS DELI_DATE	
+	,CASE 
+            WHEN ORD_PRD_ORD_STATE_HIS = 408 THEN NVL(SUBSTR(ORD_PRD_REG_DT,1,8),'')
+            ELSE ''
+       END AS DELI_END_DATE	
+	,CASE 
+            WHEN ORD_PRD_ORD_STATE_HIS = 409 THEN NVL(SUBSTR(ORD_PRD_REG_DT,1,8),'')  --구매확정
+            ELSE ''
+       END AS SALE_CONFM_DATE	
+	,CASE 
+            WHEN ORD_PRD_ORD_STATE_HIS = 403 THEN NVL(SUBSTR(ORD_PRD_REG_DT,1,8),'')  --취소완료
+            ELSE ''
+       END AS CANCEL_DATE	
+	,CASE 
+            WHEN ORD_PRD_ORD_STATE_HIS = 423 THEN NVL(SUBSTR(ORD_PRD_REG_DT,1,8),'')  --취소완료
+            ELSE ''
+       END AS RECHANGE_DATE	
+	,NVL((SELECT 
+               CASE   
+                    WHEN PRD_MST_O2O_YN ='Y' THEN   (SELECT VDR_MST_FEE FROM T_VDR_MST WHERE VDR_MST_IDX =ORD_PRD_VDR_IDX)
+                    ELSE 0
+              END
+       FROM T_PRD_MST
+       WHERE PRD_MST_CD=ORD_PRD_MST_CD
+      ),0) AS FEE_RATE
+	,(
+	    SELECT ORD_DLV_NM FROM T_ORD_DLV
+	    WHERE ORD_ORD_MST_CD=ORD_MST_CD	
+	) AS SENDER_NAME	
+	,(
+	    SELECT ORD_DLV_JBN_ADR1 FROM T_ORD_DLV
+	    WHERE ORD_ORD_MST_CD=ORD_MST_CD	
+	) AS SENDER_ADDR	
+	,(
+	    SELECT ORD_DLV_TEL1||ORD_DLV_TEL2||ORD_DLV_TEL3 FROM T_ORD_DLV
+	    WHERE ORD_ORD_MST_CD=ORD_MST_CD	
+	) AS SENDER_TEL_NO	
+	,(
+	    SELECT ORD_DLV_HP1||ORD_DLV_HP2||ORD_DLV_HP3 FROM T_ORD_DLV
+	    WHERE ORD_ORD_MST_CD=ORD_MST_CD	
+	) AS SENDER_CELL_NO	
+	,(
+	    SELECT ORD_DLV_MSG FROM T_ORD_DLV
+	    WHERE ORD_ORD_MST_CD=ORD_MST_CD	
+	) AS SENDER_MEMO	
+	,(
+	    SELECT ORD_DLV_NM FROM T_ORD_DLV
+	    WHERE ORD_ORD_MST_CD=ORD_MST_CD	
+	) AS RCVER_NAME	
+	,(
+	    SELECT ORD_DLV_JBN_ADR1 FROM T_ORD_DLV
+	    WHERE ORD_ORD_MST_CD=ORD_MST_CD	
+	) AS RCVER_ADDR	
+	,(
+	    SELECT ORD_DLV_TEL1||ORD_DLV_TEL2||ORD_DLV_TEL3 FROM T_ORD_DLV
+	    WHERE ORD_ORD_MST_CD=ORD_MST_CD	
+	) AS RCVER_TEL_NO	
+	,(
+	    SELECT ORD_DLV_HP1||ORD_DLV_HP2||ORD_DLV_HP3 FROM T_ORD_DLV
+	    WHERE ORD_ORD_MST_CD=ORD_MST_CD	
+	) AS RCVER_CELL_NO	
+	,(SELECT VDR_MST_BUSI1 || VDR_MST_BUSI2 || VDR_MST_BUSI3 FROM T_VDR_MST WHERE VDR_MST_IDX = ORD_PRD_VDR_IDX) AS BUSI_NO		
+	, (SELECT 
+              CASE 
+                   WHEN BND_MST_BRAND_TYPE ='I' THEN 0
+                   WHEN BND_MST_BRAND_TYPE ='O' THEN ORD_PRD_ORD_PRC
+                   ELSE 0
+              END AS  DIV                              
+      FROM T_BND_MST
+      WHERE VDR_MST_IDX = TT.ORD_PRD_VDR_IDX
+      ) AS TAG_PRICE	
+    ,(SELECT 
+            CASE 
+                 WHEN VDR_MST_NM = 'VIKY' THEN NULL 
+                 ELSE VDR_MST_NM 
+            END 
+      FROM T_VDR_MST 
+      WHERE VDR_MST_IDX = ORD_PRD_VDR_IDX) as BRAND_NM  
+FROM      
+	(
+	SELECT DISTINCT
+	    BB.ORD_PRD_MST_CD      
+      , ORD_MST_CD
+      , BB.ORD_PRD_ORD_STATE
+      , CC.ORD_PRD_ORD_STATE AS ORD_PRD_ORD_STATE_HIS
+      , ORD_PRD_OPT_DTL_IDX
+      , BB.ORD_PRD_COLOR
+      , BB.ORD_PRD_SIZE
+      , BB.ORD_PRD_DC_PIT  /* 2020.06.23 포인트컬럼 추가 */
+      , BB.ORD_PRD_DC_SW_PIT 
+      , BB.ORD_PRD_DC_TOT_PIT
+      , ORD_PRD_VDR_IDX
+      , ORD_PRD_ORG_IDX
+      , ORD_PRD_ORD_CNT
+      , ORD_PRD_ORD_PRC
+      , ORD_MST_ORD_ID
+      , ORD_DLV_CPN_IDX
+      , BB.ORD_PRD_IVC_NO
+      , ORD_PRD_IDX
+      , CC.ORD_PRD_REG_DT
+	FROM 
+	       T_ORD_MST AA
+	      ,T_ORD_PRD BB
+	      ,T_ORD_PRD_HIS CC
+	WHERE 1=1
+	AND AA.ORD_MST_CD = BB.ORD_ORD_MST_CD(+)  
+	AND BB.ORD_PRD_IDX = CC.ORD_ORD_PRD_IDX(+)  
+    AND AA.ORD_MST_CD = #{ORD_MST_CD}  
+	AND BB.ORD_PRD_IDX=#{ORD_PRD_IDX}
+	AND ROWNUM = 1
+    ) TT
+   </select>
+     <!-- 배송 일괄 등록 2996 size 950 color-->
+    <select id="selectOrdPrdIdx" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+        /* Order.selectOrdPrdIdx */
+            SELECT ORD_PRD_IDX
+            FROM T_ORD_PRD
+            WHERE 1=1
+            AND ORD_ORD_MST_CD = #{ORD_ORD_MST_CD}
+            AND ORD_PRD_MST_CD = #{ORD_PRD_MST_CD}
+            AND ORD_PRD_OPT_DTL_IDX IN (SELECT OPT_DTL_IDX  FROM T_OPT_DTL TOD WHERE OPT_DTL_NM = #{OPT_DTL_NM})
+            AND ORD_PRD_COLOR IN ( SELECT CMN_COM_IDX FROM T_CMM_COM WHERE CMN_COM_NM = #{ORD_PRD_COLOR_VAL} AND CMN_COM_UP_IDX = 950 )
+            AND ORD_PRD_SIZE IN ( SELECT CMN_COM_IDX FROM T_CMM_COM WHERE CMN_COM_NM = #{ORD_PRD_SIZE_VAL} AND CMN_COM_UP_IDX = 2996 )
+            AND ROWNUM = 1
+    </select>
+    
+    <!-- 관리자 > 주문관리 > 주문상세 > 교환접수 > 택배사목록 콤보 -->
+    <select id="selectDlvCpnList" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+        /* Order.selectDlvCpnList */
+        SELECT DLV_CPN_IDX, DLV_CPN_NM
+        FROM T_DLV_CPN
+     </select>   
+    
+    <!-- 관리자 > 주문관리 > 주문상세 > 교환접수 > 저장 -->
+    <insert id="insertPickup" parameterType="HashMap">
+        /* Order.insertPickup */
+        INSERT INTO T_ORD_PICKUP (
+            ORD_ORD_MST_CD,
+            ORD_DLV_NM,
+            ORD_DLV_HP1,
+            ORD_DLV_HP2,
+            ORD_DLV_HP3,
+            ORD_DLV_TEL1,
+            ORD_DLV_TEL2,
+            ORD_DLV_TEL3,
+            ORD_DLV_JBN_ADR1,
+            ORD_DLV_JBN_ADR2,
+            ORD_DLV_MSG,
+            ORD_DLV_ZIP_CDE5,
+            ORD_DLV_DRO_ADR1,
+            ORD_DLV_DRO_ADR2
+        )
+        VALUES (
+            #{ORD_MST_CD},
+            #{P_ORD_DLV_NM},
+            #{P_ORD_DLV_HP1},
+            #{P_ORD_DLV_HP2},
+            #{P_ORD_DLV_HP3},
+            #{P_ORD_DLV_TEL1},
+            #{P_ORD_DLV_TEL2},
+            #{P_ORD_DLV_TEL3},
+            #{P_ORD_DLV_JBN_ADR1},
+            #{P_ORD_DLV_DRO_ADR2},
+            #{P_ORD_DLV_MSG},
+            #{P_ORD_DLV_ZIP_CDE5},
+            #{P_ORD_DLV_DRO_ADR1},
+            #{P_ORD_DLV_DRO_ADR2}
+        )
+    </insert>
+    
+    <!-- 관리자 > 주문관리 > 반품관리: 목록 -->
+    <select id="selectOrderBackList" parameterType="HashMap" resultType="HashMap">
+    	/* Order.selectOrderBackList */
+        SELECT
+            S1.*
+            , CASE
+                WHEN ESM_MST_IDX IS NULL THEN /* 일반/견적시 다름 */
+                    (SUM(((NVL(ORD_PRD_PRD_PRC,0)+NVL(ORD_PRD_OPT_ADD_PRC,0))*(DECODE(ORD_PRD_ORG_IDX, NULL, ORD_PRD_ORD_CNT, 0)) + NVL(DLV_CHARGE,0) + NVL(DLV_ADD_CHARGE,0))) OVER(PARTITION BY ORD_MST_CD)) - NVL(TOT_DC_AMT,0) - NVL(TOT_ORD_IST_CPN_PRC,0) 
+                ELSE
+                    (SUM(ORD_PRD_ORD_PRC) OVER(PARTITION BY ORD_MST_CD))
+            END CALCULATED_PAYMENT_PRICE
+            , SUM(NVL(DLV_CHARGE,0)) OVER(PARTITION BY ORD_PRD_IDX) as TOT_PRD_DLV_CHARGE /* 상품(묶음)별 총 배송비 */
+            , SUM(NVL(DLV_CHARGE,0) + NVL(DLV_ADD_CHARGE,0)) OVER(PARTITION BY ORD_MST_CD) as TOT_ORD_DLV_CHARGE /* 주문별 총 배송비 */
+            , SUM(NVL(DLV_ADD_CHARGE,0)) OVER(PARTITION BY ORD_MST_CD) as TOT_ORD_DLV_ADD_CHARGE /* 주문별 총 추가 배송비 */
+        FROM
+        (           
+        SELECT
+            T1.*
+            , COUNT(1) OVER(PARTITION BY ORD_MST_CD) AS ORD_PRD_CNT     
+            , NVL(TMP_CALCULATED_DC_COUPON,0) as CALCULATED_DC_COUPON
+            , (SELECT CMN_COM_NM FROM T_CMM_COM WHERE CMN_COM_IDX = ORD_PRD_DLV_TYPE) as ORD_PRD_DLV_TYPE_NM
+            , TO_CHAR(TO_DATE(PAYDATE, 'YYYYMMDDHH24MISS'),'MM/DD HH24:MI') as PAYDATE_NM
+            , CASE
+                WHEN ORD_PRD_DLV_BND_YN = 'Y' AND VDR_ROWNUM = 1 THEN ORD_PRD_DLV_BND_CAG
+                WHEN ORD_PRD_DLV_BND_YN = 'Y' AND VDR_ROWNUM <![CDATA[ <> ]]> 1 THEN 0
+                ELSE (DECODE(ORD_PRD_ORG_IDX, NULL, ORD_PRD_DLV_CAG, 0))
+              END DLV_CHARGE /* 묶음배송인 경우 1번만 배송비 있고 나머지는 0, 그외에는 개별배송비 */
+            , CASE
+                    WHEN VDR_ROWNUM = 1 THEN NVL(ORD_PRD_DLV_ADD_CAG,0) 
+                    ELSE 0
+                  END DLV_ADD_CHARGE /* 추가배송비는 업체별로 받는다. 업체별 첫번째 상품에만 추가 배송비 붙임. */     
+            , CASE
+                WHEN NVL(#{ADM_MST_SUB_IDX},-1) = -1 THEN NVL(TMP_CALCULATED_DC_COUPON,0) + ORD_MST_DC_PIT + ORD_MST_DC_OCB_PIT  /* MarketPlant인 경우는 총 할인 금액 */
+                WHEN NVL(#{ADM_MST_SUB_IDX},-1) <![CDATA[ <> ]]> -1 THEN NVL(TMP_CALCULATED_DC_COUPON,0) /* 입점업체인 경우 판촉쿠폰금액 + 즉시할인금액만 할인금액으로 친다 */                                   
+              END TOT_DC_AMT
+        FROM  
+            (
+                SELECT
+                    DENSE_RANK() OVER(ORDER BY ORD_MST_ORD_DT DESC) as RNUM /* 페이징 처리 위한 RANK */ 
+                    , TBM.BND_MST_BRAND_NM 									/* 브랜드명 */ 
+                    , TPM.PRD_MST_TYPE										/* 상품유형(G:일반, S:세트, B:묶음) */
+                    , TCC.CMN_COM_ETC3 AS ORD_PRD_COLOR_VAL
+                    , TCS.CMN_COM_NM AS ORD_PRD_SIZE_VAL
+                    , FN_PRODUCT_IMG(ORD_PRD_MST_CD,'84') PRODUCT_THUM_IMG 
+                    , OM.ORD_MST_CD											/* 주문_번호 */
+                    , OP.ORD_PRD_IDX										/* 주문상품_IDX */
+                    , OM.ORD_MST_ORD_DT										/* 주문일시 */
+                    , OM.ORD_MST_ORD_TYPE									/* 주문매체(P/M) */
+                    , OM.ORD_MST_ORD_ID										/* 주문자_아이디 */
+                    , OM.ORD_MST_ORD_NM										/* 주문자_명 */
+                    , OM.ORD_MST_PAY_PRC									/* 결제금액_합계 */
+                    , OM.ORD_MST_PAY_TYPE									/* 결제방법(코드값) */
+                    , OP.CHN_DTL_CD											/* 채널코드(영대문1+숫자3자리) */
+                    , OM.ESM_MST_IDX										/* 견적관리IDX */
+                    , OM.ORD_MST_CNL_YN 									/* 취소요청 여부 */
+                    , (SELECT CHN_DTL_NM FROM T_CHN_DTL WHERE CHN_DTL_CD = OP.CHN_DTL_CD) as CHN_DTL_NM
+                    , (SELECT CMN_COM_NM FROM T_CMM_COM WHERE CMN_COM_IDX = OM.ORD_MST_PAY_TYPE) as ORD_MST_PAY_TYPE_NM
+                    , OP.ORD_PRD_MST_CD
+                    , OP.ORD_PRD_OPT_DTL_IDX								/* 상품_옵션_IDX */
+                    , PM.PRD_MST_NM											/* 상품명 */
+                    , OP.ORD_ORD_EDI_ORD_NO									/* EDI 배송예약번호 */
+                    , ORD_PRD_ORG_IDX
+                    , PM.PRD_MST_PRC										/* 상품가격 */
+                    , OP.ORD_PRD_SAL_PRC									/* 판매가(즉시할인가/상품가/기업등급가) */
+                    , OP.ORD_PRD_ORD_CNT									/* 주문수량 */
+                    , OP.ORD_PRD_ORD_PRC									/* 주문금액(판매가*수량) */
+                    , OP.ORD_PRD_ORD_STATE									/* 현재상태_CODE */
+                    , T3.BACK_STATE											/* 반품상태_CODE */
+                    , (SELECT 
+                            CASE /* 겟잇나우 배송은 주문상태를 다르게 보여줘야 한다. */
+                                WHEN OM.ORD_MST_DLV_GBN = 2097 AND CMN_COM_ETC2 IS NOT NULL THEN CMN_COM_ETC2
+                                ELSE CMN_COM_NM    
+                            END                      
+                        FROM T_CMM_COM WHERE CMN_COM_IDX = OP.ORD_PRD_ORD_STATE)
+                        AS ORD_PRD_ORD_STATE_NM								/* 주문상태_이름 */
+                        
+                    , (SELECT 
+                            CASE /* 겟잇나우 배송은 주문상태를 다르게 보여줘야 한다. */
+                                WHEN OM.ORD_MST_DLV_GBN = 2097 AND CMN_COM_ETC2 IS NOT NULL THEN CMN_COM_ETC2
+                                ELSE CMN_COM_NM    
+                            END                      
+                        FROM T_CMM_COM WHERE CMN_COM_IDX = T3.BACK_STATE)
+                        AS BACK_STATE_NM									/* 반품상태_이름 */
+                        
+                    , OD.ORD_DLV_NM											/* 수령자_명 */
+                    , OP.ORD_DLV_CPN_IDX									/* 배송업체IDX */
+                    , OP.ORD_PRD_IVC_NO										/* 송장번호 */
+                    , DC.DLV_CPN_URL										/* 배송추적_URL */
+                    , NVL(ORD_MST_DC_PIT,0) as ORD_MST_DC_PIT
+                    , NVL(ORD_MST_DC_OCB_PIT,0) as ORD_MST_DC_OCB_PIT		/* OCB_포인트사용합계 */
+                    , ORD_PRD_DLV_TYPE										/* 배송구분 */
+                    ,
+                    (
+                        SELECT PAY_MST_PAYDATE FROM T_PAY_MST WHERE PAY_MST_OID = OM.ORD_MST_CD AND PAY_MST_PAYDATE != '00000000000000' AND PAY_MST_TR_STATUS = 'A' AND ROWNUM=1
+                    ) as PAYDATE											/* [공통]결제일시 */
+                    , ORD_PRD_PRD_PRC										/* 상품가격(회원/비회원:상품가, 기업회원:기업등급가) */
+                    , CASE
+                        WHEN NVL(#{ADM_MST_SUB_IDX},-1) = -1 THEN ORD_MST_DC_CPN /* MarketPlant인 경우는 총 쿠폰 할인 금액 */
+                        WHEN NVL(#{ADM_MST_SUB_IDX},-1) <![CDATA[ <> ]]> -1 THEN 
+                        (                       
+                            /* 해당업체가 부담하는 쿠폰할인금액을 SUM */                                
+                            SELECT SUM(ORD_CPN_DC_AMT) FROM T_ORD_CPN 
+                            WHERE ORD_MST_CD = OM.ORD_MST_CD
+                            	AND ORD_PRD_IDX = OP.ORD_PRD_IDX                
+                        )                       
+                        ELSE 0
+                      END TMP_CALCULATED_DC_COUPON  						/* 쿠폰할인금액 */
+                    , ORD_PRD_DLV_CAG										/* 상품별배송비(추가배송비제외) */
+                    , ORD_PRD_DLV_BND_CAG									/* 묶음배송비(추가배송비제외) */
+                    , ORD_PRD_DLV_ADD_CAG									/* 추가배송비 */
+                    , ORD_PRD_DLV_BND_YN									/* 추묶음배송여부 */
+                    , ORD_PRD_VDR_IDX  										/* 입점업체IDX */
+                    , (SELECT VDR_MST_NM FROM T_VDR_MST
+                    	WHERE VDR_MST_IDX = ORD_PRD_VDR_IDX)
+                    	AS VDR_MST_NM 										/* 입점업체명 */
+                    , COUNT(1) OVER(PARTITION BY OP.ORD_ORD_MST_CD, ORD_PRD_VDR_IDX, ORD_PRD_DLV_BND_YN) 
+                    	AS VDR_IDX_CNT 										/* 업체별 상품 개수 */ 
+                    , ROW_NUMBER() OVER(PARTITION BY OP.ORD_ORD_MST_CD, ORD_PRD_VDR_IDX, ORD_PRD_DLV_BND_YN ORDER BY ORD_ORD_EDI_ORD_NO)
+                    	AS VDR_ROWNUM 										/* 업체별 상품 ROWNUM */
+                    , 
+                    (
+                        SELECT 
+                            MAX(ORD_PRD_REG_DT) 
+                        FROM T_ORD_PRD_HIS
+                        WHERE ORD_ORD_PRD_IDX = OP.ORD_PRD_IDX
+                    ) as RECENT_ORD_PRD_DT 									/* 최근 주문변경 일자 */
+                    , OM.ORD_MST_PRE_CD 									/* 재결제이전 주문번호 */
+                    , (SELECT COUNT(1) FROM T_ORD_MST WHERE ORD_MST_PRE_CD = OM.ORD_MST_CD)
+                    	AS REPAY_ORD_CNT 									/* 재결제 주문 개수 */
+                    , OP.ORD_PRD_IST_CPN_PRC*(DECODE(OP.ORD_PRD_ORG_IDX, NULL, OP.ORD_PRD_ORD_CNT, 0)) 
+                    	AS IST_CPN_PRC 										/* 즉시할인금액(즉시할인금액*수량) */
+                    , SUM(OP.ORD_PRD_IST_CPN_PRC*(DECODE(OP.ORD_PRD_ORG_IDX, NULL, OP.ORD_PRD_ORD_CNT, 0))) OVER(PARTITION BY OP.ORD_ORD_MST_CD) 
+                    	AS TOT_ORD_IST_CPN_PRC 								/* 주문 총 즉시할인금액 */
+                    , ORD_PRD_SLT_YN 										/* 선택상품여부 */
+                    , ORD_PRD_UP_IDX 										/* 상위주문상품 IDX */
+                    , DTL.OPT_DTL_NM 										/* 옵션명 */
+                    , ORD_PRD_OPT_ADD_PRC 									/* 옵션추가금 */
+                    , ORD_PRD_SCM_CNL_YN									/* SCM요청여부 */
+                    , ORD_PRD_SCM_CNL_DESC									/* SCM요청사유 */
+                    , ORD_PRD_SCM_CNL_DT									/* SCM요청날짜 */
+                    , OM.ORD_MST_ECR_CFM_YN 								/* 에스크로 구매확인/거절 여부 */
+                    <!-- 2020.06.09 검색조건 구분화  -->
+                    <if test="ADM_TYPE_NUM != null and ADM_TYPE_NUM == 0">
+	                	, (SELECT TMM.MEM_MST_MEM_ID FROM T_MEM_MST TMM 
+	                		WHERE 1=1 AND TMM.MEM_MST_SW_ID IS NOT NULL AND TMM.MEM_MST_MEM_ID = OM.ORD_MST_ORD_ID ) 
+	                		AS ID											/* 회원/비회원/임직원 구분 */
+	                </if>
+	                <!-- END 2020.06.09 검색조건 구분화  -->
+                FROM 
+                    T_ORD_PRD OP, T_ORD_MST OM, T_PRD_MST PM, T_OPT_DTL DTL, T_ORD_DLV OD, T_DLV_CPN DC
+                    , (
+                        SELECT 
+                            ORD_MST_CD
+                        FROM
+                        	<!-- 2020.06.16 반품관리 주문 리스트 START -->
+                        	(
+                        		SELECT * FROM
+                        		(
+	                        		SELECT T1.*
+									FROM
+									    (SELECT ORD_ORD_MST_CD AS ORD_BACK_CD
+									        , ROW_NUMBER() OVER(PARTITION BY ORD_ORD_MST_CD ORDER BY ORD_PRD_HIS_IDX DESC) AS RN
+									    FROM T_ORD_PRD_HIS
+									    <foreach collection="OST_BACK_CODE" item="code" open="WHERE ORD_PRD_ORD_STATE IN(" close=")" separator=",">#{code}</foreach>
+									    ) T1 
+									WHERE RN = 1  
+								)T2 JOIN T_ORD_MST ON(T2.ORD_BACK_CD = T_ORD_MST.ORD_MST_CD)
+                        	) OM
+                        	<!-- 2020.06.16 반품관리 주문 리스트 END -->
+                        	<!-- T_ORD_MST OM -->
+                        	, T_ORD_PRD OP, T_PRD_MST PM, T_OPT_DTL DTL, T_ORD_DLV OD, T_DLV_CPN DC
+                        WHERE OM.ORD_MST_CD = OP.ORD_ORD_MST_CD 
+	                        AND OP.ORD_PRD_MST_CD = PM.PRD_MST_CD
+	                        AND OM.ORD_MST_CD = OD.ORD_ORD_MST_CD(+)
+	                        AND OP.ORD_PRD_OPT_DTL_IDX= DTL.OPT_DTL_IDX(+)
+	                        AND OP.ORD_DLV_CPN_IDX= DC.DLV_CPN_IDX(+)                       
+	                        <include refid="orderWhere"/>
+                        GROUP BY OM.ORD_MST_CD
+                    ) OM2, T_PRD_MST TPM, T_BND_MST TBM, T_CMM_COM TCC, T_CMM_COM TCS
+                    , (
+                    	SELECT ORD_ORD_PRD_IDX AS BACK_IDX, BACK_STATE
+						FROM
+						    (SELECT ORD_ORD_PRD_IDX, ORD_PRD_ORD_STATE AS BACK_STATE
+						        , ROW_NUMBER() OVER(PARTITION BY ORD_ORD_PRD_IDX ORDER BY ORD_PRD_HIS_IDX DESC) AS RN
+						    FROM T_ORD_PRD_HIS
+						     WHERE ORD_PRD_ORD_STATE IN(  431 , 1783 , 1668 , 433 , 435 , 3028 ) 
+						    ) T1 
+						WHERE RN = 1 
+                       ) T3
+                WHERE 1=1
+                AND OP.ORD_PRD_MST_CD = TPM.PRD_MST_CD 
+                AND OP.ORD_ORD_MST_CD = OM.ORD_MST_CD
+                AND TCC.CMN_COM_IDX = OP.ORD_PRD_COLOR
+                AND TCS.CMN_COM_IDX = OP.ORD_PRD_SIZE
+                AND TPM.PRD_MST_BRD_IDX  = TBM.BND_MST_IDX
+                AND OP.ORD_PRD_IDX = T3.BACK_IDX(+)
+                
+                <!-- 2020.06.16 반품관리 메뉴 조회를 위해 주문상태 검색 부분을 orderWhere에서 분리하여 수정함 -->
+	            <if test="searchOrdPrdOrderState != null and searchOrdPrdOrderState != ''">
+		            AND T3.BACK_STATE= TRIM(#{searchOrdPrdOrderState})
+		        </if>
+                
+                <!-- 2020.06.09 검색조건 구분화  -->                
+                <choose>
+                	<when test="RETURN_CODE != null and arrOrdPrdIdxs != null and arrOrdPrdIdxs.length > 0">                		         	
+	                    <foreach collection="arrOrdPrdIdxs" item="ORD_PRD_IDX" open="AND ORD_PRD_IDX IN(" close=")" separator=",">
+	                    	#{ORD_PRD_IDX}
+	                    </foreach>                			
+                	</when>
+                	<when test="STATUS_CODE == null and STATUS_CODE == STATUS and ORD_PRD_IDXs != null">
+                		AND OP.ORD_PRD_IDX = #{ORD_PRD_IDXs}
+                	</when>                	
+                </choose>   
+                <!-- END 2020.06.09 검색조건 구분화  -->                
+                <!-- <if test="STATUS_CODE == null and STATUS_CODE == STATUS and ORD_PRD_IDXs != null and RETURN_CODE == null">	                
+	                <choose>
+		            	<when test="arrOrdPrdIdxs != null and arrOrdPrdIdxs.length > 0">
+		            		AND OP.ORD_PRD_IDX IN	            		
+		                    <foreach collection="arrOrdPrdIdxs" item="ORD_PRD_IDX" open="AND ORD_PRD_IDX IN(" close=")" separator=",">
+		                    	#{ORD_PRD_IDX}
+		                    </foreach>		                
+		            	</when>
+		            	<otherwise>	            		
+		            		AND OP.ORD_PRD_IDX = #{ORD_PRD_IDXs}
+		            	</otherwise>
+		            </choose>
+	            </if> -->		                    
+                <if test="ADM_MST_SUB_IDX != null and ADM_MST_SUB_IDX != ''">
+                    AND OP.ORD_PRD_VDR_IDX = #{ADM_MST_SUB_IDX} /* 입점업체 주문 조회시 */
+                </if>
+                AND OM.ORD_MST_CD = OM2.ORD_MST_CD    
+                AND OP.ORD_PRD_MST_CD = PM.PRD_MST_CD
+                AND OM.ORD_MST_CD = OD.ORD_ORD_MST_CD(+) 
+                AND OP.ORD_PRD_OPT_DTL_IDX= DTL.OPT_DTL_IDX(+)
+                AND OP.ORD_DLV_CPN_IDX= DC.DLV_CPN_IDX(+)
+                <!-- 2020.06.09 검색조건 구분화  -->
+                <if test="ADM_TYPE_NUM != null and ADM_TYPE_NUM == 0">
+                	AND ID IS NOT NULL
+                </if>
+                <if test="ADM_TYPE_NUM != null and ADM_TYPE_NUM == 1">
+                	AND ORD_MST_ORD_ID != '_GUEST_'
+                </if>
+                <if test="ADM_TYPE_NUM != null and ADM_TYPE_NUM == 2">
+                	AND ORD_MST_ORD_ID = '_GUEST_'
+                </if>
+                <!-- END 2020.06.09 검색조건 구분화  -->	                			
+            ) T1
+        WHERE 1=1
+        <if test="excelDown == null or excelDown == ''">
+            AND RNUM BETWEEN #{startNum} AND #{endNum} 
+        </if>
+        ) S1
+        <if test="searchScmCancel == null or searchScmCancel == ''">
+            ORDER BY RNUM, ORD_ORD_EDI_ORD_NO
+        </if>
+    
+    </select>
+    
+    <!-- 관리자 > 주문관리 > 반품관리: 목록 개수 -->
+    <select id="selectOrderBackListCount" parameterType="java.util.HashMap" resultType="Integer">
+        /* Order.selectOrderBackListCount */
+        SELECT 
+            COUNT(0)
+        FROM 
+        (
+            SELECT 
+                ORD_MST_CD
+            FROM 
+            	<!-- 2020.06.16 반품관리 주문 리스트 START -->
+                (
+	                SELECT * FROM 
+	                (
+		                SELECT T1.*
+						FROM
+						    (SELECT ORD_ORD_MST_CD AS ORD_BACK_CD, ORD_PRD_ORD_STATE AS BACK_STATE
+						        , ROW_NUMBER() OVER(PARTITION BY ORD_ORD_MST_CD ORDER BY ORD_PRD_HIS_IDX DESC) AS RN
+						    FROM T_ORD_PRD_HIS
+						    <foreach collection="OST_BACK_CODE" item="code" open="WHERE ORD_PRD_ORD_STATE IN(" close=")" separator=",">#{code}</foreach>
+						    ) T1 
+						WHERE RN = 1  
+					)T2 JOIN T_ORD_MST ON(T2.ORD_BACK_CD = T_ORD_MST.ORD_MST_CD)
+                ) OM
+                <!-- 2020.06.16 반품관리 주문 리스트 END -->
+                <!-- T_ORD_MST OM -->
+            	, T_ORD_PRD OP, T_PRD_MST PM, T_OPT_DTL DTL, T_ORD_DLV OD, T_DLV_CPN DC
+            WHERE OM.ORD_MST_CD = OP.ORD_ORD_MST_CD 
+            AND OP.ORD_PRD_MST_CD = PM.PRD_MST_CD
+            AND OM.ORD_MST_CD = OD.ORD_ORD_MST_CD(+)
+            AND OP.ORD_PRD_OPT_DTL_IDX= DTL.OPT_DTL_IDX(+)
+            AND OP.ORD_DLV_CPN_IDX= DC.DLV_CPN_IDX(+)                       
+            <include refid="orderWhere"/>
+            <!-- 2020.06.16 반품관리 메뉴 조회를 위해 주문상태 검색 부분을 orderWhere에서 분리하여 수정함 -->
+            <if test="searchOrdPrdOrderState != null and searchOrdPrdOrderState != ''">
+	            AND BACK_STATE= TRIM(#{searchOrdPrdOrderState})
+	        </if>
+            
+            <!-- 2020.06.09 검색조건 구분화  -->
+            <if test="ADM_TYPE_NUM != null and ADM_TYPE_NUM == 0">
+            	AND (SELECT TMM.MEM_MST_MEM_ID FROM T_MEM_MST TMM WHERE 1=1 AND TMM.MEM_MST_SW_ID IS NOT NULL AND TMM.MEM_MST_MEM_ID = OM.ORD_MST_ORD_ID ) IS NOT NULL
+            </if>
+            <if test="ADM_TYPE_NUM != null and ADM_TYPE_NUM == 1">
+            	AND ORD_MST_ORD_ID != '_GUEST_'
+            </if>
+            <if test="ADM_TYPE_NUM != null and ADM_TYPE_NUM == 2">
+            	AND ORD_MST_ORD_ID = '_GUEST_'
+            </if>
+            <if test="STATUS_CODE == null and STATUS_CODE == STATUS and ORD_PRD_IDXs != null and RETURN_CODE == null">
+                AND OP.ORD_PRD_IDX = #{ORD_PRD_IDXs}
+            </if>
+            GROUP BY OM.ORD_MST_CD
+        )
+    </select>
+    
+    <!-- 관리자 > 주문관리 > 재고 확인을 위한 주문 데이터 맵 생성용 쿼리(2020.06.16) -->
+    <select id="selectOrderErpStockInfo" parameterType="HashMap" resultType="HashMap">
+    	/* Order.selectOrderErpStockInfo */
+    	SELECT
+    		PRD_MST_ERP_CD AS STYLE_NO
+    		, PRD_MST_YEAR AS SEASON_YEAR
+    		, (SELECT CMN_COM_NM FROM T_CMM_COM
+    			WHERE CMN_COM_IDX = ORD_PRD_COLOR) AS COLOR_CODE
+    		, (SELECT CMN_COM_NM FROM T_CMM_COM
+    			WHERE CMN_COM_IDX = ORD_PRD_SIZE) AS SIZE_CODE
+    	FROM T_ORD_PRD OP
+    	JOIN T_PRD_MST PM ON (OP.ORD_PRD_MST_CD = PM.PRD_MST_CD)
+    	WHERE ORD_PRD_IDX = #{ORD_PRD_IDX}
+    </select>
+    
+    <!-- 다른 사이즈 재고 확인을 위한 리스트 생성용 쿼리(2020.06.29) -->
+    <select id="selectOrderOtherSizeErpStockInfo" parameterType="HashMap" resultType="HashMap">
+    	/* Order.selectOrderOtherSizeErpStockInfo */
+    	SELECT * FROM(
+	    	SELECT
+	    		TCC.CMN_COM_IDX 
+	    		, TCC.CMN_COM_NM AS SIZE_CODE
+	    		, TPM.PRD_MST_ERP_CD AS STYLE_NO
+	    		, TPM.PRD_MST_YEAR AS SEASON_YEAR
+	    		, (SELECT CMN_COM_NM FROM T_CMM_COM
+	    			WHERE CMN_COM_IDX = ORD_PRD_COLOR) AS COLOR_CODE
+			FROM T_PRD_MST TPM, T_PRD_CMM_OPT TPCO, T_CMM_COM TCC, T_ORD_PRD TOP 
+			WHERE TPM.PRD_MST_CD = TPCO.PRD_MST_CD 
+			 	AND TPCO.CMM_OPT_NM = TCC.CMN_COM_IDX 
+			 	AND TPCO.PRD_CMM_TYPE = 'S'
+			 	AND TPM.PRD_MST_CD = TOP.ORD_PRD_MST_CD 
+			 	AND TOP.ORD_PRD_IDX =  #{ORD_PRD_IDX}
+		) GROUP BY CMN_COM_IDX, SIZE_CODE, STYLE_NO, SEASON_YEAR, COLOR_CODE
+    </select>
+    
+    <!-- 관리자 > 주문관리 > 매장발송 버튼 클릭시 해당 주문 상품의 배송 타입을 '입점업체'로 변경(2020.06.22) -->
+    <update id="updateDeliveryTypeAjax" parameterType="HashMap">
+    	/* Order.updateDeliveryTypeAjax */
+    	UPDATE T_ORD_PRD
+    	SET
+    		ORD_PRD_DLV_TYPE = #{ORD_PRD_DLV_TYPE}
+    	WHERE
+    		ORD_ORD_MST_CD = #{ORD_ORD_MST_CD}
+    		AND ORD_PRD_MST_CD = #{ORD_PRD_MST_CD}
+    		AND ORD_PRD_COLOR = #{ORD_PRD_COLOR}
+    		AND ORD_PRD_SIZE = #{ORD_PRD_SIZE}
+    </update>
+    
+    <!-- 주문상품의 주문상태 변경시 전체인지 부분인지 확인하기 위해 주문상품 수량을 카운트  -->
+    <select id="selectOrdPrdCount" parameterType="HashMap" resultType="int">
+    	/* Order.selectOrdPrdCount */
+    	SELECT COUNT(0)
+    	FROM T_ORD_PRD
+    	WHERE ORD_ORD_MST_CD = #{ORD_MST_CD}
+    </select>
+    
+    <!-- 관리자 > 반품상세 페이지의 반품정보  -->
+    <select id="selectOrderBackInfo" resultType="HashMap" parameterType="HashMap">
+    	/* Order.selectOrderBackInfo */
+    	SELECT
+    		(SELECT CMN_COM_NM FROM T_CMM_COM WHERE CMN_COM_IDX = TOP.ORD_PRD_CHANGE_REASON) 
+    			AS BACK_REASON
+    		, TOP.DLV_PAY_WAY
+    		, TOP.ORD_PRD_CHANGE_REASON_DSC AS BACK_REASON_DSC
+    		, TOP.ORD_PRD_DLV_ADD_CAG_GBN
+    	FROM T_ORD_PRD TOP
+		WHERE 
+			TOP.ORD_PRD_IDX = #{ORD_PRD_IDX}
+    </select>
+    
+    <!-- 관리자 > 주문상세 페이지의 포인트 사용정보  -->
+    <select id="selectOrderUsedPoints" parameterType="HashMap" resultType="HashMap">
+    	/* Order.selectOrderUsedPoints */
+    	SELECT
+			T1.*, E_POINT + SW_POINT + TOT_POINT + PROMOTION AS ALL_POINT
+		FROM
+        	(SELECT
+			    NVL(SUM(OP.ORD_PRD_DC_PIT), 0) AS E_POINT,
+			    NVL(SUM(OP.ORD_PRD_DC_SW_PIT), 0) AS SW_POINT,
+			    NVL(SUM(OP.ORD_PRD_DC_TOT_PIT), 0) AS TOT_POINT,
+			    NVL(SUM(OP.ORD_PRD_DC_PRM), 0) AS PROMOTION
+			FROM 
+			    T_ORD_PRD OP
+			WHERE
+			    ORD_ORD_MST_CD = #{ORD_MST_CD}
+			    <if test="ADM_MST_SUB_IDX != null and ADM_MST_SUB_IDX != ''">
+	            	AND OP.ORD_PRD_VDR_IDX = TRIM(#{ADM_MST_SUB_IDX}) /* 입점업체 주문 조회시 */
+	        	</if>
+	        ) T1
+    </select>
+    
+</mapper>

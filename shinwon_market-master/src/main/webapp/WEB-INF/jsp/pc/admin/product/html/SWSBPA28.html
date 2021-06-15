@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="ko" dir="ltr">
+    <head>
+        <meta charset="utf-8">
+        <title></title>
+		<link href="http://bo.marketplanta.epasscni.com:8080/am/css/font-awesome.css" rel="stylesheet">
+		<link rel="stylesheet" href="http://bo.marketplanta.epasscni.com:8080/am/css/import.css">
+        <link rel="stylesheet" href="style.css">
+		<script src="http://bo.marketplanta.epasscni.com:8080/am/js/vendor/modernizr-2.6.2-respond-1.1.0.min.js"></script>
+		<script src="http://bo.marketplanta.epasscni.com:8080/am/js/vendor/jquery-1.11.2.min.js"></script>
+        <style media="screen">
+            .btnAdd, .btnRemove{width:21px;height:21px;background:none;border:1px solid #ccc;}
+        </style>
+    </head>
+    <body><!-- body class, 중요 -->
+
+    <div id="header"><!-- header -->
+        <div id="top" class="container" style="background: #414547 url('/am/img/bg_head.png') no-repeat center top;"><!-- top -->
+            <div class="wrap">
+                <div class="menu"><!-- menu -->
+                    <div id="togglerAside" class="toggler left">
+                        <a href="#!" class="js-toggle-nav" data-class="is-aside-in" data-lg-class="is-aside-out">
+                            <i class="fonti um-fog on"><em>메뉴 펼치기</em></i>
+                            <i class="fonti um-fog off"><em>메뉴 접기</em></i>
+                        </a>
+                    </div>
+                </div><!-- // menu -->
+                <h1 class="logo">
+                    <a href="http://bo.marketplanta.epasscni.com"><img src="http://bo.marketplanta.epasscni.com/nas/cdn/logo/2c679ea5-27f8-4d4b-a2ee-0bd2e4aa2bef.png" alt="HOME" /></a>
+                </h1>
+                <div class="util"><!-- util -->
+                    <div class="col">
+                        <a href="javascript:;"><i class="fonti um-gears"><em>환경설정</em></i></a>
+                    </div>
+                    <div class="col">
+                        <a href="http://bo.marketplanta.epasscni.com/am/manager/logout.do"><i class="fonti um-sign-out"><em>로그아웃</em></i></a>
+                    </div>
+                    <div class="col">
+                        <div id="togglerQuick" class="toggler left">
+                            <a href="#!" class="js-toggle-nav" data-class="is-quick-in" data-lg-class="is-quick-out">
+                                <i class="fonti um-ellipsis-h on"><em>사용자 메뉴 펼치기</em></i>
+                                <i class="fonti um-ellipsis-v off"><em>사용자 메뉴 접기</em></i>
+                            </a>
+                        </div>
+                    </div>
+                </div><!-- // util -->
+            </div>
+        </div><!-- // top -->
+
+        <div id="gnb" class="container">
+            <div class="wrap core"></div><!-- // gnb -->
+            <div class="spacer"></div>
+        </div>
+    </div><!-- // header -->
+
+    <div id="container"><!-- container -->
+
+        <div id="aside" class="aside left"><!-- aside -->
+            <div class="holder"><!-- holder -->
+                <div id="lnb" class="container">
+                    <div class="wrap modules"><!-- modules -->
+                        <div class="title">
+
+                        </div>
+                        <div class="core"></div>
+                    </div><!-- // modules -->
+                </div>
+            </div><!-- // holder --></div><!-- // aside -->
+
+        <div id="wrapper"><!-- wrapper -->
+
+            <div id="breadcrumb"></div><!-- breadcrumb -->
+
+            <div id="contents"><!-- contents -->
+
+                <div class="container">
+
+                    <h2 class="title"><span>포인트추가적립률관리</span></h2>
+
+                    <div class="clearfix">
+
+                        <!-- https://github.com/jzaefferer/jquery-treeview -->
+                        <!-- http://bassistance.de/jquery-plugins/jquery-plugin-treeview/ -->
+
+                    <div id="main_con" style="float: left; padding: 10px;">
+                        <div class="contents-inner"><!-- contents-inner -->
+
+
+                        	<form id="frm" name="frm">
+                        		<input type="hidden" id="CMN_COM_IDX" name="CMN_COM_IDX" value="2350">
+                        	    <input type="hidden" id="PRD_CTG_ENV" name="PRD_CTG_ENV" value="">
+                        	    <input type="hidden" id="DSP_MST_ENV" name="DSP_MST_ENV" value="P">
+                        	    <input type="hidden" id="searchGubun" name="searchGubun" value="">
+
+                        		<div class="table-a"><!-- col list -->
+                        			<table class="table-row table-a">
+                        				<colgroup>
+                        					<col style="width: 20%;">
+                        					<col style="width: auto;">
+                        				</colgroup>
+                        				<tbody >
+                        					<tr>
+            									<th>GINNASIX</th>
+            									<td>
+                                                    <div class="point_inp">
+                										<p>할인율 : <input type="text" name="txt" placeholder="0"> % ~ <input type="text" name="txt" placeholder="19"> % 이하 <input type="text" name="txt" placeholder="5"> % 포인트 적립 <a href="#none" class="button primary goCategoryMbAdd">+<span></span></a></p>
+                                                        <p>할인율 : <input type="text" name="txt" placeholder="0"> % ~ <input type="text" name="txt" placeholder="19"> % 이하 <input type="text" name="txt" placeholder="5"> % 포인트 적립 <a href="#none" class="button goCategoryPcDelete"><span>-</span></a></p>
+                									</div>
+                                                </td>
+                                            </tr>
+                                            <tr>
+            									<th>iCONOQ</th>
+            									<td>
+                                                    <div class="point_inp">
+                										<p>할인율 : <input type="text" name="txt" placeholder="0"> % ~ <input type="text" name="txt" placeholder="19"> % 이하 <input type="text" name="txt" placeholder="5"> % 포인트 적립 <a href="#none" class="button primary goCategoryMbAdd"><span>+</span></a></p>
+                                                        <p>할인율 : <input type="text" name="txt" placeholder="0"> % ~ <input type="text" name="txt" placeholder="19"> % 이하 <input type="text" name="txt" placeholder="5"> % 포인트 적립 <a href="#none" class="button goCategoryPcDelete"><span>-</span></a></p>
+                									</div>
+                                                </td>
+                                            </tr>
+                                            <tr>
+            									<th>SIEG</th>
+            									<td>
+                                                    <div class="point_inp">
+                										<p>할인율 : <input type="text" name="txt" placeholder="0"> % ~ <input type="text" name="txt" placeholder="19"> % 이하 <input type="text" name="txt" placeholder="5"> % 포인트 적립 <a href="#none" class="button primary goCategoryMbAdd"><span>+</span></a></p>
+                                                        <p>할인율 : <input type="text" name="txt" placeholder="0"> % ~ <input type="text" name="txt" placeholder="19"> % 이하 <input type="text" name="txt" placeholder="5"> % 포인트 적립 <a href="#none" class="button goCategoryPcDelete"><span>-</span></a></p>
+                									</div>
+                                                </td>
+                                            </tr>
+                                            <tr>
+            									<th>FAHRENHEIT</th>
+            									<td>
+                                                    <div class="point_inp">
+                										<p>할인율 : <input type="text" name="txt" placeholder="0"> % ~ <input type="text" name="txt" placeholder="19"> % 이하 <input type="text" name="txt" placeholder="5"> % 포인트 적립 <a href="#none" class="button primary goCategoryMbAdd"><span>+</span></a></p>
+                                                        <p>할인율 : <input type="text" name="txt" placeholder="0"> % ~ <input type="text" name="txt" placeholder="19"> % 이하 <input type="text" name="txt" placeholder="5"> % 포인트 적립 <a href="#none" class="button goCategoryPcDelete"><span>-</span></a></p>
+                									</div>
+                                                </td>
+                                            </tr>
+            							</tbody>
+                        			</table>
+                                    <div class="section-button"><!-- section-button -->
+                                        <div class="wrap text-center">
+                                            <a href="javascript:goRegist();" class="button large primary"><span>저장</span></a>
+                                        </div>
+                                    </div>
+                        		</div><!-- // col list -->
+                            </form>
+                        </div>
+                    </div>
+
+                    </div>
+
+                    <p>
+
+                    </p>
+                </div>
+
+            </div><!-- // contents -->
+
+        </div><!-- // wrapper -->
+
+        <div id="quickmenu" class="aside right"><!-- quickmenu-->
+            <div class="holder"><!-- holder -->
+
+                <div id="quick" class="container">
+
+                    <div class="wrap modules"><!-- modules -->
+                        <ul class="core">
+                            <li class="d2 active">
+                                <a href="javascript:;" class="d2"><span>admin 님</span></a>
+                                <div class="d3 show"><!-- d3 -->
+                                    <ul class="d3">
+                                        <li class="d3">
+                                            <a href="http://bo.marketplanta.epasscni.com/am/manager/logout.do" class="d3"><span>로그아웃</span></a>
+                                        </li>
+                                    </ul>
+                                </div><!-- // d3 -->
+                            </li>
+                        </ul>
+                    </div><!-- // modules -->
+
+                </div>
+
+            </div><!-- // holder -->
+        </div><!-- // quickmenu -->
+
+    </div><!-- // container -->
+
+    <div id="footer">
+        <div id="copyrights"><!-- copyrights -->
+            <div class="container">
+                <p>
+                    Copyrights &copy; MarketPlant, co.ltd. All rights Reserved.
+                </p>
+            </div>
+        </div><!-- // copyrights -->
+    </div>
+
+<script src="/am/js/epass.base-0.3.js"></script>
+<script src="/am/js/plugins.js"></script>
+<script src="/am/js/plugins/jquery.menu-aim.js"></script>
+<script src="/am/js/plugins/nanobar.js"></script>
+<script src="/am/js/plugins/alertify.custom-0.3.11.js"></script>
+<script src="/am/js/plugins/Chart.bundle.js"></script>
+<script src="/am/js/common/jquery.cookie.js"></script>
+<script src="/am/js/epass.helper.notify-0.1.js"></script>
+<script src="/am/js/epass.modalr-0.1.js"></script>
+<!-- run -->
+<script src="/am/js/ui.nav.js"></script>
+<script src="/am/js/ui.js"></script>
+<script src="/am/js/admin.js"></script>
+<script src="/am/js/common.js"></script>
+<script src="/am/js/common/jquery.validate.js"></script>
+<!-- common -->
+<script src="/am/js/plugins/jquery.cookie.js"></script> <!-- treeview -->
+<script src="/am/js/plugins/jquery.treeview.js"></script> <!-- treeview -->
+<script src="/am/js/common/jquery.ajax.js"></script>
+
+
+</body>
+	</html>

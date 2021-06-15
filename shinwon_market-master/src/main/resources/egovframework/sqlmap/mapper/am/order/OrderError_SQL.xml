@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="OrderError">
+	
+	<sql id="orderErrorWhere">
+		<where>
+            <if test="searchStartDate != null and searchStartDate != '' and searchEndDate != null and searchEndDate != ''">
+                AND ORD_ERR_REG_DT BETWEEN REPLACE(TRIM(#{searchStartDate}),'-', '')||'000000' AND REPLACE(TRIM(#{searchEndDate}),'-', '')||'235959'
+            </if>
+			
+            <if test="searchKeyword != null and searchKeyword != ''">
+                AND ORD_ERR_ORD_CD=TRIM(#{searchKeyword})
+            </if>
+            
+            <if test="searchOrderErrType != null and searchOrderErrType !=''">
+                AND ORD_ERR_TYPE=TRIM(#{searchOrderErrType})
+            </if>
+            
+            <if test="searchOrderErrCard != null and searchOrderErrCard != ''">
+                AND ORD_ERR_LSSUER=TRIM(#{searchOrderErrCard})
+            </if>
+		</where>
+	</sql>
+	
+	<!-- 결제오류조회 개수 -->
+	<select id="selectOrdErrCount" parameterType="java.util.HashMap" resultType="Integer">
+		/* OrderError.selectOrdErrCount */
+		<![CDATA[
+		SELECT 
+			COUNT(1)
+		FROM 
+			T_ORD_ERR TOR
+		]]>
+		<include refid="orderErrorWhere"/>
+	</select>
+	
+	<!-- 결제오류조회 목록 -->
+	<select id="selectOrdErrList" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+		/* OrderError.selectOrdErrList */
+		<![CDATA[
+		SELECT
+			S2.*
+		FROM
+		(	
+			SELECT 
+				ROWNUM AS RNUM,
+				S1.*
+			FROM 
+				(
+				SELECT 
+					ORD_ERR_IDX             /*주문에러_IDX*/
+					,ORD_ERR_TYPE			/*에러구분*/
+					,ORD_ERR_ORD_CD			/*주문_번호*/	
+					,ORD_ERR_CRD			/*주문카드*/
+					,(SELECT CRD_INF_NM FROM T_CRD_INF WHERE CRD_INF_CD = ORD_ERR_LSSUER AND ROWNUM =1) as ORD_ERR_CRD_NM   /*카드이름*/
+					,ORD_ERR_APV_NO 		/*카드승인번호*/
+					,ORD_ERR_PG_NO			/*PG승인번호*/
+					,ORD_ERR_REP_CODE		/*카드RESP_CODE*/
+					,ORD_ERR_LSSUER			/*카드LSSUER*/
+					,ORD_ERR_BNK_CD			/*결제은행코드*/
+					,REPLACE(ORD_ERR_MSG, chr(13)||chr(10), '<br/>') as ORD_ERR_MSG		/*에러메세지*/
+					,ORD_ERR_REG_DT		/*최초_등록일*/
+					,ORD_ERR_REG_IP		/*최초_등록_IP*/
+					,ORD_ERR_REG_ID		/*최초_등록자_아이디*/
+					,ORD_ERR_UPD_DT		/*최종_등록일*/
+					,ORD_ERR_UPD_IP		/*최종_등록_IP*/
+					,ORD_ERR_UPD_ID		/*최종_등록자_아이디*/		
+				FROM 
+					T_ORD_ERR TOR 	/*주문에러로그 테이블*/
+					]]>
+				<include refid="orderErrorWhere"/>
+				<![CDATA[
+				ORDER BY ORD_ERR_IDX DESC
+			) S1
+		) S2
+		WHERE
+			S2.RNUM BETWEEN #{startNum} AND #{endNum}
+			]]>
+	</select>
+	
+	<!-- 결제오류 등록 -->
+	<insert id="insertOrdErr" parameterType="java.util.HashMap">
+        <selectKey keyProperty="ORD_ERR_IDX" resultType="Integer" order="BEFORE">
+            SELECT SEQ_ORD_ERR_IDX.NEXTVAL ORD_ERR_IDX FROM DUAL
+        </selectKey>
+		/* OrderError.insertOrdErr */
+		<![CDATA[
+		INSERT INTO T_ORD_ERR
+		(
+			ORD_ERR_IDX			/*주문에러_IDX*/
+			,ORD_ERR_TYPE		/*에러구분*/
+			,ORD_ERR_ORD_CD		/*주문_번호*/	
+			,ORD_ERR_CRD		/*주문카드*/
+			,ORD_ERR_APV_NO		/*카드승인번호*/
+			,ORD_ERR_PG_NO		/*PG승인번호*/
+			,ORD_ERR_REP_CODE	/*카드RESP_CODE*/
+			,ORD_ERR_LSSUER		/*카드LSSUER*/
+			,ORD_ERR_BNK_CD		/*결제은행코드*/
+			,ORD_ERR_MSG		/*에러메세지*/
+			,ORD_ERR_REG_DT		/*최종_등록일*/
+			,ORD_ERR_REG_IP		/*최종_등록_IP*/
+			,ORD_ERR_REG_ID		/*최종_등록자_아이디*/	
+		)
+		VALUES
+		(
+			#{ORD_ERR_IDX}
+			,#{ORD_ERR_TYPE}
+			,#{ORD_ERR_ORD_CD}
+			,#{ORD_ERR_CRD}
+			,#{ORD_ERR_APV_NO}
+			,#{ORD_ERR_PG_NO}
+			,#{ORD_ERR_REP_CODE}
+			,#{ORD_ERR_LSSUER}
+			,#{ORD_ERR_BNK_CD}
+			,#{ORD_ERR_MSG}
+			,TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS')
+			,#{ORD_ERR_REG_IP}
+			,#{ORD_ERR_REG_ID}
+		)
+		]]>
+	</insert>
+		
+</mapper>

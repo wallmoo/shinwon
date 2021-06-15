@@ -1,0 +1,965 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="PcTopSeller">
+    
+    <!-- 탑셀러 배너 리스트 -->
+    <select id="selectTopBannerList" parameterType="HashMap" resultType="HashMap">
+        /*PcTopSeller.selectTopBannerList*/
+        SELECT S2.*
+          FROM (
+                SELECT S1.*
+                     , ROWNUM AS RNUM 
+                  FROM (             
+                        SELECT 
+                             (SELECT CMM_FLE_ATT_PATH || CMM_FLE_SYS_NM FROM T_CMM_FLE WHERE CMM_FLE_TB_NM = 'T_BNR_MST' AND CMM_FLE_TB_PK = BM.BNR_MST_IDX AND CMM_FLE_SORT = 1 AND CMM_FLE_USE_YN = 'Y' AND ROWNUM = 1 ) AS FILE_NM
+                             , (SELECT CMN_FLE_ALT_TXT FROM T_CMM_FLE WHERE CMM_FLE_TB_NM = 'T_BNR_MST' AND CMM_FLE_TB_PK = BM.BNR_MST_IDX AND CMM_FLE_SORT = 1 AND CMM_FLE_USE_YN = 'Y' AND ROWNUM = 1 ) AS CMN_FLE_ALT_TXT
+                             , BNR_MST_TITLE
+                             , BNR_MST_DESC
+                          FROM T_BNR_MST BM
+                         WHERE BM.BNR_MST_USE_YN = 'Y'
+                           AND TO_CHAR(SYSDATE,'YYYYMMDDYYYYMMDDHH24MISS') BETWEEN BM.BNR_MST_ST_DT||BM.BNR_MST_ST_HH||BM.BNR_MST_ST_MM AND BM.BNR_MST_ED_DT||BM.BNR_MST_ED_HH||BM.BNR_MST_ED_MM
+                           AND CMN_COM_IDX = #{CMN_COM_IDX}
+                         ORDER BY BNR_MST_SRT ASC, BNR_MST_IDX DESC
+                        ) S1
+                ) S2
+    
+    </select>
+    
+    <!-- 탑셀러 상품 갯수 -->
+    <select id="selectSellerProductListCount" parameterType="HashMap" resultType="Integer">
+        /* PcTopSeller.selectSellerProductListCount */
+        SELECT
+            COUNT(TPM.PRD_MST_CD)
+        FROM 
+            T_BND_MST TBM, T_PRD_MST TPM
+        WHERE
+            TPM.PRD_MST_VDR_IDX = TBM.VDR_MST_IDX
+            AND FN_GET_PRODUCT_STATUS(TPM.PRD_MST_CD) = 'true'
+    </select>
+    
+    <!-- 탑셀러 상품 리스트 -->
+    <select id="selectSellerProductList" parameterType="HashMap" resultType="HashMap">
+        /* PcTopSeller.selectSellerProductList */
+        SELECT S1.*
+        FROM
+            (SELECT
+            	ROW_NUMBER() OVER (ORDER BY TPM.PRD_MST_REG_DT DESC) AS RNUM
+                , TBM.VDR_MST_IDX
+                ,TBM.BND_MST_SEL_NM
+                ,TBM.BND_MST_SEL_DESC
+                ,TBM.BND_MST_URL
+                ,(SELECT CMM_FLE_ATT_PATH || CMM_FLE_SYS_NM FROM T_CMM_FLE WHERE CMM_FLE_TB_NM = 'T_VDR_MST' AND CMM_FLE_TB_PK = TBM.VDR_MST_IDX AND CMM_FLE_SORT = 1 AND CMM_FLE_USE_YN = 'Y' AND ROWNUM = 1 ) AS SELLER_IMG
+                , (SELECT CMN_FLE_ALT_TXT FROM T_CMM_FLE WHERE CMM_FLE_TB_NM = 'T_VDR_MST' AND CMM_FLE_TB_PK = TBM.VDR_MST_IDX AND CMM_FLE_SORT = 1 AND CMM_FLE_USE_YN = 'Y' AND ROWNUM = 1 ) AS CMM_FLE_ALT_TXT
+                , TPM.PRD_MST_CD
+                , FN_PRODUCT_IMG(TPM.PRD_MST_CD, #{THUMBNAIL_SIZE}) PRD_IMAGE
+                , FN_PRODUCT_IMG_ALT(TPM.PRD_MST_CD, #{THUMBNAIL_SIZE}) PRD_IMAGE_ALT
+                ,(SELECT COUNT(TLH.CNT_MST_ID) FROM T_LIK_HIS TLH WHERE TLH.CNT_MST_ID = TO_CHAR(TBM.VDR_MST_IDX) AND TLH.CNT_MST_TYPE= #{CNT_MST_TYPE}) LIKE_COUNTS
+                ,(CASE WHEN (SELECT COUNT(TLH.CNT_MST_ID) FROM T_LIK_HIS TLH WHERE TLH.CNT_MST_ID = TO_CHAR(TBM.VDR_MST_IDX) AND TLH.MEM_MST_ID = #{MEM_MST_ID}) > 0 THEN 'Y' ELSE 'N' END ) MY_LIKE
+            FROM 
+                T_BND_MST TBM, T_PRD_MST TPM
+            WHERE
+                TPM.PRD_MST_VDR_IDX = TBM.VDR_MST_IDX
+                AND FN_GET_PRODUCT_STATUS(TPM.PRD_MST_CD) = 'true'
+            ORDER BY TPM.PRD_MST_REG_DT DESC) S1
+        <if test="startNum != null and startNum != '' and endNum != null and  endNum != ''">
+            WHERE RNUM BETWEEN #{startNum} AND #{endNum}
+        </if>
+    
+    </select>
+    
+	
+	<select id="selectTopSellerBannerList"  parameterType="HashMap" resultType="HashMap">
+        SELECT
+            ROWNUM RNUM
+            , BM.BNR_MST_IDX 
+            , BM.BNR_MST_TITLE
+            , (SELECT TBM.BND_MST_SEL_DESC FROM T_BND_MST TBM WHERE TBM.BND_MST_IDX = BM.BND_MST_IDX) AS BND_MST_SEL_DESC
+            , (SELECT TBM.BND_MST_BRAND_NM FROM T_BND_MST TBM WHERE TBM.BND_MST_IDX = BM.BND_MST_IDX) AS BND_MST_BRAND_NM
+            , (SELECT TBM.BND_MST_SEL_NM FROM T_BND_MST TBM WHERE TBM.VDR_MST_IDX = BM.VDR_MST_IDX) AS BND_MST_SEL_NM  
+            , (SELECT FL.CMM_FLE_ATT_PATH || FL.CMM_FLE_SYS_NM FROM T_CMM_FLE FL WHERE FL.CMM_FLE_TB_PK = BM.VDR_MST_IDX AND FL.CMM_FLE_TB_NM = 'T_VDR_MST' AND ROWNUM = 1) AS PROFILE_IMG  
+            , BM.CMN_COM_IDX 
+            , BM.BNR_MST_MIL_ADD
+            , BM.BNR_MST_GFT
+            , BM.BNR_MST_URL
+            , BM.VDR_MST_IDX
+     		, (SELECT COUNT(TLH.CNT_MST_ID) FROM T_LIK_HIS TLH WHERE TLH.CNT_MST_ID = TO_CHAR(BM.VDR_MST_IDX) AND TLH.CNT_MST_TYPE='TYPE_TOP_SELLER') AS LIKE_COUNTS
+            , (CASE WHEN (SELECT COUNT(TLH.CNT_MST_ID) FROM T_LIK_HIS TLH WHERE TLH.CNT_MST_ID = TO_CHAR(BM.VDR_MST_IDX) AND TLH.MEM_MST_ID = #{MEM_MST_ID})>0 THEN 'on' ELSE '' END) AS LIKE_CLS
+        FROM
+         T_BNR_MST BM
+        WHERE CMN_COM_IDX = #{CMN_COM_IDX}
+            AND BM.BNR_MST_ENV = #{BNR_MST_ENV}
+            AND SYSDATE BETWEEN TO_DATE(BM.BNR_MST_ST_DT||BM.BNR_MST_ST_HH||BM.BNR_MST_ST_MM||'00','yyyymmddhh24miss')
+            			AND TO_DATE(BM.BNR_MST_ED_DT||BM.BNR_MST_ED_HH||BM.BNR_MST_ED_MM||'59','yyyymmddhh24miss')
+        	AND ROWNUM BETWEEN 1 AND 3
+        	ORDER BY BM.BNR_MST_REG_DT ASC
+	</select>
+	
+	<select id="selectTopSellerProductList"  parameterType="HashMap" resultType="HashMap">
+		  SELECT 
+        	TBP.BNR_PRD_IDX,
+        	TBP.BNR_MST_IDX,
+        	TBP.BNR_PRD_MST_CD,
+        	TBP.BNR_PRD_REF_USE_YN,
+        	TPM.PRD_MST_NM,
+        	TPM.PRD_MST_PRC,
+        	TPM.PRD_MST_SEL_STATE,
+        	TPM.PRD_MST_CNL_PC_YN,
+        	TPM.PRD_MST_CNL_MB_YN,
+        	FN_PRODUCT_IMG(TPM.PRD_MST_CD, #{THUMBNAIL_SIZE}) PRD_IMAGE,
+        	FN_PRODUCT_IMG_ALT(TPM.PRD_MST_CD, #{THUMBNAIL_SIZE}) PRD_IMAGE_ALT
+          FROM T_BNR_PRD TBP, T_PRD_MST TPM
+          WHERE TBP.BNR_MST_IDX = #{BNR_MST_IDX}
+          AND TPM.PRD_MST_CD = TBP.BNR_PRD_MST_CD
+          AND ROWNUM BETWEEN 1 AND 3
+	</select>
+
+     <select id="selectTopSellerTagList"  parameterType="HashMap" resultType="HashMap">
+        SELECT 
+        	TTM.TAG_MST_ID
+            , TTM.TAG_MST_TITLE
+            , TTB.TAG_BND_REP
+        FROM 
+            T_TAG_MST TTM, T_TAG_BND TTB
+        WHERE 
+            TTB.TAG_BND_ID = TO_CHAR(#{BNR_MST_IDX})
+            AND TTB.TAG_BND_TYPE = 'TYPE_TOP_SELLER'
+            AND TTM.TAG_MST_ID = TTB.TAG_MST_ID
+            AND TTB.TAG_BND_STATUS = 'USE'
+	</select>     
+          
+
+	<select id="selectRoomHomeBannerLIst"  parameterType="HashMap" resultType="HashMap">
+		SELECT T1.*, (SELECT TBM.BND_MST_SEL_NM FROM T_BND_MST TBM WHERE TBM.VDR_MST_IDX = T1.VDR_MST_IDX) AS BND_MST_SEL_NM 
+		FROM (
+		SELECT
+			ROW_NUMBER() OVER(ORDER BY BM.BNR_MST_SRT ASC) RNUM
+            , BM.BNR_MST_IDX 
+            , BM.BNR_MST_TITLE 
+            , BM.CMN_COM_IDX
+            , BM.BNR_MST_SRT
+            , BM.BNR_MST_USE_YN
+            , BM.BNR_MST_TGT
+            , BM.BNR_MST_URL
+            , BM.BND_MST_IDX
+            , BM.VDR_MST_IDX
+            , BM.BNR_MST_SUB_TITLE            
+            , BM.BNR_MST_DESC
+            , FL.CMM_FLE_ATT_PATH || FL.CMM_FLE_SYS_NM AS FILE_NM
+            , FL.CMN_FLE_ALT_TXT
+             , (SELECT TBM.BND_MST_SEL_NM FROM T_BND_MST TBM WHERE TBM.VDR_MST_IDX = BM.VDR_MST_IDX) AS BND_MST_SEL_NM
+            , (SELECT TMP.CMM_FLE_ATT_PATH || TMP.CMM_FLE_SYS_NM FROM T_CMM_FLE TMP WHERE TMP.CMM_FLE_TB_PK = BM.VDR_MST_IDX AND TMP.CMM_FLE_TB_NM = 'T_VDR_MST' AND ROWNUM = 1) AS PROFILE_IMG  
+    		, (SELECT COUNT(TLH.CNT_MST_ID) FROM T_LIK_HIS TLH WHERE TLH.CNT_MST_ID = TO_CHAR(BM.VDR_MST_IDX) AND TLH.CNT_MST_TYPE='TYPE_TOP_SELLER') AS LIKE_COUNTS
+            , (CASE WHEN (SELECT COUNT(TLH.CNT_MST_ID) FROM T_LIK_HIS TLH WHERE TLH.CNT_MST_ID = TO_CHAR(BM.VDR_MST_IDX) AND TLH.MEM_MST_ID = #{MEM_MST_ID})>0 THEN 'on' ELSE '' END) AS LIKE_CLS
+        FROM
+         T_BNR_MST BM, T_CMM_FLE FL
+        WHERE
+            CMN_COM_IDX = #{CMN_COM_IDX}
+            AND BM.BNR_MST_ENV =  #{BNR_MST_ENV}
+            AND SYSDATE BETWEEN TO_DATE(BM.BNR_MST_ST_DT||BM.BNR_MST_ST_HH||BM.BNR_MST_ST_MM||'00','yyyymmddhh24miss')
+            			AND TO_DATE(BM.BNR_MST_ED_DT||BM.BNR_MST_ED_HH||BM.BNR_MST_ED_MM||'59','yyyymmddhh24miss')
+           AND BM.BNR_MST_GBN = #{BNR_MST_GBN}
+           AND BM.VDR_MST_IDX = #{VDR_MST_IDX}
+           AND BM.BNR_MST_IDX = FL.CMM_FLE_TB_PK(+)
+           AND FL.CMM_FLE_TB_NM(+) = 'T_BNR_MST'
+           AND FL.CMM_FLE_USE_YN(+) ='Y'
+        ORDER BY BM.BNR_MST_SRT ASC
+		) T1
+        <if test="startNum != null and startNum != '' and endNum != null and  endNum != ''">
+            WHERE T1.RNUM BETWEEN #{startNum} AND #{endNum}
+        </if>
+	</select>
+
+	<select id="selectRoomHomeBannerProdLIst"  parameterType="HashMap" resultType="HashMap">
+		SELECT PM.PRD_MST_CD
+            , PM.PRD_MST_NM
+			, FN_PRODUCT_IMG(PM.PRD_MST_CD, #{THUMBNAIL_SIZE}) PRD_IMAGE
+      		, (SELECT tmp01.PRD_IMG_ATT_PATH||tmp01.PRD_IMG_SYS_NM FROM T_PRD_IMG tmp01 WHERE tmp01.PRD_PRD_MST_CD = PM.PRD_MST_CD AND tmp01.PRD_IMG_IDX = '1' AND tmp01.PRD_IMG_ATT_SIZE = #{THUMBNAIL_SIZE}) AS PRD_ROLL_OVER_IMG
+            , FN_PRODUCT_IMG_ALT(PM.PRD_MST_CD, #{THUMBNAIL_SIZE}) PRD_IMAGE_ALT
+		FROM T_BNR_MST BM, T_BNR_PRD BP, T_PRD_MST PM
+		WHERE BM.BNR_MST_IDX = #{BNR_MST_IDX}
+		AND BM.BNR_MST_IDX = BP.BNR_MST_IDX
+		AND BP.BNR_PRD_MST_CD = PM.PRD_MST_CD
+	</select>
+
+
+
+    <select id="selectSellerInfo" parameterType="HashMap" resultType="HashMap">
+            SELECT TBM.BND_MST_IDX
+            		, TBM.BND_MST_BRAND_NM
+            		, TBM.VDR_MST_IDX
+            		, (SELECT TMP.CMM_FLE_ATT_PATH || TMP.CMM_FLE_SYS_NM FROM T_CMM_FLE TMP WHERE TMP.CMM_FLE_TB_PK = TBM.VDR_MST_IDX AND TMP.CMM_FLE_TB_NM = 'T_VDR_MST' AND ROWNUM = 1) AS PROFILE_IMG
+            		, TBM.BND_MST_LAY_TPY
+            		, TBM.BND_MST_SEL_NM
+            		, (SELECT COUNT(*) FROM T_PRD_MST TPM WHERE  TPM.PRD_MST_VDR_IDX = TBM.VDR_MST_IDX AND FN_GET_PRODUCT_STATUS(TPM.PRD_MST_CD) = 'true' ) AS PRDUCT_CNT
+   					, (SELECT COUNT(TLH.CNT_MST_ID) FROM T_LIK_HIS TLH WHERE TLH.CNT_MST_ID = TO_CHAR(TBM.VDR_MST_IDX) AND TLH.CNT_MST_TYPE='TYPE_TOP_SELLER') AS LIKE_COUNTS
+            		, (CASE WHEN (SELECT COUNT(TLH.CNT_MST_ID) FROM T_LIK_HIS TLH WHERE TLH.CNT_MST_ID = TO_CHAR(TBM.VDR_MST_IDX) AND TLH.MEM_MST_ID = #{MEM_MST_ID})>0 THEN 'on' ELSE '' END) AS LIKE_CLS
+            		, TBM.BND_MST_SEL_DESC
+            		, TBM.BND_MST_INST_URL
+            FROM 
+                T_BND_MST TBM
+            WHERE VDR_MST_IDX = #{VDR_MST_IDX}
+    </select>
+    
+    
+    <select id="selectRoomHomeProductList" parameterType="HashMap" resultType="HashMap">
+        /*PcTopSeller.selectRoomHomeProductList*/
+        SELECT 
+                TA.*, 
+                (PRD_MST_PRICE - PRD_NOW_DST_PRICE) / PRD_MST_PRICE * 100 AS PRD_DST_PERCENT
+         FROM   (
+                SELECT 
+                        PM.PRD_MST_CD
+                      , PM.PRD_MST_NM
+                      , FN_PRODUCT_IMG(PM.PRD_MST_CD, #{THUMBNAIL_SIZE}) PRD_IMAGE
+                      , (
+					    SELECT  tmp01.PRD_IMG_ATT_PATH||tmp01.PRD_IMG_SYS_NM 
+						 FROM   T_PRD_IMG tmp01 
+						WHERE   tmp01.PRD_PRD_MST_CD = PM.PRD_MST_CD 
+						 AND    tmp01.PRD_IMG_IDX = '1' 
+						 AND    tmp01.PRD_IMG_ATT_SIZE = #{THUMBNAIL_SIZE}
+						) AS PRD_ROLL_OVER_IMG
+                      , FN_PRODUCT_IMG_ALT(PM.PRD_MST_CD, #{THUMBNAIL_SIZE}) PRD_IMAGE_ALT
+                      , (
+                        SELECT  tmp02.TAG_MST_TITLE
+                         FROM   T_TAG_BND tmp01, T_TAG_MST tmp02 
+                        WHERE   tmp01.TAG_BND_ID   = TO_CHAR(PM.PRD_MST_CD)
+                         AND    tmp01.TAG_BND_TYPE = 'TYPE_PRODUCT'
+                         AND    tmp01.TAG_BND_REP  = 'Y'
+                         AND    tmp01.TAG_MST_ID   = tmp02.TAG_MST_ID
+                        ) AS TAG_MST_TITLE
+                      , ( 
+                        SELECT  tmp01.BND_MST_BRAND_NM 
+                         FROM   T_BND_MST tmp01 
+                        WHERE   tmp01.BND_MST_IDX = PM.PRD_MST_BRD_IDX
+                        ) AS BND_MST_BRAND_NM
+                      , (
+					    SELECT  COUNT(TLH.CNT_MST_ID) 
+						 FROM   T_LIK_HIS TLH 
+						WHERE   TLH.CNT_MST_ID = PM.PRD_MST_CD 
+						 AND    TLH.CNT_MST_TYPE='TYPE_PRODUCT'
+						) AS LIKE_COUNTS
+                      , (
+					    CASE WHEN (SELECT COUNT(TLH.CNT_MST_ID) FROM T_LIK_HIS TLH WHERE TLH.CNT_MST_ID = PM.PRD_MST_CD AND TLH.MEM_MST_ID = #{MEM_MST_ID})>0 
+						          THEN 'on' 
+						     ELSE '' 
+					    END
+						) AS LIKE_CLS
+                      , FN_PRODUCT_LIST_PRICE(PM.PRD_MST_CD  , #{USER_ENV_TYPE}, #{MEM_MST_ID}         ) AS PRD_MST_PRICE
+                      , FN_PRODUCT_DETAIL_PRICE(PM.PRD_MST_CD, #{USER_ENV_TYPE}, #{MEM_MST_ID},'N',null) AS PRD_NOW_DST_PRICE
+                 FROM   (
+                        SELECT 
+                                ROWNUM RNUM, 
+								A.*
+                         FROM   (
+                                SELECT
+                                        DSP_MST_IDX, 
+										CMN_COM_IDX, 
+										PRD_MST_CD, 
+										DSP_MST_REG_DT, 
+										DSP_MST_SRT, 
+										DSP_MST_USE_YN 
+                                 FROM   T_DSP_MST
+                                WHERE   CMN_COM_IDX    = #{CMN_COM_IDX}
+                                 AND    DSP_MST_USE_YN = 'Y'  
+                                 AND    DSP_MST_ENV    = #{DSP_MST_ENV} 
+                                 AND    DSP_MST_GBN    = #{DSP_MST_GBN}
+                                ORDER BY 
+						                DSP_MST_SRT ASC,
+										DSP_MST_REG_DT DESC, 
+										PRD_MST_CD ASC
+                                ) A
+                        ) IV1
+                          INNER JOIN  
+						T_PRD_MST PM
+						  ON IV1.PRD_MST_CD = PM.PRD_MST_CD 
+                ) TA
+    </select>
+    
+    
+
+    <select id="selectRoomHomeProductList_OLD" parameterType="HashMap" resultType="HashMap">
+    
+    	SELECT TA.*, (PRD_MST_PRICE - PRD_NOW_DST_PRICE) / PRD_MST_PRICE * 100 AS PRD_DST_PERCENT
+    	FROM (
+             SELECT PM.PRD_MST_CD
+             , PM.PRD_MST_NM
+			, FN_PRODUCT_IMG(PM.PRD_MST_CD, #{THUMBNAIL_SIZE}) PRD_IMAGE
+      		, (SELECT tmp01.PRD_IMG_ATT_PATH||tmp01.PRD_IMG_SYS_NM FROM T_PRD_IMG tmp01 WHERE tmp01.PRD_PRD_MST_CD = PM.PRD_MST_CD AND tmp01.PRD_IMG_IDX = '1' AND tmp01.PRD_IMG_ATT_SIZE = #{THUMBNAIL_SIZE}) AS PRD_ROLL_OVER_IMG
+            , FN_PRODUCT_IMG_ALT(PM.PRD_MST_CD, #{THUMBNAIL_SIZE}) PRD_IMAGE_ALT
+          	, (
+            	SELECT tmp02.TAG_MST_TITLE
+            	FROM T_TAG_BND tmp01, T_TAG_MST tmp02 
+            	WHERE tmp01.TAG_BND_ID = TO_CHAR(PM.PRD_MST_CD)
+            	AND tmp01.TAG_BND_TYPE = 'TYPE_PRODUCT'
+            	AND tmp01.TAG_BND_REP = 'Y'
+            	AND tmp01.TAG_MST_ID = tmp02.TAG_MST_ID
+            ) AS TAG_MST_TITLE
+            , ( 
+            	SELECT tmp01.BND_MST_BRAND_NM 
+            	FROM T_BND_MST tmp01 
+            	WHERE tmp01.BND_MST_IDX = PM.PRD_MST_BRD_IDX
+            ) AS BND_MST_BRAND_NM
+       		, (SELECT COUNT(TLH.CNT_MST_ID) FROM T_LIK_HIS TLH WHERE TLH.CNT_MST_ID = PM.PRD_MST_CD AND TLH.CNT_MST_TYPE='TYPE_PRODUCT') AS LIKE_COUNTS
+            , (CASE WHEN (SELECT COUNT(TLH.CNT_MST_ID) FROM T_LIK_HIS TLH WHERE TLH.CNT_MST_ID = PM.PRD_MST_CD AND TLH.MEM_MST_ID = #{MEM_MST_ID})>0 THEN 'on' ELSE '' END) AS LIKE_CLS
+			, FN_PRODUCT_LIST_PRICE(PM.PRD_MST_CD, #{USER_ENV_TYPE}, #{MEM_MST_ID}) AS PRD_MST_PRICE
+		    , (SELECT FN_PRODUCT_DETAIL_PRICE(PM.PRD_MST_CD, #{USER_ENV_TYPE}, #{MEM_MST_ID},'N',null) FROM DUAL) AS PRD_NOW_DST_PRICE
+        FROM (
+            SELECT 
+              ROWNUM RNUM, A.*
+            FROM (
+                SELECT
+                    DSP_CTG_IDX, DSP_PRD_CTG_IDX, DSP_PRD_MST_CD, DSP_CTG_REG_DT, DSP_CTG_SRT, DSP_CTG_USE_YN 
+                FROM
+                 T_DSP_CTG
+                WHERE
+                    DSP_PRD_CTG_IDX = #{DSP_PRD_CTG_IDX}
+                ORDER BY DSP_CTG_SRT ASC,DSP_CTG_REG_DT DESC, DSP_PRD_MST_CD ASC
+              ) A
+        ) IV1, T_PRD_MST PM
+        WHERE IV1.DSP_PRD_MST_CD = PM.PRD_MST_CD 
+       ) TA
+    </select>    
+    
+    <select id="selectSellerBrandList" parameterType="HashMap" resultType="HashMap">        
+        SELECT
+            TBM.BND_MST_IDX 
+            ,TBM.BND_MST_BRAND_NM
+            ,TBM.BND_MST_URL
+        FROM
+            T_BND_MST TBM
+        WHERE
+            TBM.BND_MST_USE_YN = 'Y'
+            TBM.VDR_MST_IDX = #{VDR_MST_IDX}
+    </select>
+    
+	<sql id="productWhere">
+        AND PM.PRD_MST_SEL_STATE != 'S' 
+        AND PM.PRD_MST_APV_STATE = 'A'
+        AND PM.PRD_MST_DPL_STATE = 'Y'
+        AND PM.PRD_MST_DEL_YN <![CDATA[<>]]> 'Y'
+        <if test="USER_ENV_TYPE != null and USER_ENV_TYPE != ''">
+            <if test="USER_ENV_TYPE.equals('P'.toString())">
+                AND PM.PRD_MST_CNL_PC_YN = 'Y'
+            </if>
+            <if test="USER_ENV_TYPE.equals('M'.toString())">
+                AND PM.PRD_MST_CNL_MB_YN = 'Y'
+            </if>
+        </if>
+        
+        <if test="arrSearchBrand != null and arrSearchBrand.size != 0">
+            AND TBM.BND_MST_IDX IN
+            <foreach collection="arrSearchBrand" item="BND_MST_IDX" open="(" close=")" separator=","> #{BND_MST_IDX}</foreach>    
+        </if>
+        
+        <if test="arrSearchPrice != null and arrSearchPrice.size != 0 ">
+            AND    
+            <foreach collection="arrSearchPrice" item="searchPrice" open="(" close=")" separator="OR"> 
+                PM.PRD_MST_PRC <![CDATA[>=]]> #{searchPrice.min} AND PM.PRD_MST_PRC <![CDATA[<=]]> #{searchPrice.max}
+            </foreach>
+        </if>
+        
+        <if test="searchPrdMstCd != null and searchPrdMstCd != ''">
+            AND PM.PRD_MST_CD LIKE '%'||UPPER(#{searchPrdMstCd})||'%'
+        </if>
+        <if test="searchPrdMstCds != null and searchPrdMstCds.size != 0 ">
+        	AND PM.PRD_MST_CD IN
+             <foreach collection="searchPrdMstCds" item="item"  open="(" close=")" separator=",">
+				#{item}
+			</foreach>
+        </if>
+        <if test="searchPrdMstNm != null and searchPrdMstNm != ''">
+            AND UPPER(PM.PRD_MST_NM) LIKE '%'||UPPER(#{searchPrdMstNm})||'%'
+        </if>
+        
+	</sql>
+	
+    <select id="selectSellerShopProductListCount" parameterType="hashMap" resultType="integer">
+        SELECT
+            COUNT(0)
+        FROM 
+            (SELECT 
+                PM.PRD_MST_CD
+            FROM T_BND_MST TBM, T_PRD_MST PM
+            WHERE TBM.VDR_MST_IDX = #{VDR_MST_IDX}
+            	AND TBM.BND_MST_IDX = PM.PRD_MST_BRD_IDX
+                <include refid="productWhere"/>
+            )S1
+            <if test="searchOptionYN != null and searchOptionYN.equals('Y'.toString()) ">
+                INNER JOIN T_PRD_CMM_OPT TPCO ON S1.PRD_MST_CD = TPCO.PRD_MST_CD
+                    <if test="arrSearchColor != null and arrSearchColor.size != 0 ">
+                        AND TPCO.PRD_CMM_TYPE = 'C' 
+                        AND TPCO.CMN_COM_IDX IN
+                        <foreach collection="arrSearchColor" item="searchColor" open="(" close=")" separator=","> #{searchColor}</foreach>
+                    </if> 
+                    <if test="arrSearchSize != null and arrSearchSize.size != 0">
+                        AND TPCO.PRD_CMM_TYPE = 'S' 
+                        AND TPCO.CMM_OPT_NM IN
+                        <foreach collection="arrSearchSize" item="searchSize" open="(" close=")" separator=","> #{searchSize}</foreach> 
+                    </if>
+            </if>
+    </select>
+    
+    
+	<select id="selectSellerShopProductList" parameterType="HashMap" resultType="HashMap">
+		SELECT
+            S1.*
+           , FN_PRODUCT_IMG(S1.PRD_MST_CD, #{THUMBNAIL_SIZE}) PRD_IMAGE
+           , (SELECT PRD_IMG_ATT_PATH||PRD_IMG_SYS_NM FROM T_PRD_IMG WHERE PRD_PRD_MST_CD = S1.PRD_MST_CD AND PRD_IMG_IDX = '1' AND PRD_IMG_ATT_SIZE = #{THUMBNAIL_SIZE}) AS PRD_ROLL_OVER_IMG
+           , FN_PRODUCT_IMG_ALT(S1.PRD_MST_CD, #{THUMBNAIL_SIZE}) PRD_IMAGE_ALT
+           , (
+            	SELECT tmp02.TAG_MST_TITLE
+            	FROM T_TAG_BND tmp01, T_TAG_MST tmp02 
+            	WHERE tmp01.TAG_BND_ID = TO_CHAR(PRD_MST_CD)
+            	AND tmp01.TAG_BND_TYPE = 'TYPE_PRODUCT'
+            	AND tmp01.TAG_BND_REP = 'Y'
+            	AND tmp01.TAG_MST_ID = tmp02.TAG_MST_ID
+            ) AS TAG_MST_TITLE
+        FROM (
+                SELECT 
+                    ROWNUM AS RNUM
+                    , A.PRD_MST_CD
+                    , A.PRD_MST_TYPE
+                    , A.BND_MST_BRAND_NM AS PRD_MST_BRAND_NM
+                    , A.PRD_MST_URL
+                    , A.PRD_MST_NM
+                    , A.PRD_MST_PRC
+                    , A.PRD_MST_PRICE
+                    , A.PRD_MST_SEL_STATE
+                    , A.PRD_NOW_DST_PRICE
+                    , A.LIKE_COUNTS
+                    , A.MY_LIKE
+                FROM ( 
+                    SELECT 
+                        ROWNUM RNUM
+                        , PR.PRD_MST_CD
+                        , PR.PRD_MST_TYPE
+                        , PR.BND_MST_BRAND_NM
+                        , PR.PRD_MST_URL
+                        , PR.PRD_MST_NM
+                        , PR.PRD_MST_PRC
+                        , PR.PRD_MST_PRICE
+                        , PR.PRD_MST_SEL_STATE
+                        , PR.PRD_NOW_DST_PRICE
+                        , (SELECT COUNT(TLH.CNT_MST_ID) FROM T_LIK_HIS TLH WHERE TLH.CNT_MST_ID = PRD_MST_CD AND TLH.CNT_MST_TYPE= 'TYPE_PRODUCT') AS LIKE_COUNTS
+                        , ( CASE WHEN (SELECT COUNT(TLH.CNT_MST_ID) FROM T_LIK_HIS TLH WHERE TLH.CNT_MST_ID = PRD_MST_CD AND TLH.MEM_MST_ID = #{MEM_MST_ID}) > 0 THEN 'Y' ELSE 'N' END ) AS MY_LIKE
+                        
+                    FROM 
+                    (   
+                        SELECT PM.PRD_MST_CD
+                             , PM.PRD_MST_TYPE
+                             , TBM.BND_MST_BRAND_NM
+                             , PRD_MST_URL
+                             , FN_GET_PRODUCT_NM(PM.PRD_MST_CD,34) AS PRD_MST_NM
+                             , PM.PRD_MST_PRC
+                             , FN_PRODUCT_LIST_PRICE(PM.PRD_MST_CD, #{USER_ENV_TYPE}, #{MEM_CRT_SES_ID}) AS PRD_MST_PRICE
+                             , PM.PRD_MST_SEL_STATE
+                             , (SELECT FN_PRODUCT_DETAIL_PRICE(PM.PRD_MST_CD, #{USER_ENV_TYPE}, #{MEM_CRT_SES_ID},'N',null) FROM DUAL) AS PRD_NOW_DST_PRICE
+                        FROM T_BND_MST TBM, T_PRD_MST PM
+                        WHERE TBM.VDR_MST_IDX = #{VDR_MST_IDX}
+            			AND TBM.BND_MST_IDX = PM.PRD_MST_BRD_IDX
+                        <include refid="productWhere"/> 
+                     
+                    <if test="orderType != null and orderType != ''">
+                        <choose>
+                            <when test="orderType.equals('hit'.toString())">
+                                ORDER BY NVL(PM.PRD_MST_ORD_CNT,0) + NVL(PM.PRD_MST_RED_CNT,0) DESC
+                            </when>              
+                            <when test="orderType.equals('new'.toString())">
+                                ORDER BY PM.PRD_MST_REG_DT DESC , PRD_MST_PRICE , PRD_MST_NM ASC
+                            </when> 
+                            <when test="orderType.equals('dwn'.toString())">
+                                ORDER BY PRD_MST_PRICE ASC
+                            </when> 
+                            <when test="orderType.equals('up'.toString())">
+                                ORDER BY PRD_MST_PRICE DESC
+                            </when>        
+                        </choose>
+                    </if>
+                    )PR
+
+                ) A
+                <if test="searchOptionYN != null and searchOptionYN.equals('Y'.toString()) ">
+                    INNER JOIN T_PRD_CMM_OPT TPCO ON A.PRD_MST_CD = TPCO.PRD_MST_CD
+                        <if test="arrSearchColor != null and arrSearchColor.size != 0 ">
+                            AND TPCO.PRD_CMM_TYPE = 'C' 
+                            AND TPCO.CMN_COM_IDX IN
+                            <foreach collection="arrSearchColor" item="searchColor" open="(" close=")" separator=","> #{searchColor}</foreach>
+                        </if> 
+                        <if test="arrSearchSize != null and arrSearchSize.size != 0">
+                            AND TPCO.PRD_CMM_TYPE = 'S' 
+                            AND TPCO.CMM_OPT_NM IN
+                            <foreach collection="arrSearchSize" item="searchSize" open="(" close=")" separator=","> #{searchSize}</foreach> 
+                        </if>
+                </if>
+        )S1
+        <if test="startNum != null and startNum != '' and endNum != null and  endNum != ''">
+            WHERE RNUM BETWEEN #{startNum} AND #{endNum}
+        </if>
+        
+	</select>
+	
+	<select id="selectSellerpickList" parameterType="HashMap" resultType="HashMap">
+        SELECT
+            TCM.CNT_MST_IDX,
+            TCM.CNT_MST_CHANNEL_PC_YN,
+            TCM.CNT_MST_CHANNEL_MOBILE_YN,
+            TCM.CNT_MST_TITLE,
+            TCM.CNT_MST_ST_DT,
+            TCM.CNT_MST_ED_DT,
+            TCM.CNT_MST_USE_YN,
+            TCM.CNT_MST_REG_DT,
+            TCM.CNT_MST_URL,
+            TCM.CNT_MST_DESC,
+            TBM.VDR_MST_IDX, 
+            (SELECT TMP.CMM_FLE_ATT_PATH || TMP.CMM_FLE_SYS_NM FROM T_CMM_FLE TMP WHERE TMP.CMM_FLE_TB_PK = TBM.VDR_MST_IDX AND TMP.CMM_FLE_TB_NM = 'T_VDR_MST' AND ROWNUM = 1) AS PROFILE_IMG,
+            TBM.BND_MST_SEL_NM,
+	        FL.CMM_FLE_ATT_PATH || FL.CMM_FLE_SYS_NM AS FILE_NM,
+	        FL.CMN_FLE_ALT_TXT
+        FROM
+            T_CNT_MST TCM, T_BND_MST TBM, T_CMM_FLE FL             
+        WHERE
+        	TCM.CNT_MST_TYPE = 'TYPE_SELLER_PICK'
+        	AND TCM.CNT_MST_USE_YN = 'Y'
+        	AND TCM.VDR_MST_IDX = #{VDR_MST_IDX}
+        	AND TCM.VDR_MST_IDX = TBM.VDR_MST_IDX                      
+            AND FL.CMM_FLE_TB_NM =  'T_CNT_MST'
+            AND FL.CMM_FLE_USE_YN= 'Y'
+            AND FL.CMM_FLE_TB_TYPE = #{CMM_FLE_TB_TYPE}
+            AND FL.CMM_FLE_SORT = 1           
+	</select>
+	
+	<select id="selectSellerpickInfo" parameterType="HashMap" resultType="HashMap">
+        SELECT
+            TCM.CNT_MST_IDX,
+            TCM.CNT_MST_CHANNEL_PC_YN,
+            TCM.CNT_MST_CHANNEL_MOBILE_YN,
+            TCM.CNT_MST_TITLE,
+            TCM.CNT_MST_ST_DT,
+            TCM.CNT_MST_ED_DT,
+            TCM.CNT_MST_USE_YN,
+            TCM.CNT_MST_REG_DT,
+            TCM.CNT_MST_URL,
+            TCM.CNT_MST_DESC,
+            TBM.VDR_MST_IDX, 
+            (SELECT TMP.CMM_FLE_ATT_PATH || TMP.CMM_FLE_SYS_NM FROM T_CMM_FLE TMP WHERE TMP.CMM_FLE_TB_PK = TBM.VDR_MST_IDX AND TMP.CMM_FLE_TB_NM = 'T_VDR_MST' AND ROWNUM = 1) AS PROFILE_IMG,
+            TBM.BND_MST_SEL_NM,
+	        FL.CMM_FLE_ATT_PATH || FL.CMM_FLE_SYS_NM AS FILE_NM,
+	        FL.CMN_FLE_ALT_TXT,
+	        (SELECT COUNT(TLH.CNT_MST_ID) FROM T_LIK_HIS TLH WHERE TLH.CNT_MST_ID = TO_CHAR(TCM.CNT_MST_IDX) AND TLH.CNT_MST_TYPE= 'TYPE_SELLER_PICK') AS LIKE_COUNTS,
+            ( CASE WHEN (SELECT COUNT(TLH.CNT_MST_ID) FROM T_LIK_HIS TLH WHERE TLH.CNT_MST_ID = TO_CHAR(TCM.CNT_MST_IDX) AND TLH.MEM_MST_ID = #{MEM_MST_ID}) > 0 THEN 'on' ELSE '' END ) AS MY_LIKE_CLS
+                        
+        FROM
+            T_CNT_MST TCM, T_BND_MST TBM, T_CMM_FLE FL             
+        WHERE
+        	TCM.CNT_MST_IDX =  #{CNT_MST_IDX}
+        	AND TCM.CNT_MST_USE_YN = 'Y'
+        	AND TCM.VDR_MST_IDX = TBM.VDR_MST_IDX                      
+            AND FL.CMM_FLE_TB_NM =  'T_CNT_MST'
+            AND FL.CMM_FLE_USE_YN= 'Y'
+            AND FL.CMM_FLE_TB_TYPE = #{CMM_FLE_TB_TYPE}
+            AND FL.CMM_FLE_SORT = 1           
+	</select>
+	
+	<select id="selectSellerpickProductListCount" parameterType="hashMap" resultType="integer">
+        SELECT
+            COUNT(0)
+        FROM 
+            (SELECT 
+                PM.PRD_MST_CD
+ 			FROM T_CNT_DTL TCD, T_PRD_MST PM
+            WHERE TCD.CNT_MST_IDX = #{CNT_MST_IDX}
+          	AND TCD.CNT_PRD_MST_CD = PM.PRD_MST_CD
+                <include refid="productWhere"/>
+            )S1
+            <if test="searchOptionYN != null and searchOptionYN.equals('Y'.toString()) ">
+                INNER JOIN T_PRD_CMM_OPT TPCO ON S1.PRD_MST_CD = TPCO.PRD_MST_CD
+                    <if test="arrSearchColor != null and arrSearchColor.size != 0 ">
+                        AND TPCO.PRD_CMM_TYPE = 'C' 
+                        AND TPCO.CMN_COM_IDX IN
+                        <foreach collection="arrSearchColor" item="searchColor" open="(" close=")" separator=","> #{searchColor}</foreach>
+                    </if> 
+                    <if test="arrSearchSize != null and arrSearchSize.size != 0">
+                        AND TPCO.PRD_CMM_TYPE = 'S' 
+                        AND TPCO.CMM_OPT_NM IN
+                        <foreach collection="arrSearchSize" item="searchSize" open="(" close=")" separator=","> #{searchSize}</foreach> 
+                    </if>
+            </if>
+    </select>
+    
+	<select id="selectSellerpickProductList" parameterType="HashMap" resultType="HashMap">
+		SELECT
+            S1.*
+           , FN_PRODUCT_IMG(S1.PRD_MST_CD, #{THUMBNAIL_SIZE}) PRD_IMAGE
+           , (SELECT PRD_IMG_ATT_PATH||PRD_IMG_SYS_NM FROM T_PRD_IMG WHERE PRD_PRD_MST_CD = S1.PRD_MST_CD AND PRD_IMG_IDX = '1' AND PRD_IMG_ATT_SIZE = #{THUMBNAIL_SIZE}) AS PRD_ROLL_OVER_IMG
+           , FN_PRODUCT_IMG_ALT(S1.PRD_MST_CD, #{THUMBNAIL_SIZE}) PRD_IMAGE_ALT
+           , (
+            	SELECT tmp02.TAG_MST_TITLE
+            	FROM T_TAG_BND tmp01, T_TAG_MST tmp02 
+            	WHERE tmp01.TAG_BND_ID = TO_CHAR(PRD_MST_CD)
+            	AND tmp01.TAG_BND_TYPE = 'TYPE_PRODUCT'
+            	AND tmp01.TAG_BND_REP = 'Y'
+            	AND tmp01.TAG_MST_ID = tmp02.TAG_MST_ID
+            ) AS TAG_MST_TITLE
+            , ( 
+             	SELECT tmp01.BND_MST_BRAND_NM 
+             	FROM T_BND_MST tmp01 
+             	WHERE tmp01.BND_MST_IDX = PRD_MST_BRD_IDX
+             ) AS PRD_MST_BRAND_NM
+        FROM (
+                SELECT 
+                    ROWNUM AS RNUM
+                    , A.PRD_MST_CD
+                    , A.PRD_MST_TYPE
+                    , A.BND_MST_BRAND_NM AS PRD_MST_BRAND_NM
+                    , A.PRD_MST_URL
+                    , A.PRD_MST_NM
+                    , A.PRD_MST_PRC
+                    , A.PRD_MST_PRICE
+                    , A.PRD_MST_SEL_STATE
+                    , A.PRD_NOW_DST_PRICE
+                    , A.LIKE_COUNTS
+                    , A.MY_LIKE
+                FROM ( 
+                    SELECT 
+                        ROWNUM RNUM
+                        , PR.PRD_MST_CD
+                        , PR.PRD_MST_TYPE
+                        , PR.PRD_MST_BRD_IDX
+                        , PR.PRD_MST_URL
+                        , PR.PRD_MST_NM
+                        , PR.PRD_MST_PRC
+                        , PR.PRD_MST_PRICE
+                        , PR.PRD_MST_SEL_STATE
+                        , PR.PRD_NOW_DST_PRICE
+                        , (SELECT COUNT(TLH.CNT_MST_ID) FROM T_LIK_HIS TLH WHERE TLH.CNT_MST_ID = PRD_MST_CD AND TLH.CNT_MST_TYPE= 'TYPE_PRODUCT') AS LIKE_COUNTS
+                        , ( CASE WHEN (SELECT COUNT(TLH.CNT_MST_ID) FROM T_LIK_HIS TLH WHERE TLH.CNT_MST_ID = PRD_MST_CD AND TLH.MEM_MST_ID = #{MEM_MST_ID}) > 0 THEN 'Y' ELSE 'N' END ) AS MY_LIKE
+                        
+                    FROM 
+                    (   
+                        SELECT PM.PRD_MST_CD
+                             , PM.PRD_MST_TYPE
+                             , PRD_MST_URL
+                             , FN_GET_PRODUCT_NM(PM.PRD_MST_CD,34) AS PRD_MST_NM
+                             , PM.PRD_MST_PRC
+                             , PM.PRD_MST_BRD_IDX
+                             , FN_PRODUCT_LIST_PRICE(PM.PRD_MST_CD, #{USER_ENV_TYPE}, #{MEM_MST_ID}) AS PRD_MST_PRICE
+                             , PM.PRD_MST_SEL_STATE
+                             , (SELECT FN_PRODUCT_DETAIL_PRICE(PM.PRD_MST_CD, #{USER_ENV_TYPE}, #{MEM_MST_ID},'N',null) FROM DUAL) AS PRD_NOW_DST_PRICE
+                        FROM T_CNT_DTL TCD, T_PRD_MST PM
+                        WHERE TCD.CNT_MST_IDX = #{CNT_MST_IDX}
+            			AND TCD.CNT_PRD_MST_CD = PM.PRD_MST_CD
+                        <include refid="productWhere"/> 
+                     
+                    <if test="orderType != null and orderType != ''">
+                        <choose>
+                            <when test="orderType.equals('hit'.toString())">
+                                ORDER BY NVL(PM.PRD_MST_ORD_CNT,0) + NVL(PM.PRD_MST_RED_CNT,0) DESC
+                            </when>              
+                            <when test="orderType.equals('new'.toString())">
+                                ORDER BY PM.PRD_MST_REG_DT DESC , PRD_MST_PRICE , PRD_MST_NM ASC
+                            </when> 
+                            <when test="orderType.equals('dwn'.toString())">
+                                ORDER BY PRD_MST_PRICE ASC
+                            </when> 
+                            <when test="orderType.equals('up'.toString())">
+                                ORDER BY PRD_MST_PRICE DESC
+                            </when>        
+                        </choose>
+                    </if>
+                    )PR
+
+                ) A
+                <if test="searchOptionYN != null and searchOptionYN.equals('Y'.toString()) ">
+                    INNER JOIN T_PRD_CMM_OPT TPCO ON A.PRD_MST_CD = TPCO.PRD_MST_CD
+                        <if test="arrSearchColor != null and arrSearchColor.size != 0 ">
+                            AND TPCO.PRD_CMM_TYPE = 'C' 
+                            AND TPCO.CMN_COM_IDX IN
+                            <foreach collection="arrSearchColor" item="searchColor" open="(" close=")" separator=","> #{searchColor}</foreach>
+                        </if> 
+                        <if test="arrSearchSize != null and arrSearchSize.size != 0">
+                            AND TPCO.PRD_CMM_TYPE = 'S' 
+                            AND TPCO.CMM_OPT_NM IN
+                            <foreach collection="arrSearchSize" item="searchSize" open="(" close=")" separator=","> #{searchSize}</foreach> 
+                        </if>
+                </if>
+        )S1
+        <if test="startNum != null and startNum != '' and endNum != null and  endNum != ''">
+            WHERE RNUM BETWEEN #{startNum} AND #{endNum}
+        </if>
+        
+	</select>
+	
+            
+	<select id="selectSellerLookBookList" parameterType="HashMap" resultType="HashMap">
+    	SELECT
+            S2.*            
+        FROM
+            (   SELECT
+                    ROWNUM AS RNUM,
+                    S1.* 
+                FROM
+                    (   SELECT
+                            TCM.CNT_MST_IDX,  
+                            TCC.CMN_COM_NM AS SEASON_NM,
+                            TCF.CMM_FLE_ATT_PATH || TCF.CMM_FLE_SYS_NM AS CMM_FLE_SAVE_PATH ,
+                            TCF.CMN_FLE_ALT_TXT,                  
+                            TCM.CNT_MST_TITLE,
+                            TCM.CNT_MST_USE_YN,
+                            TO_CHAR(TO_DATE(TCM.CNT_MST_REG_DT,'YYYYMMDDHH24MISS'),'YYYY-MM-DD') AS CNT_MST_REG_DT,
+                            TO_CHAR(TO_DATE(TCM.CNT_MST_UPD_DT,'YYYYMMDDHH24MISS'),'YYYY-MM-DD HH:mi:SS') AS CNT_MST_UPD_DT
+                        FROM
+                            T_CNT_MST TCM INNER JOIN T_CMM_COM TCC ON TCM.CNT_MST_SEASON = TCC.CMN_COM_IDX                             
+                            LEFT OUTER JOIN T_CMM_FLE TCF ON TCM.CNT_MST_IDX = TCF.CMM_FLE_TB_PK AND TCF.CMM_FLE_TB_TYPE = #{CMM_FLE_TB_TYPE} AND TCF.CMM_FLE_SORT = 1 AND TCF.CMM_FLE_USE_YN = 'Y'
+                        WHERE TCM.CNT_MST_TYPE = 'TYPE_SELLER_LOOKBOOK'
+                        AND TCM.VDR_MST_IDX =  #{VDR_MST_IDX}
+                        <if test="CNT_MST_SEASON != null and CNT_MST_SEASON != ''">
+                        	AND TCM.CNT_MST_SEASON = #{CNT_MST_SEASON}
+                        </if>
+                        ORDER BY TCM.CNT_MST_REG_DT DESC 
+                     )
+                    S1  
+                ) S2
+     		WHERE
+            S2.RNUM BETWEEN #{startNum} AND #{endNum}
+	</select>
+	
+	<select id="selectSellerLookBookImages" parameterType="HashMap" resultType="HashMap">
+        SELECT
+            CMM_FLE_IDX,
+            CMM_FLE_TB_NM,
+            CMM_FLE_TB_PK,
+            CMM_FLE_TB_TYPE,
+            CMM_FLE_SYS_PATH,
+            CMM_FLE_ATT_PATH,
+            CMM_FLE_ORG_NM,
+            CMM_FLE_SYS_NM,
+            CMM_FLE_ATT_SIZE,
+            CMM_FLE_ATT_EXT,
+            CMM_FLE_DW_CNT,
+            CMM_FLE_SORT,
+            CMM_FLE_USE_YN,
+            CMM_FLE_REG_DT,
+            CMM_FLE_REG_ID,
+            CMN_FLE_ALT_TXT,
+            CMM_FLE_SYS_PATH || CMM_FLE_ATT_PATH || CMM_FLE_SYS_NM AS CMM_FLE_SAVE_PATH
+        FROM
+            T_CMM_FLE
+        WHERE CMM_FLE_TB_NM = 'T_CNT_MST'
+        AND CMM_FLE_USE_YN = 'Y'
+        AND CMM_FLE_TB_PK = TO_CHAR(#{CNT_MST_IDX})
+        AND CMM_FLE_TB_TYPE = #{CMM_FLE_TB_TYPE}
+	</select>
+	
+	<select id="selectSellerSeasonList" parameterType="HashMap" resultType="HashMap">
+          SELECT
+            CMN_COM_IDX,
+            CMN_COM_NM,
+            CMN_COM_LEVEL,
+            CMN_COM_UP_IDX,
+            CMN_COM_SORT,
+            CMN_COM_USE_YN
+        FROM
+            T_CMM_COM
+        WHERE CMN_COM_UP_IDX = '3005'
+        AND CMN_COM_USE_YN = 'Y'
+        AND CMN_COM_SORT > 1
+        ORDER BY CMN_COM_LEVEL, CMN_COM_SORT ASC
+	</select>
+	
+	<select id="selectSellerMediaList" parameterType="HashMap" resultType="HashMap">
+        SELECT
+            S2.*            
+        FROM
+            (   SELECT
+                    ROWNUM AS RNUM,
+                    S1.* 
+                FROM
+                    (   SELECT
+                            TCM.CNT_MST_IDX,                     
+                            TCM.CNT_MST_TITLE,
+                            TCM.CNT_MST_USE_YN,
+                            TCM.CNT_MST_URL,
+                            CMM_FLE_ATT_PATH || CMM_FLE_SYS_NM AS CMM_FLE_SAVE_PATH,
+                            CMN_FLE_ALT_TXT,
+                            TO_CHAR(TO_DATE(SUBSTR(TCM.CNT_MST_REG_DT,1,8),'YYYYMMDD'),'YYYY-MM-DD') AS CNT_MST_REG_DT,
+                            TO_CHAR(TO_DATE(SUBSTR(TCM.CNT_MST_UPD_DT,1,8),'YYYYMMDD'),'YYYY-MM-DD') AS CNT_MST_UPD_DT
+                        FROM
+                            T_CNT_MST TCM, T_CMM_FLE TCF                            
+                        WHERE TCM.CNT_MST_TYPE = 'TYPE_SELLER_MEDIA'
+            			AND TCF.CMM_FLE_TB_NM = 'T_CNT_MST'
+            			AND TCM.VDR_MST_IDX =  #{VDR_MST_IDX}
+            			AND TCF.CMM_FLE_TB_TYPE =  'P'
+                        AND CMM_FLE_USE_YN = 'Y'
+                		AND CMM_FLE_TB_PK = TO_CHAR(TCM.CNT_MST_IDX)
+                        ORDER BY TCM.CNT_MST_REG_DT DESC 
+                    )
+                    S1 
+            )
+            S2 
+        WHERE
+            S2.RNUM BETWEEN #{startNum} AND #{endNum}
+	</select>
+ 
+ 
+     <select id="selectSellerQnaList" parameterType="HashMap" resultType="HashMap">
+        /* Product.selectSellerQnaList */
+        SELECT
+        	BRD_INQ_IDX,
+			BRD_INQ_TITLE,
+			BRD_INQ_CONTENTS,
+			BRD_INQ_REPLY_CD,
+			BRD_INQ_REPLY_CONTENTS,
+			BRD_INQ_REPLY_DT,
+			BRD_INQ_REPLY_DT_2,
+			BRD_INQ_REG_ID,
+			BRD_INQ_REG_DT_2,
+			BRD_INQ_REPLY_CD_NM,
+			MY_QNA_YN,
+			BRD_INQ_CHN_GBN,
+			BRD_INQ_PUB_YN
+        FROM
+            (   
+            	SELECT 
+            		ROWNUM AS RNUM,
+            		BRD_INQ_IDX,
+            		BRD_INQ_TITLE,
+            		CASE WHEN MY_QNA_YN = 'N' AND BRD_INQ_PUB_YN = 'Y' THEN NULL ELSE BRD_INQ_CONTENTS END BRD_INQ_CONTENTS,
+					BRD_INQ_REPLY_CD,
+					CASE WHEN MY_QNA_YN = 'N' AND BRD_INQ_PUB_YN = 'Y' THEN NULL ELSE BRD_INQ_REPLY_CONTENTS END BRD_INQ_REPLY_CONTENTS,
+					BRD_INQ_REPLY_DT,
+					BRD_INQ_REPLY_DT_2,
+					BRD_INQ_REG_ID,
+					BRD_INQ_REG_DT_2,
+					BRD_INQ_REPLY_CD_NM,
+					MY_QNA_YN,
+					BRD_INQ_CHN_GBN,
+					BRD_INQ_PUB_YN
+				FROM (
+            		SELECT
+						  BRD_INQ_TITLE,
+						  BRD_INQ_IDX,
+						  BRD_INQ_CONTENTS,
+						  BRD_INQ_REPLY_CD,
+						  BRD_INQ_REPLY_CONTENTS,
+						  BRD_INQ_REG_ID,
+						  BRD_INQ_REPLY_DT,
+						  TO_CHAR(TO_DATE(BRD_INQ_REPLY_DT,'YYYYMMDDHH24MISS'),'YYYY.MM.DD') AS BRD_INQ_REPLY_DT_2,
+						  TO_CHAR(TO_DATE(BRD_INQ_REG_DT,'YYYYMMDDHH24MISS'),'YYYY.MM.DD') AS BRD_INQ_REG_DT_2,
+						  BRD_INQ_REG_DT,
+						  CASE BRD_INQ_REPLY_CD WHEN 'Y' THEN '답변완료' ELSE '문의접수' END AS BRD_INQ_REPLY_CD_NM,
+						  DECODE(BRD_INQ_REG_ID, #{MEM_ID}, 'Y', 'N') AS MY_QNA_YN,
+						  BRD_INQ_CHN_GBN,
+						  BRD_INQ_PUB_YN
+					FROM T_BRD_INQ
+					WHERE VDR_MST_IDX = #{VDR_MST_IDX}
+					AND BRD_INQ_TYPE = 'S'
+					AND BRD_INQ_USE_YN = 'Y'
+                    <if test="searchQnaMemId != null and searchQnaMemId != ''">
+                        <if test="searchQnaMemId.equals('Y'.toString())">
+                            AND BRD_INQ_REG_ID = #{MEM_ID} 
+                        </if>
+                    </if>
+					ORDER BY BRD_INQ_REG_DT DESC
+				)
+            )
+            S2
+        WHERE S2.RNUM BETWEEN #{startNum} AND #{endNum}
+    </select>
+    
+    <select id="selectSellerQnaListCount" parameterType="HashMap" resultType="integer">
+        /* Product.selectSellerQnaListCount */
+        SELECT 
+        	COUNT(0)
+        FROM T_BRD_INQ
+		WHERE VDR_MST_IDX = #{VDR_MST_IDX}
+		AND BRD_INQ_TYPE = 'S'
+		AND BRD_INQ_USE_YN = 'Y'
+        <if test="searchQnaMemId != null and searchQnaMemId != ''">
+            <if test="searchQnaMemId.equals('Y'.toString())">
+                AND BRD_INQ_REG_ID = #{MEM_ID}
+            </if>
+        </if>
+    </select>
+    
+    <select id="selectSellerQnaInfo" parameterType="HashMap" resultType="HashMap">
+        /* Product.selectSellerQnaInfo */
+        SELECT
+			BRD_INQ_TITLE,
+			BRD_INQ_IDX,
+			BRD_INQ_CONTENTS,
+			BRD_INQ_PUB_YN
+        FROM T_BRD_INQ
+        WHERE BRD_INQ_IDX = #{BRD_INQ_IDX}
+        AND BRD_INQ_REG_ID = #{MEM_MST_MEM_ID}
+		AND BRD_INQ_USE_YN = 'Y'
+    </select>
+    
+   <!--  QNA작성  -->
+    <insert id="insertSellerQna" parameterType="HashMap">
+        <selectKey keyProperty="BRD_INQ_IDX" resultType="Integer" order="BEFORE">
+            SELECT SEQ_BRD_INQ_IDX.NEXTVAL AS BRD_INQ_IDX  FROM DUAL
+        </selectKey>
+        /* Product.insertSellerQna */
+        INSERT INTO
+            T_BRD_INQ
+        (
+			BRD_INQ_IDX,
+			BRD_INQ_TITLE,
+			BRD_CMN_COM_IDX,
+			BRD_INQ_CONTENTS,
+			BRD_INQ_REG_ID,
+			BRD_INQ_REG_NM,
+			BRD_INQ_REG_DT,
+			BRD_PRD_MST_CD,
+			BRD_INQ_TYPE,
+			BRD_INQ_REG_IP,
+			BRD_INQ_CHN_GBN,
+			VDR_MST_IDX,
+			BRD_INQ_PUB_YN
+		)
+		VALUES
+        (
+			#{BRD_INQ_IDX},
+			#{BRD_INQ_TITLE},
+			#{BRD_CMN_COM_IDX},
+			#{BRD_INQ_CONTENTS:CLOB},
+			#{MEM_MST_MEM_ID},
+			#{BRD_INQ_REG_NM},
+			TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+			#{PRD_MST_CD},
+			NVL(#{BRD_INQ_TYPE}, 'Q'),
+			#{MEM_MST_WEB_IP},
+			#{PRD_CTG_ENV},
+			#{VDR_MST_IDX},
+			#{BRD_INQ_PUB_YN}
+		)
+    </insert>
+    
+    <!-- QNA 수정 -->
+	<update id="updateSellerQna" parameterType="HashMap">
+		/* Product.updateSellerQna */
+		UPDATE
+			T_BRD_INQ
+		SET
+			BRD_INQ_TITLE = #{BRD_INQ_TITLE},
+			BRD_INQ_CONTENTS = #{BRD_INQ_CONTENTS:CLOB},
+			BRD_INQ_UPD_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+			BRD_INQ_PUB_YN = #{BRD_INQ_PUB_YN},
+			BRD_INQ_UPD_ID = #{MEM_MST_MEM_ID},
+			BRD_INQ_UPD_IP = #{MEM_MST_WEB_IP}		
+		WHERE
+			BRD_INQ_IDX = #{BRD_INQ_IDX}
+	</update>
+	
+	
+	<!-- QNA 삭제 -->
+	<delete id="deleteSellerQna" parameterType="HashMap">
+		/* Product.deleteSellerQna */
+		DELETE
+			T_BRD_INQ
+		WHERE
+			BRD_INQ_IDX = #{BRD_INQ_IDX}		
+	</delete>
+	
+</mapper>

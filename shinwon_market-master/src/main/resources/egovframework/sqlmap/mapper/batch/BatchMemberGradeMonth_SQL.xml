@@ -1,0 +1,281 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="BatchMemberGradeMonth">
+
+    <!-- 개인회원(온라인 통합회원) 전체ID -->
+    <select id="selectMemberAllId" parameterType="HashMap" resultType="HashMap">
+    <![CDATA[
+              SELECT MEM_MST_MEM_ID	, MEM_MST_MAIL FROM T_MEM_MST
+              ]]>
+    </select>   
+
+    <!-- 개인회원(온라인 통합회원) 현재등급정보 -->
+    <select id="selectMemberGradeInfo" parameterType="HashMap" resultType="HashMap">
+    <![CDATA[
+                 SELECT 
+						  ORD_MST_ORD_ID
+						, CNT
+						, ORD_PRD_ORD_PRC
+						, MEM_GRD_NM
+						, MEM_GRD_CD
+						, MEM_GRD_CD_NEW
+			            , CASE 
+			                WHEN MEM_GRD_CD = MEM_GRD_CD_NEW THEN 'N'
+			                WHEN MEM_GRD_CD > MEM_GRD_CD_NEW THEN 'U'     -- 등급 하향 방법(등급하락)
+			                WHEN MEM_GRD_CD < MEM_GRD_CD_NEW THEN 'D'    -- 등급 상향 방법(등급상향)
+			                ELSE 'N'
+			            END  AS MEM_GRD_CD_CHG	
+						, NVL(MEM_PIT_PLS,0) AS MEM_PIT_PLS
+						, NVL(MEM_PIT_TOT_PIT,0) AS MEM_PIT_TOT_PIT
+				FROM		
+                 (
+				  SELECT 
+				         AA.ORD_MST_ORD_ID
+				        ,AA.CNT
+				        ,NVL(BB.ORD_PRD_ORD_PRC,0) AS ORD_PRD_ORD_PRC
+				        ,CC.MEM_GRD_NM
+				        ,CC.MEM_GRD_CD
+					    ,CASE 
+					          WHEN NVL(BB.ORD_PRD_ORD_PRC,0) = 0 THEN 3619
+					          WHEN NVL(BB.ORD_PRD_ORD_PRC,0) > 0 AND NVL(BB.ORD_PRD_ORD_PRC,0) < 300000 THEN 3620
+  			                  WHEN NVL(BB.ORD_PRD_ORD_PRC,0) > 300000 AND NVL(BB.ORD_PRD_ORD_PRC,0) < 5000000 THEN 3621
+			                  WHEN NVL(BB.ORD_PRD_ORD_PRC,0) > 5000000 AND NVL(BB.ORD_PRD_ORD_PRC,0) < 1000000 THEN 3622
+			                  WHEN NVL(BB.ORD_PRD_ORD_PRC,0) > 1000000 AND NVL(BB.ORD_PRD_ORD_PRC,0) < 1500000 THEN 3623
+			                  WHEN NVL(BB.ORD_PRD_ORD_PRC,0) > 1500000 THEN 3624
+			                ELSE 3619
+					     END  AS MEM_GRD_CD_NEW
+						,DD.MEM_PIT_PLS
+						,DD.MEM_PIT_TOT_PIT
+			   FROM
+				/*구매건수을 가저온다*/
+				(
+				SELECT #{MEM_MST_MEM_ID} AS ORD_MST_ORD_ID,COUNT(ORD_MST_CD) AS CNT  FROM T_ORD_MST
+				WHERE ORD_MST_ORD_ID = #{MEM_MST_MEM_ID}
+                   AND ORD_MST_ORD_DT BETWEEN TO_CHAR(ADD_MONTHS(SYSDATE,-6), 'YYYYMMDDHH24MISS') AND TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS')
+                   ) AA,
+				/*구매누적액을 가저온다*/
+                   (
+                   SELECT #{MEM_MST_MEM_ID} AS ORD_MST_ORD_ID, NVL(sum(ORD_PRD_ORD_PRC),0) AS  ORD_PRD_ORD_PRC
+			    FROM T_ORD_PRD
+			    WHERE ORD_ORD_MST_CD IN (
+										     SELECT ORD_MST_CD FROM T_ORD_MST
+										     WHERE ORD_MST_ORD_ID =#{MEM_MST_MEM_ID} 
+                                                AND ORD_MST_ORD_DT BETWEEN TO_CHAR(ADD_MONTHS(SYSDATE,-6), 'YYYYMMDDHH24MISS') AND TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS')
+			                            )
+			    AND  ORD_PRD_ORD_STATE  IN (409) 
+                   ) BB,				  
+                   (			       
+					/*현재 회원의 레빌등급을 가져온다*/
+                   SELECT 
+                            #{MEM_MST_MEM_ID} AS ORD_MST_ORD_ID
+                          , NVL(MEM_GRD_NM,'Lv1') AS MEM_GRD_NM
+                          , NVL(MEM_GRD_CD,3619) AS MEM_GRD_CD
+                   FROM 
+                   (
+                    SELECT
+						  TMA.MEM_MST_MEM_ID
+						, TMG.MEM_GRD_NM
+						, TMG.MEM_GRD_CD
+					FROM
+						   T_MEM_MST TMA
+						 , T_MEM_GRD TMG	
+					WHERE 	TMA.MEM_MST_MEM_GRD = TMG.MEM_GRD_CD
+					AND MEM_MST_MEM_ID =#{MEM_MST_MEM_ID}
+					)       
+				) CC,
+                   (
+					/*현재 회원의 포인트을 가져온다*/
+                    SELECT
+						  #{MEM_MST_MEM_ID} AS ORD_MST_ORD_ID
+						, NVL(MEM_PIT_PLS,0) AS MEM_PIT_PLS
+						, NVL(MEM_PIT_TOT_PIT,0) AS MEM_PIT_TOT_PIT
+					FROM
+						   T_MEM_PIT
+					WHERE 	MEM_PIT_MEM_ID =#{MEM_MST_MEM_ID}
+				) DD
+                   WHERE AA.ORD_MST_ORD_ID =BB.ORD_MST_ORD_ID(+)
+                   AND BB.ORD_MST_ORD_ID =CC.ORD_MST_ORD_ID(+)
+                   AND CC.ORD_MST_ORD_ID =DD.ORD_MST_ORD_ID(+)
+              )     TT
+              ]]>
+    </select>   
+
+    <!-- 배치 > 회원등급별 자동발급 쿠폰 조회 -->
+    <select id="selectGrdCoupon" parameterType="HashMap" resultType="HashMap">
+        /*BatchEcoupon.selectGrdCoupon*/
+        SELECT 
+        	CPN_MST_IDX
+        FROM T_CPN_MST CPN
+        WHERE
+        <![CDATA[
+        	CPN_MST_GBN = 'D'
+        	AND CPN_MST_YN = 'Y'
+        	AND CPN_MST_MEM_GRD = #{MEM_GRD_CD}
+        	AND TO_CHAR(SYSDATE,'YYYYMMDDHH24MISS')
+	        	BETWEEN 
+	        		CPN_MST_ISU_ST_DT || CPN_MST_ISU_ST_HH || CPN_MST_ISU_ST_MM 
+	        	AND CPN_MST_ISU_ED_DT || CPN_MST_ISU_ED_HH || CPN_MST_ISU_ED_MM
+        ]]>
+    </select>
+    
+    <!-- 배치 > 회원등급별 자동포인트 적립 조회 -->
+    <select id="selectGrdPoint" parameterType="HashMap" resultType="HashMap">
+        SELECT 
+        	PIT_MST_IDX,PIT_MST_PIT
+        FROM T_PIT_MST CPN
+        WHERE
+        	PIT_MST_GBN = 'P'
+        	AND PIT_MST_BRK_DWN = #{MEM_GRD_CD_NEW}    
+    </select>
+    
+    <select id="selectGrdMemTotCouponCnt" parameterType="HashMap" resultType="HashMap">
+    /* BatchMemberGradeMonth.selectGrdMemTotCouponCnt */
+	        	SELECT COUNT(*) AS TOT_CPN_CNT FROM T_CPN_MEM
+	        	WHERE CPN_MEM_ID =#{MEM_MST_MEM_ID}
+    </select>
+    
+    <!-- 개인회원 등급 변경처리 -->
+    <update id="updateMemberGradeMonth" parameterType="HashMap">
+        /* BatchMemberGradeMonth".updateMemberGradeMonth */
+        <![CDATA[
+        UPDATE T_MEM_MST
+            SET 
+                MEM_MST_MEM_GRD = #{UPDATE_CMN_COM_IDX}
+               ,MEM_MST_BUY_AMT = #{MEM_MST_BUY_AMT}
+        WHERE MEM_MST_MEM_ID = #{ORD_MST_ORD_ID}
+            
+          ]]>
+    </update>
+
+    <!-- 퇴작자 변경처리 -->
+    <update id="updateEmpRetireInfo" parameterType="HashMap">
+        /* BatchMemberGradeMonth".updateEmpRetireInfo */
+        <![CDATA[
+        UPDATE T_MEM_MST
+            SET 
+                 MEM_MST_MEM_GBN = 3618
+               , MEM_MST_SW_ID=NULL
+        WHERE MEM_MST_ERP_ID = #{MEM_MST_ERP_ID}     
+          ]]>
+    </update>    
+
+
+
+    <!-- 포인트적립 -->
+    <insert id="insertDwnPoint" parameterType="hashmap" >
+        /* BatchMemberGradeMonth.insertDwnPoint */
+			INSERT INTO T_MEM_PIT
+			(
+				MEM_PIT_IDX, 
+				PIT_MST_IDX, 
+				MEM_PIT_MEM_ID, 
+				MEM_PIT_GBN, 
+				MEM_PIT_BRK_DWN, 
+				MEM_PIT_PLS, 
+				MEM_PIT_TOT_PIT
+			)
+			VALUES
+			(
+				SEQ_MEM_PIT_IDX.NEXTVAL, 
+				#{PIT_MST_IDX}, 
+				#{MEM_MST_MEM_ID}, 
+				'p', 
+				#{MEM_GRD_CD_NEW}, 
+				#{MEM_PIT_PLS}, 
+				#{MEM_PIT_TOT_PIT}
+			)             
+    </insert>   
+    
+    <!-- 쿠폰밣행 -->
+    <insert id="insertDwnCoupon" parameterType="hashmap" >
+        /* BatchMemberGradeMonth.insertDwnCoupon */
+        INSERT INTO T_CPN_MEM (
+            CPN_MEM_IDX
+            ,CPN_MST_IDX
+            ,CPN_MEM_ID
+            ,CPN_MEM_ISU_DT
+            ,CPN_MEM_USE_DT
+            ,CPN_MEM_USE_YN
+        )VALUES (
+            SEQ_CPN_MEM_IDX.NEXTVAL
+            ,#{CPN_MST_IDX}
+            ,#{MEM_MST_MEM_ID} 
+            ,TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS')
+            ,NULL
+            ,'N'
+        )               
+    </insert>   
+    
+    <!-- 개인회원(온라인 통합회원) 최근 1년 구매이력 없는 회원 -->
+    <select id="selectMemberGradeCount" parameterType="hashMap" resultType="integer">
+        /* BatchMemberGradeMonth.selectMemberGradeCount */
+        SELECT
+            COUNT(0)
+        FROM(
+            SELECT 
+                MEM_MST_MEM_ID
+                , ( SELECT COUNT(0) FROM T_ORD_MST OMT, T_ORD_PRD_HIS HIS 
+                    WHERE OMT.ORD_MST_CD = HIS.ORD_ORD_MST_CD  
+                    AND OMT.ORD_MST_ORD_ID = MMT.MEM_MST_MEM_ID 
+                    AND ORD_PRD_REG_DT > TO_CHAR(ADD_MONTHS(SYSDATE,-3),'YYYYMMDDHH24MISS') 
+                    AND HIS.ORD_PRD_ORD_STATE = '409' 
+                  ) AS ORD_MST_ORD_CNT
+                ,MMT.MEM_MST_MAIL AS MEM_MST_MAIL /* 회원 이메일*/
+                , TMA.MEM_AGR_TRM_YN AS EMAILYN /* 이메일 수신여부*/                                               
+                , MMT.MEM_MST_MEM_NM /* 회원 이름*/
+                , 'http://www.etland.co.kr/pc/email/emailRejectReceive.do' || #{MASK} || 'mailAddr=' || MEM_MST_MAIL || <![CDATA['&mailMemId=']]> || MEM_MST_MEM_ID as REJECT_URL  /*수신거부 URL*/                    
+                , TO_CHAR(SYSDATE,'MM') AS NOW_MONTH /* 현재 월 */
+                , TO_CHAR(TO_DATE(NVL(MEM_AGR_UPD_DT,MEM_AGR_REG_DT),'YYYYMMDDHH24MISS'),'YYYY') || '년 ' ||
+                        TO_CHAR(TO_DATE(NVL(MEM_AGR_UPD_DT,MEM_AGR_REG_DT),'YYYYMMDDHH24MISS'),'MM') || '월 ' ||
+                        TO_CHAR(TO_DATE(NVL(MEM_AGR_UPD_DT,MEM_AGR_REG_DT),'YYYYMMDDHH24MISS'),'DD') || '일' AS MEM_AGR_REG_DT  /* 수신동의 일자*/
+                , MMT.MEM_MST_MEM_GRD AS UPDATE_CMN_COM_IDX  /* 변경될 회원의 등급  */
+            FROM T_MEM_MST MMT, T_MEM_AGR TMA
+            WHERE TMA.MEM_AGR_MEM_ID = MMT.MEM_MST_MEM_ID
+            AND TMA.MEM_AGR_TRM_CD = '0004'
+            AND MMT.MEM_MST_MEM_GBN = '682'
+        )S1
+        WHERE S1.ORD_MST_ORD_CNT = 0
+                    
+    </select>
+    
+    <!-- 개인회원(온라인 통합회원) 최근 1년 구매이력 없는 회원 -->
+    <select id="selectMemberOrderCntMonth" parameterType="HashMap" resultType="HashMap">
+        /* BatchMemberGradeMonth.selectMemberOrderCntMonth */
+        SELECT
+            S2.*
+        FROM (
+                SELECT
+                    S1.*
+                    ,( SELECT CMN_COM_NM FROM T_CMM_COM WHERE CMN_COM_UP_IDX = #{MEM_MST_MEM_GBN} AND CMN_COM_IDX = UPDATE_CMN_COM_IDX) AS UPDATE_CMN_COM_NM
+                    , ROWNUM AS RNUM
+                FROM(
+                    SELECT 
+                        MEM_MST_MEM_ID
+                        , ( SELECT COUNT(0) FROM T_ORD_MST OMT, T_ORD_PRD_HIS HIS 
+                            WHERE OMT.ORD_MST_CD = HIS.ORD_ORD_MST_CD  
+                            AND OMT.ORD_MST_ORD_ID = MMT.MEM_MST_MEM_ID 
+                            AND ORD_PRD_REG_DT > TO_CHAR(ADD_MONTHS(SYSDATE,-3),'YYYYMMDDHH24MISS') 
+                            AND HIS.ORD_PRD_ORD_STATE = '409' 
+                          ) AS ORD_MST_ORD_CNT
+                        ,MMT.MEM_MST_MAIL AS MEM_MST_MAIL /* 회원 이메일*/
+                        , TMA.MEM_AGR_TRM_YN AS EMAILYN /* 이메일 수신여부*/                                               
+                        , MMT.MEM_MST_MEM_NM /* 회원 이름*/
+                        , 'http://www.etland.co.kr/pc/email/emailRejectReceive.do' || #{MASK} || 'mailAddr=' || MEM_MST_MAIL || <![CDATA['&mailMemId=']]> || MEM_MST_MEM_ID as REJECT_URL  /*수신거부 URL*/                    
+                        , TO_CHAR(SYSDATE,'MM') AS NOW_MONTH /* 현재 월 */
+                        , TO_CHAR(TO_DATE(NVL(MEM_AGR_UPD_DT,MEM_AGR_REG_DT),'YYYYMMDDHH24MISS'),'YYYY') || '년 ' ||
+                                TO_CHAR(TO_DATE(NVL(MEM_AGR_UPD_DT,MEM_AGR_REG_DT),'YYYYMMDDHH24MISS'),'MM') || '월 ' ||
+                                TO_CHAR(TO_DATE(NVL(MEM_AGR_UPD_DT,MEM_AGR_REG_DT),'YYYYMMDDHH24MISS'),'DD') || '일' AS MEM_AGR_REG_DT  /* 수신동의 일자*/
+                        , MMT.MEM_MST_MEM_GRD AS UPDATE_CMN_COM_IDX  /* 변경될 회원의 등급  */
+                    FROM T_MEM_MST MMT, T_MEM_AGR TMA
+                    WHERE TMA.MEM_AGR_MEM_ID = MMT.MEM_MST_MEM_ID
+                    AND TMA.MEM_AGR_TRM_CD = '0004'
+                    AND MMT.MEM_MST_MEM_GBN = '682'
+                )S1
+                WHERE S1.ORD_MST_ORD_CNT = 0
+            )S2
+                WHERE S2.RNUM BETWEEN #{strNum} AND #{endNum}
+                    
+    </select>   
+            
+
+</mapper>

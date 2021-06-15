@@ -1,0 +1,238 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="Gift">
+
+    <!-- 관리자 > 상품관리 > 사은품관리 조건절 -->
+    <sql id="giftListWhere">
+        <if test="searchGftMstName != null and searchGftMstName != ''">
+            AND TGM.GFT_MST_NAME LIKE '%' || #{searchGftMstName} || '%'
+        </if>
+        <if test="searchStartDate != null and searchStartDate != ''">
+            AND REPLACE(#{searchStartDate},'-', '') BETWEEN  TGM.GFT_MST_ST_DT AND TGM.GFT_MST_ED_DT
+        </if>
+        <if test="searchEndDate != null and searchEndDate != ''">
+            AND REPLACE(#{searchEndDate},'-', '') BETWEEN  TGM.GFT_MST_ST_DT AND TGM.GFT_MST_ED_DT    
+        </if>
+        <if test="searchGftMstUseYn != null and searchGftMstUseYn != ''">
+            AND TGM.GFT_MST_USE_YN = #{searchGftMstUseYn}
+        </if>
+    </sql>
+    
+    <!-- 관리자 > 상품관리 > 사은품관리 목록 갯수 -->
+    <select id="selectGiftListCount" parameterType="HashMap" resultType="Integer">
+        /* Gift.selectGiftListCount */
+        SELECT
+            COUNT(GFT_MST_IDX)
+        FROM
+            T_GFT_MST TGM
+        WHERE
+            1=1
+            <include refid="giftListWhere"/>
+    </select>
+    
+    <!-- 관리자 > 상품관리 > 사은품관리 목록 -->
+    <select id="selectGiftList" parameterType="HashMap" resultType="HashMap">
+        /* Gift.selectGiftList */
+        SELECT
+               S2.*
+         FROM
+            (  SELECT
+                     ROWNUM AS RNUM
+                     , S1.* 
+                FROM
+                    (  
+                       SELECT 
+                             TGM.GFT_MST_IDX /* 사은품관리_IDX */            
+                             ,TGM.GFT_MST_BRAND_CD    /* 브랜드코드 */            
+                             ,TGM.GFT_MST_NAME    /* 사은품명 */            
+                             ,TGM.GFT_MST_OPTION    /* 사은품_옵션 */            
+                             ,TGM.GFT_MST_ST_DT    /* 시작일자 */            
+                             ,TGM.GFT_MST_ED_DT    /* 종료일자 */            
+                             ,TGM.GFT_MST_COND_AMT    /* 조건금액 */            
+                             ,TGM.GFT_MST_USE_YN    /* 사용여부 */            
+                             ,TGM.GFT_MST_REG_DT    /* 최초_등록일 */            
+                             ,TGM.GFT_MST_REG_IP    /* 최초_등록_IP */            
+                             ,TGM.GFT_MST_REG_ID    /* 최초_등록자_아이디 */            
+                             ,TGM.GFT_MST_UPD_DT    /* 최종_수정일 */            
+                             ,TGM.GFT_MST_UPD_IP    /* 최종_수정_IP */            
+                             ,TGM.GFT_MST_UPD_ID    /* 최종_수정자_아이디 */
+                             ,NVL(
+                                (SELECT COUNT(TPG.PRD_GFT_IDX) 
+                                 FROM T_PRD_GFT TPG
+                               WHERE TGM.GFT_MST_IDX = TPG.GFT_MST_IDX
+                               )
+                               , 0)  AS PRD_CNT  /* 상품 수 */
+                        FROM 
+                             T_GFT_MST TGM
+                       WHERE 1=1
+                            <include refid="giftListWhere"/>
+                       ORDER BY TGM.GFT_MST_IDX DESC 
+                    )
+                    S1 
+            )
+            S2
+        WHERE S2.RNUM BETWEEN #{startNum} AND #{endNum}
+        ORDER BY RNUM
+    </select>
+    
+    <!-- 관리자 > 상품관리 > 사은품관리 상세정보  -->
+    <select id="selectGiftInfo" parameterType="HashMap" resultType="HashMap">
+        /* Gift.selectGiftInfo */
+        SELECT 
+              TGM.GFT_MST_IDX /* 사은품관리_IDX */            
+              ,TGM.GFT_MST_BRAND_CD    /* 브랜드코드 */            
+              ,TGM.GFT_MST_NAME    /* 사은품명 */            
+              ,TGM.GFT_MST_OPTION    /* 사은품_옵션 */            
+              ,TO_CHAR(TO_DATE(TGM.GFT_MST_ST_DT,'YYYYMMDD'),'YYYY-MM-DD')  AS GFT_MST_ST_DT  /* 시작일자 */     
+              ,TO_CHAR(TO_DATE(TGM.GFT_MST_ED_DT,'YYYYMMDD'),'YYYY-MM-DD')  AS GFT_MST_ED_DT  /* 종료일자 */             
+              ,TGM.GFT_MST_COND_AMT    /* 조건금액 */            
+              ,TGM.GFT_MST_USE_YN    /* 사용여부 */            
+              ,TGM.GFT_MST_REG_DT    /* 최초_등록일 */            
+              ,TGM.GFT_MST_REG_IP    /* 최초_등록_IP */            
+              ,TGM.GFT_MST_REG_ID    /* 최초_등록자_아이디 */            
+              ,TGM.GFT_MST_UPD_DT    /* 최종_수정일 */            
+              ,TGM.GFT_MST_UPD_IP    /* 최종_수정_IP */            
+              ,TGM.GFT_MST_UPD_ID    /* 최종_수정자_아이디 */
+              ,TGM.GFT_MST_GUBUN     /* 사은품 구분 */
+              ,TGM.GFT_MST_STOCK_CNT /* 사은품 재고 */
+              ,TGM.GFT_MST_PRD_TYPE  /* 사은품이미지 타입 */
+              ,TGM.GFT_MST_PRD_CD    /* 사은품이미지 상품코드 */
+              ,TGM.GFT_MST_PLN_IDX    /* 사은품 기획전 IDX */
+              ,(SELECT ADM_MST_NM FROM T_ADM_MST TAM WHERE TAM.ADM_MST_ID = TGM.GFT_MST_REG_ID) AS GFT_MST_REG_NM
+              ,(SELECT ADM_MST_NM FROM T_ADM_MST TAM WHERE TAM.ADM_MST_ID = TGM.GFT_MST_UPD_ID) AS GFT_MST_UPD_NM
+              , FL.CMM_FLE_ATT_PATH
+              , FL.CMM_FLE_SYS_NM
+              , FL.CMM_FLE_IDX 
+              , FL.CMM_FLE_SYS_PATH             
+              , FL.CMM_FLE_ORG_NM 
+              , FL.CMN_FLE_ALT_TXT
+         FROM 
+              T_GFT_MST TGM 
+              LEFT OUTER JOIN T_CMM_FLE FL ON TGM.GFT_MST_IDX= FL.CMM_FLE_TB_PK AND FL.CMM_FLE_USE_YN = 'Y' AND FL.CMM_FLE_TB_NM = 'T_GFT_MST'
+         WHERE
+              GFT_MST_IDX = #{GFT_MST_IDX}
+    </select>
+    
+    <!-- 사은품관리 관련상품 리스트 -->
+    <select id="selectProductList" parameterType="hashMap" resultType="hashMap">
+        /* Gift.selectProductList */
+        SELECT
+            TPM.PRD_MST_CD
+            , TPM.PRD_MST_NM
+            , FN_PRODUCT_IMG(TPM.PRD_MST_CD, #{THUMBNAIL_SIZE}) AS PRD_IMAGE
+            , TPM.PRD_MST_CNL_PC_YN
+            , TPM.PRD_MST_CNL_MB_YN
+            , TPM.PRD_MST_SEL_STATE
+            , TPM.PRD_MST_PRC
+        FROM 
+            T_PRD_GFT TPG, T_PRD_MST TPM
+        WHERE TPG.PRD_PRD_MST_CD = TPM.PRD_MST_CD
+          AND TPG.GFT_MST_IDX    = #{GFT_MST_IDX}
+    </select>
+    
+    
+    
+    <!-- 관리자 > 상품관리 > 사은품관리 등록 -->
+    <insert id="insertGift" parameterType="HashMap">
+        <selectKey keyProperty="GFT_MST_IDX" resultType="Integer" order="BEFORE">
+            SELECT SEQ_GFT_MST_IDX.NEXTVAL AS GFT_MST_IDX FROM DUAL
+        </selectKey>
+        /* Gift.insertGift */
+        INSERT INTO T_GFT_MST (
+                                     GFT_MST_IDX
+                                   , GFT_MST_BRAND_CD
+                                   , GFT_MST_NAME
+                                   , GFT_MST_OPTION
+                                   , GFT_MST_ST_DT
+                                   , GFT_MST_ED_DT
+                                   , GFT_MST_COND_AMT
+                                   , GFT_MST_USE_YN
+                                   , GFT_MST_REG_DT
+                                   , GFT_MST_REG_IP
+                                   , GFT_MST_REG_ID
+                                   , GFT_MST_GUBUN
+                                   , GFT_MST_STOCK_CNT
+                                   , GFT_MST_PRD_TYPE
+                                   , GFT_MST_PRD_CD
+                                   , GFT_MST_PLN_IDX
+                      ) VALUES ( 
+                                    #{GFT_MST_IDX}
+                                   , #{GFT_MST_BRAND_CD}
+                                   , #{GFT_MST_NAME}
+                                   , #{GFT_MST_OPTION}
+                                   , REPLACE(#{GFT_MST_ST_DT},'-', '')
+                                   , REPLACE(#{GFT_MST_ED_DT},'-', '')
+                                   , #{GFT_MST_COND_AMT}
+                                   , #{GFT_MST_USE_YN}
+                                   , TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS')
+                                   , #{GFT_MST_REG_IP}
+                                   , #{GFT_MST_REG_ID}
+                                   , #{GFT_MST_GUBUN}
+                                   , #{GFT_MST_STOCK_CNT}
+                                   , #{GFT_MST_PRD_TYPE}
+                                   , #{GFT_MST_PRD_CD}
+                                   , #{GFT_MST_PLN_IDX}
+                               )
+    </insert>
+    
+    <!-- 관리자 > 상품관리 > 사은품관리 수정 -->
+    <update id="updateGift" parameterType="HashMap">
+        /* Gift.updateGift */ 
+        UPDATE
+            T_GFT_MST 
+        SET
+            GFT_MST_BRAND_CD = #{GFT_MST_BRAND_CD},
+            GFT_MST_NAME     = #{GFT_MST_NAME},
+            GFT_MST_OPTION   = #{GFT_MST_OPTION},
+            GFT_MST_ST_DT    = REPLACE(#{GFT_MST_ST_DT},'-', ''),
+            GFT_MST_ED_DT    = REPLACE(#{GFT_MST_ED_DT},'-', ''),
+            GFT_MST_COND_AMT = #{GFT_MST_COND_AMT},
+            GFT_MST_USE_YN   = #{GFT_MST_USE_YN},
+            GFT_MST_UPD_DT   = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+            GFT_MST_UPD_IP   = #{GFT_MST_UPD_IP},
+            GFT_MST_UPD_ID   = #{GFT_MST_UPD_ID},
+            GFT_MST_GUBUN    = #{GFT_MST_GUBUN},
+            GFT_MST_STOCK_CNT    = #{GFT_MST_STOCK_CNT},
+            GFT_MST_PRD_TYPE    = #{GFT_MST_PRD_TYPE},
+            GFT_MST_PRD_CD    = #{GFT_MST_PRD_CD},
+            GFT_MST_PLN_IDX  = #{GFT_MST_PLN_IDX}
+        WHERE
+            GFT_MST_IDX = #{GFT_MST_IDX}
+    </update>
+    
+    <!-- 사은품관리 적용상품 등록  -->
+    <insert id="insertProduct" parameterType="hashmap" >
+        <![CDATA[
+        /* Gift.insertProduct */
+        INSERT INTO T_PRD_GFT (
+            PRD_GFT_IDX, PRD_PRD_MST_CD, GFT_MST_IDX
+        )VALUES (
+            SEQ_PRD_GFT_IDX.NEXTVAL, #{PRD_PRD_MST_CD}, #{GFT_MST_IDX}
+        ) 
+        ]]>
+    </insert>
+    
+    <!-- 사은품관리 적용상품 삭제 -->
+    <delete id="deleteProduct" parameterType="hashmap" >
+        <![CDATA[
+        /* Gift.deleteProduct */
+        DELETE FROM T_PRD_GFT WHERE GFT_MST_IDX = #{GFT_MST_IDX}
+        ]]>
+    </delete>    
+    
+    <!-- 관리자 > 사은품관리 > 기획전 목록 -->
+    <select id="selectPlanList" parameterType="HashMap" resultType="HashMap">
+        /*Gift.selectPlanList*/
+        SELECT
+            PLN.PLN_MST_IDX,                     
+            PLN.PLN_MST_CHANNEL_PC_YN,
+            PLN.PLN_MST_CHANNEL_MOBILE_YN,
+            PLN.PLN_MST_TITLE
+        FROM
+                T_PLN_MST PLN                             
+        WHERE
+            PLN.PLN_MST_USE_YN = 'Y'
+        AND (TO_DATE(PLN.PLN_MST_ST_DT || NVL(PLN.PLN_MST_ST_HH, '00') || NVL(PLN.PLN_MST_ST_MI, '00')  ||'59','yyyymmddhh24miss') <![CDATA[<=]]> SYSDATE AND TO_DATE(PLN.PLN_MST_ED_DT || NVL(PLN.PLN_MST_ED_HH, '00') || NVL(PLN.PLN_MST_ED_MI, '00') ||'59','yyyymmddhh24miss') <![CDATA[>=]]> SYSDATE)
+    </select>
+    
+</mapper>

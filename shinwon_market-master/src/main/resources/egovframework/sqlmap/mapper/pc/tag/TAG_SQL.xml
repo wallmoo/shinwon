@@ -1,0 +1,378 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="PcTag">
+    
+    <!-- 관리자 > 태그 관리 > 관리 관리자 관리 > 조건절  -->
+    <sql id="AdminTagGroupWhere">
+        <choose>
+            <when test="searchType != null and searchType.equals('S_ALL'.toString())">
+                AND ( TAG_GRP_TITLE LIKE '%' || #{searchKeyword} || '%' OR TAG_GRP_DES LIKE '%' || #{searchKeyword} || '%')        
+            </when>
+            <when test="searchType != null and searchType.equals('S_TITLE'.toString())">
+                AND TAG_GRP_TITLE LIKE '%' || #{searchKeyword} || '%'       
+            </when>
+            <when test="searchType != null and searchType.equals('S_DESC'.toString())">
+                AND TAG_GRP_DES LIKE '%' || #{searchKeyword} || '%'   
+            </when>
+        </choose>
+
+		<choose>
+			<when test = "searchUseYN != null and searchUseYN != ''">
+	            AND TAG_GRP_STATUS = #{searchUseYN}
+	        </when>
+		</choose>
+    </sql>
+    
+    <insert id="insertTag" parameterType="hashMap">
+        /* PcTag.insertTag */
+    
+        INSERT 
+          INTO T_TAG_MST (    TAG_MST_ID
+                                ,TAG_MST_TITLE
+                                ,TAG_MST_REG_ID
+                                ,TAG_MST_REG_DT
+                                ,TAG_MST_UPD_ID
+                                ,TAG_MST_UPD_DT
+                                ,TAG_MST_STATUS
+                            )
+        VALUES          (     #{TAG_MST_ID}
+                            , #{TAG_MST_TITLE}
+                            , #{REG_ID}
+                            , TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS')
+                            , #{REG_ID}
+                            , TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS')
+                            , #{TAG_MST_STATUS}
+                            )
+    </insert>
+    
+    <insert id="insertTagBindBatch" parameterType="hashMap">
+    	/* PcTag.insertTagBindBatch */
+    	INSERT ALL
+        <foreach collection="TAG_MST_IDs" item="TAG_MST_ID" separator=" "> 
+            INTO 
+                T_TAG_BND (
+                    TAG_MST_ID
+                    , TAG_BND_ID
+                    , TAG_BND_REP
+                    , TAG_BND_TYPE
+                    , TAG_BND_STATUS
+                    , TAG_BND_REG_DT                
+                ) 
+                VALUES 
+                (
+                    #{TAG_MST_ID}
+                    , #{TAG_BND_ID}
+                    <choose>
+			            <when test="TAG_MST_ID.equals(TAG_BND_REP_ID)">
+			                ,'Y'        
+			            </when>
+			            <otherwise>
+			                ,'N'   
+			            </otherwise>
+			        </choose>
+                    , #{TAG_BND_TYPE}
+                    , NVL(#{TAG_BND_STATUS},'USE')
+                    , TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS')
+                ) 
+        </foreach>
+        SELECT * FROM DUAL
+    </insert>
+    
+    <insert id="insertTagBind" parameterType="hashMap">
+        /* PcTag.insertTagBind */
+    
+        INSERT 
+          INTO T_TAG_BND (    TAG_MST_ID
+                                ,TAG_BND_ID
+                                ,TAG_BND_STATUS
+                                ,TAG_BND_REG_DT
+                                ,TAG_BND_UPD_DT
+                                ,TAG_BND_REP
+                                ,TAG_BND_TYPE
+                            )
+        VALUES          (     #{TAG_MST_ID}
+                            , #{TAG_BND_ID}
+                            , #{TAG_BND_STATUS}
+                            , TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS')
+                            , TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS')
+                            , #{TAG_BND_REP}
+                            , #{TAG_BND_TYPE}
+                            )
+    </insert>
+    
+    <delete id="deleteTagBind" parameterType="HashMap">
+        /* PcTag.deleteTagBind */
+        DELETE FROM T_TAG_BND WHERE TAG_BND_ID = TO_CHAR(#{TAG_BND_ID}) AND TAG_BND_TYPE = #{TAG_BND_TYPE}
+    </delete>
+    
+    <!-- 해쉬태그 그룹 등록 -->
+    <insert id="insertTagGroup" parameterType="HashMap">
+        /* PcTag.insertTagGroup */
+    
+        INSERT 
+          INTO T_TAG_GRP (    TAG_GRP_ID
+                                ,TAG_GRP_TITLE
+                                ,TAG_GRP_DES
+                                ,TAG_GRP_REG_ID
+                                ,TAG_GRP_REG_DT
+                                ,TAG_GRP_UPD_ID
+                                ,TAG_GRP_UPD_DT
+                                ,TAG_GRP_STATUS
+                            )
+        VALUES          (     #{TAG_GRP_ID}
+                            , #{TAG_GRP_TITLE}
+                            , #{TAG_GRP_DES}
+                            , #{REG_ID}
+                            , TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS')
+                            , #{REG_ID}
+                            , TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS')
+                            , #{TAG_GRP_STATUS}
+                            )
+    </insert>
+    
+    <!-- 해쉬태그 리스트 조회 -->
+    <select id="selectTagList" parameterType="HashMap" resultType="HashMap">
+        /* PcTag.selectTagList */
+         SELECT      
+            TAG_MST_ID
+            ,TAG_MST_TITLE
+            ,TAG_MST_STATUS
+        FROM 
+            T_TAG_MST
+        WHERE 
+            TAG_MST_STATUS = 'USE'
+        ORDER BY TAG_MST_REG_DT DESC
+    </select>
+    
+    <select id="selectTagListByBindType" parameterType="HashMap" resultType="HashMap">
+        /* PcTag.selectTagListByBindType */
+         SELECT      
+            TAG_MST_ID
+            ,TAG_MST_TITLE
+            ,TAG_MST_STATUS
+        FROM 
+            T_TAG_MST
+        WHERE 
+            TAG_MST_STATUS = 'USE'
+          AND
+            TAG_MST_ID in (SELECT TAG_MST_ID FROM T_TAG_BND WHERE TAG_BND_ID = TO_CHAR(#{TAG_BND_ID}) AND TAG_BND_TYPE = #{TAG_BND_TYPE})
+        ORDER BY TAG_MST_UPD_DT DESC
+    </select>
+
+    <!-- 헤쉬태그 그룹 태그 리스트 조회 -->
+    <select id="selectTagGroupWithTagListById" parameterType="HashMap" resultType="HashMap">
+        /* PcTag.selectTagGroupWithTagListById */
+        SELECT
+            TTM.TAG_MST_ID
+            ,TTM.TAG_MST_TITLE
+        FROM 
+            T_TAG_MST TTM 
+            ,(SELECT 
+                TAG_MST_ID
+            FROM 
+                T_TAG_GRP_BND
+            WHERE 
+                TAG_GRP_ID = #{TAG_GRP_ID}) TAG_ID
+        WHERE 
+        	TAG_ID.TAG_MST_ID = TTM.TAG_MST_ID
+        	AND TTM.TAG_MST_STATUS = 'USE'
+    </select>
+
+    <!-- 헤쉬태그 그룹 조회 -->
+    <select id="selectTagGroupById" parameterType="HashMap" resultType="HashMap">
+        /* PcTag.selectTagGroupById */
+        SELECT 
+            TAG_GRP_ID
+            ,TAG_GRP_TITLE
+            ,TAG_GRP_DES
+            ,TAG_GRP_STATUS
+        FROM 
+            T_TAG_GRP
+        WHERE 
+            TAG_GRP_ID = #{TAG_GRP_ID}
+            AND TAG_GRP_STATUS <![CDATA[ <> ]]> 'D'
+    </select>
+
+    <!-- 해쉬태그 그룹 리스트 조회 -->
+    <select id="selectTagGroupList" parameterType="HashMap" resultType="HashMap">
+        /* PcTag.selectTagGroupList */
+        SELECT 
+            S2.* 
+        FROM
+            (SELECT
+                ROWNUM AS RNUM
+                ,S1.*
+            FROM
+                (
+                SELECT
+                    B.TAG_GRP_ID
+                    ,B.TAG_GRP_TITLE
+                    ,(SELECT
+                        COUNT(TAG_GRP_ID)
+                    FROM
+                        T_TAG_GRP_BND
+                    WHERE
+                        TAG_GRP_ID = B.TAG_GRP_ID) TAG_COUNT
+                    ,B.TAG_GRP_DES
+                    ,B.TAG_GRP_REG_DT
+                    ,B.TAG_GRP_STATUS
+                FROM
+                    T_TAG_GRP B
+                WHERE
+                    1 = 1
+                    <include refid="AdminTagGroupWhere"/>
+                    AND B.TAG_GRP_STATUS <![CDATA[ <> ]]> 'D'
+                ORDER BY
+                    B.TAG_GRP_REG_DT DESC) S1 ) S2
+        <if test="startNum != null and startNum != '' and endNum != null and endNum != ''">
+            WHERE 
+                S2.RNUM BETWEEN #{startNum} AND #{endNum}
+        </if>
+    </select>
+
+	<insert id="insertTagGroupBindTagBatch" parameterType="HashMap" >
+		/* PcTag.insertTagGroupBindTagBatch */
+		INSERT ALL 
+		<foreach collection="arrTAG_MST_IDs" item="TAG_MST_ID" separator=" ">
+			INTO T_TAG_GRP_BND (
+				 TAG_GRP_ID
+				,TAG_MST_ID
+			) 
+			VALUES(
+				#{TAG_GRP_ID}
+				,#{TAG_MST_ID}
+			) 		
+		</foreach>
+		SELECT * FROM DUAL
+	</insert>
+
+	<delete id="deleteTagGroupBindTag" parameterType="HashMap">
+		/* PcTag.deleteTagGroupBindTag */
+		DELETE FROM T_TAG_GRP_BND 
+		WHERE TAG_GRP_ID = #{TAG_GRP_ID}
+	</delete>
+
+    <!-- 해쉬태그 그룹 리스트 count -->
+    <select id="selectTagGroupListCount" parameterType="HashMap" resultType="Integer">
+        /* PcTag.selectTagGroupListCount */
+        SELECT      
+            COUNT(TAG_GRP_ID)
+        FROM T_TAG_GRP
+        WHERE 1=1
+        <include refid="AdminTagGroupWhere"/>
+    </select>
+    
+    <!-- 해쉬태그  그룹 수정 -->
+    <update id="updateTagGroupInfo" parameterType="HashMap">
+        /* PcTag.updateTagGroupInfo */
+        UPDATE 
+            T_TAG_GRP
+        SET
+            TAG_GRP_TITLE = #{TAG_GRP_TITLE}
+            ,TAG_GRP_DES = #{TAG_GRP_DES}
+            ,TAG_GRP_UPD_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS')
+            ,TAG_GRP_STATUS = #{TAG_GRP_STATUS}
+        WHERE
+            TAG_GRP_ID = #{TAG_GRP_ID}
+    </update>
+
+    <!-- 희망 태그 리스트 조회 -->
+    <select id="selectWishTagList" parameterType="HashMap" resultType="HashMap">
+        /* PcTag.selectWishTagList */
+
+    </select>
+
+	<select id="selectTagById" parameterType="HashMap" resultType="HashMap">
+        /* PcTag.selectTagById */
+        
+        SELECT      
+            TAG_MST_ID,
+            TAG_MST_TITLE,
+            TAG_MST_STATUS
+        FROM T_TAG_MST
+        WHERE TAG_MST_ID = #{TAG_MST_ID}
+        
+    </select>
+
+        
+    <!-- 해쉬태그 수정 -->
+    <update id="updateTagInfo" parameterType="HashMap">
+        /* PcTag.updateTagInfo */
+        UPDATE 
+            T_TAG_MST
+        SET
+            TAG_MST_STATUS = #{TAG_MST_STATUS},
+            TAG_MST_UPD_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS')
+            
+        WHERE
+            TAG_MST_ID = #{TAG_MST_ID}
+    </update>
+    
+    <!-- 해쉬태그 그룹 바인딩 등록 -->
+    <insert id="insertTagGroupBind" parameterType="HashMap">
+        /* PcTag.insertTagGroupBind */
+        INSERT 
+          INTO T_TAG_GRP_BND (    TAG_GRP_ID
+                                ,TAG_MST_ID
+                                ,TAG_GRP_BND_REG_ID
+                                ,TAG_GRP_BND_REG_DT
+                                ,TAG_GRP_BND_UPD_ID
+                                ,TAG_GRP_BND_UPD_DT
+
+                            )
+        VALUES          (     #{TAG_GRP_ID}
+                            , #{TAG_MST_ID}
+                            , #{TAG_GRP_BND_REG_ID}
+                            , TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS')
+                            , #{TAG_GRP_BND_REG_ID}
+                            , TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS')
+                            )
+    </insert>
+    
+    <!-- 해쉬태그 바인딩 수정 -->
+    <update id="updateTagBind" parameterType="HashMap">
+        /* PcTag.updateTagBind */
+            
+    </update>
+    
+    <!-- 해쉬태그 삭제 -->
+    <delete id="deleteTagById" parameterType="HashMap">
+    	/* PcTag.deleteTag */
+    	DELETE FROM T_TAG_MST 
+    	WHERE
+            TAG_MST_ID = #{TAG_MST_ID}
+    </delete>
+    
+    <!-- 바인딩된 태그 리스트 조회 -->
+    <select id="selectTagListById" parameterType="HashMap" resultType="HashMap">
+        /* PcTag.selectTagListById */
+        SELECT 
+        	TTM.TAG_MST_ID
+            , TTM.TAG_MST_TITLE
+            , TTB.TAG_BND_REP
+        FROM 
+            T_TAG_MST TTM, T_TAG_BND TTB
+        WHERE 
+            TTB.TAG_BND_ID = TO_CHAR(#{TAG_BND_ID})
+            AND TTB.TAG_BND_TYPE = #{TAG_BND_TYPE}
+            AND TTM.TAG_MST_ID = TTB.TAG_MST_ID
+            AND TTB.TAG_BND_STATUS = 'USE' 
+    </select>
+    
+    <!-- 전시 태그 리스트 조회 -->
+    <select id="selectTagDisplayList" parameterType="HashMap" resultType="HashMap">
+        /* PcTag.selectTagDisplayList */
+    	SELECT 
+            TTM.TAG_MST_ID, TTM.TAG_MST_TITLE
+    	FROM 
+            T_TAG_MST TTM, T_TAG_BND TTB
+    	WHERE 
+            TTM.TAG_MST_ID = TTB.TAG_MST_ID
+        	AND TTB.TAG_BND_ID = TO_CHAR(#{CMN_COM_IDX})
+        	AND TTB.TAG_BND_TYPE = #{TAG_BND_TYPE}
+        	AND TTM.TAG_MST_STATUS = 'USE'
+        	ORDER BY TTB.TAG_BND_REG_DT ASC
+    </select>
+    
+</mapper>

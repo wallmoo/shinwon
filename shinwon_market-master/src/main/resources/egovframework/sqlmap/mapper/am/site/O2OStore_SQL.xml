@@ -1,0 +1,187 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="O2OStore">
+
+	<sql id="O2OStoreListWhere">
+		<if test="searchType != null and searchType != '' and searchKeyword != null and searchKeyword !=''">
+			<if test="searchType == 'all' ">
+				AND (
+					(TES.PART_DIV LIKE '%' || #{searchKeyword} || '%')
+					OR (TES.PART_NO LIKE '%' || #{searchKeyword} || '%')
+					OR (TES.BRAND LIKE '%' || #{searchKeyword} || '%')
+					OR (SUBSTR(TES.PART_PHONE_NO, -4) = #{searchKeyword})
+				)
+			</if>
+			<if test="searchType == 'shopNM'">
+				AND (
+						(TES.PART_DIV LIKE '%' || #{searchKeyword} || '%')
+						OR (TES.PART_NO LIKE '%' || #{searchKeyword} || '%')
+						OR (TES.BRAND LIKE '%' || #{searchKeyword} || '%')
+					)
+			</if>
+			<if test="searchType == 'telNum'">
+				AND SUBSTR(TES.PART_PHONE_NO, -4) = #{searchKeyword}
+			</if>
+		</if>
+		<if test="searchArea != null and searchArea != ''">
+			AND TES.STATE = #{searchArea}
+		</if>
+		<if test="searchUseYn != null and searchUseYn != ''">
+			AND TES.ERP_SHP_USE_YN = #{searchUseYn}
+		</if> 
+	</sql>
+
+    <select id="selectO2OStoreListCount" parameterType="HashMap" resultType="Integer">
+    	/* O2OStore.selectO2OStoreListCount */
+    	SELECT COUNT(0) 
+		FROM T_ERP_SHP TES
+		WHERE 1=1
+		<include refid="O2OStoreListWhere"/>
+    </select>
+    <select id="selectO2OStoreList" parameterType="HashMap" resultType="HashMap">
+    	/* O2OStore.selectO2OStoreList */
+    	SELECT S1.* 
+    	FROM(
+	    	SELECT 	ROWNUM AS RNUM
+	    			,TES.PART_DIV
+		    		,TES.PART_NO
+		    		,TES.BRAND
+		    		,TES.STATE
+		    		,TES.PART_PHONE_NO
+		    		,TESO.ERP_SHP_ST_HH
+		    		,TESO.ERP_SHP_ST_MM
+		    		,TESO.ERP_SHP_ED_HH
+		    		,TESO.ERP_SHP_ED_MM
+		    		,TESO.ERP_SHP_PCK_ST_HH
+					,TESO.ERP_SHP_PCK_ST_MM
+					,TESO.ERP_SHP_PCK_ED_HH
+					,TESO.ERP_SHP_PCK_ED_MM
+					,TESO.MAP_URL
+			FROM T_ERP_SHP TES
+			LEFT OUTER JOIN T_ERP_SHP_OPR TESO ON TES.PART_DIV = TESO.PART_DIV AND TES.PART_NO = TESO.PART_NO AND TES.BRAND = TESO.BRAND
+			WHERE 1=1
+			<include refid="O2OStoreListWhere"/>
+			) S1
+		<if test="startNum != null and startNum != '' and endNum != null and endNum != ''">
+            WHERE S1.RNUM BETWEEN #{startNum} AND #{endNum}
+        </if>
+        ORDER BY S1.RNUM
+    </select>
+    <select id="selectO2OStoreDetail" parameterType="HashMap" resultType="HashMap">
+    	/* O2OStore.selectO2OStoreDetail */
+    	SELECT TES.PART_DIV
+	    		,TES.PART_NO
+	    		,TES.BRAND
+	    		,TES.STATE
+	    		,TES.PART_PHONE_NO
+	    		,TES.ADDR
+	    		,TES.ZIP_NO
+	    		,TESO.ERP_SHP_ST_HH
+	    		,TESO.ERP_SHP_ST_MM
+	    		,TESO.ERP_SHP_ED_HH
+	    		,TESO.ERP_SHP_ED_MM
+	    		,TESO.ERP_SHP_PCK_ST_HH
+				,TESO.ERP_SHP_PCK_ST_MM
+				,TESO.ERP_SHP_PCK_ED_HH
+				,TESO.ERP_SHP_PCK_ED_MM
+				,TESO.MAP_URL
+		FROM T_ERP_SHP TES
+		LEFT OUTER JOIN T_ERP_SHP_OPR TESO ON TES.PART_DIV = TESO.PART_DIV AND TES.PART_NO = TESO.PART_NO AND TES.BRAND = TESO.BRAND
+    	WHERE TES.PART_DIV = #{PART_DIV}
+	    	AND TES.PART_NO = #{PART_NO}
+	    	AND TES.BRAND = #{BRAND}
+    </select>
+    <insert id="insertO2OStoreBatch" parameterType="HashMap">
+    	/* O2OStore.insertO2OStoreBatch */
+    	INSERT ALL
+    	<foreach collection="parts" item="part" separator=" "> 
+            INTO 
+                T_ERP_SHP (
+                    PART_DIV
+                    , PART_NO
+                    , BRAND
+                    , STATE
+                    , ZIP_NO
+                    , ADDR 
+                    , PART_PHONE_NO
+                    , ERP_SHP_REG_DT             
+                ) 
+                VALUES 
+                (
+                    #{part.PART_DIV}
+                    , #{part.PART_NO}
+                    , #{part.BRAND}
+                    , #{part.STATE}
+                    , #{part.ZIP_NO}
+                    , #{part.ADDR}    
+                    , #{part.PART_PHONE_NO}    
+                    , TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS')
+                ) 
+        </foreach>
+        SELECT * FROM DUAL
+    </insert>
+    
+    <delete id="deleteO2OStore" parameterType="HashMap">
+    	/* O2OStore.deleteO2OStoreListAll */
+    	DELETE FROM T_ERP_SHP
+        WHERE
+                PART_DIV = #{PART_DIV}
+          AND 
+                PART_NO = #{PART_NO}
+          AND 
+                BRAND = #{BRAND}
+    </delete>
+    
+    <delete id="deleteO2OStoreListAll">
+    	/* O2OStore.deleteO2OStoreListAll */
+    	DELETE FROM T_ERP_SHP
+    </delete>
+    
+    <update id="updateOperateTime" parameterType="HashMap">
+    	/* O2OStore.updateOperateTime */
+    	MERGE INTO T_ERP_SHP_OPR
+        USING DUAL 
+        ON(PART_DIV = #{PART_DIV} AND PART_NO = #{PART_NO} AND BRAND = #{BRAND})
+        WHEN MATCHED THEN
+            UPDATE SET
+	            ERP_SHP_ST_HH = #{ERP_SHP_ST_HH},
+	    		ERP_SHP_ST_MM = #{ERP_SHP_ST_MM},
+	    		ERP_SHP_ED_HH = #{ERP_SHP_ED_HH},
+	    		ERP_SHP_ED_MM = #{ERP_SHP_ED_MM},
+	    		ERP_SHP_PCK_ST_HH = #{ERP_SHP_PCK_ST_HH},
+	    		ERP_SHP_PCK_ST_MM = #{ERP_SHP_PCK_ST_MM},
+	    		ERP_SHP_PCK_ED_HH = #{ERP_SHP_PCK_ED_HH},
+	    		ERP_SHP_PCK_ED_MM = #{ERP_SHP_PCK_ED_MM},
+	    		MAP_URL = #{MAP_URL}
+   		WHEN NOT MATCHED THEN
+	    	INSERT ( 
+	    		PART_DIV, 
+	    		PART_NO,
+	    		BRAND,
+	    		ERP_SHP_ST_HH,
+	    		ERP_SHP_ST_MM,
+	    		ERP_SHP_ED_HH,
+	    		ERP_SHP_ED_MM,
+	    		ERP_SHP_PCK_ST_HH,
+	    		ERP_SHP_PCK_ST_MM,
+	    		ERP_SHP_PCK_ED_HH,
+	    		ERP_SHP_PCK_ED_MM,
+	    		MAP_URL
+	    	) 
+	    	VALUES (
+	    		#{PART_DIV}, 
+	    		#{PART_NO},
+	    		#{BRAND},
+	    		#{ERP_SHP_ST_HH},
+	    		#{ERP_SHP_ST_MM},
+	    		#{ERP_SHP_ED_HH},
+	    		#{ERP_SHP_ED_MM},
+	    		#{ERP_SHP_PCK_ST_HH},
+	    		#{ERP_SHP_PCK_ST_MM},
+	    		#{ERP_SHP_PCK_ED_HH},
+	    		#{ERP_SHP_PCK_ED_MM},
+	    		#{MAP_URL}
+	    	)
+    </update>
+</mapper>

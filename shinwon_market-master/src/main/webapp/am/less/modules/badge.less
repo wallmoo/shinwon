@@ -1,0 +1,169 @@
+@badge-font-size: 11px;
+@badge-bgcolor: #fff;
+@border-border-color: #e2e2e2;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* badge : default badge ========================================================================== */
+
+span.badge {
+    display: inline-block !important;
+    padding: 1px 4px 2px;
+    .line-height();
+    .text-center();
+    .normal();
+    .vertical-middle();
+    vertical-align: baseline;
+    white-space: nowrap;
+    background-color: @badge-bgcolor;
+    border-radius: @border-radius;
+    border: 1px @border-border-color solid;
+    font-size: @badge-font-size;
+    color: #000;
+    cursor: default;
+    
+    &.large {
+        padding-left: 18px;
+        padding-right: 18px;
+    }
+    &.small {
+        padding-left: 4px;
+        padding-right: 4px;
+        font-size: @font-size-small;
+        .bold();
+    } 
+    em {
+        .sr-only();
+    }
+    &.success {
+        background-color: @brand-success;
+    }
+    &.danger {
+        background-color: @brand-danger;
+    }
+    &.rank {
+        position: absolute;
+        left: 0;
+        top: 0;
+        margin-top: -1px;
+        margin-left: -1px;
+        padding: 5px 8px;
+        border: 0;
+        background-color: #666;
+        color: #fff;
+        line-height: 1.1;
+        font-size: 12px;
+        opacity: 0;
+        -moz-transition: opacity 0.4s;
+        -o-transition: opacity 0.4s;
+        -webkit-transition: opacity 0.4s;
+        transition: opacity 0.4s;
+        &.show {
+            opacity: 1;
+        }
+        strong {
+            display: block;
+            font-size: 20px;
+            .bold();
+        }
+        &.rank-1,
+        &.rank-2 {
+            background-color: @brand-warning;
+            font-size: 24px;
+            strong {
+                font-size: 40px;
+            }
+        }
+    }
+    &.sale {
+        position: absolute;
+        left: 0;
+        top: 0;
+        margin-top: -1px;
+        margin-left: -1px;
+        padding: 10px 5px;
+        background-color: #fff;
+        border: solid 2px @brand-warning;
+        color: @brand-warning;
+        line-height: 1.1;
+        font-size: 12px;
+        opacity: 0;
+        -moz-transition: opacity 0.4s;
+        -o-transition: opacity 0.4s;
+        -webkit-transition: opacity 0.4s;
+        transition: opacity 0.4s;
+        strong {
+            font-size: 18px;
+            .bold();
+            font-family: @font-family-eng;
+        }
+        &.show {
+            opacity: 1;
+        }
+    }
+    .lt-ie8 & {
+        background-color: transparent;
+        .background-image('common/badge');
+        border-radius: 0;
+    }
+    &:empty {
+        display: none;
+    }
+    a & {
+        .transition-set();
+        .opacity(0.8);
+        cursor: pointer;
+    }
+    a:hover & {
+        .opacity(1);
+        .text-none();
+    }
+
+    // 장바구니 배송 지점
+    &.ship {
+        padding: 0 12px;
+        font-size: 16px;
+        .height(21px);
+        color: #fff;
+        background: #4271ac;
+        border: 0px;
+        .bold();
+        .firefox & { line-height: 20px; }
+        .ie10 & { line-height: 17px; }
+        .ie8 & { line-height: 17px; }
+        &.pickup { 
+            background: #4297ac; 
+        }
+        &.pickup { 
+            background: #ac429d; 
+        }
+    }
+}
+
+/* badge : custom badge ========================================================================== */
+

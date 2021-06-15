@@ -1,0 +1,525 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="Common">
+
+    <!-- ERP 공통코드 하위 코드 조회 -->
+    <select id="selectErpCodeList" parameterType="HashMap" resultType="HashMap">
+        /* Common.selectErpCodeList */
+        SELECT
+            COMP_CD,
+            CD_ID,
+            CMON_CD,
+            CMON_CD_NM,
+            SORT_ORD,
+            USE_YN,
+            REGI_ID,
+            REGI_DT,
+            UPDT_ID,
+            UPDT_DT
+        FROM 
+            TCT_CMON_CD_D
+        WHERE 
+            CD_ID = #{CODE}
+        ORDER BY SORT_ORD ASC
+    </select>
+    
+    <!-- 공통코드 하위 코드 조회 -->
+    <select id="selectCodeList" parameterType="String" resultType="HashMap">
+        /* Common.selectCodeList */
+        SELECT
+            CMN_COM_IDX,
+            CMN_COM_NM,
+            CMN_COM_LEVEL,
+            CMN_COM_UP_IDX,
+            CMN_COM_TOP_IDX,
+            CMN_COM_ETC1,
+            CMN_COM_ETC2,
+            CMN_COM_ETC3,
+            CMN_COM_SORT,
+            CMN_COM_USE_YN,
+            CMN_COM_REG_DT,
+            CMN_COM_REG_IP,
+            CMN_COM_REG_ID,
+            CMN_COM_UPD_DT,
+            CMN_COM_UPD_IP,
+            CMN_COM_UPD_ID 
+        FROM
+            T_CMM_COM
+        WHERE
+            CMN_COM_UP_IDX = #{CODE}
+            AND CMN_COM_USE_YN = 'Y'
+        ORDER BY CMN_COM_LEVEL, CMN_COM_SORT ASC
+    </select>
+    
+    <!-- 공통코드 하위 코드 조회 -->
+    <select id="selectTopCodeList" parameterType="String" resultType="HashMap">
+        /* Common.selectTopCodeList */
+        SELECT
+            CMN_COM_IDX,
+            CMN_COM_NM,
+            CMN_COM_LEVEL,
+            CMN_COM_UP_IDX,
+            CMN_COM_TOP_IDX,
+            CMN_COM_ETC1,
+            CMN_COM_ETC2,
+            CMN_COM_ETC3,
+            CMN_COM_SORT,
+            CMN_COM_USE_YN,
+            CMN_COM_REG_DT,
+            CMN_COM_REG_IP,
+            CMN_COM_REG_ID,
+            CMN_COM_UPD_DT,
+            CMN_COM_UPD_IP,
+            CMN_COM_UPD_ID 
+        FROM
+            T_CMM_COM 
+        WHERE
+            CMN_COM_TOP_IDX = #{CODE}
+            AND NOT CMN_COM_LEVEL = 1
+        START WITH CMN_COM_TOP_IDX = 0
+        CONNECT BY PRIOR CMN_COM_IDX = CMN_COM_UP_IDX
+        ORDER SIBLINGS BY CMN_COM_LEVEL, CMN_COM_SORT ASC 
+    </select>
+    
+    <!-- 공통코드 현재 포함 하위 코드 조회 -->
+    <select id="selectSubCodeList" parameterType="hashMap" resultType="hashMap">
+        /* Common.selectSubCodeList */
+        SELECT 
+            CMN_COM_IDX,
+            CMN_COM_NM,
+            CMN_COM_LEVEL,
+            CMN_COM_UP_IDX,
+            CMN_COM_TOP_IDX,
+            CMN_COM_ETC1,
+            CMN_COM_ETC2,
+            CMN_COM_ETC3,
+            CMN_COM_SORT,
+            CMN_COM_USE_YN,
+            CMN_COM_REG_DT,
+            CMN_COM_REG_IP,
+            CMN_COM_REG_ID,
+            CMN_COM_UPD_DT,
+            CMN_COM_UPD_IP,
+            CMN_COM_UPD_ID 
+        FROM 
+            T_CMM_COM
+        WHERE
+            CMN_COM_USE_YN = 'Y'
+        START WITH CMN_COM_IDX = #{CODE}
+        CONNECT BY PRIOR CMN_COM_IDX = CMN_COM_UP_IDX
+        ORDER SIBLINGS BY CMN_COM_LEVEL, CMN_COM_SORT ASC
+    </select>
+      
+    <!-- 공통코드 조회 -->
+    <select id="selectCodeInfo" parameterType="HashMap" resultType="HashMap">
+        /* Common.selectCodeInfo */
+        SELECT
+            CMN_COM_IDX,
+            CMN_COM_NM,
+            CMN_COM_LEVEL,
+            CMN_COM_UP_IDX,
+            CMN_COM_TOP_IDX,
+            CMN_COM_ETC1,
+            CMN_COM_ETC2,
+            CMN_COM_ETC3,
+            CMN_COM_SORT,
+            CMN_COM_USE_YN,
+            CMN_COM_REG_DT,
+            CMN_COM_REG_IP,
+            CMN_COM_REG_ID,
+            CMN_COM_UPD_DT,
+            CMN_COM_UPD_IP,
+            CMN_COM_UPD_ID 
+        FROM
+            T_CMM_COM
+        WHERE
+            CMN_COM_IDX = #{CMN_COM_IDX}
+    </select>
+    
+    <!-- 첨부파일 목록  -->
+    <select id="selectCommonFileList" parameterType="HashMap" resultType="HashMap">
+        /* Common.selectCommonFileList */
+        SELECT
+            CMM_FLE_IDX,
+            CMM_FLE_TB_NM,
+            CMM_FLE_TB_PK,
+            CMM_FLE_TB_TYPE,
+            CMM_FLE_SYS_PATH,
+            CMM_FLE_ATT_PATH,
+            CMM_FLE_ORG_NM,
+            CMM_FLE_SYS_NM,
+            CMM_FLE_ATT_SIZE,
+            CMM_FLE_ATT_EXT,
+            CMM_FLE_DW_CNT,
+            CMM_FLE_SORT,
+            CMM_FLE_USE_YN,
+            CMM_FLE_REG_DT,
+            CMM_FLE_REG_ID,
+            CMN_FLE_ALT_TXT,
+            CMM_FLE_SYS_PATH || CMM_FLE_ATT_PATH || CMM_FLE_SYS_NM AS CMM_FLE_SAVE_PATH,
+            CMM_FLE_DESC
+        FROM
+            T_CMM_FLE
+        WHERE
+            CMM_FLE_TB_NM = #{CMM_FLE_TB_NM}
+            AND CMM_FLE_USE_YN = 'Y'
+            <if test="CMM_FLE_TB_PK != null and CMM_FLE_TB_PK != ''">
+                AND CMM_FLE_TB_PK = #{CMM_FLE_TB_PK}
+            </if>
+            <if test="CMM_FLE_TB_TYPE != null and CMM_FLE_TB_TYPE != ''">
+                AND CMM_FLE_TB_TYPE = #{CMM_FLE_TB_TYPE}
+            </if>
+            
+            <if test="arrSearchGrpIdx != null and arrSearchGrpIdx.length > 0">
+                AND CMM_FLE_TB_PK IN 
+                <foreach collection="arrSearchGrpIdx" item="sarchGrpIdx" open="(" close=")" separator=",">
+                    #{sarchGrpIdx}
+                </foreach>
+            </if>
+    </select>
+    
+    <!-- 첨부파일 목록  -->
+    <select id="selectProductCommonFileList" parameterType="HashMap" resultType="HashMap">
+        /* Common.selectProductCommonFileList */
+        SELECT
+            CMM_FLE_IDX,
+            CMM_FLE_TB_NM,
+            CMM_FLE_TB_PK,
+            CMM_FLE_TB_TYPE,
+            CMM_FLE_SYS_PATH,
+            CMM_FLE_ATT_PATH,
+            CMM_FLE_ORG_NM,
+            CMM_FLE_SYS_NM,
+            CMM_FLE_ATT_SIZE,
+            CMM_FLE_ATT_EXT,
+            CMM_FLE_DW_CNT,
+            CMM_FLE_SORT,
+            CMM_FLE_USE_YN,
+            CMM_FLE_REG_DT,
+            CMM_FLE_REG_ID,
+            CMN_FLE_ALT_TXT,
+            CMM_FLE_SYS_PATH || CMM_FLE_ATT_PATH || CMM_FLE_SYS_NM AS CMM_FLE_SAVE_PATH
+        FROM
+            T_CMM_FLE
+        WHERE
+            CMM_FLE_TB_NM = #{CMM_FLE_TB_NM}
+            AND CMN_FLE_ALT_TXT = #{PRD_MST_CD}
+            AND CMM_FLE_USE_YN = 'Y'
+    </select>
+    
+    <!-- 첨부파일 상세 정보 -->
+    <select id="selectCommonFileInfo" parameterType="HashMap" resultType="HashMap">
+        /* Common.selectCommonFileInfo */
+        SELECT
+            CMM_FLE_IDX,
+            CMM_FLE_TB_NM,
+            CMM_FLE_TB_PK,
+            CMM_FLE_TB_TYPE,
+            CMM_FLE_SYS_PATH,
+            CMM_FLE_ATT_PATH,
+            CMM_FLE_ORG_NM,
+            CMM_FLE_SYS_NM,
+            CMM_FLE_ATT_SIZE,
+            CMM_FLE_ATT_EXT,
+            CMM_FLE_DW_CNT,
+            CMM_FLE_SORT,
+            CMM_FLE_USE_YN,
+            CMM_FLE_REG_DT,
+            CMM_FLE_REG_ID,
+            CMN_FLE_ALT_TXT,
+            CMM_FLE_SYS_PATH || CMM_FLE_ATT_PATH || CMM_FLE_SYS_NM AS CMM_FLE_SAVE_PATH
+        FROM
+            T_CMM_FLE
+        WHERE
+            CMM_FLE_USE_YN = 'Y'
+            <choose>
+                <when test="CMM_FLE_IDX != null and CMM_FLE_IDX != ''">
+                    AND CMM_FLE_IDX = #{CMM_FLE_IDX}
+                </when>
+                <otherwise>
+                    <if test="CMM_FLE_TB_NM != null and CMM_FLE_TB_NM != ''">
+                        AND CMM_FLE_TB_NM = #{CMM_FLE_TB_NM}
+                    </if>
+                    <if test="CMM_FLE_TB_PK != null and CMM_FLE_TB_PK != ''">
+                        AND CMM_FLE_TB_PK = #{CMM_FLE_TB_PK}
+                    </if>
+                </otherwise>
+            </choose>
+    </select>
+    
+    <!-- 첨부파일 등록 -->
+    <insert id="insertCommonFile" parameterType="HashMap">
+        /* Common.insertCommonFile */
+        INSERT INTO
+            T_CMM_FLE
+            (
+                CMM_FLE_IDX,
+                CMM_FLE_TB_NM,
+                CMM_FLE_TB_PK,
+                CMM_FLE_TB_TYPE,
+                CMM_FLE_SYS_PATH,
+                CMM_FLE_ATT_PATH,
+                CMM_FLE_ORG_NM,
+                CMM_FLE_SYS_NM,
+                CMM_FLE_ATT_SIZE,
+                CMM_FLE_ATT_EXT,
+                CMM_FLE_DW_CNT,
+                CMM_FLE_SORT,
+                CMM_FLE_USE_YN,
+                CMM_FLE_REG_DT,
+                CMM_FLE_REG_ID,
+                CMN_FLE_ALT_TXT
+            )
+        VALUES
+            (
+                SEQ_CMM_FLE_IDX.NEXTVAL,
+                #{CMM_FLE_TB_NM},
+                #{CMM_FLE_TB_PK},
+                #{CMM_FLE_TB_TYPE},
+                #{CMM_FLE_SYS_PATH},
+                #{CMM_FLE_ATT_PATH},
+                #{CMM_FLE_ORG_NM},
+                #{CMM_FLE_SYS_NM},
+                #{CMM_FLE_ATT_SIZE},
+                #{CMM_FLE_ATT_EXT},
+                0,
+                NVL
+                (#{CMM_FLE_SORT},
+                    (
+                    SELECT 
+                        NVL(MAX(CMM_FLE_SORT), 0) + 1 
+                    FROM 
+                        T_CMM_FLE 
+                    WHERE 
+                        CMM_FLE_USE_YN = 'Y' 
+                        AND CMM_FLE_TB_NM = #{CMM_FLE_TB_NM} 
+                        AND CMM_FLE_TB_PK = #{CMM_FLE_TB_PK}
+                    )
+                ),
+                'Y',
+                TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+                #{CMM_FLE_REG_ID},
+                #{CMN_FLE_ALT_TXT}
+            )
+    </insert>
+    
+    <!-- 첨부파일 등록 -->
+    <insert id="insertProductCommonFile" parameterType="HashMap">
+        /* Common.insertProductCommonFile */
+        INSERT INTO
+            T_CMM_FLE
+            (
+                CMM_FLE_IDX,
+                CMM_FLE_TB_NM,
+                CMM_FLE_TB_PK,
+                CMM_FLE_TB_TYPE,
+                CMM_FLE_SYS_PATH,
+                CMM_FLE_ATT_PATH,
+                CMM_FLE_ORG_NM,
+                CMM_FLE_SYS_NM,
+                CMM_FLE_ATT_SIZE,
+                CMM_FLE_ATT_EXT,
+                CMM_FLE_DW_CNT,
+                CMM_FLE_SORT,
+                CMM_FLE_USE_YN,
+                CMM_FLE_REG_DT,
+                CMM_FLE_REG_ID,
+                CMN_FLE_ALT_TXT
+            )
+            SELECT
+                SEQ_CMM_FLE_IDX.NEXTVAL,
+                CMM_FLE_TB_NM,
+                CMM_FLE_TB_PK,
+                CMM_FLE_TB_TYPE,
+                CMM_FLE_SYS_PATH,
+                CMM_FLE_ATT_PATH,
+                CMM_FLE_ORG_NM,
+                CMM_FLE_SYS_NM,
+                CMM_FLE_ATT_SIZE,
+                CMM_FLE_ATT_EXT,
+                CMM_FLE_DW_CNT,
+                CMM_FLE_SORT,
+                'Y',
+                TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+                #{CMM_FLE_REG_ID},
+                #{PRD_MST_CD}
+            FROM T_CMM_FLE
+            WHERE
+                CMM_FLE_USE_YN = 'Y'
+            AND
+                CMN_FLE_ALT_TXT = #{OLD_PRD_MST_CD}
+            AND
+                CMM_FLE_TB_NM = #{CMM_FLE_TB_NM}
+    </insert>
+    
+    <!-- 첨부파일 대체 텍스트 수정 -->
+    <update id="updateCommonFileAltText" parameterType="HashMap">
+        /* Common.updateCommonFileAltText */
+        UPDATE 
+            T_CMM_FLE
+        SET
+            CMN_FLE_ALT_TXT = #{CMN_FLE_ALT_TXT_OLD}
+        WHERE
+            CMM_FLE_IDX = #{CMN_FLE_ALT_TXT_IDX}
+    </update>
+    
+    <!-- 첨부파일 다운로드 수 증가 -->
+    <update id="updateCommonFileDownCount" parameterType="HashMap">
+        /* Common.updateCommonFileCount */
+        UPDATE 
+            T_CMM_FLE
+        SET
+            CMM_FLE_DW_CNT = NVL(CMM_FLE_DW_CNT, 0) + 1
+        WHERE
+            CMM_FLE_IDX = #{CMM_FLE_IDX}
+    </update>
+    
+    <!-- 첨부파일 사용 유무 변경 -->
+    <update id="deleteCommonFile" parameterType="HashMap">
+        /* Common.deleteCommonFile */
+       UPDATE 
+            T_CMM_FLE
+       SET
+            CMM_FLE_USE_YN = 'N'
+       WHERE CMM_FLE_IDX = #{CMM_FLE_IDX}
+    </update>
+    
+    <!-- 첨부파일 사용 변경 -->
+    <update id="updateUseCommonFile" parameterType="HashMap">
+        /* Common.updateUseCommonFile */
+       UPDATE 
+            T_CMM_FLE
+       SET
+            CMM_FLE_USE_YN = 'Y'
+       WHERE CMM_FLE_IDX = #{CMM_FLE_IDX}
+    </update>
+    
+    <!-- 금칙어 목록 조회  -->
+   <resultMap id="resultNoticeBoardInfo" type="HashMap">
+        <result property="BAN_TXT_LONG_TXT" column="BAN_TXT_LONG_TXT" jdbcType="CLOB" javaType="java.lang.String"/>
+    </resultMap>
+    <select id="selectBanWrdKeyWord" parameterType="HashMap" resultMap="resultNoticeBoardInfo">    
+        /* Common.selectBanWrdKeyWord */
+        SELECT 
+            BAN_TXT_LONG_TXT
+        FROM T_BAN_TXT
+    </select>
+    
+    <!-- 시/도 선택에 따른 시/군/구 목록 조회 -->
+    <select id="selectZipcodeSigunguList" parameterType="HashMap" resultType="HashMap">
+        /* Common.selectZipcodeSigunguList */
+        SELECT
+            SIGUNGU
+        FROM 
+            T_ZIP_JBN
+        WHERE 
+            SIDO = #{SIDO}
+        GROUP BY SIGUNGU
+        ORDER BY SIGUNGU
+    </select>
+    
+    <!-- 우편번호 검색조건 - 도로명 -->
+    <sql id="commonZipCodeDoroWhere">
+        <if test="searchType != null and searchType != ''">
+            <if test="searchType.equals('DORO'.toString())">
+                AND TZA.SIDO = #{searchSido}
+                AND TZA.SIGUNGU = #{searchSigungu}
+                AND TZA.DORO = #{searchDoro}
+                AND TZA.BUILDING1 = #{searchBuildMainNo}
+                <if test="searchBuildSubNo != null and searchBuildSubNo != ''">
+                AND TO_CHAR(TZA.BUILDING2) = #{searchBuildSubNo} 
+                </if>
+            </if>
+        </if>
+    </sql>
+    
+    <!-- 우편번호 검색조건 - 지번 -->
+    <sql id="commonZipCodeJibunWhere">
+        <if test="searchType != null and searchType != ''">
+            <if test="searchType.equals('JIBUN'.toString())">
+                AND TZA.SIDO = #{searchSido}
+                AND TZA.SIGUNGU = #{searchSigungu}
+                AND TZA.BUBJUNG_DONG = #{searchDong}
+                AND TZA.JIBUN1 = #{searchJinomain}
+                <if test="searchJinosub != null and searchJinosub != ''">
+                AND TO_CHAR(TZA.JIBUN2) = #{searchJinosub}
+                </if>
+                <if test="searchMountYn != null and searchMountYn != ''">
+                AND MOUNT_YN = #{searchMountYn}
+                </if>
+            </if>
+        </if>
+    </sql>
+    
+    <!-- 우편번호 검색조건 - 건물명 -->
+    <sql id="commonZipCodeBuildWhere">
+        <if test="searchType != null and searchType != ''">
+            <if test="searchType.equals('BUILDING'.toString())">
+                AND TZA.SIDO = #{searchSido}
+                AND TZA.SIGUNGU = #{searchSigungu}
+                AND TZA.BUBJUNG_DONG = #{searchDong}
+                AND TZA.SIGUNGU_BUILDING = #{searchBuildNm} 
+            </if>
+        </if>
+    </sql>
+    
+    <!-- 우편번호 검색 목록 갯수 -->
+    <select id="selectCommonZipCodeListCount" parameterType="HashMap" resultType="Integer">
+        /* Common.selectCommonZipCodeListCount */
+        SELECT
+            COUNT(1)
+        FROM
+            T_ZIP_DRO TZD, T_ZIP_ADR TZA
+        WHERE
+            TZD.DORO_CODE = TZA.DORO_CODE
+        AND
+            TZD.DONG_IDX = TZA.DONG_IDX
+        <choose>
+            <when test="searchType != null and searchType.equals('DORO'.toSTring())">
+                <include refid="commonZipCodeDoroWhere"/>
+            </when>
+            <when test="searchType != null and searchType.equals('JIBUN'.toSTring())">
+                <include refid="commonZipCodeJibunWhere"/>
+            </when>
+            <when test="searchType != null and searchType.equals('BUILDING'.toSTring())">
+                <include refid="commonZipCodeBuildWhere"/>
+            </when>
+        </choose>
+    </select>
+    
+    <!-- 우편번호 검색 목록 -->
+    <select id="selectCommonZipCodeList" parameterType="HashMap" resultType="HashMap">
+        /* Common.selectCommonZipCodeList */
+        SELECT 
+            ROWNUM AS RNUM,
+            TZA.BASE_ZONE, 
+            TZA.SIDO || ' ' || TZA.SIGUNGU || ' ' || DECODE(TZD.DONG_TYPE,'0','' || TZA.BUBJUNG_DONG,'') || ''|| 
+            TZA.DORO || DECODE(TZA.JIHA_YN,0,'','1','지하','2','공중') || ' ' ||
+            TZA.BUILDING1 || DECODE(TZA.BUILDING2,0,'','-' || TZA.BUILDING2) ||
+            CASE WHEN (TZD.DONG_TYPE='0' AND TZA.APT_YN ='0') THEN ''
+                 WHEN (TZD.DONG_TYPE='0' AND TZA.APT_YN ='1') THEN '(' || TZA.SIGUNGU_BUILDING || ')'
+                 WHEN (TZD.DONG_TYPE='1' AND TZA.APT_YN ='0') THEN '(' || TZA.BUBJUNG_DONG || ')'
+                 WHEN (TZD.DONG_TYPE='1' AND TZA.APT_YN ='1') THEN '(' || TZA.BUBJUNG_DONG || ',' || TZA.SIGUNGU_BUILDING ||')'
+            END AS DORO_ADDR,   
+            TZA.SIDO || ' ' || TZA.SIGUNGU || ' ' || TZA.BUBJUNG_DONG || ' ' || DECODE(TZA.MOUNT_YN,'0','','1','산') || ' ' || TZA.JIBUN1 || DECODE(TZA.JIBUN2,'','','-' || TZA.JIBUN2) AS JIBUN_ADDR            
+        FROM 
+            T_ZIP_DRO TZD , T_ZIP_ADR TZA
+        WHERE
+            TZD.DORO_CODE = TZA.DORO_CODE
+        AND
+            TZD.DONG_IDX = TZA.DONG_IDX
+        <choose>
+            <when test="searchType != null and searchType.equals('DORO'.toSTring())">
+                <include refid="commonZipCodeDoroWhere"/>
+            </when>
+            <when test="searchType != null and searchType.equals('JIBUN'.toSTring())">
+                <include refid="commonZipCodeJibunWhere"/>
+            </when>
+            <when test="searchType != null and searchType.equals('BUILDING'.toSTring())">
+                <include refid="commonZipCodeBuildWhere"/>
+            </when>
+        </choose>   
+    </select>
+    
+</mapper>

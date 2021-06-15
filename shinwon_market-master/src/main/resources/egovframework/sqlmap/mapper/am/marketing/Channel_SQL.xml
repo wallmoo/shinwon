@@ -1,0 +1,201 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="Channel">
+
+      
+    <!-- 관리자 > 프로모션관리 > 배너관리 목록 -->
+    <select id="selectChannelList" parameterType="HashMap" resultType="HashMap">
+        /* Channel.selectChannelList */
+        SELECT
+            CHN_DTL_CD,
+            CHN_DTL_NM,
+            CHN_DTL_ST_DT,
+            CHN_DTL_ED_DT,
+            CHN_DTL_FEE,
+            CHN_DTL_USE_YN,
+            CHN_MST_IDX
+		FROM T_CHN_DTL
+		WHERE
+             CHN_MST_IDX = #{CHN_MST_IDX}
+		ORDER BY CHN_DTL_REG_DT ASC 
+    </select>
+    
+     <!-- 관리자 > 프로모션관리 > 채널관리 목록 -->
+    <select id="selectChannelInfo" parameterType="HashMap" resultType="HashMap">
+        /* Channel.selectChannelInfo */
+        SELECT
+            	D.CHN_DTL_CD,
+                D.CHN_MST_IDX,
+                (SELECT CHN_MST_NM FROM T_CHN_MST WHERE CHN_MST_IDX = M.CHN_MST_UP_IDX ) AS CHN_MST_UP_IDX_NM,
+                M.CHN_MST_NM,
+                D.CHN_DTL_NM,
+                D.CHN_DTL_ST_DT,
+                D.CHN_DTL_ED_DT,
+                D.CHN_DTL_FEE,
+                D.CHN_DTL_MNG_NM,
+                D.CHN_DTL_MNG_TEL1,
+                D.CHN_DTL_MNG_TEL2,
+                D.CHN_DTL_MNG_TEL3,
+                D.CHN_DTL_MNG_MAIL,
+                SUBSTR(CHN_DTL_MNG_MAIL,1,INSTR(CHN_DTL_MNG_MAIL,'@')-1) AS CHN_DTL_MAIL_ID, 
+                SUBSTR(CHN_DTL_MNG_MAIL, INSTR(CHN_DTL_MNG_MAIL,'@')+1, LENGTH(CHN_DTL_MNG_MAIL)) as CHN_DTL_MAIL_DOMAIN,
+                D.CHN_DTL_USE_YN,
+                D.CHN_DTL_REG_DT,
+                D.CHN_DTL_REG_IP,
+                D.CHN_DTL_REG_ID,
+                D.CHN_DTL_SHP_LNK_CD,
+                D.CHN_DTL_SHP_LNK_ID,
+                D.CHN_DTL_SHP_LNK_KND
+		FROM T_CHN_DTL D,T_CHN_MST M 
+		WHERE
+		D.CHN_MST_IDX = M.CHN_MST_IDX
+        AND D.CHN_DTL_CD = #{CHN_DTL_CD}
+    </select>
+ 
+    <select id="selectChannelMst" parameterType="HashMap" resultType="HashMap">
+        /* Channel.selectChannelMst */
+        SELECT
+             T.CHN_MST_IDX,
+             T.CHN_MST_NM,
+             (SELECT CHN_MST_NM FROM T_CHN_MST WHERE CHN_MST_IDX = T.CHN_MST_UP_IDX) as CHN_MST_UP_IDX_NM
+        FROM
+            T_CHN_MST T
+        WHERE
+             T.CHN_MST_IDX = #{CHN_MST_IDX}
+    </select>
+    
+    <!-- 관리자 > 프로모션관리 > 배너관리 등록 -->
+    <insert id="insertChannelMst" parameterType="HashMap">
+        <selectKey keyProperty="CHN_MST_IDX" resultType="Integer" order="BEFORE">
+            SELECT SEQ_CHN_MST_IDX.NEXTVAL AS CHN_MST_IDX  FROM DUAL
+        </selectKey>
+        /* Channel.insertChannelMst */
+        INSERT INTO
+            T_CHN_MST
+            (
+                CHN_MST_IDX,
+                CHN_MST_NM,
+                CHN_MST_LEVEL,
+                CHN_MST_UP_IDX,
+                CHN_MST_REG_DT,
+                CHN_MST_REG_IP,
+                CHN_MST_REG_ID
+            )
+        VALUES
+            (
+                #{CHN_MST_IDX},
+                #{CHN_MST_NM},
+                #{CHN_MST_LEVEL},
+                #{CHN_MST_UP_IDX},
+                TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+                #{CHN_MST_REG_IP},
+                #{CHN_MST_REG_ID}
+            )
+    </insert>
+    
+    <!-- 관리자 > 프로모션관리 > 배너관리 등록 -->
+    <insert id="insertChannel" parameterType="HashMap">
+        <selectKey keyProperty="CHN_DTL_IDX" resultType="Integer" order="BEFORE">
+            SELECT SEQ_CHN_DTL_IDX.NEXTVAL AS CHN_DTL_IDX  FROM DUAL
+        </selectKey>
+        /* Channel.insertChannel */
+        INSERT INTO
+            T_CHN_DTL
+            (
+                CHN_DTL_CD,
+                CHN_MST_IDX,
+                CHN_DTL_NM,
+                CHN_DTL_ST_DT,
+                CHN_DTL_ED_DT,
+                CHN_DTL_FEE,
+                CHN_DTL_MNG_NM,
+                CHN_DTL_MNG_TEL1,
+                CHN_DTL_MNG_TEL2,
+                CHN_DTL_MNG_TEL3,
+                CHN_DTL_MNG_MAIL,
+                CHN_DTL_USE_YN,
+                CHN_DTL_REG_DT,
+                CHN_DTL_REG_IP,
+                CHN_DTL_REG_ID,
+                CHN_DTL_SHP_LNK_CD,
+                CHN_DTL_SHP_LNK_ID,
+                CHN_DTL_SHP_LNK_KND
+            )
+        VALUES
+            (
+                CASE WHEN #{CHN_DTL_IDX} BETWEEN 1 AND 999 THEN 'A'||TRIM(TO_CHAR(#{CHN_DTL_IDX}, '000'))
+                	 WHEN #{CHN_DTL_IDX} BETWEEN 1000 AND 1999 THEN 'B'||TRIM(TO_CHAR(#{CHN_DTL_IDX}, '000'))
+                	 WHEN #{CHN_DTL_IDX} BETWEEN 2000 AND 2999 THEN 'C'||TRIM(TO_CHAR(#{CHN_DTL_IDX}, '000'))
+                	 WHEN #{CHN_DTL_IDX} BETWEEN 3000 AND 3999 THEN 'D'||TRIM(TO_CHAR(#{CHN_DTL_IDX}, '000'))
+                	 WHEN #{CHN_DTL_IDX} BETWEEN 4000 AND 4999 THEN 'E'||TRIM(TO_CHAR(#{CHN_DTL_IDX}, '000'))
+                	 WHEN #{CHN_DTL_IDX} BETWEEN 5000 AND 5999 THEN 'F'||TRIM(TO_CHAR(#{CHN_DTL_IDX}, '000'))
+                	 WHEN #{CHN_DTL_IDX} BETWEEN 6000 AND 6999 THEN 'G'||TRIM(TO_CHAR(#{CHN_DTL_IDX}, '000'))
+                	 WHEN #{CHN_DTL_IDX} BETWEEN 7000 AND 7999 THEN 'H'||TRIM(TO_CHAR(#{CHN_DTL_IDX}, '000'))
+                	 WHEN #{CHN_DTL_IDX} BETWEEN 8000 AND 8999 THEN 'I'||TRIM(TO_CHAR(#{CHN_DTL_IDX}, '000'))
+                	 WHEN #{CHN_DTL_IDX} BETWEEN 9000 AND 9999 THEN 'J'||TRIM(TO_CHAR(#{CHN_DTL_IDX}, '000'))
+                	 ELSE 'K'||TRIM(TO_CHAR(#{CHN_DTL_IDX}, '000')) END,
+                #{CHN_MST_IDX},
+                #{CHN_DTL_NM},
+                REPLACE(#{CHN_DTL_ST_DT}, '-', ''),
+                REPLACE(#{CHN_DTL_ED_DT}, '-', ''),
+                #{CHN_DTL_FEE},
+                #{CHN_DTL_MNG_NM},
+                #{CHN_DTL_MNG_TEL1},
+                #{CHN_DTL_MNG_TEL2},
+                #{CHN_DTL_MNG_TEL3},
+                #{CHN_DTL_MNG_MAIL},
+                #{CHN_DTL_USE_YN},
+                TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+                #{CHN_DTL_REG_IP},
+                #{CHN_DTL_REG_ID},
+                #{CHN_DTL_SHP_LNK_CD},
+                #{CHN_DTL_SHP_LNK_ID},
+                #{CHN_DTL_SHP_LNK_KND}
+            )
+    </insert>
+    
+    <!-- 관리자 > 프로모션관리 > 배너관리 수정 -->
+    <update id="updateChannel" parameterType="HashMap">
+        /* Channel.updateChannel */
+        UPDATE
+            T_CHN_DTL 
+        SET
+            CHN_DTL_MNG_NM = #{CHN_DTL_MNG_NM},
+            CHN_DTL_MNG_TEL1 = #{CHN_DTL_MNG_TEL1},
+            CHN_DTL_MNG_TEL2 = #{CHN_DTL_MNG_TEL2},
+            CHN_DTL_MNG_TEL3 = #{CHN_DTL_MNG_TEL3},
+            CHN_DTL_MNG_MAIL = #{CHN_DTL_MNG_MAIL},
+            CHN_DTL_USE_YN = #{CHN_DTL_USE_YN},
+            CHN_DTL_UPD_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+            CHN_DTL_UPD_IP = #{CHN_DTL_UPD_IP},
+            CHN_DTL_UPD_ID = #{CHN_DTL_UPD_ID}
+        WHERE
+            CHN_DTL_CD = #{CHN_DTL_CD}
+    </update>
+    
+    <!-- 공통코드 현재 포함 하위 코드 조회 -->
+    <select id="selectSubCodeList" parameterType="hashMap" resultType="hashMap">
+        /* Channel.selectSubCodeList */
+        SELECT 
+            CHN_MST_IDX,
+            CHN_MST_NM,
+            CHN_MST_LEVEL,
+            CHN_MST_UP_IDX,
+            CHN_MST_REG_DT,
+            CHN_MST_REG_IP,
+            CHN_MST_REG_ID,
+            CHN_MST_UPD_DT,
+            CHN_MST_UPD_IP,
+            CHN_MST_UPD_ID 
+        FROM 
+            T_CHN_MST
+        WHERE
+            1=1
+        START WITH CHN_MST_UP_IDX = 0
+        CONNECT BY PRIOR CHN_MST_IDX = CHN_MST_UP_IDX
+        ORDER SIBLINGS BY CHN_MST_LEVEL, CHN_MST_IDX ASC
+    </select>
+      
+    
+</mapper>

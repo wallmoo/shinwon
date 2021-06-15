@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="TagDisplay">
+    
+    <select id="selectTagDisplayCategoryList" parameterType="HashMap" resultType="HashMap">
+    	/* TagDisplay.selectTagDisplayCategoryList */
+        SELECT 
+            CMN_COM_IDX, CMN_COM_LEVEL, CMN_COM_NM , CMN_COM_ETC1, CMN_COM_ETC2, CMN_COM_ETC3, CMN_COM_ETC4
+        FROM 
+            T_CMM_COM
+        WHERE
+            CMN_COM_USE_YN = 'Y'
+        START WITH CMN_COM_UP_IDX = #{CMN_COM_IDX}
+    	CONNECT BY PRIOR CMN_COM_IDX = CMN_COM_UP_IDX
+        ORDER SIBLINGS BY CMN_COM_LEVEL ASC       
+    </select>
+    
+    <select id="selectTagDisplayCategoryCodeList" parameterType="HashMap" resultType="HashMap">
+	     /* TagDisplay.selectTagDisplayCategoryCodeList */
+	     SELECT 
+	     	CMN_COM_IDX, CMN_COM_LEVEL, CMN_COM_NM , CMN_COM_ETC1, CMN_COM_ETC2, CMN_COM_ETC3, CMN_COM_ETC4
+	     FROM 
+	        T_CMM_COM
+	     WHERE
+	        CMN_COM_USE_YN = 'Y'
+	     START WITH CMN_COM_IDX = #{CMN_COM_IDX}
+	     CONNECT BY PRIOR CMN_COM_UP_IDX = CMN_COM_IDX
+	     ORDER SIBLINGS BY CMN_COM_LEVEL ASC
+    </select>
+    
+    
+    <select id="selectTagDisplayList" parameterType="HashMap" resultType="HashMap">
+    	/* TagDisplay.selectTagDisplayList */
+    	SELECT TTM.TAG_MST_ID, TTM.TAG_MST_TITLE
+    	FROM T_TAG_MST TTM, T_TAG_BND TTB
+    	WHERE TTM.TAG_MST_ID = TTB.TAG_MST_ID
+    	AND TTB.TAG_BND_ID = #{CMN_COM_IDX}
+    	AND TTB.TAG_BND_TYPE = #{TAG_BND_TYPE}
+    	AND TTM.TAG_MST_STATUS = 'USE'
+    	ORDER BY TTB.TAG_BND_REG_DT ASC
+    </select>
+    
+    <delete id="deleteTagDisplay" parameterType="HashMap">
+    	/* TagDisplay.deleteTagDisplay */
+    	DELETE FROM T_TAG_BND 
+    	WHERE TAG_BND_ID = #{TAG_BND_ID}
+    	AND TAG_BND_TYPE = #{TAG_BND_TYPE}
+    </delete>
+    
+    <insert id="insertTagDisplay" parameterType="HashMap">
+    	/* TagDisplay.insertTagDisplay */
+    	INSERT ALL
+    	<foreach collection="arrTAG" item="TAG" separator=" ">
+	    	INTO T_TAG_BND (  TAG_MST_ID
+	                                ,TAG_BND_ID
+	                                ,TAG_BND_STATUS
+	                                ,TAG_BND_REG_DT
+	                                ,TAG_BND_UPD_DT
+	                                ,TAG_BND_TYPE
+	                            )
+	        VALUES          
+	        
+	    		(     #{TAG.TAG_MST_ID}
+	                  , #{TAG.TAG_BND_ID}
+	                  , 'USE'
+	                  , TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS')
+	                  , TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS')
+	                  , #{TAG.TAG_BND_TYPE}
+	        	)
+    	</foreach>
+    	SELECT * FROM DUAL
+    </insert>
+</mapper>

@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="BatchDeleteCI">
+    
+    <!-- 관리자 > 배치작업관리 수정 -->
+    <update id="deleteCI" parameterType="HashMap">
+        /* BatchDeleteCI.deleteCI */
+        <![CDATA[
+        UPDATE T_MEM_IPN MI 
+           SET MEM_IPN_NO  ='',
+               MEM_IPN_NM  ='',
+               MEM_IPN_RST ='',
+               MEM_IPN_AGE ='',
+               MEM_IPN_SEX ='',
+               MEM_IPN_AUT ='',
+               MEM_IPN_BIR ='',
+               MEM_IPN_FGN ='',
+               MEM_IPN_DI  ='',
+               MEM_IPN_CI  ='',
+               MEM_IPN_CI_VER ='',
+               MEM_IPN_ETC1 ='',
+               MEM_IPN_ETC2 ='',
+               MEM_IPN_ETC3 ='',
+               MEM_IPN_AUT_GB ='',
+               MEM_IPN_HP_CRP ='',
+               MEM_IPN_CRT_DT =''
+        WHERE EXISTS(
+                SELECT 1 
+                FROM T_MEM_MST
+                WHERE MEM_MST_LEV_YN <>'N'
+                AND MEM_MST_MEM_GBN = 682
+                AND SUBSTR(MEM_MST_LEV_DT,0,8) = TO_CHAR(SYSDATE-90, 'yyyymmdd')
+                AND MI.MEM_MST_MEM_ID = MEM_MST_MEM_ID
+            )
+        ]]>
+    </update>
+            
+</mapper>

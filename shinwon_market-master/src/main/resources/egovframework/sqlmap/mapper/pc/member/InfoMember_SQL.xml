@@ -1,0 +1,329 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="PcInfoMember">
+
+    <!-- 프론트 > 회원가입 > 아이디 중복 체크 -->
+    <select id="selectInfoMemberIdCheckCount" parameterType="HashMap" resultType="Integer">
+        /* PcInfoMember.selectInfoMemberIdCheckCount */
+        SELECT
+            COUNT(MEM_MST_MEM_ID) 
+        FROM
+            T_MEM_MST 
+        WHERE
+            MEM_MST_MEM_ID = #{ID} 
+    </select>
+
+    <!-- 프론트 > 회원가입 > 회원정보 등록(WEB_MASTER) -->
+    <insert id="insertInfoMemberWebMaster" parameterType="HashMap">
+        /* PcInfoMember.insertInfoMemberWebMaster */
+        INSERT INTO
+            T_MEM_MST
+            (
+                MEM_MST_MEM_ID,
+                MEM_MST_REG_DT,
+                MEM_MST_REG_IP,
+                MEM_MST_REG_ID,
+                MEM_MST_JOIN_TYPE,
+                MEM_MST_OUT_YN,
+                MEM_MST_MEM_NM,
+                MEM_MST_GENDER,
+                MEM_MST_BIRTH_YEAR,
+                MEM_MST_ADDRESS1,
+                MEM_MST_IPIN_CI,
+                MEM_MST_MEMBER_GROUP,
+                MEM_MST_AGREE1_YN,
+                MEM_MST_AGREE2_YN,
+                MEM_MST_AGREE3_YN,
+                MEM_MST_AGREE4_YN,
+                MEM_MST_AGREE5_YN,
+                MEM_MST_RECOMMEND_ID
+            )
+        VALUES
+            (
+                #{WEB_ID},
+                TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+                #{INS_IP},
+                #{WEB_ID},
+                #{JOIN_TYPE},
+                'N',
+                #{MEMBER_NM},
+                #{GENDER},
+                #{BIRTH_YEAR},
+                #{ADDRESS_SHOT},
+                #{IPIN_CI},
+                #{MEMBER_GROUP},
+                #{AGREE1_YN},
+                #{AGREE2_YN},
+                #{AGREE3_YN},
+                #{AGREE4_YN},
+                #{AGREE5_YN},
+                #{RECOMMEND_ID}
+            )
+    </insert>
+    
+    <!-- 프론트 > 회원가입 > 회원정보 고객관리번호, 고객카드번호 수정(WEB_MASTER) --> 
+    <update id="updateInfoMemberCrmInfo" parameterType="HashMap">
+        /* PcInfoMember.updateInfoMemberCrmInfo */
+        UPDATE
+            T_MEM_MST 
+        SET
+            MEM_MST_UPD_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+            MEM_MST_UPD_IP = #{MOD_IP},
+            MEM_MST_UPD_ID = #{WEB_ID},
+            MEM_MST_MEMBER_NO = #{MEMBER_NO},
+            MEM_MST_CARD_NO = #{CARD_NO}
+        WHERE
+            MEM_MST_MEM_ID = #{WEB_ID}
+    </update>
+    
+    <!-- 프론트 > 회원가입 > 회원정보 수정(WEB_MASTER) --> 
+    <update id="updateInfoMemberWebMaster" parameterType="HashMap">
+        /* PcInfoMember.updateInfoMemberWebMaster */
+        UPDATE
+            T_MEM_MST 
+        SET
+            MEM_MST_UPD_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+            MEM_MST_UPD_IP = #{MOD_IP},
+            MEM_MST_UPD_ID = #{WEB_ID},
+            MEM_MST_ADDRESS1 = #{ADDRESS_SHOT}
+        WHERE
+            MEM_MST_MEM_ID = #{WEB_ID}
+    </update>
+    
+     <!-- 프론트 > 회원가입 > 비밀번호 수정(WEB_MASTER) --> 
+    <update id="updatePwMemberWebMaster" parameterType="HashMap">
+        /* PcInfoMember.updatePwMemberWebMaster */
+        UPDATE
+            T_MEM_MST 
+        SET
+            MEM_MST_UPD_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+            MEM_MST_UPD_IP = #{MOD_IP},
+            MEM_MST_UPD_ID = #{WEB_ID},
+            MEM_MST_LST_PW_UPD_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS')
+        WHERE
+            MEM_MST_MEM_ID = #{WEB_ID}
+    </update>
+    
+    <!-- 프론트 > 마이페이지 > 회원탈퇴 (WEB_MASTER) -->
+    <update id="deleteInfoMemberOutMemberWebMaster" parameterType="HashMap">
+        /* PcInfoMember.deleteInfoMemberOutMemberWebMaster */
+        UPDATE
+            T_MEM_MST
+        SET
+            MEM_MST_OUT_YN = 'Y',
+            MEM_MST_OUT_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+            MEM_MST_UPD_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+            MEM_MST_UPD_IP = #{MOD_IP},
+            MEM_MST_UPD_ID = #{WEB_ID}
+        WHERE
+            MEM_MST_MEM_ID = #{WEB_ID}
+            AND MEM_MST_MEMBER_NO = #{MEMBER_NO}
+            AND MEM_MST_OUT_YN = 'N' 
+    </update>
+
+    <!-- 계열사 목록 -->
+    <select id="selectCompanyList" parameterType="HashMap" resultType="HashMap">
+        /* PcInfoMember.selectCompanyList */
+        SELECT
+            ALCO_CD,
+            REPLACE(ALCO_NM, chr(10),'') as ALCO_NM,
+            DOMAIN_INFO, 
+            ALCO_OBJ_SCTN_CD as MEMBER_GROUP
+        FROM
+            T_CRM_ALC_MST
+        WHERE
+            USE_YN = 'Y'
+        AND DOMAIN_INFO IS NOT NULL
+        ORDER BY
+            ALCO_CD
+    </select>
+
+    <!-- 계열사 직원정보 -->
+    <select id="selectAlcoEmpInfo" parameterType="HashMap" resultType="HashMap">
+        /* PcInfoMember.selectAlcoEmpInfo */
+        SELECT
+            ALCO_CD,
+            ALCO_EMP_NO,
+            TRIM(ALCO_EMP_NM) ALCO_EMP_NM,
+            RETIRE_YN,
+            NVL(STF_ACR_IDX,0) as STF_ACR_IDX,
+            NVL(STF_ACR_MEMBER_NO,'') as STF_ACR_MEMBER_NO,
+            NVL(STF_ACR_WEB_ID,'') as STF_ACR_WEB_ID,
+            NVL(STF_ACR_EMAIL_ID,'') as STF_ACR_EMAIL_ID,
+            NVL(STF_ACR_EMAIL_DOMAIN,'') as STF_ACR_EMAIL_DOMAIN,
+            NVL(STF_ACR_MEMBER_GROUP,'') as STF_ACR_MEMBER_GROUP,
+            NVL(STF_ACR_ACCREDIT_YN,'') as SF_ACR_ACCREDIT_YN 
+        FROM
+            T_CRM_ALC_EMP CAM, T_STF_ACR SA 
+        WHERE
+            ALCO_CD = #{ALCO_CD}
+        AND TRIM(ALCO_EMP_NO) = #{ALCO_EMP_NO}
+        AND ALCO_CD = STF_ACR_ALCO_CD(+)
+        AND ALCO_EMP_NO = STF_ACR_ALCO_EMP_NO(+)
+        AND 'Y' = STF_ACR_VALID_YN(+)
+    </select>
+
+    <!-- 계열사 직원 인증정보 -->
+    <select id="selectAlcoEmpKey" parameterType="HashMap" resultType="HashMap">
+        /* PcInfoMember.selectAlcoEmpKey */
+        SELECT
+            STF_ACR_ALCO_CD,
+            STF_ACR_ALCO_EMP_NO,
+            STF_ACR_MEMBER_NO,
+            STF_ACR_WEB_ID,
+            STF_ACR_EMAIL_ID,
+            STF_ACR_EMAIL_DOMAIN,
+            STF_ACR_MEMBER_GROUP,
+            STF_ACR_ACCREDIT_YN,
+            STF_ACR_ACCREDIT_DT,
+            STF_ACR_VALID_YN
+        FROM
+            T_STF_ACR SA
+        WHERE
+            STF_ACR_IDX = #{STF_ACR_IDX}
+    </select>
+
+    <!-- 회원 임직원 인증완료 update -->
+    <update id="updateAlcoEmpKeyValid" parameterType="HashMap">
+        /* PcInfoMember.updateAlcoEmpKeyValid */
+        UPDATE  
+            T_STF_ACR
+        SET
+            STF_ACR_VALID_YN = 'N'
+        WHERE
+            STF_ACR_ALCO_CD = #{ALCO_CD}
+        AND STF_ACR_ALCO_EMP_NO = #{ALCO_EMP_NO}
+    </update>
+
+    <!-- 회원 임직원 인증KEY 생성 -->
+    <insert id="insertAlcoEmpKey" parameterType="HashMap">
+        /* PcInfoMember.insertAlcoEmpKey */
+        INSERT INTO 
+            T_STF_ACR
+        (
+	        STF_ACR_IDX,
+			STF_ACR_ALCO_CD,
+			STF_ACR_ALCO_EMP_NO,
+			STF_ACR_MEMBER_NO,
+			STF_ACR_WEB_ID,
+			STF_ACR_EMAIL_ID,
+			STF_ACR_EMAIL_DOMAIN,
+			STF_ACR_MEMBER_GROUP,
+			STF_ACR_VALID_YN,
+			STF_ACR_REGI_DT,
+			STF_ACR_REGI_IP,
+			STF_ACR_REGI_ID
+        ) VALUES (
+            SEQ_STF_ACR_IDX.NEXTVAL,
+            #{ALCO_CD},
+            #{ALCO_EMP_NO},
+            #{MEMBER_NO},
+            #{WEB_ID},
+            #{EMAIL_ID},
+            #{EMAIL_DOMAIN},
+			#{MEMBER_GROUP},
+			'Y',
+            TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+            #{REGI_IP},
+            #{WEB_ID}
+        )
+    </insert>
+
+    <!-- 회원 임직원 인증완료 update -->
+    <update id="updateAlcoEmpKey" parameterType="HashMap">
+        /* PcInfoMember.updateAlcoEmpKey */
+        UPDATE  
+            T_STF_ACR
+        SET
+            STF_ACR_ACCREDIT_YN = 'Y',
+            STF_ACR_ACCREDIT_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS')
+        WHERE
+            STF_ACR_IDX = #{STF_ACR_IDX}
+    </update>
+
+    <!-- 회원정보 회원구분 update -->
+    <update id="updateMemberGroup" parameterType="HashMap">
+        /* PcInfoMember.updateMemberGroup */
+        UPDATE  
+            T_MEM_MST
+        SET
+            MEM_MST_MEMBER_GROUP = #{MEMBER_GROUP}
+        WHERE
+            MEM_MST_MEM_ID = #{ID}
+    </update>
+
+    <!-- 임시비밀번호 발급여부 셋팅 -->
+    <update id="updateTempPasswordIssue" parameterType="hashmap" >
+        <![CDATA[
+        /* PcInfoMember.updateTempPasswordIssue */
+        UPDATE T_MEM_MST
+           SET MEM_MST_TEMP_PW_YN = 'Y'
+             , MEM_MST_TEMP_PW_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS')
+        WHERE
+            MEM_MST_MEM_ID = #{WEB_ID}
+        ]]>
+    </update>
+    <!-- 임시비밀번호 발급여부 리셋 -->
+    <update id="updateTempPasswordReset" parameterType="hashmap" >
+        <![CDATA[
+        /* PcInfoMember.updateTempPasswordReset */
+        UPDATE T_MEM_MST
+           SET MEM_MST_TEMP_PW_YN = 'N'
+             , MEM_MST_TEMP_PW_DT = ''
+        WHERE
+            MEM_MST_MEM_ID = #{WEB_ID}
+        ]]>
+    </update>
+
+    <!-- 신규가입이벤트 쿠폰 발급 -->
+    <update id="updateNewMemberJoinCouponIssue" parameterType="hashmap" >
+        <![CDATA[
+        /* PcInfoMember.updateNewMemberJoinCouponIssue */
+		UPDATE
+		    T_CRM_CPN_MEM
+		SET
+		    CS_ID = #{MEMBER_NO},
+		    ISSUE_DATE = TO_CHAR(SYSDATE,'YYYYMMDDHH24MISS'),
+		    ISSUE_USER = #{ISSUE_USER},
+		    ISSUE_TYPE = #{ISSUE_TYPE}
+		WHERE 1=1
+		AND CUPO_NO = (
+			SELECT
+			    CUPO_NO
+			FROM (
+				SELECT
+				    ROWNUM RNUM,
+				    CUPO_NO
+				FROM 
+				    T_CRM_CPN_MEM
+				WHERE 1=1
+				AND CMPG_ID = #{CMPG_ID}
+				AND TO_CHAR(SYSDATE,'YYYYMMDD') BETWEEN CMPG_TRM_FROM AND CMPG_TRM_TO
+				AND TO_CHAR(SYSDATE,'YYYYMMDD') BETWEEN VALD_TRM_FROM AND VALD_TRM_TO
+				AND CUPO_USED = 'N'
+				AND CS_ID IS NULL
+				ORDER BY
+				    CUPO_NO
+				)
+			WHERE
+			    RNUM = 1
+			)
+        ]]>
+    </update>
+    
+    <!-- 계열사 직원 인증정보 -->
+    <select id="selectYesterdayLoginUser" parameterType="HashMap" resultType="HashMap">
+     <![CDATA[
+        /* PcInfoMember.selectYesterdayLoginUser */
+     SELECT
+            MEM_MST_MEM_ID,
+            MEM_MST_VST_LAT
+       FROM
+            T_MEM_MST
+      WHERE 
+  			CONCAT(TO_CHAR(SYSDATE - (INTERVAL '1' DAY),'YYYYMMDD'),'000000') < MEM_MST_VST_LAT
+  			AND CONCAT(TO_CHAR(SYSDATE- (INTERVAL '1' DAY) ,'YYYYMMDD'),'235959') > MEM_MST_VST_LAT
+     ]]>
+    </select>
+</mapper>

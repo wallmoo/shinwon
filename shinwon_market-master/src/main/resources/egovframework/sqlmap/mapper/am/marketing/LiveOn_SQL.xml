@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="LiveOn">
+    <sql id="liveOnWhere">
+    	<if test="searchPlnMstStDt != null and searchPlnMstStDt != '' and searchPlnMstEdDt != null and searchPlnMstEdDt !=''">
+    		AND PM.PRD_MST_REG_DT BETWEEN REPLACE(#{searchPlnMstStDt},'-', '')||'000000' AND REPLACE(#{searchPlnMstEdDt},'-', '')||'235959'
+    	</if> 
+    	<if test="searchPrdMstNm != null and searchPrdMstNm != ''">
+            AND UPPER(PM.PRD_MST_NM) LIKE '%'||UPPER(#{searchPrdMstNm})||'%'
+        </if>
+        <if test="searchPrdMstCd != null and searchPrdMstCd != ''">
+            AND PM.PRD_MST_CD LIKE '%'|| UPPER(#{searchPrdMstCd}) ||'%'
+        </if>
+        <if test="searchPrdMstLiveOnDspYn != null and searchPrdMstLiveOnDspYn != '' and searchPrdMstLiveOnDspYn != 'all'">
+         	AND PM.PRD_MST_LIVE_ON_DSP_YN = #{searchPrdMstLiveOnDspYn}
+        </if>
+    </sql>
+    <select id="selectliveOnListCount" parameterType="HashMap" resultType="Integer">
+	    /* LiveOn.selectliveOnListCount */
+	    SELECT COUNT(0) FROM T_PRD_MST PM
+	    WHERE 
+	    PRD_MST_LIVE_ON_YN = 'Y'
+    	<include refid="liveOnWhere"/>
+    </select>
+    
+    <select id="selectliveOnList" parameterType="HashMap" resultType="HashMap">
+	    /* LiveOn.selectliveOnList */
+	    SELECT 
+	    		S2.*
+	    		, FN_PRODUCT_IMG(PRD_MST_CD, #{THUMBNAIL_SIZE}) AS PRD_IMAGE 
+	    FROM (
+			    SELECT 
+					    ROWNUM AS RNUM,
+					    S1.*
+			    FROM
+			    	(	SELECT 
+						    PRD_MST_CD
+						    ,PRD_MST_NM
+						    ,PRD_MST_REG_DT
+						    ,PRD_MST_LIVE_ON_DSP_YN
+						    FROM T_PRD_MST PM
+						    WHERE PRD_MST_LIVE_ON_YN = 'Y'
+						    <include refid="liveOnWhere"/>
+						    ORDER BY PRD_MST_LIVE_ON_SRT, PRD_MST_REG_DT DESC
+				    ) S1
+			)S2
+	    WHERE S2.RNUM BETWEEN #{startNum} AND #{endNum}
+	    ORDER BY S2.RNUM
+    </select> 
+
+    <update id="updateLiveOn" parameterType="HashMap" >
+    	/* LiveOn.updateLiveOn */
+    	<foreach collection="list" item="item" separator=";">
+    		UPDATE T_PRD_MST SET PRD_MST_LIVE_ON_DSP_YN = #{item.PRD_MST_LIVE_ON_DSP_YN}
+    		WHERE PRD_MST_CD = #{item.PRD_MST_CD}
+    	</foreach>
+    </update>
+    
+    <!-- 관리자 > 프로모션 관리 > 라이브ON 수정 -->
+    <update id="updateLiveOnList" parameterType="HashMap">
+        /* Kinger.updateKinger */
+        <foreach collection="selectedPrdMstList" item="item" index="index" open="DECLARE BEGIN" close="; END;" separator=";">
+			UPDATE
+	            T_PRD_MST 
+	        SET
+	            PRD_MST_LIVE_ON_DSP_YN = NVL(#{item.PRD_MST_LIVE_ON_DSP_YN}, 'Y'),
+	            PRD_MST_LIVE_ON_SRT = NVL(#{item.PRD_MST_LIVE_ON_SRT}, 0),
+	            PRD_MST_UPD_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+	            PRD_MST_UPD_IP = #{PRD_MST_UPD_IP},
+	            PRD_MST_UPD_ID = #{PRD_MST_UPD_ID}
+	        WHERE
+	            PRD_MST_CD = #{item.PRD_MST_CD}        
+        </foreach>
+    </update>
+</mapper>

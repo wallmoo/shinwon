@@ -1,0 +1,531 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="PcMyKeep">
+	
+	<!-- 키핑콘텐츠 조건절 -->
+	<sql id="contentsWhere">
+    	AND
+			TMC.MEM_CTS_GBN_IDX = TMM.MGZ_MST_IDX
+		AND
+			TMC.MEM_CTS_GBN_IDX = TCF.CMM_FLE_TB_PK
+		AND
+			TCF.CMM_FLE_TB_NM = 'T_MGZ_MST'
+		AND
+			TCF.CMM_FLE_TB_TYPE = #{CHN_GBN}
+		AND
+			TCF.CMM_FLE_USE_YN = 'Y'
+		AND
+			TMC.MEM_CTS_GBN = 'M'
+		AND
+			TMC.MEM_MST_MEM_ID = #{MEM_MST_MEM_ID}
+    </sql>
+    
+    <!-- 키핑기획전 조건절 -->
+    <sql id="planWhere">
+    	AND
+			TMC.MEM_CTS_GBN_IDX = TPM.PLN_MST_IDX
+		AND
+			TMC.MEM_CTS_GBN_IDX = TCF.CMM_FLE_TB_PK
+		AND
+			TPM.PLN_MST_TYPE = 'A'
+        <if test="PLN_MST_CHANNEL_PC_YN != null and PLN_MST_CHANNEL_PC_YN != ''">
+            AND TPM.PLN_MST_CHANNEL_PC_YN = #{PLN_MST_CHANNEL_PC_YN}
+        </if>
+        <if test="PLN_MST_CHANNEL_MOBILE_YN != null and PLN_MST_CHANNEL_MOBILE_YN != ''">
+            AND TPM.PLN_MST_CHANNEL_MOBILE_YN = #{PLN_MST_CHANNEL_MOBILE_YN}
+        </if>
+		AND
+			TCF.CMM_FLE_TB_NM = 'T_PLN_MST'
+		AND
+			TCF.CMM_FLE_TB_TYPE = #{CHN_GBN}
+		AND
+			TCF.CMM_FLE_SORT = '1'
+		AND
+			TCF.CMM_FLE_USE_YN = 'Y'
+		AND
+			TMC.MEM_CTS_GBN = 'P'
+		AND
+			TMC.MEM_MST_MEM_ID = #{MEM_MST_MEM_ID}
+    </sql>
+    
+    <!-- 키핑이벤트 조건절 -->
+    <sql id="eventWhere">
+    	AND
+			TMC.MEM_CTS_GBN_IDX = TEM.EVT_MST_IDX
+		AND
+			TMC.MEM_CTS_GBN_IDX = TCF.CMM_FLE_TB_PK
+        <if test="EVT_MST_PC_YN != null and EVT_MST_PC_YN != ''">
+            AND EVT_MST_PC_YN = #{EVT_MST_PC_YN}
+        </if>
+        <if test="EVT_MST_MB_YN != null and EVT_MST_MB_YN != ''">
+            AND EVT_MST_MB_YN = #{EVT_MST_MB_YN} 
+        </if>
+    	AND
+			TCF.CMM_FLE_TB_NM = 'T_EVT_MST'
+		AND
+			TCF.CMM_FLE_TB_TYPE = #{CHN_GBN}
+		AND
+			TCF.CMM_FLE_SORT = '1'
+		AND
+			TCF.CMM_FLE_USE_YN = 'Y'
+		AND
+			TMC.MEM_CTS_GBN = 'E'
+		AND
+			TMC.MEM_MST_MEM_ID = #{MEM_MST_MEM_ID}    		
+    </sql>
+
+	<!-- 사용자 > MYPAGE > 쇼핑컨텐츠 > 키핑백 > 키핑상품 목록 갯수 -->
+	<select id="selectKeepProductListCount" parameterType="HashMap" resultType="Integer">
+		/* PcMyKeep.selectKeepProductListCount */
+		SELECT 
+			 COUNT(0)
+		FROM T_MEM_KEP MKP
+		INNER JOIN T_PRD_MST PM ON PM.PRD_MST_CD = MKP.PRD_MST_CD
+		,(
+        	SELECT DISTINCT DSP_PRD_MST_CD
+            		 FROM T_DSP_CTG
+            		WHERE DSP_PRD_CTG_IDX IN
+                    (
+                      SELECT 
+                        PC.PRD_CTG_IDX
+                      FROM T_PRD_CTG PC
+                      WHERE PC.PRD_CTG_USE_YN = 'Y'
+                    )
+    	 ) TPC
+		WHERE PM.PRD_MST_CD = TPC.DSP_PRD_MST_CD
+		AND MKP.MEM_MST_MEM_ID = #{MEM_MST_MEM_ID}
+       	AND PM.PRD_MST_DEL_YN <![CDATA[<>]]> 'Y'
+	</select>
+	
+	<!-- 사용자 > MYPAGE > 쇼핑컨텐츠 > 키핑백 > 키핑상품 목록 -->
+	<select id="selectKeepProductList" parameterType="HashMap" resultType="HashMap">
+		/* PcMyKeep.selectKeepProductList */
+		SELECT 
+			RNUM
+			, PRD_MST_CD
+			, PRD_MST_NM
+			, PRD_MST_PRC
+			, PRD_IMAGE
+			, PRD_IMAGE_ALT
+	       	, ERP_MST_DSP_PRC
+	       	, PRD_MST_PRICE
+	       	, PRD_MST_PC_CPN_PRC
+	        , PRD_MST_LNG_DIV_YN
+	        , PRD_MST_DLV_FEE
+	        , PRD_MST_O2O_YN
+	        , PRD_MST_COU_CNT
+	        , PRD_MST_GFT_CNT
+			, PRD_MST_CRD_CNT
+			, REP_POINT
+			, REP_CNT
+			, REP_POINT_GRD
+			, PRD_NEW_ICO
+			, PRD_MST_OPT_EST_CNT
+			, PRD_MST_ICON_LIST
+			, PRD_MST_SIKR_ICON
+			, PRD_MST_OFF_ALL_CNT
+			, MEM_KEP_IDX
+			, PRD_MST_SEL_STATE
+			, PRD_MST_IVB_YN
+			, PRD_NOW_DST_PRICE
+			, PRD_MST_SEL_CNT
+			, PRD_MST_NM_FUL
+			, PRD_MST_CNL_PC_YN
+            , PRD_MST_CNL_MB_YN
+		FROM ( 
+	        SELECT 
+	       		ROWNUM RNUM
+	        	, PRD_MST_CD
+	        	, PRD_MST_NM, PRD_MST_PRC
+	        	, PRD_IMAGE
+	        	, PRD_IMAGE_ALT
+	        	, ERP_MST_DSP_PRC
+	        	, PRD_MST_PRICE
+	        	, PRD_MST_PC_CPN_PRC
+	            , PRD_MST_LNG_DIV_YN
+	            , PRD_MST_DLV_FEE
+	            , PRD_MST_O2O_YN
+	            , PRD_MST_COU_CNT
+	            , PRD_MST_GFT_CNT
+	            , PRD_MST_CRD_CNT
+	            , FN_GET_PRODUCT_REQ_POINT(REP_POINT) AS REP_POINT
+	            , REP_CNT
+	            , FN_GET_PRODUCT_REQ(REP_POINT) AS REP_POINT_GRD
+	            , PRD_NEW_ICO
+	            , PRD_MST_OPT_EST_CNT
+	            , PRD_MST_REG_DT
+	            , PRD_MST_ORD_CNT
+	            , PRD_MST_ONLINE_HIT
+	            , PRD_MST_ICON_LIST
+	            , NVL(PRD_MST_SIKR_ICON, '') AS PRD_MST_SIKR_ICON
+	            , PRD_MST_OFF_ALL_CNT
+	            , MEM_KEP_IDX
+	            , PRD_MST_SEL_STATE
+	            , PRD_MST_IVB_YN
+				, PRD_NOW_DST_PRICE
+				, PRD_MST_SEL_CNT
+				, PRD_MST_NM_FUL
+				, PRD_MST_CNL_PC_YN
+	            , PRD_MST_CNL_MB_YN
+	        FROM 
+	        (
+				SELECT 
+					 PM.PRD_MST_CD
+		             , FN_GET_PRODUCT_NM(PM.PRD_MST_CD,20) AS PRD_MST_NM
+		             , PM.PRD_MST_PRC
+		             , FN_PRODUCT_IMG(PM.PRD_MST_CD, #{THUMBNAIL_SIZE}) AS PRD_IMAGE
+		             , FN_PRODUCT_IMG_ALT(PM.PRD_MST_CD, #{THUMBNAIL_SIZE}) AS PRD_IMAGE_ALT
+		             , 0 AS ERP_MST_DSP_PRC
+		             , FN_PRODUCT_LIST_PRICE(PM.PRD_MST_CD,#{CHN_GBN}, #{MEM_MST_MEM_ID}) AS PRD_MST_PRICE
+		             , NVL(PM.PRD_MST_PC_CPN_PRC,0) AS PRD_MST_PC_CPN_PRC
+		             , PM.PRD_MST_LNG_DIV_YN
+		             , PM.PRD_MST_DLV_FEE
+		             , PM.PRD_MST_O2O_YN
+		             , PM.PRD_MST_SEL_STATE
+		             , (
+		             		SELECT COUNT(*)
+		             		FROM T_CPN_MST CMT
+		             		INNER JOIN T_CPN_TGT CTT ON CMT.CPN_MST_IDX = CTT.CPN_MST_IDX
+							WHERE CTT.CPN_TGT_CD = PM.PRD_MST_CD
+							AND CMT.CPN_MST_YN = 'Y'	
+							AND TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS') BETWEEN CMT.CPN_MST_ISU_ST_DT ||CMT.CPN_MST_ISU_ST_HH||CMT.CPN_MST_ISU_ST_MM AND CMT.CPN_MST_ISU_ED_DT ||CMT.CPN_MST_ISU_ED_HH||CMT.CPN_MST_ISU_ED_MM
+							AND CMT.CPN_MST_ISU_CNT > 0	
+		             	) AS PRD_MST_COU_CNT
+		             , (
+		             		SELECT COUNT(*)
+							FROM T_GFT_MST GMT
+							INNER JOIN T_PRD_GFT PGT ON GMT.GFT_MST_IDX = PGT.GFT_MST_IDX
+							WHERE PGT.PRD_PRD_MST_CD = PM.PRD_MST_CD
+							AND GMT.GFT_MST_USE_YN = 'Y'
+							AND GMT.GFT_MST_STOCK_CNT > 0
+							AND TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS') BETWEEN GMT.GFT_MST_ST_DT||'000000' AND GMT.GFT_MST_ED_DT||'235959'
+		             	) AS PRD_MST_GFT_CNT
+		             , (
+		             		SELECT COUNT(*)
+							FROM T_CRD_PMT CPT
+							INNER JOIN T_PMT_CRD PCD ON CPT.CRD_PMT_IDX = PCD.PMT_CRD_PMT_IDX
+							WHERE CRD_PMT_USE_YN = 'Y'
+							AND TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS') BETWEEN CRD_PMT_ST_DT ||CRD_PMT_ST_HH||CRD_PMT_ST_MM AND CRD_PMT_ED_DT ||CRD_PMT_ED_HH||CRD_PMT_ED_MM
+							AND PCD.PMT_CRD_SML_PRC <![CDATA[<=]]> (
+															SELECT 
+																 CASE WHEN PRD_MST_PC_CPN_PRC > 0 THEN 
+																	CASE WHEN PRD_MST_PC_CPN_UNT = 'R' THEN
+																		PRD_MST_PRC - (PRD_MST_PRC * (PRD_MST_PC_CPN_PRC/100))
+																	ELSE PRD_MST_PRC - PRD_MST_PC_CPN_PRC END
+																  END AS PRD_MST_DCT_PRC
+															FROM T_PRD_MST
+															WHERE PRD_MST_CD = PM.PRD_MST_CD
+														)
+		             	) AS PRD_MST_CRD_CNT
+		             , (SELECT NVL(ROUND( ((SUM(PRD_REV_FNC_STAR) + SUM(PRD_REV_PRC_STAR) + SUM(PRD_REV_SCORE_STAR)) / 3) / COUNT(0) ,1),0) FROM T_PRD_REV WHERE T_PRD_REV.PRD_PRD_MST_CD = PM.PRD_MST_CD) AS REP_POINT
+		             , (SELECT COUNT(0) FROM T_PRD_REV WHERE T_PRD_REV.PRD_PRD_MST_CD = PM.PRD_MST_CD) AS REP_CNT
+		             , TO_DATE(TO_CHAR(SYSDATE, 'YYYYMMDD')) +1 - TO_DATE(TO_CHAR(TO_DATE(PM.PRD_MST_REG_DT,'YYYYMMDDHH24MISS'),'YYYYMMDD'),'YYYYMMDD') AS PRD_NEW_ICO
+		             , (
+		             		SELECT COUNT(0) 
+		             		FROM T_PRD_OPT PRP
+		             		WHERE PRP.PRD_MST_CD = PM.PRD_MST_CD 
+		             		AND PRP.PRD_OPT_EST_YN = 'Y' 
+		             		AND EXISTS (
+								SELECT COUNT(*)
+								FROM T_OPT_DTL OPD
+								WHERE OPD.PRD_OPT_IDX = PRP.PRD_OPT_IDX
+								AND OPD.OPT_DTL_USE_YN = 'Y'
+								AND TO_CHAR(SYSDATE,'YYYYMMDDHH24MI') BETWEEN OPD.OPT_DTL_ST_DT||'000000' AND OPD.OPT_DTL_ED_DT||'235959' 
+							)
+		             	) AS PRD_MST_OPT_EST_CNT
+		             , PM.PRD_MST_REG_DT
+		             , NVL(PM.PRD_MST_ORD_CNT,0) AS PRD_MST_ORD_CNT
+		             , NVL(PRD_MST_ORD_CNT,0) + NVL(PRD_MST_RED_CNT,0) AS PRD_MST_ONLINE_HIT
+		             , FN_GET_PRODUCT_ICON(PM.PRD_MST_CD,#{CHN_GBN}) AS PRD_MST_ICON_LIST
+		             , FN_GET_PRODUCT_STICKER_ICON(PM.PRD_MST_CD,#{CHN_GBN}) AS PRD_MST_SIKR_ICON
+		             , NVL(PM.PRD_MST_OFF_ALL_CNT,0) AS PRD_MST_OFF_ALL_CNT
+		             , MKP.MEM_KEP_IDX
+		             , PM.PRD_MST_IVB_YN
+		             , (SELECT FN_PRODUCT_DETAIL_PRICE(PM.PRD_MST_CD,#{USER_ENV_TYPE},#{MEM_CRT_SES_ID},'N',null) FROM DUAL) AS PRD_NOW_DST_PRICE
+		             , PM.PRD_MST_SEL_CNT
+		             , PM.PRD_MST_NM AS PRD_MST_NM_FUL
+		             , PM.PRD_MST_CNL_PC_YN
+		             , PM.PRD_MST_CNL_MB_YN
+				FROM T_MEM_KEP MKP
+				INNER JOIN T_PRD_MST PM ON PM.PRD_MST_CD = MKP.PRD_MST_CD
+				,(
+		        	SELECT DISTINCT DSP_PRD_MST_CD
+	          		 FROM T_DSP_CTG
+	          		WHERE DSP_PRD_CTG_IDX IN
+	                  (
+	                    SELECT 
+	                      PC.PRD_CTG_IDX
+	                    FROM T_PRD_CTG PC
+	                    WHERE PC.PRD_CTG_USE_YN = 'Y'
+	                  )
+		    	 ) TPC
+				WHERE PM.PRD_MST_CD = TPC.DSP_PRD_MST_CD
+				AND MKP.MEM_MST_MEM_ID = #{MEM_MST_MEM_ID}
+	        	AND PM.PRD_MST_DEL_YN <![CDATA[<>]]> 'Y'
+				ORDER BY MKP.MEM_KEP_REG_DT DESC
+		)PR
+	) A
+    <if test="startNum != null and startNum != '' and endNum != null and endNum != ''">
+        WHERE A.RNUM BETWEEN #{startNum} AND #{endNum}
+    </if>
+    <if test="myPageMainKeep != null and myPageMainKeep != ''">
+        WHERE A.RNUM <![CDATA[<]]> 4
+    </if>
+    <if test="quickKeep != null and quickKeep != ''">
+        WHERE A.RNUM <![CDATA[<]]> 5
+    </if>
+	</select>
+	
+	<!-- 사용자 > MYPAGE > 쇼핑컨텐츠 > 키핑백 > 키핑상품 > 선택 상품 삭제 -->
+	<delete id="deleteKeepProduct" parameterType="HashMap">
+		/* PcMyKeep.deleteKeepProduct */
+		<![CDATA[
+			DELETE FROM T_MEM_KEP 
+			WHERE 1=1
+		]]>
+		<![CDATA[	
+		AND 
+		(
+			MEM_KEP_IDX IN 
+			
+		]]>
+            <foreach collection="MEM_KEP_IDXs" item="MEM_KEP_IDX" open="(" close=")" separator=",">#{MEM_KEP_IDX}</foreach>
+		)
+	</delete>
+	
+	<!-- 사용자 > MYPAGE > 쇼핑컨텐츠 > 키핑백 > 키핑상품 > 품절 상품 삭제 -->
+	<delete id="deleteSoldOutKeepProduct" parameterType="HashMap">
+		/* PcMyKeep.deleteSoldOutKeepProduct */
+		DELETE FROM T_MEM_KEP
+		WHERE EXISTS (
+						SELECT 
+							TMK.MEM_KEP_IDX
+						FROM
+							T_MEM_KEP TMK , T_PRD_MST TPM
+						WHERE
+							TMK.PRD_MST_CD = TPM.PRD_MST_CD
+						AND
+							TPM.PRD_MST_SEL_STATE <![CDATA[<>]]> 'I'
+						AND
+							TMK.MEM_MST_MEM_ID = #{MEM_MST_MEM_ID}
+						AND
+							T_MEM_KEP.MEM_KEP_IDX = TMK.MEM_KEP_IDX
+						)
+	</delete>
+	
+	<!-- 사용자 > MYPAGE > 쇼핑컨텐츠 > 키핑백 > 키핑콘텐츠 목록 갯수 -->
+	<select id="selectKeepContentsListCount" parameterType="HashMap" resultType="Integer">
+		/* PcMyKeep.selectKeepContentsListCount */
+		SELECT
+			COUNT(0)
+		FROM
+			T_MEM_CTS TMC,
+			T_MGZ_MST TMM,
+			T_CMM_FLE TCF
+		WHERE	
+			1=1
+			<include refid="contentsWhere"/>
+	</select>
+	
+	<!-- 사용자 > MYPAGE > 쇼핑컨텐츠 > 키핑백 > 키핑콘텐츠 목록 -->
+	<select id="selectKeepContentsList" parameterType="HashMap" resultType="HashMap">
+		/* PcMyKeep.selectKeepContentsList */
+		SELECT
+			S1.*
+		FROM
+		(
+			SELECT
+				ROWNUM AS RNUM,
+				S2.*
+			FROM
+			(
+				SELECT
+					TMC.MEM_CTS_IDX,
+					TMM.MGZ_MST_IDX,
+					TMM.MGZ_MST_TITLE,
+					TMM.MGZ_MST_CTG,
+					TMM.MGZ_MST_CTS,
+					TMM.MGZ_MST_GBN,
+					TMM.MGZ_MST_KID,
+				    TCF.CMM_FLE_ATT_PATH,
+				    TCF.CMM_FLE_SYS_NM,
+				    TCF.CMN_FLE_ALT_TXT
+				FROM
+					T_MEM_CTS TMC,
+					T_MGZ_MST TMM,
+					T_CMM_FLE TCF
+				WHERE
+					1=1
+					<include refid="contentsWhere"/>
+				ORDER BY TMC.MEM_CTS_REG_DT DESC
+			) S2
+		) S1
+        <if test="startNum != null and startNum != '' and endNum != null and endNum != ''">
+            WHERE S1.RNUM BETWEEN #{startNum} AND #{endNum}
+        </if>
+        <if test="myPageMainKeep != null and myPageMainKeep != ''">
+            WHERE S1.RNUM <![CDATA[<]]> 4
+        </if>
+        <if test="quickKeep != null and quickKeep != ''">
+            WHERE S1.RNUM <![CDATA[<]]> 5
+        </if>
+	</select>	
+	
+	<!-- 사용자 > MYPAGE > 쇼핑컨텐츠 > 키핑백 > 키핑콘텐츠, 키핑기획전, 키핑이벤트 > 선택 콘텐츠,기획전,이벤트 삭제 -->
+	<delete id="deleteKeepContents" parameterType="HashMap">
+		/* PcMyKeep.deleteKeepContents */
+		<![CDATA[
+			DELETE FROM T_MEM_CTS
+			WHERE 1=1
+		]]>
+		<![CDATA[	
+		AND 
+		(
+			MEM_CTS_IDX IN 
+			
+		]]>
+            <foreach collection="MEM_CTS_IDXs" item="MEM_CTS_IDX" open="(" close=")" separator=",">#{MEM_CTS_IDX}</foreach>
+		)
+	</delete>
+	
+	<!-- 사용자 > MYPAGE > 쇼핑컨텐츠 > 키핑백 > 키핑기획전 목록 갯수 -->
+	<select id="selectKeepPlanListCount" parameterType="HashMap" resultType="Integer">
+		/* PcMyKeep.selectKeepPlanListCount */
+		SELECT
+			COUNT(0)
+		FROM
+			T_MEM_CTS TMC,
+			T_PLN_MST TPM,
+			T_CMM_FLE TCF
+		WHERE
+			1=1
+			<include refid="planWhere"/>
+	</select>
+	
+	<!-- 사용자 > MYPAGE > 쇼핑컨텐츠 > 키핑백 > 키핑기획전 목록 -->
+	<select id="selectKeepPlanList" parameterType="HashMap" resultType="HashMap">
+		/* PcMyKeep.selectKeepPlanList */
+		SELECT
+			S1.*
+		FROM
+		(
+			SELECT 
+				ROWNUM AS RNUM,
+				S2.*
+			FROM
+			(
+				SELECT
+					TMC.MEM_CTS_IDX,
+					TPM.PLN_MST_IDX,
+					TPM.PLN_MST_TITLE,
+					TCF.CMM_FLE_ATT_PATH,
+				    TCF.CMM_FLE_SYS_NM,
+				    TCF.CMN_FLE_ALT_TXT
+				FROM
+					T_MEM_CTS TMC,
+					T_PLN_MST TPM,
+					T_CMM_FLE TCF
+				WHERE
+					1=1
+					<include refid="planWhere"/>
+				ORDER BY TMC.MEM_CTS_REG_DT DESC
+			) S2
+		) S1
+        <if test="startNum != null and startNum != '' and endNum != null and endNum != ''">
+            WHERE S1.RNUM BETWEEN #{startNum} AND #{endNum}
+        </if>
+	</select>
+	
+	<!-- 사용자 > MYPAGE > 쇼핑컨텐츠 > 키핑백 > 키핑기획전 > 종료된 기획전 삭제 -->
+	<delete id="deleteEndKeepPlan" parameterType="HashMap">
+		/* PcMyKeep.deleteEndKeepPlan */
+		DELETE FROM T_MEM_CTS
+		WHERE EXISTS (
+						SELECT 
+							TMC.MEM_CTS_IDX
+						FROM
+							T_MEM_CTS TMC , T_PLN_MST TPM
+						WHERE
+							TMC.MEM_CTS_GBN_IDX = TPM.PLN_MST_IDX
+						AND
+							TMC.MEM_CTS_GBN = 'P'
+						AND
+							TPM.PLN_MST_ED_DT <![CDATA[<]]> TO_CHAR(SYSDATE, 'YYYYMMDD')
+						AND
+							TMC.MEM_MST_MEM_ID = #{MEM_MST_MEM_ID}
+						AND
+							T_MEM_CTS.MEM_CTS_IDX = TMC.MEM_CTS_IDX
+						)
+	</delete>
+	
+	<!-- 사용자 > MYPAGE > 쇼핑컨텐츠 > 키핑백 > 키핑이벤트 목록 갯수 -->
+	<select id="selectKeepEventListCount" parameterType="HashMap" resultType="Integer">
+		/* PcMyKeep.selectKeepEventListCount */
+		SELECT
+			COUNT(0)
+		FROM
+			T_MEM_CTS TMC,
+			T_EVT_MST TEM,
+			T_CMM_FLE TCF
+		WHERE
+			1=1
+			<include refid="eventWhere"/>
+	</select>
+	
+	<!-- 사용자 > MYPAGE > 쇼핑컨텐츠 > 키핑백 > 키핑이벤트 목록 -->
+	<select id="selectKeepEventList" parameterType="HashMap" resultType="HashMap">
+		/* PcMyKeep.selectKeepEventList */
+		SELECT
+			S1.*
+		FROM
+		(
+			SELECT 
+				ROWNUM AS RNUM,
+				S2.*
+			FROM
+			(
+				SELECT
+					TMC.MEM_CTS_IDX,
+					TEM.EVT_MST_IDX,
+					TEM.EVT_MST_TITLE,
+					TCF.CMM_FLE_ATT_PATH,
+				    TCF.CMM_FLE_SYS_NM,
+				    TCF.CMN_FLE_ALT_TXT
+				FROM
+					T_MEM_CTS TMC,
+					T_EVT_MST TEM,
+					T_CMM_FLE TCF
+				WHERE
+					1=1
+					<include refid="eventWhere"/>
+				ORDER BY TMC.MEM_CTS_REG_DT DESC
+			) S2
+		) S1
+        <if test="startNum != null and startNum != '' and endNum != null and endNum != ''">
+            WHERE S1.RNUM BETWEEN #{startNum} AND #{endNum}
+        </if>
+	</select>
+	
+	<!-- 사용자 > MYPAGE > 쇼핑컨텐츠 > 키핑백 > 키핑이벤트 > 종료된 이벤트 삭제 -->
+	<delete id="deleteEndKeepEvent" parameterType="HashMap">
+		/* PcMyKeep.deleteEndKeepEvent */
+		DELETE FROM T_MEM_CTS
+		WHERE EXISTS (
+						SELECT 
+							TMC.MEM_CTS_IDX
+						FROM
+							T_MEM_CTS TMC , T_EVT_MST TEM
+						WHERE
+							TMC.MEM_CTS_GBN_IDX = TEM.EVT_MST_IDX
+						AND
+							TMC.MEM_CTS_GBN = 'E'						
+						AND
+							TEM.EVT_MST_ED_DT <![CDATA[<]]> TO_CHAR(SYSDATE, 'YYYYMMDD')
+						AND
+							TMC.MEM_MST_MEM_ID = #{MEM_MST_MEM_ID}
+						AND
+							T_MEM_CTS.MEM_CTS_IDX = TMC.MEM_CTS_IDX
+					)
+	</delete>
+</mapper>

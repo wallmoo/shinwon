@@ -1,0 +1,219 @@
+// path 
+// @path-images:                    '/img/front';
+@path-images:                    '../img';
+@path-fonts:                    '../fonts';
+@path-plugin-images :            '@{path-images}/plugins';
+@path-htc-boxsizing :            '../js/boxsizing.htc';
+
+// color
+@gray-darker:                    lighten(#000, 13.5%); // #222
+@gray-dark:                      lighten(#000, 20%);   // #333
+@gray:                           lighten(#000, 33.5%); // #555
+@gray-light:                     lighten(#000, 60%);   // #999
+@gray-lighter:                   lighten(#000, 93.5%); // #eee
+
+@brand-primary:                  #3e98dd;
+@brand-success:                  #78b7e7;
+@brand-info:                     #999;
+@brand-warning:                  #e14848;
+@brand-danger:                   #fd7261;
+
+@primary:                        @brand-primary;
+@success:                        @brand-success;
+@info:                           @brand-info;
+@warning:                        @brand-warning;
+@danger:                         @brand-danger;
+
+@body-bg:                        #fff;
+@text-color:                     #333;
+@link-color:                     darken(#3e98dd, 10%);
+@link-hover-color:               lighten(@link-color, 15%); // 80878d 보다 더 흐린거
+
+@line-height:                    1.428571429; // 20/14
+@line-height-large:              1.33;
+@line-height-small:              1.30;
+@line-height-computed:           floor((@font-size * @line-height)); // ~20px
+
+@headings-font-family:           inherit;
+@headings-font-weight:           @font-weight-bold;
+@headings-line-height:           1;
+@headings-color:                 #000;
+
+@headings-small-font-size:       12px;
+@headings-small-color:           #48555f;
+
+@padding-vertical:               10px;
+@padding-horizontal:             10px;
+@padding-vertical-xsmall:        1px;
+@padding-horizontal-xsmall:      1px;
+@padding-vertical-small:         5px;
+@padding-horizontal-small:       5px;
+@padding-vertical-large:         15px;
+@padding-horizontal-large:       15px;
+@padding-vertical-xlarge:        20px;
+@padding-horizontal-xlarge:      20px;
+
+@border-radius:                  0; // 3px; // 5px;
+@border-radius-large:            10px;
+@border-radius-small:            3px;
+
+@component-active-color:         #fff;
+@component-active-bg:            @brand-primary;
+
+@caret-width-base:               4px;
+@caret-width-large:              5px;
+
+@border-color:                   #e9e9e9;
+
+@table-cell-padding:             8px;
+@table-condensed-cell-padding:   5px;
+
+@table-border-color:             #ddd;
+@table-border-color-accent:      #ccc;
+@table-bg:                       transparent;
+@table-bg-accent:                #f9f9f9;
+@table-bg-hover:                 #f5f5f5;
+@table-bg-active:                @table-bg-hover;
+
+@button-font-weight:                normal;
+
+@button-default-color:              #fff;
+@button-default-bg:                 #575757;
+@button-default-border:             #575757;
+
+@button-primary-color:              #fff;
+@button-primary-bg:                 @brand-primary; // brand-primary;
+@button-primary-border:             darken(@button-primary-bg, 5%);
+
+@button-success-color:              #fff;
+@button-success-bg:                 @brand-success;
+@button-success-border:             darken(@button-success-bg, 5%);; // darken(@button-success-bg, 5%);
+
+@button-info-color:                 #333;
+@button-info-bg:                    #fff;
+@button-info-border:                #d7d7d7; // darken(@button-info-bg, 5%);
+
+@button-info-dark-color:            #fff;
+@button-info-dark-bg:               #666;
+@button-info-dark-border:           #666; // darken(@button-info-bg, 5%);
+
+@button-warning-color:              #fff;
+@button-warning-bg:                 @brand-warning;
+@button-warning-border:             @brand-warning; // darken(@button-warning-bg, 5%);
+
+@button-danger-color:               #fff;
+@button-danger-bg:                  @brand-danger;
+@button-danger-border:              darken(@button-danger-bg, 5%);
+
+@button-link-disabled-color:        @gray-light;
+
+// 추가
+@button-dark-bg:                    #666;
+@button-dark-color:                 #ccc;
+@button-dark-border:                #ccc;
+
+@input-bg:                          #fff;
+@input-bg-disabled:                 @gray-lighter;
+@input-color:                       @gray;
+@input-border:                      #ccc;
+@input-border-radius:               @border-radius;
+@input-border-focus:                #66afe9;
+@input-color-placeholder:           @gray-light;
+
+@input-height:                      (@line-height-computed + (@padding-vertical * 2) + 2);
+@input-height-large:                (ceil(@font-size-large * @line-height-large) + (@padding-vertical-large * 2) + 2);
+@input-height-small:                (floor(@font-size-small * @line-height-small) + (@padding-vertical-small * 2) + 2);
+
+@label-default-bg:                  #fff;
+@label-primary-bg:                  @brand-primary;
+@label-success-bg:                  @brand-success;
+@label-info-bg:                     @brand-info;
+@label-warning-bg:                  @brand-warning;
+@label-danger-bg:                   @brand-danger;
+
+@z-index-base         :                      100; // 기본
+@z-index-aside        :                      @z-index-base + 1800; // 상품 확대보기
+@z-index-zoom         :                      @z-index-base + 1700; // 상품 확대보기
+
+@z-index-layer        :                      @z-index-base + 1600; // 레이어 팝업
+@z-index-overlay      :                      @z-index-base + 1500; // 오버레이
+@z-index-header       :                      @z-index-base + 1400; // 헤더
+@z-index-searchbar    :                      @z-index-base + 1300; // 검색바 풀다운
+@z-index-nav-banner   :                      @z-index-base + 1200; // 최상단 배너
+@z-index-nav          :                      @z-index-base + 1100; // 네비게이션
+@z-index-nav-sub      :                      @z-index-base + 1000; // 네비게이션 서브메뉴
+@z-index-datepickr    :                      @z-index-base + 900; // 데이트 픽커
+@z-index-lnb          :                      @z-index-base + 800; // lnb
+@z-index-skyscraper   :                      @z-index-base + 700; // 스카이스크래퍼
+@z-index-comboboxr    :                      @z-index-base + 600; // 풀다운 콤보박스
+@z-index-fxslidr-utils:                      @z-index-base + 500; // 점보트론 슬라이더 유틸리티
+@z-index-fxslidr      :                      @z-index-base + 400; // 점보트론 슬라이더
+@z-index-slidr-utils  :                      @z-index-base + 300; // 슬라이더 유틸리티
+@z-index-badge        :                      @z-index-base + 200; // 상품목록 뱃지
+@z-index-slidr        :                      @z-index-base + 100; // 슬라이더
+
+
+@thumbnail-padding:                 3px;
+@thumbnail-bg:                      @body-bg;
+@thumbnail-border:                  #ddd;
+@thumbnail-border-radius:           @border-radius;
+
+
+// statics =============================================================================== */
+@image-spacer:                      'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAyBpVFh0WE1MOmNvbS5hZG9iZS54bXAAAAAAADw/eHBhY2tldCBiZWdpbj0i77u/IiBpZD0iVzVNME1wQ2VoaUh6cmVTek5UY3prYzlkIj8+IDx4OnhtcG1ldGEgeG1sbnM6eD0iYWRvYmU6bnM6bWV0YS8iIHg6eG1wdGs9IkFkb2JlIFhNUCBDb3JlIDUuMC1jMDYwIDYxLjEzNDc3NywgMjAxMC8wMi8xMi0xNzozMjowMCAgICAgICAgIj4gPHJkZjpSREYgeG1sbnM6cmRmPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5LzAyLzIyLXJkZi1zeW50YXgtbnMjIj4gPHJkZjpEZXNjcmlwdGlvbiByZGY6YWJvdXQ9IiIgeG1sbnM6eG1wPSJodHRwOi8vbnMuYWRvYmUuY29tL3hhcC8xLjAvIiB4bWxuczp4bXBNTT0iaHR0cDovL25zLmFkb2JlLmNvbS94YXAvMS4wL21tLyIgeG1sbnM6c3RSZWY9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC9zVHlwZS9SZXNvdXJjZVJlZiMiIHhtcDpDcmVhdG9yVG9vbD0iQWRvYmUgUGhvdG9zaG9wIENTNSBXaW5kb3dzIiB4bXBNTTpJbnN0YW5jZUlEPSJ4bXAuaWlkOjE2MTA0NUI5QjM5MTExRTJBODUwQTBDQjQzNzlDMEJEIiB4bXBNTTpEb2N1bWVudElEPSJ4bXAuZGlkOjE2MTA0NUJBQjM5MTExRTJBODUwQTBDQjQzNzlDMEJEIj4gPHhtcE1NOkRlcml2ZWRGcm9tIHN0UmVmOmluc3RhbmNlSUQ9InhtcC5paWQ6MTYxMDQ1QjdCMzkxMTFFMkE4NTBBMENCNDM3OUMwQkQiIHN0UmVmOmRvY3VtZW50SUQ9InhtcC5kaWQ6MTYxMDQ1QjhCMzkxMTFFMkE4NTBBMENCNDM3OUMwQkQiLz4gPC9yZGY6RGVzY3JpcHRpb24+IDwvcmRmOlJERj4gPC94OnhtcG1ldGE+IDw/eHBhY2tldCBlbmQ9InIiPz6CZ0UdAAAAEElEQVR42mL4//8/A0CAAQAI/AL+26JNFgAAAABJRU5ErkJggg==';
+@image-noimage:                     'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAIAAACQkWg2AAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAyBpVFh0WE1MOmNvbS5hZG9iZS54bXAAAAAAADw/eHBhY2tldCBiZWdpbj0i77u/IiBpZD0iVzVNME1wQ2VoaUh6cmVTek5UY3prYzlkIj8+IDx4OnhtcG1ldGEgeG1sbnM6eD0iYWRvYmU6bnM6bWV0YS8iIHg6eG1wdGs9IkFkb2JlIFhNUCBDb3JlIDUuMC1jMDYwIDYxLjEzNDc3NywgMjAxMC8wMi8xMi0xNzozMjowMCAgICAgICAgIj4gPHJkZjpSREYgeG1sbnM6cmRmPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5LzAyLzIyLXJkZi1zeW50YXgtbnMjIj4gPHJkZjpEZXNjcmlwdGlvbiByZGY6YWJvdXQ9IiIgeG1sbnM6eG1wPSJodHRwOi8vbnMuYWRvYmUuY29tL3hhcC8xLjAvIiB4bWxuczp4bXBNTT0iaHR0cDovL25zLmFkb2JlLmNvbS94YXAvMS4wL21tLyIgeG1sbnM6c3RSZWY9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC9zVHlwZS9SZXNvdXJjZVJlZiMiIHhtcDpDcmVhdG9yVG9vbD0iQWRvYmUgUGhvdG9zaG9wIENTNSBXaW5kb3dzIiB4bXBNTTpJbnN0YW5jZUlEPSJ4bXAuaWlkOkFFQjA1RDc4QjM5MTExRTJCN0U0RDM3RjFERURCMjkxIiB4bXBNTTpEb2N1bWVudElEPSJ4bXAuZGlkOkFFQjA1RDc5QjM5MTExRTJCN0U0RDM3RjFERURCMjkxIj4gPHhtcE1NOkRlcml2ZWRGcm9tIHN0UmVmOmluc3RhbmNlSUQ9InhtcC5paWQ6QUVCMDVENzZCMzkxMTFFMkI3RTREMzdGMURFREIyOTEiIHN0UmVmOmRvY3VtZW50SUQ9InhtcC5kaWQ6QUVCMDVENzdCMzkxMTFFMkI3RTREMzdGMURFREIyOTEiLz4gPC9yZGY6RGVzY3JpcHRpb24+IDwvcmRmOlJERj4gPC94OnhtcG1ldGE+IDw/eHBhY2tldCBlbmQ9InIiPz5uE1obAAAAKklEQVR42mL8//8/AzZw9uxZrOJMDCSCUQ3EABZc4W1sbDwaSvTTABBgAPnECIaRwiyRAAAAAElFTkSuQmCC';
+@image-1x1-grey:                    'data:image/gif;base64,R0lGODlhAQABAIAAAM7OzgAAACH%2FC1hNUCBEYXRhWE1QPD94cGFja2V0IGJlZ2luPSLvu78iIGlkPSJXNU0wTXBDZWhpSHpyZVN6TlRjemtjOWQiPz4gPHg6eG1wbWV0YSB4bWxuczp4PSJhZG9iZTpuczptZXRhLyIgeDp4bXB0az0iQWRvYmUgWE1QIENvcmUgNS4wLWMwNjAgNjEuMTM0Nzc3LCAyMDEwLzAyLzEyLTE3OjMyOjAwICAgICAgICAiPiA8cmRmOlJERiB4bWxuczpyZGY9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkvMDIvMjItcmRmLXN5bnRheC1ucyMiPiA8cmRmOkRlc2NyaXB0aW9uIHJkZjphYm91dD0iIiB4bWxuczp4bXA9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC8iIHhtbG5zOnhtcE1NPSJodHRwOi8vbnMuYWRvYmUuY29tL3hhcC8xLjAvbW0vIiB4bWxuczpzdFJlZj0iaHR0cDovL25zLmFkb2JlLmNvbS94YXAvMS4wL3NUeXBlL1Jlc291cmNlUmVmIyIgeG1wOkNyZWF0b3JUb29sPSJBZG9iZSBQaG90b3Nob3AgQ1M1IFdpbmRvd3MiIHhtcE1NOkluc3RhbmNlSUQ9InhtcC5paWQ6REYyNkFCRDAwRjdFMTFFMzlFNTFFOURBQ0ZBRUM1RTQiIHhtcE1NOkRvY3VtZW50SUQ9InhtcC5kaWQ6REYyNkFCRDEwRjdFMTFFMzlFNTFFOURBQ0ZBRUM1RTQiPiA8eG1wTU06RGVyaXZlZEZyb20gc3RSZWY6aW5zdGFuY2VJRD0ieG1wLmlpZDpERjI2QUJDRTBGN0UxMUUzOUU1MUU5REFDRkFFQzVFNCIgc3RSZWY6ZG9jdW1lbnRJRD0ieG1wLmRpZDpERjI2QUJDRjBGN0UxMUUzOUU1MUU5REFDRkFFQzVFNCIvPiA8L3JkZjpEZXNjcmlwdGlvbj4gPC9yZGY6UkRGPiA8L3g6eG1wbWV0YT4gPD94cGFja2V0IGVuZD0iciI%2FPgH%2F%2Fv38%2B%2Fr5%2BPf29fTz8vHw7%2B7t7Ovq6ejn5uXk4%2BLh4N%2Fe3dzb2tnY19bV1NPS0dDPzs3My8rJyMfGxcTDwsHAv769vLu6ubi3trW0s7KxsK%2Burayrqqmop6alpKOioaCfnp2cm5qZmJeWlZSTkpGQj46NjIuKiYiHhoWEg4KBgH9%2BfXx7enl4d3Z1dHNycXBvbm1sa2ppaGdmZWRjYmFgX15dXFtaWVhXVlVUU1JRUE9OTUxLSklIR0ZFRENCQUA%2FPj08Ozo5ODc2NTQzMjEwLy4tLCsqKSgnJiUkIyIhIB8eHRwbGhkYFxYVFBMSERAPDg0MCwoJCAcGBQQDAgEAACH5BAAAAAAALAAAAAABAAEAAAICRAEAOw%3D%3D';
+@image-blank:                        @image-1x1-grey;
+
+// devices =============================================================================== */
+
+// smartphone
+@screen-xs:                         300px;
+@screen-xs-min:                     @screen-xs;
+@screen-xs-max:                     (@screen-sm-min - 1);
+
+// smartphone ~ tablet
+@screen-sm:                         768px;
+@screen-sm-min:                     @screen-sm;
+@screen-sm-max:                     (@screen-md-min - 1);
+
+// table ~ pc
+@screen-md:                         800px; // 992px;
+@screen-md-min:                     @screen-md;
+@screen-md-max:                     (@screen-lg-min - 1);
+
+// pc ~
+@screen-lg:                         900px; // 1200px;
+@screen-lg-min:                     @screen-lg;
+
+// 이하 셋팅
+// @screen-phone:                      @screen-xs-min;
+@screen-phone:                      1px;
+@screen-tablet:                     @screen-md-min;
+@screen-desktop:                    @screen-lg-min;
+
+@screen-phone-max:                  @screen-sm-max;
+@screen-tablet-max:                 @screen-md-max;
+
+
+// layout =============================================================================== */
+
+@lg-wrap-width:  1020px;
+
+// font-family =============================================================================== */
+@font-weight:                       @font-weight-normal;
+@font-weight-light:                 200;
+@font-weight-normal:                300;
+@font-weight-bold:                  400;
+@font-weight-bold-chrome:           @font-weight-bold + 100;
+
+// font vars. =============================================================================== */
+@font-size:                      15px;
+@font-size-large:                14px; // ceil((@font-size * 1.25)); // ~18px
+@font-size-xlarge:               16px; // ceil((@font-size * 1.25)); // ~18px
+@font-size-small:                ceil((@font-size * 0.85)); // ~12px
+
+@font-size-h3:                   30px; // 실제 문서 타이틀
+@font-size-h4:                   20px;
+@font-size-h5:                   16px;
+@font-size-h6:                   14px;

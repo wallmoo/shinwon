@@ -1,0 +1,388 @@
+
+/*22 helper ====================================================== */
+
+.text-center {
+    .text(center);
+}
+.text-left {
+    .text(left);
+}
+.text-right {
+    .text(right);
+}
+.text-deco(@decoration) {
+    text-decoration: @decoration;
+}
+.text-none {
+    .text-deco(none);
+}
+.text-underline {
+    .text-deco(underline);
+}
+.text-strike {
+    .text-deco(line-through);
+}
+.pos(@position:absolute) {
+    position: @position;
+}
+.pos-relative {
+    .pos(relative);
+}
+.pos-absolute {
+    .pos(absolute);
+}
+.pos-fixed {
+    .pos(fixed);
+}
+// helper mixins : semantic ===================================================== */
+.hidden {
+    display: none !important;
+    visibility: hidden;
+}
+.invisible {
+    visibility: hidden;
+}
+.semantic-visible { 
+    overflow: visible;
+    margin: 0;
+    height: auto;
+    width: auto;
+    clip: auto;
+    .pos-relative();
+}
+.sr-only {
+    .semantic();
+}
+.ir {
+    .pos-relative();
+    .reset();
+    display: inline-block;
+    word-break: keep-all;
+    .background-no-repeat();
+    background-position: center center;
+    overflow: hidden;
+    em, 
+    .em {
+        .pos-absolute();
+        z-index: -1;
+        visibility: hidden;
+        text-indent: -1000px;
+    }
+}
+// helper mixins : align ===================================================== */  
+.center-block {
+    .block();
+    margin-left: auto;
+    margin-right: auto;
+}
+.pull-right {
+    float: right !important;
+}
+.pull-left {
+    float: left !important;
+}
+.clearfix {
+    clear: both;
+    &:before, 
+    &:after {
+        content: " ";
+        display: table;
+    }
+    &:after {
+        clear: both;
+    }
+    *zoom: 1;
+}
+.clear-after {
+    &:after { 
+        clear: both;
+        content: " ";
+        display: table;
+    }
+}
+.vertical(@align:middle) {
+    vertical-align: @align;
+}
+.vertical-top {
+    vertical-align: top !important;
+}
+.vertical-middle {
+    vertical-align: middle !important;
+}
+.vertical-bottom {
+    vertical-align: bottom !important;
+}
+.vertical-center(@height) {
+    display: table-cell;
+    min-height: @height;
+    vertical-align: middle;
+}
+// helper mixins : display ===================================================== */
+.block {
+    display: block;
+}
+.inline {
+    display: inline;
+}
+.inline-block(@polyfill: false) when (@polyfill = true) {
+    display: inline-block;
+    *display: block;
+    *zoom: 1;
+}
+.inline-block(@polyfill: false) when (@polyfill = false) {
+    display: inline-block;
+}
+
+.hide {
+    display: none !important;
+}
+.show {
+    display: block !important;
+}
+// helper mixins : margin and padding ===================================================== */
+.mt(@size, @important: true) when (@important = true) {
+    margin-top: @size !important;
+}
+.mt(@size, @important: true) when (@important = false) {
+    margin-top: @size;
+}
+.mb(@size, @important: true) when (@important = true) {
+    margin-bottom: @size !important;
+}
+.mb(@size, @important: true) when (@important = false) {
+    margin-bottom: @size;
+}
+.ml(@size, @important: true) when (@important = true) {
+    margin-left: @size !important;
+}
+.ml(@size, @important: true) when (@important = false) {
+    margin-left: @size;
+}
+.mr(@size, @important: true) when (@important = true) {
+    margin-right: @size !important;
+}
+.mr(@size, @important: true) when (@important = false) {
+    margin-right: @size;
+}
+.pt(@size, @important: true) when (@important = true) {
+    padding-top: @size !important;
+}
+.pt(@size, @important: true) when (@important = false) {
+    padding-top: @size;
+}
+.pb(@size, @important: true) when (@important = true) {
+    padding-bottom: @size !important;
+}
+.pb(@size, @important: true) when (@important = false) {
+    padding-bottom: @size;
+}
+.pl(@size, @important: true) when (@important = true) {
+    padding-left: @size !important;
+}
+.pl(@size, @important: true) when (@important = false) {
+    padding-left: @size;
+}
+.pr(@size, @important: true) when (@important = true) {
+    padding-right: @size !important;
+}
+.pr(@size, @important: true) when (@important = false) {
+    padding-right: @size;
+}
+// helper mixins : margin and padding ===================================================== */
+.mt60 {
+    .mt(50px, true);
+}
+.mt50 {
+    .mt(50px, true);
+}
+.mt40 {
+    .mt(40px, true);
+}
+.mt30 {
+    .mt(30px, true);
+}
+.mt25 {
+    .mt(25px, true);
+}
+.mt20 {
+    .mt(20px, true);
+}
+.mt15 {
+    .mt(15px, true);
+}
+.mt10 {
+    .mt(10px, true);
+}
+.mt-10 {
+    .mt(-10px, true);
+}
+.mt5 {
+    .mt(5px, true);
+}
+.mt0 {
+    .mt(0, true);
+}
+.mb60 {
+    .mb(60px, true);
+}
+.mb50 {
+    .mb(50px, true);
+}
+.mb40 {
+    .mb(40px, true);
+}
+.mb30 {
+    .mb(30px, true);
+}
+.mb25 {
+    .mb(25px, true);
+}
+.mb20 {
+    .mb(20px, true);
+}
+.mb15 {
+    .mb(15px, true);
+}
+.mb10 {
+    .mb(10px, true);
+}
+.mb5 {
+    .mb(5px, true);
+}
+.mb0 {
+    .mb(0, true);
+}
+.ml30 {
+    .ml(30px, true);
+}
+.ml20 {
+    .ml(20px, true);
+}
+.ml10 {
+    .ml(10px, true);
+}
+.ml5 {
+    .ml(5px, true);
+}
+.ml0 {
+    .ml(0, true);
+}
+.mr5 {
+    .mr(5px, true);
+}
+.mr10 {
+    .mr(10px, true);
+}
+.mr30 {
+    .mr(30px, true);
+}
+.ml-5 {
+    .ml(-5px, true);
+}
+.mauto {
+    .ml(auto, true);
+    .mr(auto, true);
+}
+.p20 {
+    padding: 20px;
+}
+.pt50 {
+    .pt(50px, true);
+}
+.pt40 {
+    .pt(40px, true);
+}
+.pt30 {
+    .pt(30px, true);
+}
+.pt25 {
+    .pt(25px, true);
+}
+.pt20 {
+    .pt(20px, true);
+}
+.pt15 {
+    .pt(15px, true);
+}
+.pt10 {
+    .pt(10px, true);
+}
+.pt5 {
+    .pt(5px, true);
+}
+.pt0 {
+    .pt(0, true);
+}
+.pb50 {
+    .pb(50px, true);
+}
+.pb40 {
+    .pb(40px, true);
+}
+.pb30 {
+    .pb(30px, true);
+}
+.pb25 {
+    .pb(25px, true);
+}
+.pb20 {
+    .pb(20px, true);
+}
+.pb15 {
+    .pb(15px, true);
+}
+.pb10 {
+    .pb(10px, true);
+}
+.pb5 {
+    .pb(5px, true);
+}
+.pb0 {
+    .pb(0, true);
+}
+.pl30 {
+    .pl(30px, true);
+}
+.pl20 {
+    .pl(20px, true);
+}
+.pr0 {
+    .pr(0, true);
+}
+.pr20 {
+    .pr(20px, true);
+}
+// helper mixins : image ===================================================== */
+.background-none {
+    background: none !important;
+}
+.background-repeat {
+    background-repeat: repeat;
+}
+.background-no-repeat {
+    background-repeat: no-repeat;
+}
+.background-repeat-x {
+    background-repeat: repeat-x;
+}
+.background-repeat-y {
+    background-repeat: repeat-y;
+}
+
+// .photo-bg {
+//     width: 100% !important;
+//     height: 100% !important;
+//     position: fixed !important;
+//     background-size: cover !important;
+//     background-position: center center !important;
+// }
+// .block-holder { .inline-block(); }
+// .block-holder strong,
+// .block-holder span { .block(); }
+// .table-bbs a { .inline-block(); }
+// .table-col a.block-holder { margin: 2px 0; }
+
+
+.content-box {
+    .box-sizing(content-box);
+}

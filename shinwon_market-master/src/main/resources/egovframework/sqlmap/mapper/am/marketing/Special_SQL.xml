@@ -1,0 +1,250 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="Special">
+
+    <!-- 스페셜 검색 조건 -->
+    <sql id="specialWhere">
+		<if test="searchCntMstStDt != null and searchCntMstStDt != '' and searchCntMstEdDt != null and searchCntMstEdDt != ''">
+            AND CNT_MST_REG_DT BETWEEN REPLACE(#{searchCntMstStDt},'-', '')||'000000' AND REPLACE(#{searchCntMstEdDt},'-', '')||'235959'
+        </if>
+		<if test="searchCntMstTitle != null and searchCntMstTitle != ''">
+			AND TCM.CNT_MST_TITLE LIKE '%' || #{searchCntMstTitle} || '%'    
+		</if>
+        <if test="searchCntMstShopType != null and searchCntMstShopType != ''">
+            <choose>
+                <when test="searchCntMstShopType.equals('PC'.toString())">
+                    AND TCM.CNT_MST_CHANNEL_PC_YN = 'Y'
+                </when>
+                <when test="searchCntMstShopType.equals('MOBILE'.toString())">
+                    AND TCM.CNT_MST_CHANNEL_MOBILE_YN = 'Y'
+                </when>            
+            </choose>
+        </if>
+		<if test="searchCntMstUseYn != null and searchCntMstUseYn != ''">
+            AND TCM.CNT_MST_USE_YN = #{searchCntMstUseYn}
+        </if>
+    </sql>
+    
+    <!-- 스페셜 리스트 갯수 -->
+    <select id="selectSpecialCount" parameterType="hashMap" resultType="integer">
+        /* Special.selectSpecialCount */
+        SELECT
+            COUNT(TCM.CNT_MST_IDX)
+        FROM
+            T_CNT_MST TCM             
+        WHERE
+            1 = 1
+            AND TCM.CNT_MST_TYPE = 'TYPE_SPECIAL' 
+            <include refid="specialWhere"/>
+    </select> 
+    
+    <!-- 스페셜 리스트 조회 -->
+    <select id="selectSpecialList" parameterType="hashMap" resultType="hashMap">
+        /* Special.selectSpecialList */
+        SELECT
+            S2.*            
+        FROM
+            (   SELECT
+                    ROWNUM AS RNUM,
+                    S1.* 
+                FROM
+                    (   SELECT
+                            TCM.CNT_MST_IDX,                     
+                            TCM.CNT_MST_CHANNEL_PC_YN, 
+                            TCM.CNT_MST_CHANNEL_MOBILE_YN, 
+                            TCM.CNT_MST_TITLE,
+                            TCM.CNT_MST_USE_YN,
+                            TCM.CNT_MST_REG_DT,
+                            (SELECT COUNT(1) FROM T_CNT_DTL WHERE CNT_MST_IDX = TCM.CNT_MST_IDX) AS CNT_DTL_CNT
+                        FROM
+                            T_CNT_MST TCM                             
+                        WHERE
+                            1 = 1
+                            AND TCM.CNT_MST_TYPE = 'TYPE_SPECIAL'
+                            <include refid="specialWhere"/>
+                        ORDER BY TCM.CNT_MST_REG_DT DESC 
+                    )
+                    S1 
+            )
+            S2 
+        WHERE
+            S2.RNUM BETWEEN #{startNum} AND #{endNum}
+    </select>
+    
+     <resultMap id="resultSpecialInfo" type="HashMap">
+        <result property="CNT_MST_IDX" column="CNT_MST_IDX"/>
+        <result property="CNT_MST_CHANNEL_PC_YN" column="CNT_MST_CHANNEL_PC_YN"/>  
+        <result property="CNT_MST_CHANNEL_MOBILE_YN" column="CNT_MST_CHANNEL_MOBILE_YN"/>           
+        <result property="CNT_MST_TITLE" column="CNT_MST_TITLE"/>
+        <result property="CNT_MST_USE_YN" column="CNT_MST_USE_YN"/>
+        <result property="CNT_MST_REG_DT" column="CNT_MST_REG_DT"/>
+        <result property="CNT_MST_REG_IP" column="CNT_MST_REG_IP"/>
+        <result property="CNT_MST_REG_ID" column="CNT_MST_REG_ID"/>
+        <result property="CNT_MST_UPD_DT" column="CNT_MST_UPD_DT"/>
+        <result property="CNT_MST_UPD_IP" column="CNT_MST_UPD_IP"/>
+        <result property="CNT_MST_UPD_ID" column="CNT_MST_UPD_ID"/>
+        <result property="CNT_MST_DESC" column="CNT_MST_DESC"/>
+        <result property="CNT_MST_DETAIL_TYPE" column="CNT_MST_DETAIL_TYPE"/>
+        <result property="CNT_MST_PC_BANNER" column="CNT_MST_PC_BANNER" jdbcType="CLOB" javaType="java.lang.String"/>
+        <result property="CNT_MST_MOBILE_BANNER" column="CNT_MST_MOBILE_BANNER" jdbcType="CLOB" javaType="java.lang.String"/>
+        <result property="CNT_MST_PC_SCRIPT" column="CNT_MST_PC_SCRIPT" jdbcType="CLOB" javaType="java.lang.String"/>
+        <result property="CNT_MST_MOBILE_SCRIPT" column="CNT_MST_MOBILE_SCRIPT" jdbcType="CLOB" javaType="java.lang.String"/>
+        <result property="CNT_MST_PRD_DPL_YN" column="CNT_MST_PRD_DPL_YN"/>
+    </resultMap>
+    <select id="selectSpecialInfo" parameterType="hashMap" resultMap="resultSpecialInfo">
+        /* Special.selectSpecialInfo */
+		SELECT
+            (   SELECT
+                    ADM_MST_NM
+                FROM
+                    T_ADM_MST
+                WHERE
+                    ADM_MST_ID = TCM.CNT_MST_REG_ID
+            ) AS CNT_MST_REG_NM,
+            TCM.CNT_MST_IDX,
+            TCM.CNT_MST_CHANNEL_PC_YN,
+            TCM.CNT_MST_CHANNEL_MOBILE_YN,            
+            TCM.CNT_MST_TITLE,
+            TCM.CNT_MST_URL,
+            TCM.CNT_MST_USE_YN,
+            TCM.CNT_MST_REG_DT,
+            TCM.CNT_MST_REG_IP,
+            TCM.CNT_MST_REG_ID,
+            TCM.CNT_MST_UPD_DT,
+            TCM.CNT_MST_UPD_IP,
+            TCM.CNT_MST_UPD_ID,
+            TCM.CNT_MST_PC_BANNER,
+            TCM.CNT_MST_MOBILE_BANNER,
+            TCM.CNT_MST_DESC,
+            TCM.CNT_MST_TYPE,
+            TCM.CNT_MST_DETAIL_TYPE,
+            TCM.CNT_MST_PC_SCRIPT,
+            TCM.CNT_MST_MOBILE_SCRIPT,
+            TCM.CNT_MST_PRD_DPL_YN
+        FROM
+            T_CNT_MST TCM
+        WHERE
+            TCM.CNT_MST_IDX = #{CNT_MST_IDX}
+            AND TCM.CNT_MST_TYPE = 'TYPE_SPECIAL'
+    </select>
+
+    <!--스페셜 등록 -->
+    <insert id="insertSpecial" parameterType="hashMap">
+    <selectKey keyProperty="CNT_MST_IDX" resultType="Integer" order="BEFORE">
+        SELECT SEQ_CNT_MST_IDX.NEXTVAL AS CNT_MST_IDX  FROM DUAL
+    </selectKey>
+    /* Special.insertSpecial */
+    INSERT INTO
+		T_CNT_MST
+            (
+                CNT_MST_IDX,                                
+                CNT_MST_CHANNEL_PC_YN,
+                CNT_MST_CHANNEL_MOBILE_YN,
+                CNT_MST_TITLE,
+                CNT_MST_USE_YN,
+                CNT_MST_REG_DT,
+                CNT_MST_REG_IP,
+                CNT_MST_REG_ID,
+                CNT_MST_PC_BANNER,
+            	CNT_MST_MOBILE_BANNER,
+            	CNT_MST_TYPE,
+                CNT_MST_DETAIL_TYPE,
+                CNT_MST_PC_SCRIPT,
+                CNT_MST_MOBILE_SCRIPT,
+                CNT_MST_URL,
+                CNT_MST_DESC,
+                CNT_MST_PRD_DPL_YN
+            )
+        VALUES
+            (
+                #{CNT_MST_IDX},
+                #{CNT_MST_CHANNEL_PC_YN},
+                #{CNT_MST_CHANNEL_MOBILE_YN},               
+                #{CNT_MST_TITLE},
+                NVL(#{CNT_MST_USE_YN}, 'Y'),
+                TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+                #{CNT_MST_REG_IP},
+                #{CNT_MST_REG_ID},
+                #{CNT_MST_PC_BANNER:CLOB},
+           		#{CNT_MST_MOBILE_BANNER:CLOB},
+           		#{CNT_MST_TYPE},
+                #{CNT_MST_DETAIL_TYPE},
+                #{CNT_MST_PC_SCRIPT:CLOB},
+                #{CNT_MST_MOBILE_SCRIPT:CLOB},
+                #{CNT_MST_URL},
+                #{CNT_MST_DESC},
+                #{CNT_MST_PRD_DPL_YN}
+            )
+    </insert>
+   
+    <!-- 스페셜 수정 -->
+    <update id="updateSpecial" parameterType="hashMap">
+        /* Special.updateSpecial */
+        UPDATE
+            T_CNT_MST
+        SET
+			CNT_MST_CHANNEL_PC_YN = NVL(#{CNT_MST_CHANNEL_PC_YN},'N'),
+            CNT_MST_CHANNEL_MOBILE_YN = NVL(#{CNT_MST_CHANNEL_MOBILE_YN},'N'),  
+            CNT_MST_TITLE = #{CNT_MST_TITLE},
+            CNT_MST_USE_YN = NVL(#{CNT_MST_USE_YN}, 'N'),
+            CNT_MST_UPD_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+            CNT_MST_UPD_IP = #{CNT_MST_UPD_IP},
+            CNT_MST_UPD_ID = #{CNT_MST_UPD_ID},
+            CNT_MST_DESC = #{CNT_MST_DESC},
+            CNT_MST_PC_BANNER = #{CNT_MST_PC_BANNER:CLOB},
+            CNT_MST_MOBILE_BANNER = #{CNT_MST_MOBILE_BANNER:CLOB},
+            CNT_MST_TYPE = #{CNT_MST_TYPE},
+            CNT_MST_DETAIL_TYPE = #{CNT_MST_DETAIL_TYPE},
+            CNT_MST_PC_SCRIPT = #{CNT_MST_PC_SCRIPT:CLOB},
+            CNT_MST_MOBILE_SCRIPT = #{CNT_MST_MOBILE_SCRIPT:CLOB},
+            CNT_MST_URL = #{CNT_MST_URL},
+            CNT_MST_PRD_DPL_YN = NVL(#{CNT_MST_PRD_DPL_YN},'Y')
+		WHERE
+			CNT_MST_IDX = #{CNT_MST_IDX}
+    </update>
+    
+	<!-- 관리자 > 프로모션 관리 > 스페셜관리 상품구성 삭제 -->
+    <delete id="deleteProductDetail" parameterType="HashMap">
+        /* Special.deleteProductDetail */
+        DELETE FROM T_CNT_DTL WHERE CNT_MST_IDX = #{CNT_MST_IDX}
+    </delete>
+    
+	<!-- 관리자 > 프로모션 관리 > 스페셜 목록 전시여부 수정 -->
+    <update id="updateSpecialList" parameterType="HashMap">
+        /* Special.updateSpecialList */
+        <foreach collection="selectedSpecialList" item="item" index="index" open="DECLARE BEGIN" close="; END;" separator=";">
+			UPDATE
+	            T_CNT_MST 
+	        SET
+	            CNT_MST_USE_YN = NVL(#{item.CNT_MST_USE_YN}, 'N'),
+	            CNT_MST_UPD_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+	            CNT_MST_UPD_IP = #{CNT_MST_UPD_IP},
+	            CNT_MST_UPD_ID = #{CNT_MST_UPD_ID}
+	        WHERE
+	            CNT_MST_IDX = #{item.CNT_MST_IDX}        
+        </foreach>
+
+    </update>
+    
+    <select id="selectSpecialDetailList" parameterType="HashMap" resultType="HashMap">
+        /* Special.selectSpecialDetailList */
+        SELECT
+            TCD.CNT_GRP_IDX
+            , FN_PRODUCT_IMG(PM.PRD_MST_CD, #{THUMBNAIL_SIZE}) AS PRD_IMAGE
+            , (SELECT TBM.BND_MST_BRAND_NM FROM T_BND_MST TBM WHERE PM.PRD_MST_BRD_IDX = TBM.BND_MST_IDX) AS BND_MST_BRAND_NM 
+            , TCD.CNT_DTL_ORDER 
+            , TCD.CNT_PRD_MST_CD 
+            , PM.PRD_MST_NM
+            , PM.PRD_MST_SEL_STATE
+            , PM.PRD_MST_PRC
+            , PM.PRD_MST_DPL_STATE 
+        FROM 
+            T_CNT_DTL TCD, T_PRD_MST PM
+        WHERE
+            TCD.CNT_PRD_MST_CD = PM.PRD_MST_CD
+            AND CNT_MST_IDX = #{CNT_MST_IDX}
+        ORDER BY TCD.CNT_DTL_ORDER
+    </select>
+    
+</mapper>

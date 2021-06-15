@@ -1,0 +1,211 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="OrderDelivery">
+
+    <!-- 전체주문 > 검색조건 -->
+    <sql id="orderWhere">
+        <if test="ORD_EDI_DLV_TYPE != null and ORD_EDI_DLV_TYPE != ''">
+            AND OE.ORD_EDI_DLV_TYPE = #{ORD_EDI_DLV_TYPE}
+        </if>
+    
+        <choose>
+            <when test="searchDateType.equals('order'.toString())">
+                AND ORD_MST_ORD_DT BETWEEN REPLACE(#{searchStartDate},'-', '')||'000000' AND REPLACE(#{searchEndDate},'-', '')||'235959'
+            </when>
+            <when test="searchDateType.equals('pay'.toString())">
+                AND ORD_MST_PAY_DT BETWEEN REPLACE(#{searchStartDate},'-', '')||'000000' AND REPLACE(#{searchEndDate}#,'-', '')||'235959'
+            </when>
+        </choose>
+
+        <if test="searchDisCenter != null and searchDisCenter != ''">
+            AND ORD_EDI_DIS_CENTER_CD=#{searchDisCenter}
+        </if>
+
+        <if test="searchOrderType != null and searchOrderType != ''">
+            <choose>
+                <when test="searchOrder != null and searchOrder.equals('orderId'.toString())">
+                    AND ORD_MST_ORD_ID=#{searchOrder}
+                </when>
+                <when test="searchOrder != null and searchOrder.equals('orderNm'.toString())">
+                    AND ORD_MST_ORD_NM=#{searchOrder}
+                </when>
+                <when test="searchOrder != null and searchOrder.equals('orderHp'.toString())">
+                    AND ORD_MST_HP3=#{searchOrder}
+                </when>
+            </choose>
+        </if>
+
+        <if test="searchOrdMstCd != null and searchOrdMstCd != ''">
+            AND ORD_MST_CD=#{searchOrdMstCd}
+        </if>
+
+        <if test="searchOrdPrdOrderState != null and searchOrdPrdOrderState != ''">
+            AND ORD_PRD_ORD_STATE= #{searchOrdPrdOrderState} 
+        </if>
+
+        <if test="searchOrdInvoiceYn != null and searchOrdInvoiceYn != ''">
+            <choose>
+                <when test="searchOrdInvoiceYn != null and searchOrdInvoiceYn.equals('Y'.toString())">
+                    AND ORD_EDI_TRS_STAT_CD NOT IN('0')
+                </when>
+                <when test="searchOrdInvoiceYn != null and searchOrdInvoiceYn.equals('N'.toString())">
+                    AND ORD_EDI_TRS_STAT_CD = '0'
+                </when>
+            </choose>
+        </if>
+
+        <if test="searchOrdDlvNm != null and searchOrdDlvNm != ''">
+            AND ORD_DLV_NM=#{searchOrdDlvNm} 
+        </if>
+
+        <if test="searchProduct != null and searchProduct != ''">
+            <choose>
+                <when test="searchProductType != null and searchProductType.equals('productCd'.toString())">
+                    AND ORD_PRD_MST_CD=#{searchProduct}
+                </when>
+                <when test="searchProductType != null and searchProductType.equals('productNm'.toString())">
+                    AND PRD_MST_NM LIKE '%'||#{searchProduct}||'%'
+                </when>
+            </choose>
+        </if>
+
+        <if test="searchChannel != null and searchChannel != ''">
+            AND ORD_MST_ORD_TYPE=#{searchChannel}
+        </if>
+
+        <if test="searchPayType != null and searchPayType != ''">
+            AND ORD_MST_PAY_TYPE=#{searchPayType}
+        </if>
+    </sql>
+
+    <!-- 주문송장번호 발행요청 > 목록개수 -->
+    <select id="selectOrderDeliveryCount" parameterType="java.util.HashMap" resultType="Integer">
+        /* OrderDelivery.selectOrderDeliveryCount */
+        SELECT 
+            COUNT(0)
+        FROM (
+            SELECT 
+                ORD_EDI_ORD_NO
+            FROM 
+                T_ORD_EDI OE, T_ORD_PRD OP,  T_ORD_MST OM,  T_PRD_MST PM, T_PRD_OPT OPT,  T_ORD_DLV OD
+            WHERE
+                OE.ORD_EDI_ORD_NO = OP.ORD_ORD_EDI_ORD_NO
+            AND OP.ORD_ORD_MST_CD = OM.ORD_MST_CD
+            AND OP.ORD_PRD_MST_CD = PM.PRD_MST_CD
+            AND OD.ORD_ORD_MST_CD = OM.ORD_MST_CD
+            AND OP.ORD_PRD_OPT_IDX= OPT.PRD_OPT_IDX
+            <include refid="orderWhere"/>
+            GROUP BY
+                ORD_EDI_ORD_NO
+            )
+    </select>
+
+    <!-- 배송예약번호별 배송정보 -->
+    <select id="selectOrderDeliveryInfo" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+        /* OrderDelivery.selectOrderDeliveryInfo */
+        SELECT
+            OE.ORD_EDI_ORD_NO,
+            OE.ORD_ORD_MST_CD,
+            OE.ORD_PRD_MST_CD,
+            OE.ORD_PRD_MST_NM,
+            OE.ORD_PRD_OPT_NM,
+            OE.ORD_PRD_CNT,
+            OE.ORD_PRD_ORD_CNT,
+            OE.ORD_MST_ORD_NM,
+            OE.ORD_EDI_DIS_CENTER_CD,
+            OD.ORD_DLV_NM,
+            OD.ORD_DLV_HP1||'-'||OD.ORD_DLV_HP2||'-'||OD.ORD_DLV_HP3 AS ORD_DLV_HP,
+            REPLACE(OD.ORD_DLV_ZIP_CDE6,'-','') AS ORD_DLV_ZIP_CDE6,
+            OD.ORD_DLV_MSG,
+            OD.ORD_DLV_JBN_ADR1,
+            SUBSTR(OD.ORD_DLV_JBN_ADR1,0,DECODE(INSTR(OD.ORD_DLV_JBN_ADR1,'('),0,LENGTH(OD.ORD_DLV_JBN_ADR1),INSTR(OD.ORD_DLV_JBN_ADR1,'(')-1)) AS ORD_DLV_JBN_ADR1_1,
+            OD.ORD_DLV_JBN_ADR2,
+            OD.ORD_DLV_JBN_ADR1||' '||OD.ORD_DLV_JBN_ADR2 AS ORD_DLV_ADDR,
+            (
+                SELECT ORD_EDI_INVOICE_NO FROM T_ORD_EDI WHERE ORD_EDI_ORD_NO = OE.ORD_EDI_ORD_NO
+            ) AS ORD_EDI_INVOICE_NO
+        FROM (
+            SELECT
+                ORD_EDI_ORD_NO,
+                ORD_ORD_MST_CD,
+                ORD_EDI_DIS_CENTER_CD,
+                MAX(CASE WHEN SEQ = 1 THEN ORD_MST_ORD_NM ELSE '' END) AS ORD_MST_ORD_NM,
+                MAX(CASE WHEN SEQ = 1 THEN ORD_PRD_MST_CD ELSE '' END) AS ORD_PRD_MST_CD,
+                MAX(CASE WHEN SEQ = 1 THEN PRD_MST_NM ELSE '' END) AS ORD_PRD_MST_NM,
+                MAX(CASE WHEN SEQ = 1 THEN PRD_OPT_NM ELSE '' END) AS ORD_PRD_OPT_NM,
+                SUM(CASE WHEN SEQ = 1 THEN 0 ELSE 1 END) AS ORD_PRD_CNT,
+                SUM(ORD_PRD_ORD_CNT) AS ORD_PRD_ORD_CNT
+            FROM (
+                SELECT
+                    OE.ORD_EDI_ORD_NO,
+                    OE.ORD_ORD_MST_CD,
+                    OE.ORD_EDI_DIS_CENTER_CD,
+                    OM.ORD_MST_ORD_NM,
+                    ROW_NUMBER() OVER(PARTITION BY OP.ORD_ORD_EDI_ORD_NO ORDER BY OP.ORD_PRD_MST_CD) SEQ,
+                    OP.ORD_PRD_MST_CD,
+                    PM.PRD_MST_NM,
+                    OP.ORD_PRD_OPT_IDX,
+                    OPT.PRD_OPT_NM,
+                    OP.ORD_PRD_ORD_CNT
+                FROM 
+                    T_ORD_EDI OE, T_ORD_MST OM, T_ORD_PRD OP, T_PRD_MST PM, T_PRD_OPT OPT
+                WHERE
+                    OE.ORD_EDI_ORD_NO = #{ORD_EDI_ORD_NO}
+                AND OE.ORD_ORD_MST_CD = OM.ORD_MST_CD
+                AND OP.ORD_ORD_EDI_ORD_NO = OE.ORD_EDI_ORD_NO
+                AND PM.PRD_MST_CD = OP.ORD_PRD_MST_CD
+                AND OPT.PRD_OPT_IDX = OP.ORD_PRD_OPT_IDX
+                )
+            GROUP BY ORD_EDI_ORD_NO, ORD_ORD_MST_CD, ORD_EDI_DIS_CENTER_CD
+            ) OE, 
+            T_ORD_DLV OD
+        WHERE
+            OE.ORD_ORD_MST_CD = OD.ORD_ORD_MST_CD
+    </select>
+
+    <!-- 송장번호 발행요청상태 변경 -->
+    <update id="updateOrderEdiState" parameterType="java.util.HashMap">
+        /* OrderDelivery.updateOrderEdiState */
+        UPDATE  
+            T_ORD_EDI  
+        SET 
+            ORD_EDI_TRS_STAT_CD=#{ORD_EDI_TRS_STAT_CD},
+            ORD_EDI_TRS_YMD = TO_CHAR(SYSDATE, 'YYYYMMDD'),
+            ORD_EDI_TRS_TME = TO_CHAR(SYSDATE, 'HH24MISS')
+        WHERE 
+            ORD_EDI_ORD_NO=#{ORD_EDI_ORD_NO}
+    </update>
+    
+    <!-- 주문상태 변경 -->
+    <update id="updateOrderState" parameterType="java.util.HashMap">
+        /* OrderDelivery.updateOrderState */
+        UPDATE  
+            T_ORD_PRD  
+        SET 
+            ORD_PRD_ORD_STATE=#{ORD_PRD_ORD_STATE}
+        WHERE 
+            ORD_ORD_EDI_ORD_NO=#{ORD_EDI_ORD_NO}
+    </update>
+    
+    <!-- 주문상태변경내역 등록 -->
+    <insert id="insertOrderHistory" parameterType="java.util.HashMap">
+        /* OrderDelivery.insertOrderHistory */
+        INSERT INTO 
+            T_ORD_PRD_HIS 
+        (
+            ORD_PRD_HIS_IDX, 
+            ORD_ORD_MST_CD, ORD_PRD_MST_CD, ORD_ORD_PRD_IDX, 
+            ORD_PRD_ORD_STATE, ORD_CMN_COM_IDX, ORD_PRD_DSC, 
+            ORD_PRD_REG_DT, ORD_PRD_REG_TYPE, ORD_PRD_REG_ID, ORD_PRD_REG_IP
+        ) SELECT
+            SEQ_ORD_PRD_HIS_IDX.NEXTVAL, 
+            ORD_ORD_MST_CD, ORD_PRD_MST_CD, ORD_PRD_IDX, 
+            ORD_PRD_ORD_STATE, #{SELECT_REASON}, #{ORD_PRD_DSC}, 
+            TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'), #{ORD_PRD_REG_TYPE}, #{REG_ID}, #{REG_IP}
+        FROM 
+            T_ORD_PRD
+        WHERE 
+            ORD_ORD_EDI_ORD_NO=#{ORD_EDI_ORD_NO}
+    </insert>
+    
+</mapper>

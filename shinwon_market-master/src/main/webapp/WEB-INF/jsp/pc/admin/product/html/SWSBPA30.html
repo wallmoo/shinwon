@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="ko" dir="ltr">
+    <head>
+        <meta charset="utf-8">
+        <title></title>
+		<link href="http://bo.marketplanta.epasscni.com:8080/am/css/font-awesome.css" rel="stylesheet">
+		<link rel="stylesheet" href="http://bo.marketplanta.epasscni.com:8080/am/css/import.css">
+        <link rel="stylesheet" href="style.css">
+		<script src="http://bo.marketplanta.epasscni.com:8080/am/js/vendor/modernizr-2.6.2-respond-1.1.0.min.js"></script>
+		<script src="http://bo.marketplanta.epasscni.com:8080/am/js/vendor/jquery-1.11.2.min.js"></script>
+    </head>
+    <body class="page-popup">
+
+        <div class="modal"><!-- modal -->
+
+            <div class="modal-wrapper"><!-- modal-wrapper -->
+
+                <div class="modal-inner"><!-- modal-inner -->
+
+                <h2 class="title"><span>카테고리 변경</span></h2>
+
+                    <!-- 탭부분 -->
+
+                <table cellspacing="0" class="table-row table-a"><!-- table -->
+                    <colgroup>
+                        <col style="width: 15%; min-width:180px;" />
+                        <col style="width: auto;" />
+                    </colgroup>
+                    <tbody>
+                        <tr>
+                            <th>PC카테고리</th>
+                            <td id="divCategory" style="display:block">
+                                <div class="grid section-button-list"><!-- 목록 상단 버튼 -->
+                                <div class="col-1-2 text-left">
+                                    <select class="select" name="">
+                                        <option>1차카테고리</option>
+                                    </select>
+                                    <select class="select" name="">
+                                        <option>2차카테고리</option>
+                                    </select>
+                                    <select class="select" name="">
+                                        <option>3차카테고리</option>
+                                    </select>
+                                </div>
+                                <div class="col-1-2 text-right">
+                                    <a href="#none" id="goSpcCategoryDelete_P"   class="button button-a small"><span>선택삭제</span></a>
+                                    <a id="goCategoryPopup" href="#" class="button button-b small" title="새 창 으로 열립니다."><span>카테고리추가</span></a>
+                                </div>
+                                </div><!-- // 목록 상단 버튼 -->
+
+                                <table class="table-row table-a" id="tableCategory">
+                                    <colgroup>
+                                        <col style="width: 40px;" />
+                                        <col style="width: auto;" />
+                                    </colgroup>
+                                    <thead>
+                                        <tr>
+                                            <th><input type="checkbox" class="checkbox checkAll_P" /></th>
+                                            <th>카테고리 경로</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="applyCategoryList_P">
+                                        <tr id="specCategoryNodata_P"><!-- row -->
+                                            <td><input type="checkbox" class="checkbox"></td>
+                                            <td>MEN > OUTER > 다운패딩</td>
+                                        </tr>
+                                        <tr id="categoryNodata_P"><!-- row -->
+                                            <td colspan="2">카테고리를 추가해 주세요.</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>MOBILE 카테고리</th>
+                            <td id="divCategory" style="display:block">
+                                <div class="grid section-button-list"><!-- 목록 상단 버튼 -->
+                                <div class="col-1-2 text-left">
+                                    <select class="select" name="">
+                                        <option>1차카테고리</option>
+                                    </select>
+                                    <select class="select" name="">
+                                        <option>2차카테고리</option>
+                                    </select>
+                                    <select class="select" name="">
+                                        <option>3차카테고리</option>
+                                    </select>
+                                </div>
+                                <div class="col-1-2 text-right">
+                                    <a href="#none" id="goSpcCategoryDelete_P"   class="button button-a small"><span>선택삭제</span></a>
+                                    <a id="goCategoryPopup" href="#" class="button button-b small" title="새 창 으로 열립니다."><span>카테고리추가</span></a>
+                                </div>
+                                </div><!-- // 목록 상단 버튼 -->
+
+                                <table class="table-row table-a" id="tableCategory">
+                                    <colgroup>
+                                        <col style="width: 40px;" />
+                                        <col style="width: auto;" />
+                                    </colgroup>
+                                    <thead>
+                                        <tr>
+                                            <th><input type="checkbox" class="checkbox checkAll_P" /></th>
+                                            <th>카테고리 경로</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="applyCategoryList_P">
+                                        <tr id="specCategoryNodata_P"><!-- row -->
+                                            <td><input type="checkbox" class="checkbox"></td>
+                                            <td>MEN > OUTER > 다운패딩</td>
+                                        </tr>
+                                        <tr id="categoryNodata_P"><!-- row -->
+                                            <td colspan="2">카테고리를 추가해 주세요.</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </td>
+                        </tr>
+                   </tbody>
+                </table><!-- // table -->
+
+                    <div class="section-button"><!-- section-button -->
+                        <div class="wrap text-center">
+                            <a href="#none" id="goRegist" class="button large primary"><span>저장</span></a>
+                            <a href="#none" id="goList" class="button large"><span>닫기</span></a>
+                        </div>
+                    </div><!-- // section-button -->
+
+           </div><!-- //modal-inner -->
+
+       </div><!-- //modal-wrapper -->
+
+   </div><!-- //modal -->
+
+
+		<footer><!-- footer -->
+			<%@ include file="/WEB-INF/jsp/am/include/footer.jsp" %>
+		</footer><!-- // footer -->
+
+
+	<script src="http://bo.marketplanta.epasscni.com:8080/am/js/plugins.js" /></script>
+	<script src="http://bo.marketplanta.epasscni.com:8080/am/js/ui.js"></script>
+	<script src="http://bo.marketplanta.epasscni.com:8080/am/js/common.js"></script>
+	<script type="text/javascript">
+	$(document).ready(function () {
+
+
+
+	});
+
+	</script>
+	</body>
+	</html>

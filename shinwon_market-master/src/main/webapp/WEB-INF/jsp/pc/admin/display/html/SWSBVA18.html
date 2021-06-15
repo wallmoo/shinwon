@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="ko" dir="ltr">
+    <head>
+        <meta charset="utf-8">
+        <title></title>
+		<link href="http://bo.marketplanta.epasscni.com:8080/am/css/font-awesome.css" rel="stylesheet">
+		<link rel="stylesheet" href="http://bo.marketplanta.epasscni.com:8080/am/css/import.css">
+        <link rel="stylesheet" href="style.css">
+		<script src="http://bo.marketplanta.epasscni.com:8080/am/js/vendor/modernizr-2.6.2-respond-1.1.0.min.js"></script>
+		<script src="http://bo.marketplanta.epasscni.com:8080/am/js/vendor/jquery-1.11.2.min.js"></script>
+    </head>
+    <body><!-- body class, 중요 -->
+
+    <div id="header"><!-- header -->
+        <div id="top" class="container" style="background: #414547 url('/am/img/bg_head.png') no-repeat center top;"><!-- top -->
+            <div class="wrap">
+                <div class="menu"><!-- menu -->
+                    <div id="togglerAside" class="toggler left">
+                        <a href="#!" class="js-toggle-nav" data-class="is-aside-in" data-lg-class="is-aside-out">
+                            <i class="fonti um-fog on"><em>메뉴 펼치기</em></i>
+                            <i class="fonti um-fog off"><em>메뉴 접기</em></i>
+                        </a>
+                    </div>
+                </div><!-- // menu -->
+                <h1 class="logo">
+                    <a href="http://bo.marketplanta.epasscni.com"><img src="http://bo.marketplanta.epasscni.com/nas/cdn/logo/2c679ea5-27f8-4d4b-a2ee-0bd2e4aa2bef.png" alt="HOME" /></a>
+                </h1>
+                <div class="util"><!-- util -->
+                    <div class="col">
+                        <a href="javascript:;"><i class="fonti um-gears"><em>환경설정</em></i></a>
+                    </div>
+                    <div class="col">
+                        <a href="http://bo.marketplanta.epasscni.com/am/manager/logout.do"><i class="fonti um-sign-out"><em>로그아웃</em></i></a>
+                    </div>
+                    <div class="col">
+                        <div id="togglerQuick" class="toggler left">
+                            <a href="#!" class="js-toggle-nav" data-class="is-quick-in" data-lg-class="is-quick-out">
+                                <i class="fonti um-ellipsis-h on"><em>사용자 메뉴 펼치기</em></i>
+                                <i class="fonti um-ellipsis-v off"><em>사용자 메뉴 접기</em></i>
+                            </a>
+                        </div>
+                    </div>
+                </div><!-- // util -->
+            </div>
+        </div><!-- // top -->
+
+        <div id="gnb" class="container">
+            <div class="wrap core"></div><!-- // gnb -->
+            <div class="spacer"></div>
+        </div>
+    </div><!-- // header -->
+
+    <div id="container"><!-- container -->
+
+        <div id="aside" class="aside left"><!-- aside -->
+            <div class="holder"><!-- holder -->
+                <div id="lnb" class="container">
+                    <div class="wrap modules"><!-- modules -->
+                        <div class="title">
+
+                        </div>
+                        <div class="core"></div>
+                    </div><!-- // modules -->
+                </div>
+            </div><!-- // holder --></div><!-- // aside -->
+
+        <div id="wrapper"><!-- wrapper -->
+
+            <div id="breadcrumb"></div><!-- breadcrumb -->
+
+            <div id="contents"><!-- contents -->
+
+                <div class="container">
+
+                    <h2 class="title"><span>전시태그관리</span></h2>
+
+                    <h3 class="title"><span>목록</span></h3>
+
+                    <input type="hidden" name="PRD_CTG_ENV" id="PRD_CTG_ENV" value="P" />
+                    <br/>
+                    <div class="clearfix">
+
+                        <!-- https://github.com/jzaefferer/jquery-treeview -->
+                        <!-- http://bassistance.de/jquery-plugins/jquery-plugin-treeview/ -->
+
+                        <div style="float: left; margin-right: 5px; padding: 10px 20px 10px 10px; border: solid 1px #ccc;">
+                            <ul id="browser" class="filetree treeview-famfamfam treeview">
+                                <li class="closed collapsable">
+                                    <div class="hitarea closed-hitarea collapsable-hitarea"></div>
+                                    <span class="folder">공통태그</span>
+                                    <ul style="display: block;">
+                                        <li class="closed"><span class="folder" data-idx="2351" data-level="3">회원가입</span></li>
+                                        <li class="closed"><span class="folder" data-idx="2352" data-level="3">OOTD 피드선택</span></li>
+                                        <li class="closed"><span class="folder" data-idx="2353" data-level="3">OOTD 등록</span></li>
+                                        <li class="closed"><span class="folder" data-idx="2353" data-level="3">OOTD 메인</span></li>
+                                        <li class="closed last"><span class="folder" data-idx="2354" data-level="3">STORE 메인</span></li>
+                                    </ul>
+                                </li>
+                                <li class="closed expandable">
+                                    <div class="hitarea closed-hitarea expandable-hitarea"></div>
+                                    <span class="folder">PC</span>
+                                </li>
+                            </ul>
+                    </div>
+
+                    <div id="main_con" style="float: left; padding: 10px;">
+                        <div class="contents-inner"><!-- contents-inner -->
+                            <h3 class="title"><span>회원가입 - TAG 설정</span></h3>
+                            <div class="grid section-button-list"><!-- 목록 상단 버튼 -->
+                                <div class="text-left">(필수1개, 최대 제한없음)</div>
+                                <div class="text-right">
+                                    <a href="javascript:goForm();" class="button small primary"><span>TAG 선택</span></a>
+                                </div>
+                            </div><!-- // 목록 상단 버튼 -->
+                        	<form id="frm" name="frm">
+                        		<input type="hidden" id="CMN_COM_IDX" name="CMN_COM_IDX" value="2350">
+                        	    <input type="hidden" id="PRD_CTG_ENV" name="PRD_CTG_ENV" value="">
+                        	    <input type="hidden" id="DSP_MST_ENV" name="DSP_MST_ENV" value="P">
+                        	    <input type="hidden" id="searchGubun" name="searchGubun" value="">
+
+                        		<div class="table-a"><!-- col list -->
+                                    <table class="table-row table-a">
+                                        <colgroup>
+                                            <col style="width: 10%;">
+                                            <col style="width: auto;">
+                                        </colgroup>
+                                        <tbody>
+                                        <tr>
+                                            <th>TAG<span style="color:red;display:inline-block;padding:0;">*</span></th>
+                                            <td>
+                                                <div class="field tag_list catagory_tag">
+                                                    <ul style="height:200px;overflow-y:scroll;">
+                                                        <li>#오버핏<button type="button" class="btn_del">X</button></li>
+                                                        <li>#신상품<button type="button" class="btn_del">X</button></li>
+                                                        <li>#빈티지<button type="button" class="btn_del">X</button></li>
+                                                        <li>#거울셀카<button type="button" class="btn_del">X</button></li>
+                                                        <li>#streetstyle<button type="button" class="btn_del">X</button></li>
+                                                        <li>#루즈핏<button type="button" class="btn_del">X</button></li>
+                                                        <li>#고상한<button type="button" class="btn_del">X</button></li>
+                                                        <li>#신상품1<button type="button" class="btn_del">X</button></li>
+                                                        <li>#가을신상<button type="button" class="btn_del">X</button></li>
+                                                        <li>#데일리룩<button type="button" class="btn_del">X</button></li>
+                                                        <li>#ootd<button type="button" class="btn_del">X</button></li>
+                                                        <li>#비오는날<button type="button" class="btn_del">X</button></li>
+                                                        <li>#상큼한<button type="button" class="btn_del">X</button></li>
+                                                        <li>#가을여행<button type="button" class="btn_del">X</button></li>
+                                                        <li>#오버핏1<button type="button" class="btn_del">X</button></li>
+                                                        <li>#신상품2<button type="button" class="btn_del">X</button></li>
+                                                        <li>#빈티지1<button type="button" class="btn_del">X</button></li>
+                                                        <li>#거울셀카1<button type="button" class="btn_del">X</button></li>
+                                                        <li>#streetstyle1<button type="button" class="btn_del">X</button></li>
+                                                        <li>#루즈핏1<button type="button" class="btn_del">X</button></li>
+                                                        <li>#고상한1<button type="button" class="btn_del">X</button></li>
+                                                        <li>#신상품3<button type="button" class="btn_del">X</button></li>
+                                                        <li>#가을신상<button type="button" class="btn_del">X</button></li>
+                                                        <li>#데일리룩1<button type="button" class="btn_del">X</button></li>
+                                                        <li>#ootd<button type="button" class="btn_del">X</button></li>
+                                                        <li>#비오는날1<button type="button" class="btn_del">X</button></li>
+                                                        <li>#상큼한<button type="button" class="btn_del">X</button></li>
+                                                        <li>#가을여행<button type="button" class="btn_del">X</button></li>
+                                                    </ul>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        </tbody>
+                                    </table>
+                        		</div><!-- // col list -->
+                                <div class="section-button"><!-- section-button -->
+                                    <div class="wrap text-center">
+                                        <a href="javascript:goRegist();" class="button large primary"><span>저장</span></a>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+
+                    </div>
+
+                    <p>
+
+                    </p>
+                </div>
+
+            </div><!-- // contents -->
+
+        </div><!-- // wrapper -->
+
+        <div id="quickmenu" class="aside right"><!-- quickmenu-->
+            <div class="holder"><!-- holder -->
+
+                <div id="quick" class="container">
+
+                    <div class="wrap modules"><!-- modules -->
+                        <ul class="core">
+                            <li class="d2 active">
+                                <a href="javascript:;" class="d2"><span>admin 님</span></a>
+                                <div class="d3 show"><!-- d3 -->
+                                    <ul class="d3">
+                                        <li class="d3">
+                                            <a href="http://bo.marketplanta.epasscni.com/am/manager/logout.do" class="d3"><span>로그아웃</span></a>
+                                        </li>
+                                    </ul>
+                                </div><!-- // d3 -->
+                            </li>
+                        </ul>
+                    </div><!-- // modules -->
+
+                </div>
+
+            </div><!-- // holder -->
+        </div><!-- // quickmenu -->
+
+    </div><!-- // container -->
+
+    <div id="footer">
+        <div id="copyrights"><!-- copyrights -->
+            <div class="container">
+                <p>
+                    Copyrights &copy; MarketPlant, co.ltd. All rights Reserved.
+                </p>
+            </div>
+        </div><!-- // copyrights -->
+    </div>
+
+<script src="/am/js/epass.base-0.3.js"></script>
+<script src="/am/js/plugins.js"></script>
+<script src="/am/js/plugins/jquery.menu-aim.js"></script>
+<script src="/am/js/plugins/nanobar.js"></script>
+<script src="/am/js/plugins/alertify.custom-0.3.11.js"></script>
+<script src="/am/js/plugins/Chart.bundle.js"></script>
+<script src="/am/js/common/jquery.cookie.js"></script>
+<script src="/am/js/epass.helper.notify-0.1.js"></script>
+<script src="/am/js/epass.modalr-0.1.js"></script>
+<!-- run -->
+<script src="/am/js/ui.nav.js"></script>
+<script src="/am/js/ui.js"></script>
+<script src="/am/js/admin.js"></script>
+<script src="/am/js/common.js"></script>
+<script src="/am/js/common/jquery.validate.js"></script>
+<!-- common -->
+<script src="/am/js/plugins/jquery.cookie.js"></script> <!-- treeview -->
+<script src="/am/js/plugins/jquery.treeview.js"></script> <!-- treeview -->
+<script src="/am/js/common/jquery.ajax.js"></script>
+
+
+</body>
+	</html>

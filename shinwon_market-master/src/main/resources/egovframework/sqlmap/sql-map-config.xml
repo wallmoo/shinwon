@@ -1,0 +1,326 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE configuration PUBLIC "-//mybatis.org//DTD Config 3.0//EN" "http://mybatis.org/dtd/mybatis-3-config.dtd">
+<configuration>
+    <settings>
+        <setting name="jdbcTypeForNull" value="NULL" />
+    </settings>
+
+    <typeAliases></typeAliases>
+<mappers>
+        <!-- EMAIL 전송--> 
+        <mapper resource="egovframework/sqlmap/mapper/ifcomm/email/EMAILSEND_SQL.xml"/>
+        
+        
+        <!-- SMS 전송 
+        <mapper resource="egovframework/sqlmap/mapper/ifcomm/sms/Sms_SQL.xml"/>
+        -->
+        <mapper resource="egovframework/sqlmap/mapper/ifcomm/kakao/Kakao_SQL.xml"/>
+        
+        <!-- Pay Master 처리 --> 
+        <mapper resource="egovframework/sqlmap/mapper/ifcomm/payment/Payment_SQL.xml"/>
+    
+        <!--//////////////////////////////////////// Admin ////////////////////////////////////////-->
+        
+        <!-- Common -->  
+        <mapper resource="egovframework/sqlmap/mapper/am/common/Common_SQL.xml"/>
+        
+        <!-- Main --> 
+        <mapper resource="egovframework/sqlmap/mapper/am/main/DashboardMain_SQL.xml"/>
+        
+        <!-- 주문관리 -->
+        <mapper resource="egovframework/sqlmap/mapper/am/order/Order_SQL.xml"/>
+        <mapper resource="egovframework/sqlmap/mapper/am/order/OrderDelivery_SQL.xml"/>
+        <mapper resource="egovframework/sqlmap/mapper/am/order/TaxIvc_SQL.xml"/>
+        <mapper resource="egovframework/sqlmap/mapper/am/order/OrderError_SQL.xml"/>
+        
+        <!-- 로그인 --> 
+        <mapper resource="egovframework/sqlmap/mapper/am/manager/LoginManager_SQL.xml"/>
+        
+        <!-- SNS 관리 -->
+        <mapper resource="egovframework/sqlmap/mapper/am/sns/SnsManager_SQL.xml"/>
+        
+        <!-- 회원관리 관심상품 -->
+        <mapper resource="egovframework/sqlmap/mapper/am/member/MemberLikeProduct_SQL.xml"/>
+        
+        <!-- 사이트관리 -->
+         
+        <mapper resource="egovframework/sqlmap/mapper/am/site/BasicManager_SQL.xml"/>
+        <mapper resource="egovframework/sqlmap/mapper/am/site/AuthManager_SQL.xml"/>
+        <mapper resource="egovframework/sqlmap/mapper/am/site/MenuManager_SQL.xml"/>
+        <mapper resource="egovframework/sqlmap/mapper/am/site/CommonCodeManager_SQL.xml"/>
+        <mapper resource="egovframework/sqlmap/mapper/am/site/DelivCompany_SQL.xml"/>
+        <mapper resource="egovframework/sqlmap/mapper/am/site/BrandManager_SQL.xml"/>
+        <mapper resource="egovframework/sqlmap/mapper/am/site/VendorManager_SQL.xml"/>
+        <mapper resource="egovframework/sqlmap/mapper/am/site/BanWordManager_SQL.xml"/>
+        <mapper resource="egovframework/sqlmap/mapper/am/site/MakerManager_SQL.xml"/>
+        <mapper resource="egovframework/sqlmap/mapper/am/site/PopularSearchWord_SQL.xml"/>
+        <mapper resource="egovframework/sqlmap/mapper/am/site/BenefitManager_SQL.xml"/>
+        <mapper resource="egovframework/sqlmap/mapper/am/site/BrandManager_SQL.xml"/>
+        <mapper resource="egovframework/sqlmap/mapper/am/site/MyFitManager_SQL.xml"/>
+        <mapper resource="egovframework/sqlmap/mapper/am/site/O2OStore_SQL.xml"/>
+        <mapper resource="egovframework/sqlmap/mapper/am/site/DeliveryState_SQL.xml"/>
+        
+        <!-- 상품관리 -->
+        <mapper resource="egovframework/sqlmap/mapper/am/product/CategoryProduct_SQL.xml"/>
+        
+        <!-- 제휴사관리 -->
+        <mapper resource="egovframework/sqlmap/mapper/am/member/AffiliateService_SQL.xml"/>
+        
+        <!-- 상품관리 --> 
+        <mapper resource="egovframework/sqlmap/mapper/am/product/BasicProduct_SQL.xml"/>    
+        <mapper resource="egovframework/sqlmap/mapper/am/product/Gift_SQL.xml" />
+        <mapper resource="egovframework/sqlmap/mapper/am/product/SpecManagement_SQL.xml" />
+        <mapper resource="egovframework/sqlmap/mapper/am/product/EstimateManagement_SQL.xml" />
+        <mapper resource="egovframework/sqlmap/mapper/am/product/ProductNotificationInfo_SQL.xml" />
+        <mapper resource="egovframework/sqlmap/mapper/am/product/VendorApproval_SQL.xml" />
+        <mapper resource="egovframework/sqlmap/mapper/am/product/ProductUpload_SQL.xml" />
+        <mapper resource="egovframework/sqlmap/mapper/am/product/BrandPoint_SQL.xml" />
+        <mapper resource="egovframework/sqlmap/mapper/am/product/Discount_SQL.xml" />
+        
+        <!-- 마케팅관리 --> 
+        <mapper resource="egovframework/sqlmap/mapper/am/marketing/Event_SQL.xml"/>
+        <mapper resource="egovframework/sqlmap/mapper/am/marketing/Plan_SQL.xml"/>
+        <mapper resource="egovframework/sqlmap/mapper/am/marketing/Point_SQL.xml"/>
+        <mapper resource="egovframework/sqlmap/mapper/am/marketing/CardEvent_SQL.xml"/>
+        <mapper resource="egovframework/sqlmap/mapper/am/marketing/Ecoupon_SQL.xml"/>
+        <mapper resource="egovframework/sqlmap/mapper/am/marketing/Channel_SQL.xml"/>
+        <mapper resource="egovframework/sqlmap/mapper/am/marketing/CardDiv_SQL.xml"/>
+        <mapper resource="egovframework/sqlmap/mapper/am/marketing/Kinger_SQL.xml"/>
+        <mapper resource="egovframework/sqlmap/mapper/am/marketing/OneDay_SQL.xml"/>
+        <mapper resource="egovframework/sqlmap/mapper/am/marketing/Funding_SQL.xml"/>
+        <mapper resource="egovframework/sqlmap/mapper/am/marketing/TimeSale_SQL.xml"/>
+        <mapper resource="egovframework/sqlmap/mapper/am/marketing/LiveOn_SQL.xml"/>
+        <mapper resource="egovframework/sqlmap/mapper/am/marketing/Special_SQL.xml"/>
+        
+        <!-- 고객센터 -->
+        <mapper resource="egovframework/sqlmap/mapper/am/customer/Inquiry_SQL.xml"/>
+        <mapper resource="egovframework/sqlmap/mapper/am/customer/ProductInquiry_SQL.xml"/>
+        
+        <!-- 회원관리 -->
+        <mapper resource="egovframework/sqlmap/mapper/am/member/InfoMember_SQL.xml"/>
+        <mapper resource="egovframework/sqlmap/mapper/am/member/RestMember_SQL.xml"/>
+        <mapper resource="egovframework/sqlmap/mapper/am/member/SecessionMember_SQL.xml"/>
+        <mapper resource="egovframework/sqlmap/mapper/am/member/LmsHistory_SQL.xml"/>
+        <mapper resource="egovframework/sqlmap/mapper/am/member/MemberGrade_SQL.xml"/>
+        
+        <!-- 게시판관리 -->
+        <mapper resource="egovframework/sqlmap/mapper/am/board/NoticeBoard_SQL.xml"/>
+        <mapper resource="egovframework/sqlmap/mapper/am/board/FaqBoard_SQL.xml"/>
+        <mapper resource="egovframework/sqlmap/mapper/am/board/CommentBoard_SQL.xml"/>
+        <mapper resource="egovframework/sqlmap/mapper/am/board/AgreementBoard_SQL.xml"/>
+        <mapper resource="egovframework/sqlmap/mapper/am/board/OotdBoard_SQL.xml"/>
+        <mapper resource="egovframework/sqlmap/mapper/am/board/OotdBoardComment_SQL.xml"/>
+        
+        <!-- 전시관리 -->
+        <mapper resource="egovframework/sqlmap/mapper/am/display/SellerRoom_SQL.xml"/> 
+        <mapper resource="egovframework/sqlmap/mapper/am/display/TagDisplay_SQL.xml"/>
+		<mapper resource="egovframework/sqlmap/mapper/am/display/GnbDisplay_SQL.xml"/>        
+        <mapper resource="egovframework/sqlmap/mapper/am/display/BannerDisplay_SQL.xml"/>
+        <mapper resource="egovframework/sqlmap/mapper/am/display/Popup_SQL.xml"/>
+        <mapper resource="egovframework/sqlmap/mapper/am/display/ProductDisplay_SQL.xml"/>
+        <mapper resource="egovframework/sqlmap/mapper/am/display/AppPush_SQL.xml"/>
+        <mapper resource="egovframework/sqlmap/mapper/am/display/Ad_SQL.xml"/>
+        <mapper resource="egovframework/sqlmap/mapper/am/display/ThemeBanner_SQL.xml"/>
+        <mapper resource="egovframework/sqlmap/mapper/am/display/ThemeProduct_SQL.xml"/>
+        <mapper resource="egovframework/sqlmap/mapper/am/display/VendorDisplay_SQL.xml"/>
+        <mapper resource="egovframework/sqlmap/mapper/am/display/VendorSellerPick_SQL.xml"/>
+        <mapper resource="egovframework/sqlmap/mapper/am/display/Layout_SQL.xml"/>
+        
+        <!-- 통계 -->
+        <mapper resource="egovframework/sqlmap/mapper/am/stats/StatsOrder_SQL.xml"/>
+        <mapper resource="egovframework/sqlmap/mapper/am/stats/StatsCorner_SQL.xml"/>
+        <mapper resource="egovframework/sqlmap/mapper/am/stats/StatsMember_SQL.xml"/>
+        <mapper resource="egovframework/sqlmap/mapper/am/stats/StatsReward_SQL.xml"/>
+        <mapper resource="egovframework/sqlmap/mapper/am/stats/OrderChannel_SQL.xml"/>
+        
+        <!-- 입점업체관리 -->   
+        <mapper resource="egovframework/sqlmap/mapper/am/vendor/VendorReq_SQL.xml"/>
+        <mapper resource="egovframework/sqlmap/mapper/am/vendor/VendorSellerPick_SQL.xml"/>
+        
+        <!-- APP 관리 -->
+        <mapper resource="egovframework/sqlmap/mapper/am/app/AppVersionManage_SQL.xml"/>
+        
+        <!-- 배치작업관리 -->
+        <mapper resource="egovframework/sqlmap/mapper/am/batch/BatchCancelOrderOld_SQL.xml"/>
+        <mapper resource="egovframework/sqlmap/mapper/am/batch/BatchOrderSendEnd_SQL.xml"/>
+        
+        <!-- 정산관리 --> 
+        <mapper resource="egovframework/sqlmap/mapper/am/accounting/Accounting_SQL.xml"/>
+        
+        <!-- 타겟관리 -->
+        <mapper resource="egovframework/sqlmap/mapper/am/target/Target_SQL.xml"/>
+        
+        <!-- batch -->
+        <mapper resource="egovframework/sqlmap/mapper/batch/BatchManager_SQL.xml"/>
+        <mapper resource="egovframework/sqlmap/mapper/batch/BatchCartProduct_SQL.xml"/>
+        <mapper resource="egovframework/sqlmap/mapper/batch/BatchChangeLastCount_SQL.xml"/>
+        <mapper resource="egovframework/sqlmap/mapper/batch/BatchDeleteCI_SQL.xml"/>
+        <mapper resource="egovframework/sqlmap/mapper/batch/BatchMemberBlackCancel_SQL.xml"/>
+        <mapper resource="egovframework/sqlmap/mapper/batch/BatchRestMember_SQL.xml"/>
+        <mapper resource="egovframework/sqlmap/mapper/batch/BatchDeleteOrderTemp_SQL.xml"/>
+        <mapper resource="egovframework/sqlmap/mapper/batch/BatchOrderCount_SQL.xml"/>
+        <mapper resource="egovframework/sqlmap/mapper/batch/BatchBestIcon_SQL.xml"/>
+        <mapper resource="egovframework/sqlmap/mapper/batch/BatchOrderStateFix_SQL.xml"/>
+        <mapper resource="egovframework/sqlmap/mapper/batch/BatchOrderState_SQL.xml"/>
+        <mapper resource="egovframework/sqlmap/mapper/batch/BatchCancelOrder_SQL.xml"/>            
+        <mapper resource="egovframework/sqlmap/mapper/batch/BatchMemberGradeMonth_SQL.xml"/>            
+        <mapper resource="egovframework/sqlmap/mapper/batch/BatchMemberGradeYear_SQL.xml"/>  
+        <mapper resource="egovframework/sqlmap/mapper/batch/BatchOrderSendEndNew_SQL.xml"/> 
+        <mapper resource="egovframework/sqlmap/mapper/batch/BatchOrderDepositAlarm_SQL.xml"/>
+        <mapper resource="egovframework/sqlmap/mapper/batch/BatchOrderMail_SQL.xml"/>
+        <mapper resource="egovframework/sqlmap/mapper/batch/BatchOrderConfirmAlarm_SQL.xml"/>
+        <mapper resource="egovframework/sqlmap/mapper/batch/BatchSms_SQL.xml"/>
+        <mapper resource="egovframework/sqlmap/mapper/batch/BatchEMAILSEND_SQL.xml"/>
+        <mapper resource="egovframework/sqlmap/mapper/batch/BatchRestockRequest_SQL.xml"/>
+        
+        <!-- 로고 관리 -->
+        <mapper resource="egovframework/sqlmap/mapper/am/logo/Logo_SQL.xml"/>
+        
+        <!--//////////////////////////////////////// Pc ////////////////////////////////////////-->
+        
+        <!-- Common--> 
+        <mapper resource="egovframework/sqlmap/mapper/pc/common/Common_SQL.xml"/>
+        
+        <!-- 회원-->
+        <mapper resource="egovframework/sqlmap/mapper/pc/member/InfoMember_SQL.xml"/>
+        <mapper resource="egovframework/sqlmap/mapper/pc/member/MemberDelive_SQL.xml"/>
+        <mapper resource="egovframework/sqlmap/mapper/pc/member/JoinMember_SQL.xml"/>
+        
+        <!-- 입점신청-->
+        <mapper resource="egovframework/sqlmap/mapper/pc/business/JoinBusiness_SQL.xml"/>
+        <mapper resource="egovframework/sqlmap/mapper/pc/business/LoginBusiness_SQL.xml"/>
+        <mapper resource="egovframework/sqlmap/mapper/pc/business/StandingPoint_SQL.xml"/>
+    
+        <!-- 로그인 -->
+        <mapper resource="egovframework/sqlmap/mapper/pc/manager/LoginManager_SQL.xml"/>
+        
+        
+        <!-- 장바구니 --> 
+        <mapper resource="egovframework/sqlmap/mapper/pc/cart/Cart_SQL.xml"/>
+        
+        
+        <!-- 마이페이지 -->
+        <mapper resource="egovframework/sqlmap/mapper/pc/mypage/MyPage_SQL.xml"/>
+        <mapper resource="egovframework/sqlmap/mapper/pc/mypage/MyShopping_SQL.xml"/>
+        <mapper resource="egovframework/sqlmap/mapper/pc/mypage/MyCoupon_SQL.xml"/>
+        <mapper resource="egovframework/sqlmap/mapper/pc/mypage/MyInquiry_SQL.xml"/>
+        <mapper resource="egovframework/sqlmap/mapper/pc/mypage/MyGroupInquiry_SQL.xml"/>
+        <mapper resource="egovframework/sqlmap/mapper/pc/mypage/MyProductComment_SQL.xml"/>
+        <mapper resource="egovframework/sqlmap/mapper/pc/mypage/MyInfo_SQL.xml"/>
+        <mapper resource="egovframework/sqlmap/mapper/pc/mypage/MyPoint_SQL.xml"/>
+        <mapper resource="egovframework/sqlmap/mapper/pc/mypage/MyEvent_SQL.xml"/>
+        <mapper resource="egovframework/sqlmap/mapper/pc/mypage/MyBuyShopping_SQL.xml"/>
+        <mapper resource="egovframework/sqlmap/mapper/pc/mypage/MyProductInquiry_SQL.xml"/>
+        <mapper resource="egovframework/sqlmap/mapper/pc/mypage/MyKeep_SQL.xml"/>
+        <mapper resource="egovframework/sqlmap/mapper/pc/mypage/MyLike_SQL.xml"/>
+        <mapper resource="egovframework/sqlmap/mapper/pc/mypage/MyFavorite_SQL.xml"/>
+        
+        <!-- 현재 사용하지 않음 
+        <mapper resource="egovframework/sqlmap/mapper/pc/mypage/MyRegularStore_SQL.xml"/>
+        <mapper resource="egovframework/sqlmap/mapper/pc/brand/BrandTech_SQL.xml"/>
+        <mapper resource="egovframework/sqlmap/mapper/pc/brand/BrandStoreOpen_SQL.xml"/>
+        <mapper resource="egovframework/sqlmap/mapper/pc/brand/BrandStoreIntro_SQL.xml"/>
+        -->
+        
+        <!--  브랜드 -->
+        <mapper resource="egovframework/sqlmap/mapper/pc/brand/Brand_SQL.xml"/>
+        
+        <!--  상품 -->
+        <mapper resource="egovframework/sqlmap/mapper/pc/product/ProductList_SQL.xml"/>
+        <mapper resource="egovframework/sqlmap/mapper/pc/product/Product_SQL.xml"/>
+        <mapper resource="egovframework/sqlmap/mapper/pc/product/Category_SQL.xml"/>
+        <mapper resource="egovframework/sqlmap/mapper/pc/product/MainCategory_SQL.xml"/>
+        
+        <!-- 이메일 -->
+        <mapper resource="egovframework/sqlmap/mapper/pc/email/Email_SQL.xml"/>
+        
+        <!-- 아웃렛-->
+        <mapper resource="egovframework/sqlmap/mapper/pc/outlet/Outlet_SQL.xml"/>
+        
+        <!-- 룩북 -->
+        <mapper resource="egovframework/sqlmap/mapper/pc/lookbook/LookBook_SQL.xml"/>
+        
+        <!-- 컨텐츠 -->
+        <mapper resource="egovframework/sqlmap/mapper/pc/contents/Emagazine_SQL.xml"/>
+        
+        <!-- 고객센터 -->
+        <mapper resource="egovframework/sqlmap/mapper/pc/customer/Customer_SQL.xml"/>
+        <mapper resource="egovframework/sqlmap/mapper/pc/customer/NoticeBoard_SQL.xml"/>
+        <mapper resource="egovframework/sqlmap/mapper/pc/customer/FaqBoard_SQL.xml"/>
+        <mapper resource="egovframework/sqlmap/mapper/pc/customer/ShoppingGuideBoard_SQL.xml"/>
+        <mapper resource="egovframework/sqlmap/mapper/pc/customer/Inquiry_SQL.xml"/>
+        <mapper resource="egovframework/sqlmap/mapper/pc/customer/AgreementBoard_SQL.xml"/>
+        <mapper resource="egovframework/sqlmap/mapper/pc/customer/GroupInquiry_SQL.xml"/>
+        <mapper resource="egovframework/sqlmap/mapper/pc/customer/Event_SQL.xml"/>
+        <mapper resource="egovframework/sqlmap/mapper/pc/customer/Sitemap_SQL.xml"/>
+        
+        <!-- MARKETING -->    
+        <mapper resource="egovframework/sqlmap/mapper/pc/event/Plan_SQL.xml"/>
+        
+        <!-- 게시판생성 -->
+        <mapper resource="egovframework/sqlmap/mapper/am/createboard/CreateBoard_SQL.xml"/>
+        <mapper resource="egovframework/sqlmap/mapper/am/createboard/CreateBoardCommon_SQL.xml"/>
+        
+        <!-- EP -->
+        <mapper resource="egovframework/sqlmap/mapper/ifcomm/ep/EP_SQL.xml"/>
+        
+        <!-- INFOSITE -->
+        <mapper resource="egovframework/sqlmap/mapper/info/Intro_SQL.xml"/>
+        <mapper resource="egovframework/sqlmap/mapper/info/Branch_SQL.xml"/>
+        <mapper resource="egovframework/sqlmap/mapper/info/Support_SQL.xml"/>
+        
+        <!-- 테마카테고리 -->
+        <mapper resource="egovframework/sqlmap/mapper/pc/themecategory/Wedding_SQL.xml"/>
+        
+        <!-- 고객 체험단 --> 
+        <mapper resource="egovframework/sqlmap/mapper/pc/marketing/Kinger_SQL.xml"/>
+
+        <!-- 이벤트 -->
+        <mapper resource="egovframework/sqlmap/mapper/pc/event/EventMain_SQL.xml"/>
+        
+        <!-- 쿠폰 / 카드 혜택 -->
+        <mapper resource="egovframework/sqlmap/mapper/pc/event/Benefit_SQL.xml"/>
+        
+        <!-- 나만의 견적 -->
+        <mapper resource="egovframework/sqlmap/mapper/pc/product/EstimateManagement_SQL.xml" />
+        
+        <!-- MY 견적 -->
+        <mapper resource="egovframework/sqlmap/mapper/pc/mypage/MyEstimate_SQL.xml" />
+        
+        <!-- 입점관리 -->
+        <mapper resource="egovframework/sqlmap/mapper/am/vendor/VendorNotice_SQL.xml" />
+        <mapper resource="egovframework/sqlmap/mapper/am/vendor/VendorInq_SQL.xml" />
+        <mapper resource="egovframework/sqlmap/mapper/am/vendor/VendorLoginManager_SQL.xml" />
+        <mapper resource="egovframework/sqlmap/mapper/am/vendor/VendorCounsel_SQL.xml" />
+        
+        <!-- 좋아요 -->
+        <mapper resource="egovframework/sqlmap/mapper/pc/member/likeContents_SQL.xml" />
+        
+        <!-- OOTD -->
+        <mapper resource="egovframework/sqlmap/mapper/am/ootd/OOTD_SQL.xml" />
+        <mapper resource="egovframework/sqlmap/mapper/pc/ootd/OOTD_SQL.xml" />
+
+        <!-- OOTD 댓글-->
+        <mapper resource="egovframework/sqlmap/mapper/pc/ootd/OOTD_Comment_SQL.xml" />
+        
+        <!-- 해쉬태그 -->
+        <mapper resource="egovframework/sqlmap/mapper/pc/tag/WISH_TAG_SQL.xml" />
+        <mapper resource="egovframework/sqlmap/mapper/pc/tag/TAG_SQL.xml" />
+        <mapper resource="egovframework/sqlmap/mapper/am/tag/TAG_SQL.xml" />
+        
+        <!-- 컨텐츠 -->
+        <mapper resource="egovframework/sqlmap/mapper/pc/contents/Contents_SQL.xml" />
+        <mapper resource="egovframework/sqlmap/mapper/am/contents/Contents_SQL.xml" />
+        
+        <!-- 채널ON -->
+        <mapper resource="egovframework/sqlmap/mapper/am/marketing/Channel_On_SQL.xml" />
+        
+        <!-- 라이브온 -->
+        <mapper resource="egovframework/sqlmap/mapper/pc/contents/LiveOn_SQL.xml" />
+        
+        <!-- 탑셀러 -->
+        <mapper resource="egovframework/sqlmap/mapper/pc/vendor/TopSeller_SQL.xml" />
+        <!-- API -->
+        <mapper resource="egovframework/sqlmap/mapper/api/order/ApiOrder_SQL.xml" />
+    </mappers>
+</configuration>

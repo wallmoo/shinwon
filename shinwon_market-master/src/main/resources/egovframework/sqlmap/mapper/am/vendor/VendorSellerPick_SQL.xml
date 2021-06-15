@@ -1,0 +1,343 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="SellerPick">
+
+    <!-- 관리자 > 입점업체관리 > 셀러픽관리 조건절 -->
+    <sql id="sellerPickWhere">
+        <if test="searchChnMstShopType != null and searchChnMstShopType != ''">
+            <choose>
+                <when test="searchChnMstShopType.equals('PC'.toString())">
+                    AND TCM.CNT_MST_CHANNEL_PC_YN = 'Y'
+                </when>
+                <when test="searchChnMstShopType.equals('MOBILE'.toString())">
+                    AND TCM.CNT_MST_CHANNEL_MOBILE_YN = 'Y'
+                </when>            
+            </choose>
+        </if>
+
+        <if test="searchCntMstStDt != null and searchCntMstStDt != '' and searchCntMstEdDt != null and searchCntMstEdDt != ''">
+            AND CNT_MST_REG_DT BETWEEN REPLACE(#{searchCntMstStDt},'-', '')||'000000' AND REPLACE(#{searchCntMstEdDt},'-', '')||'235959'
+        </if>
+
+        <if test="searchCntMstRegId != null and searchCntMstRegId != ''">
+            AND TCM.CNT_MST_REG_ID LIKE '%' || UPPER(#{searchCntMstRegId}) || '%'
+		</if>
+
+        <if test="searchCntMstUseYn != null and searchCntMstUseYn != ''">
+            AND TCM.CNT_MST_USE_YN = #{searchCntMstUseYn} -- 전시상태
+        </if>
+        
+        <if test="admSellerCheckYN != null and admSellerCheckYN != ''">
+            AND TCM.CNT_MST_REG_ID = #{CNT_MST_REG_ID} -- 관리자 등록 셀러픽
+        </if>
+        
+		<if test = "searchSeason != null and searchSeason !='' " >
+            AMD TCM.CNT_MST_SEASON = #{searchSeason} -- 시즌
+        </if>
+        
+        <if test = "searchPRD_CTG_IDX != null and PRD_CTG_IDX !='' " >
+            AMD TCM.PRD_CTG_IDX = #{searchPRD_CTG_IDX} -- 유형
+        </if>
+                
+    </sql>
+
+    <!-- 관리자 > 셀러픽관리 > 셀러픽관리 목록 갯수 -->
+    <select id="selectSellerPickListCount" parameterType="HashMap" resultType="Integer">
+        /* SellerPick.selectSellerPickListCount */
+        SELECT
+            COUNT(TCM.CNT_MST_IDX)
+        FROM           
+            T_CNT_MST TCM
+        INNER JOIN T_ADM_MST TAM ON TCM.CNT_MST_REG_ID = TAM.ADM_MST_ID
+        INNER JOIN T_VDR_MST TVM ON TVM.VDR_MST_IDX = TCM.VDR_MST_IDX             
+        /* INNER JOIN T_VDR_MST TVM ON TVM.VDR_MST_IDX = TAM.ADM_MST_SUB_IDX */        
+        WHERE
+            1 = 1
+            AND TCM.CNT_MST_TYPE = 'TYPE_SELLER_PICK'
+                <if test="ADM_MST_ID != null and ADM_MST_ID != ''">
+                    AND CNT_MST_REG_ID IN (
+                        SELECT
+                            T_ADM_MST.ADM_MST_ID
+                        FROM
+                            T_ADM_MST
+                        WHERE
+                            ADM_MST_SUB_IDX = (
+                            SELECT
+                                ADM_MST_SUB_IDX
+                            FROM
+                                T_ADM_MST
+                            WHERE
+                                1=1
+                            AND 
+                                ADM_MST_ID = #{ADM_MST_ID}) )
+                </if> 
+            <include refid="sellerPickWhere"/> 
+    </select>
+
+    <!-- 관리자 > 입점사 관리 > 셀러픽 관리 상세정보 > 기본정보-->
+    <resultMap id="resultSellerPickInfo" type="HashMap">
+        <result property="CNT_MST_REG_NM" column="CNT_MST_REG_NM"/>
+        <result property="CNT_MST_IDX" column="CNT_MST_IDX"/>
+        <result property="CNT_MST_CHANNEL_PC_YN" column="CNT_MST_CHANNEL_PC_YN"/>  
+        <result property="CNT_MST_CHANNEL_MOBILE_YN" column="CNT_MST_CHANNEL_MOBILE_YN"/>           
+        <result property="CNT_MST_TITLE" column="CNT_MST_TITLE"/>
+        <result property="CNT_MST_ST_DT" column="CNT_MST_ST_DT"/>
+        <result property="CNT_MST_ED_DT" column="CNT_MST_ED_DT"/>
+        <result property="CNT_MST_ST_HH" column="CNT_MST_ST_HH"/>
+        <result property="CNT_MST_ED_HH" column="CNT_MST_ED_HH"/>
+        <result property="CNT_MST_ST_MI" column="CNT_MST_ST_MI"/>
+        <result property="CNT_MST_ED_MI" column="CNT_MST_ED_MI"/>
+        <result property="CNT_MST_USE_YN" column="CNT_MST_USE_YN"/>
+        <result property="CNT_MST_REG_DT" column="CNT_MST_REG_DT"/>
+        <result property="CNT_MST_REG_IP" column="CNT_MST_REG_IP"/>
+        <result property="CNT_MST_REG_ID" column="CNT_MST_REG_ID"/>
+        <result property="CNT_MST_UPD_DT" column="CNT_MST_UPD_DT"/>
+        <result property="CNT_MST_UPD_IP" column="CNT_MST_UPD_IP"/>
+        <result property="CNT_MST_UPD_ID" column="CNT_MST_UPD_ID"/>
+        <result property="CNT_MST_DESC" column="CNT_MST_DESC"/>
+        <result property="CNT_MST_URL" column="CNT_MST_URL"/>
+        <result property="CNT_MST_SEASON" column="CNT_MST_SEASON"/>
+        <result property="PRD_CTG_IDX" column="PRD_CTG_IDX"/>
+        <result property="CNT_MST_DETAIL_TYPE" column="CNT_MST_DETAIL_TYPE"/>
+        <result property="CNT_MST_PC_BANNER" column="CNT_MST_PC_BANNER" jdbcType="CLOB" javaType="java.lang.String"/>
+        <result property="CNT_MST_MOBILE_BANNER" column="CNT_MST_MOBILE_BANNER" jdbcType="CLOB" javaType="java.lang.String"/>
+        <result property="CNT_MST_PC_SCRIPT" column="CNT_MST_PC_SCRIPT" jdbcType="CLOB" javaType="java.lang.String"/>
+        <result property="CNT_MST_MOBILE_SCRIPT" column="CNT_MST_MOBILE_SCRIPT" jdbcType="CLOB" javaType="java.lang.String"/>
+    </resultMap>
+    <select id="selectSellerPickInfo" parameterType="HashMap" resultMap="resultSellerPickInfo">
+        /* SellerPick.selectSellerPickInfo */
+        SELECT
+            (   SELECT
+                    ADM_MST_NM
+                FROM
+                    T_ADM_MST
+                WHERE
+                    ADM_MST_ID = TCM.CNT_MST_REG_ID
+            ) AS CNT_MST_REG_NM,
+            TCM.CNT_MST_IDX,
+            TCM.CNT_MST_CHANNEL_PC_YN,
+            TCM.CNT_MST_CHANNEL_MOBILE_YN,            
+            TCM.CNT_MST_TITLE,
+            TCM.CNT_MST_ST_DT,
+            TCM.CNT_MST_ED_DT,
+            TCM.CNT_MST_ST_HH,
+            TCM.CNT_MST_ED_HH,
+            TCM.CNT_MST_ST_MI,
+            TCM.CNT_MST_ED_MI,
+            TCM.CNT_MST_USE_YN,
+            TCM.CNT_MST_REG_DT,
+            TCM.CNT_MST_REG_IP,
+            TCM.CNT_MST_REG_ID,
+            TCM.CNT_MST_UPD_DT,
+            TCM.CNT_MST_UPD_IP,
+            TCM.CNT_MST_UPD_ID,
+            TCM.CNT_MST_PC_BANNER,
+            TCM.CNT_MST_MOBILE_BANNER,
+            TCM.CNT_MST_DESC,
+            TCM.CNT_MST_TYPE,
+            TCM.CNT_MST_DETAIL_TYPE,
+            TCM.CNT_MST_PC_SCRIPT,
+            TCM.CNT_MST_MOBILE_SCRIPT,
+            (SELECT TPC.PRD_CTG_NM FROM T_PRD_CTG TPC WHERE TCM.PRD_CTG_IDX = TPC.PRD_CTG_IDX) CTG_TYPE,
+            TCM.CNT_MST_SEASON,
+            TCM.CNT_MST_URL
+        FROM
+            T_CNT_MST TCM
+        WHERE
+            TCM.CNT_MST_IDX = #{CNT_MST_IDX}
+            AND TCM.CNT_MST_TYPE = 'TYPE_SELLER_PICK'
+        <if test = "CNT_MST_CHANNEL_PC_YN != null and CNT_MST_CHANNEL_PC_YN !='Y' " >
+            AND TCM.CNT_MST_CHANNEL_PC_YN = 'Y'
+        </if>
+        <if test = "CNT_MST_CHANNEL_MOBILE_YN != null and CNT_MST_CHANNEL_MOBILE_YN !='Y' " >
+            AND TCM.CNT_MST_CHANNEL_MOBILE_YN = 'Y'
+        </if>
+    </select>
+    
+    <!-- 슈퍼 관리자 > 입점사관리 > 셀러픽관리 목록 -->
+    <select id="selectSellerPickList" parameterType="HashMap" resultType="HashMap">
+        /* SellerPick.selectSellerPickList */
+        SELECT
+            S2.*     
+		FROM
+			(
+			SELECT
+				ROWNUM AS RNUM,
+				TCM.CNT_MST_IDX ,
+				TVM.VDR_MST_NM,
+				TCM.CNT_MST_REG_ID ,
+				TCM.CNT_MST_TITLE ,
+				TCM.CNT_MST_USE_YN ,
+				TCM.VDR_MST_IDX ,
+				TO_CHAR(TO_DATE(TCM.CNT_MST_REG_DT,'YYYYMMDDHH24MISS'),'YYYY-MM-DD HH24:MI:SS') AS CNT_MST_REG_DT,
+			    (
+			    SELECT
+			            COUNT(CNT_MST_ID)
+			     FROM
+			           T_LIK_HIS TLH
+			    WHERE
+			           TLH.CNT_MST_ID = tcm.CNT_MST_IDX 
+			     AND   TLH.CNT_MST_TYPE = 'TYPE_SELLER_PICK'
+				) AS LIKE_COUNTS				
+			FROM
+				(SELECT * 
+				FROM T_CNT_MST
+				WHERE 1=1
+				<if test = "CNT_MST_CHANNEL_PC_YN != null and CNT_MST_CHANNEL_PC_YN !='Y' " >
+		            AND TCM.CNT_MST_CHANNEL_PC_YN = 'Y'
+		        </if>
+		        <if test = "CNT_MST_CHANNEL_MOBILE_YN != null and CNT_MST_CHANNEL_MOBILE_YN !='Y' " >
+		            AND TCM.CNT_MST_CHANNEL_MOBILE_YN = 'Y'
+		        </if> 
+				ORDER BY CNT_MST_IDX DESC) TCM
+			INNER JOIN T_ADM_MST TAM ON
+				TCM.CNT_MST_REG_ID = TAM.ADM_MST_ID
+			INNER JOIN T_VDR_MST TVM ON
+				TCM.VDR_MST_IDX = TVM.VDR_MST_IDX
+			WHERE
+				CNT_MST_TYPE = 'TYPE_SELLER_PICK'
+				<if test="ADM_MST_ID != null and ADM_MST_ID != ''">
+					AND CNT_MST_REG_ID IN (
+					SELECT
+						T_ADM_MST.ADM_MST_ID
+					FROM
+						T_ADM_MST
+					WHERE
+						ADM_MST_SUB_IDX = (
+						SELECT
+							ADM_MST_SUB_IDX
+						FROM
+							T_ADM_MST
+						WHERE
+							1=1
+						AND	
+							ADM_MST_ID = #{ADM_MST_ID}))
+				</if>
+				
+            ) S2
+        WHERE S2.RNUM BETWEEN #{startNum} AND #{endNum}			        
+    </select>
+    
+    
+    <select id="selectSellerPickListBK" parameterType="HashMap" resultType="HashMap">
+        /* SellerPick.selectSellerPickList */
+		SELECT
+			ADM_SELLER_PICK.RNUM ,
+			ADM_SELLER_PICK.CNT_MST_IDX ,
+			ADM_SELLER_PICK.VDR_MST_NM,
+			ADM_SELLER_PICK.CNT_MST_REG_ID ,
+			ADM_SELLER_PICK.CNT_MST_TITLE ,
+			TO_CHAR(TO_DATE(ADM_SELLER_PICK.CNT_MST_REG_DT,'YYYYMMDDHH24MISS'),'YYYY-MM-DD HH24:MI:SS') AS CNT_MST_REG_DT,
+			ADM_SELLER_PICK.CNT_MST_USE_YN,
+			ADM_SELLER_PICK.VDR_MST_IDX,
+			(
+			SELECT
+				COUNT(CNT_MST_ID)
+			FROM
+				T_LIK_HIS TLH
+			WHERE
+				TLH.CNT_MST_ID = ADM_SELLER_PICK.CNT_MST_IDX AND TLH.CNT_MST_TYPE = 'TYPE_SELLER_PICK') AS LIKE_COUNTS
+		FROM
+			(
+			SELECT
+				ROWNUM AS RNUM,
+				TCM.CNT_MST_IDX ,
+				TVM.VDR_MST_NM,
+				TCM.CNT_MST_REG_ID ,
+				TCM.CNT_MST_TITLE ,
+				TCM.CNT_MST_REG_DT ,
+				TCM.CNT_MST_USE_YN ,
+				TCM.VDR_MST_IDX
+			FROM
+				(SELECT * 
+				FROM T_CNT_MST
+				WHERE 1=1
+				<if test = "CNT_MST_CHANNEL_PC_YN != null and CNT_MST_CHANNEL_PC_YN !='Y' " >
+		            AND TCM.CNT_MST_CHANNEL_PC_YN = 'Y'
+		        </if>
+		        <if test = "CNT_MST_CHANNEL_MOBILE_YN != null and CNT_MST_CHANNEL_MOBILE_YN !='Y' " >
+		            AND TCM.CNT_MST_CHANNEL_MOBILE_YN = 'Y'
+		        </if> 
+				ORDER BY CNT_MST_IDX DESC) TCM
+			INNER JOIN T_ADM_MST TAM ON
+				TCM.CNT_MST_REG_ID = TAM.ADM_MST_ID
+			INNER JOIN T_VDR_MST TVM ON
+				/* TVM.VDR_MST_IDX = TAM.ADM_MST_SUB_IDX */
+				 TCM.VDR_MST_IDX = TVM.VDR_MST_IDX
+			WHERE
+				CNT_MST_TYPE = 'TYPE_SELLER_PICK'
+				<if test="ADM_MST_ID != null and ADM_MST_ID != ''">
+					AND CNT_MST_REG_ID IN (
+					SELECT
+						T_ADM_MST.ADM_MST_ID
+					FROM
+						T_ADM_MST
+					WHERE
+						ADM_MST_SUB_IDX = (
+						SELECT
+							ADM_MST_SUB_IDX
+						FROM
+							T_ADM_MST
+						WHERE
+							1=1
+						AND	
+							ADM_MST_ID = #{ADM_MST_ID}))
+				</if>
+				AND ROWNUM &lt;= #{endNum}) ADM_SELLER_PICK
+		WHERE
+			ADM_SELLER_PICK.RNUM &gt;= #{startNum}
+    </select>    
+    
+    <select id="selectSellerPickDetailList" parameterType="HashMap" resultType="HashMap">
+        /* SellerPick.selectSellerPickDetailList */
+        SELECT
+            TCD.CNT_GRP_IDX
+            , FN_PRODUCT_IMG(PM.PRD_MST_CD, #{IMG_THUMBNAIL_SIZE}) AS PRD_IMAGE
+            , (SELECT TBM.BND_MST_BRAND_NM FROM T_BND_MST TBM WHERE PM.PRD_MST_BRD_IDX = TBM.BND_MST_IDX) AS BND_MST_BRAND_NM 
+            , TCD.CNT_DTL_ORDER 
+            , TCD.CNT_PRD_MST_CD 
+            , PM.PRD_MST_NM
+            , PM.PRD_MST_SEL_STATE
+            , PM.PRD_MST_PRC
+            , PM.PRD_MST_DPL_STATE 
+        FROM 
+            T_CNT_DTL TCD, T_PRD_MST PM
+        WHERE
+            TCD.CNT_PRD_MST_CD = PM.PRD_MST_CD
+            AND CNT_MST_IDX = #{CNT_MST_IDX}
+        ORDER BY TCD.CNT_DTL_ORDER
+    </select>
+    
+    <!-- 슈퍼관리자 > 입점사 관리 > 셀러픽 노출 관리 > 셀러픽 수정 -->
+    <update id="updateSellerPick" parameterType="hashMap">
+        /* SellerPick.updateSellerPick */
+        UPDATE
+            T_CNT_MST
+        SET
+			CNT_MST_CHANNEL_PC_YN = NVL(#{CNT_MST_CHANNEL_PC_YN},'N'),
+            CNT_MST_CHANNEL_MOBILE_YN = NVL(#{CNT_MST_CHANNEL_MOBILE_YN},'N'),  
+            CNT_MST_TITLE = #{CNT_MST_TITLE},
+            CNT_MST_UPD_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+            CNT_MST_UPD_IP = #{CNT_MST_UPD_IP},
+            CNT_MST_UPD_ID = #{CNT_MST_UPD_ID},
+            CNT_MST_DESC = #{CNT_MST_DESC},
+            CNT_MST_PC_BANNER = #{CNT_MST_PC_BANNER:CLOB},
+            CNT_MST_MOBILE_BANNER = #{CNT_MST_MOBILE_BANNER:CLOB},
+            CNT_MST_TYPE = #{CNT_MST_TYPE},
+            CNT_MST_DETAIL_TYPE = #{CNT_MST_DETAIL_TYPE},
+            CNT_MST_PC_SCRIPT = #{CNT_MST_PC_SCRIPT:CLOB},
+            CNT_MST_MOBILE_SCRIPT = #{CNT_MST_MOBILE_SCRIPT:CLOB},
+            CNT_MST_URL = #{CNT_MST_URL},
+            CNT_MST_USE_YN = NVL(#{CNT_MST_USE_YN}, 'N')
+		WHERE
+			CNT_MST_IDX = #{CNT_MST_IDX}
+    </update>
+    
+    <!-- 슈퍼관리자 > 입점사 관리 > 셀러픽 노출 관리 > 셀러픽 상품구성 삭제 -->
+    <delete id="deleteProductDetail" parameterType="HashMap">
+        /* SellerPick.deleteProductDetail */
+        DELETE FROM T_CNT_DTL WHERE CNT_MST_IDX = #{CNT_MST_IDX}
+    </delete>
+    
+</mapper>

@@ -1,0 +1,268 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="CardEvent">
+    
+    <!-- 관리자 > 마케팅관리 > 기획전관리 조건절 -->
+    <sql id="cardWhere">
+        <if test="searchStartDate != null and searchStartDate != '' and searchEndDate != null and searchEndDate != ''">
+            <![CDATA[
+                AND CRD.CRD_PMT_ST_DT >= REPLACE(#{searchStartDate}, '-', '')
+                AND CRD.CRD_PMT_ED_DT < = REPLACE(#{searchEndDate}, '-', '')
+            ]]>
+        </if>
+        <if test="searchCrdPmtGbn != null and searchCrdPmtGbn != ''">
+            AND CRD.CRD_PMT_GBN = #{searchCrdPmtGbn}
+        </if>
+        <if test="searchCrdPmtNm != null and searchCrdPmtNm != ''">
+            AND CRD.CRD_PMT_NM LIKE '%' || #{searchCrdPmtNm} || '%'
+        </if>
+        <if test="searchCrdPmtUseYn != null and searchCrdPmtUseYn != ''">
+            AND CRD.CRD_PMT_USE_YN = #{searchCrdPmtUseYn}        
+        </if>         
+    </sql>
+    
+    <!-- 관리자 > 마케팅관리 > 카드행사관리 목록 갯수 -->
+    <select id="selectCardEventListCount" parameterType="HashMap" resultType="Integer">
+        /* CardEvent.selectCardEventListCount */
+        SELECT
+            COUNT(CRD.CRD_PMT_IDX)
+        FROM
+            T_CRD_PMT CRD             
+        WHERE
+            1 = 1 
+            <include refid="cardWhere"/> 
+    </select>
+     
+    <!-- 관리자 > 마케팅관리 > 기획전관리 목록 -->
+    <select id="selectCardEventList" parameterType="HashMap" resultType="HashMap">
+        /*CardEvent.selectCardEventList*/
+        SELECT
+            S2.*            
+        FROM
+            (   SELECT
+                    ROWNUM AS RNUM,
+                    S1.* 
+                FROM
+                    (   SELECT
+                            CRD.CRD_PMT_IDX,                
+                            (SELECT CMN_COM_NM FROM T_CMM_COM WHERE CMN_COM_IDX =  CRD.CRD_PMT_GBN) AS CRD_PMT_GBN_NM,
+                            CRD.CRD_PMT_GBN,
+                            CRD.CRD_PMT_NM,
+                            CRD.CRD_PMT_ST_DT,
+                            CRD.CRD_PMT_ST_HH,
+                            CRD.CRD_PMT_ST_MM,
+                            CRD.CRD_PMT_ED_DT,
+                            CRD.CRD_PMT_ED_HH,
+                            CRD.CRD_PMT_ED_MM,
+                            CRD.CRD_PMT_USE_YN,
+                            CRD.CRD_PMT_REG_DT,
+                            CRD.CRD_PMT_REG_ID,
+                            (SELECT ADM_MST_NM FROM T_ADM_MST WHERE ADM_MST_ID = CRD.CRD_PMT_REG_ID) AS CRD_PMT_REG_NM
+                        FROM
+                            T_CRD_PMT CRD                             
+                        WHERE
+                            1 = 1
+                            <include refid="cardWhere"/>
+                        ORDER BY CRD.CRD_PMT_REG_DT DESC 
+                    )
+                    S1 
+            )
+            S2 
+        WHERE
+            S2.RNUM BETWEEN #{startNum} AND #{endNum}
+    </select>
+    
+    
+    <select id="selectCardEventInfo" parameterType="HashMap" resultType="HashMap">
+        /* CardEvent.selectCardEventInfo */
+        SELECT
+            (   SELECT
+                    ADM_MST_NM
+                FROM
+                    T_ADM_MST
+                WHERE
+                    ADM_MST_ID = CRD.CRD_PMT_REG_ID
+            )
+            AS CRD_PMT_REG_NM,
+            CRD.CRD_PMT_IDX,
+            CRD.CRD_PMT_GBN,
+            CRD.CRD_PMT_NM,
+            CRD.CRD_PMT_ST_DT,
+            CRD.CRD_PMT_ED_DT,
+            CRD.CRD_PMT_ST_HH,
+            CRD.CRD_PMT_ED_HH,
+            CRD.CRD_PMT_ST_MM,
+            CRD.CRD_PMT_ED_MM,
+            CRD.CRD_PMT_USE_YN,
+            CRD.CRD_PMT_REG_DT,
+            CRD.CRD_PMT_REG_IP,
+            CRD.CRD_PMT_REG_ID,
+            CRD.CRD_PMT_UPD_DT,
+            CRD.CRD_PMT_UPD_IP,
+            CRD.CRD_PMT_UPD_ID
+        FROM
+            T_CRD_PMT CRD
+        WHERE
+            CRD.CRD_PMT_IDX = #{CRD_PMT_IDX}
+    </select>
+    
+    <!-- 관리자 > 마케팅관리 > 카드행사관리 상세정보 > 카드구성 목록 -->
+    <select id="selectCardEventDetailList" parameterType="HashMap" resultType="HashMap">
+    	/* CardEvent.selectCardEventDetailList */
+        SELECT
+        	  PMT_CRD_IDX 
+            , PMT_CRD_SAL_GBN
+            , PMT_CRD_SAL_PRC
+            , PMT_CRD_SML_PRC
+            , PMT_CRD_MXM_PRC
+            , PMT_CRD_DPL_YN
+            , PMT_CRD_ETC
+        FROM 
+            T_PMT_CRD 
+        WHERE PMT_CRD_PMT_IDX = #{CRD_PMT_IDX}
+    </select>
+    
+    <!-- 관리자 > 마케팅관리 > 카드행사관리 상세정보 > 상품구성 목록 -->
+    <select id="selectCardEventProductList" parameterType="HashMap" resultType="HashMap">
+    	/* CardEvent.selectCardEventProductList */
+        SELECT PMT.PMT_PRD_IDX,
+			   PMT.PMT_PRD_MST_CD,
+			   PR.PRD_MST_NM, 
+			   PR.PRD_MST_PRC
+		FROM T_PMT_PRD PMT, T_PRD_MST PR
+		WHERE PMT.PMT_PRD_MST_CD = PR.PRD_MST_CD
+		AND PMT.PMT_CRD_PMT_IDX = #{CRD_PMT_IDX}
+    </select>
+    
+    <!-- 관리자 > 마케팅관리 > 기획전관리 등록 -->
+    <insert id="insertCardEvent" parameterType="HashMap">
+        <selectKey keyProperty="CRD_PMT_IDX" resultType="Integer" order="BEFORE">
+            SELECT SEQ_CRD_PMT_IDX.NEXTVAL AS CRD_PMT_IDX FROM DUAL
+        </selectKey>
+        /* CardEvent.insertCardEvent */
+        INSERT INTO
+            T_CRD_PMT
+            (
+                CRD_PMT_IDX,                                
+                CRD_PMT_GBN,
+                CRD_PMT_NM,
+                CRD_PMT_ST_DT,
+                CRD_PMT_ED_DT,
+                CRD_PMT_ST_HH,
+                CRD_PMT_ED_HH,
+                CRD_PMT_ST_MM,
+                CRD_PMT_ED_MM,
+                CRD_PMT_USE_YN,
+                CRD_PMT_REG_DT,
+                CRD_PMT_REG_IP,
+                CRD_PMT_REG_ID
+            )
+        VALUES
+            (
+                #{CRD_PMT_IDX},
+                #{CRD_PMT_GBN},               
+                #{CRD_PMT_NM},
+                REPLACE(#{CRD_PMT_ST_DT}, '-', ''),
+                REPLACE(#{CRD_PMT_ED_DT}, '-', ''),
+                #{CRD_PMT_ST_HH},
+                #{CRD_PMT_ED_HH},
+                #{CRD_PMT_ST_MM},
+                #{CRD_PMT_ED_MM},
+                NVL(#{CRD_PMT_USE_YN}, 'N'),
+                TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+                #{CRD_PMT_REG_IP},
+                #{CRD_PMT_REG_ID}
+            )
+    </insert>
+    
+    <!-- 관리자 > 마케팅관리 > 기획전관리 수정 -->
+    <update id="updateCardEvent" parameterType="HashMap">
+        /* CardEvent.updateCardEvent */
+        UPDATE
+            T_CRD_PMT 
+        SET CRD_PMT_NM = #{CRD_PMT_NM},
+            CRD_PMT_ST_DT = REPLACE(#{CRD_PMT_ST_DT}, '-', ''),
+            CRD_PMT_ED_DT = REPLACE(#{CRD_PMT_ED_DT}, '-', ''),
+            CRD_PMT_ST_HH = #{CRD_PMT_ST_HH},
+            CRD_PMT_ED_HH = #{CRD_PMT_ED_HH},
+            CRD_PMT_ST_MM = #{CRD_PMT_ST_MM},
+            CRD_PMT_ED_MM = #{CRD_PMT_ED_MM},
+            CRD_PMT_USE_YN = NVL(#{CRD_PMT_USE_YN}, 'N'),
+            CRD_PMT_UPD_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+            CRD_PMT_UPD_IP = #{CRD_PMT_UPD_IP},
+            CRD_PMT_UPD_ID = #{CRD_PMT_UPD_ID}
+        WHERE
+            CRD_PMT_IDX = #{CRD_PMT_IDX}
+    </update>
+    
+    <!-- 관리자 > 마케팅관리 > 카드행사관리 카드구성 등록 -->
+    <insert id="insertCardEventDetail" parameterType="HashMap">
+        /* CardEvent.insertCardEventDetail */
+        INSERT INTO
+            T_PMT_CRD
+            (
+                PMT_CRD_IDX,
+                PMT_CRD_PMT_IDX,   
+                PMT_CRD_SAL_GBN,
+                PMT_CRD_SAL_PRC,
+                PMT_CRD_SML_PRC,
+                PMT_CRD_MXM_PRC,
+                PMT_CRD_DPL_YN,
+                PMT_CRD_ETC
+            )
+        VALUES
+            (
+            	#{PMT_CRD_IDX},
+                #{PMT_CRD_PMT_IDX},
+                #{PMT_CRD_SAL_GBN},             
+                REPLACE(NVL(#{PMT_CRD_SAL_PRC},0),',',''),   
+                REPLACE(NVL(#{PMT_CRD_SML_PRC},0),',',''),
+                REPLACE(NVL(#{PMT_CRD_MXM_PRC},0),',',''),
+                NVL(#{PMT_CRD_DPL_YN},'Y'),
+                #{PMT_CRD_ETC}
+            )
+    </insert>
+    
+    <!-- 관리자 > 마케팅관리 > 카드행사관리 상품구성 등록 -->
+    <insert id="insertCardEventProduct" parameterType="HashMap">
+        /* CardEvent.insertCardEventDetail */
+        INSERT INTO
+            T_PMT_PRD
+            (
+                PMT_PRD_IDX,
+                PMT_CRD_PMT_IDX,   
+                PMT_PRD_MST_CD
+            )
+        VALUES
+            (
+            	SEQ_PMT_PRD_IDX.nextval,
+                #{PMT_CRD_PMT_IDX},
+                #{PMT_PRD_MST_CD}
+            )
+    </insert>
+    
+    <!-- 관리자 > 마케팅관리 > 카드행사관리 카드사구성 삭제 -->
+    <delete id="deleteCardEventDetail" parameterType="HashMap">
+        /* CardEvent.deleteCardEventDetail */
+        DELETE FROM T_PMT_CRD WHERE PMT_CRD_PMT_IDX = #{CRD_PMT_IDX}
+    </delete>
+    
+    <!-- 관리자 > 마케팅관리 > 카드행사관리 상품구성 삭제 -->
+    <delete id="deleteCardEventProduct" parameterType="HashMap">
+        /* CardEvent.deleteCardEventProduct */
+        DELETE FROM T_PMT_PRD WHERE PMT_CRD_PMT_IDX = #{CRD_PMT_IDX}
+    </delete>
+ 
+    <select id="selectCardCodeList" parameterType="String" resultType="HashMap">
+        /* CardEvent.selectCardCodeList */
+        SELECT
+            CRD_INF_IDX AS CMN_COM_IDX,
+            CRD_INF_NM AS CMN_COM_NM
+        FROM
+            T_CRD_INF
+        ORDER BY CRD_INF_IDX
+    </select>
+    
+    
+</mapper>

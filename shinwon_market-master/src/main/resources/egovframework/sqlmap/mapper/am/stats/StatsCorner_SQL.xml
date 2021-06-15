@@ -1,0 +1,381 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="StatsCorner">
+
+    <!-- 회원 검색 조건 -->
+    <sql id="deliveryWhere">
+        <if test="searchCornerCd != null and searchCornerCd != ''">
+            AND OE.ORD_EDI_DLV_CORNER_CD = #{searchCornerCd}
+        </if>
+
+        <if test="searchCornerInfo != null and searchCornerInfo != '' and searchCornerInfoType != null and searchCornerInfoType != ''">
+            <if test="searchCornerInfoType.equals('CD'.toString())">
+                AND SM.CORNER_CD LIKE '%'||#{searchCornerInfo}||'%'
+            </if>
+            <if test="searchCornerInfoType.equals('NM'.toString())">
+                AND SM.CORNER_NM LIKE '%'||#{searchCornerInfo}||'%'
+            </if>
+            <if test="searchCornerInfoType.equals('PHONE'.toString())">
+                AND SM.PHONE_NO1 LIKE '%'||#{searchCornerInfo}
+            </if>
+        </if>
+    </sql>
+
+    <!-- 통계 > 매장별통계 매장별 배송완료/거부통계 -->
+    <select id="selectCornerStatsDelivery" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+        /* StatsCorner.selectCornerStatsDelivery */
+        SELECT
+            DLV_TYPE,
+            CORNER_CD,
+                MAX(CASE WHEN BRAND_CD = 'P' THEN 1
+                     WHEN BRAND_CD = 'S' THEN 2
+                     WHEN BRAND_CD = 'J' THEN 3
+                     WHEN BRAND_CD = 'M' THEN 4
+                     WHEN BRAND_CD = 'B' THEN 5
+                     ELSE 9 END) as SORT, 
+            MAX(BRAND_CD) AS BRAND_CD,
+            MAX(CORNER_NM) AS CORNER_NM,
+            MAX(TRADE_TYPE_NM) AS TRADE_TYPE_NM,
+            SUM(DLV_CNT) AS DLV_CNT,
+            SUM(CHG_CNT) AS CHG_CNT,
+            SUM(BCK_CNT) AS BCK_CNT,
+            SUM(DLV_CNT) - SUM(CHG_CNT) - SUM(BCK_CNT) AS TOT_CNT,
+            SUM(RJT_CNT) AS RJT_CNT,
+            SUM(SALE_PRICE) AS SALE_PRICE
+        FROM (
+            /* 배송완료 */
+            SELECT
+                OE.ORD_EDI_DLV_TYPE AS DLV_TYPE,
+                OE.ORD_EDI_DLV_CORNER_CD AS CORNER_CD,
+                MAX(SM.TG_BRAND) AS BRAND_CD,
+                MAX(SM.CORNER_NM) AS CORNER_NM,
+                MAX(SM.TRADE_TYPE_NM) AS TRADE_TYPE_NM,
+                COUNT(DISTINCT OE.ORD_EDI_ORD_NO) AS DLV_CNT,
+                0 AS CHG_CNT,
+                0 AS BCK_CNT,
+                0 AS RJT_CNT,
+                SUM(OP.ORD_PRD_ORD_PRC) AS SALE_PRICE
+            FROM
+                (SELECT 
+                    ORD_ORD_PRD_IDX, 
+                    MIN(ORD_PRD_REG_DT) AS ORD_PRD_REG_DT 
+                FROM 
+                    T_ORD_PRD_HIS 
+                WHERE 1=1
+                AND ORD_PRD_REG_DT BETWEEN REPLACE(#{searchStartDate},'-','')||'000000' AND REPLACE(#{searchEndDate},'-','')||'235959'
+                AND ORD_PRD_ORD_STATE = #{OST_SEND_END}
+                GROUP BY ORD_ORD_PRD_IDX
+                ) OPH,  
+                T_ORD_PRD OP, T_ORD_EDI OE, T_PRD_MST PM, T_STR_MST SM
+            WHERE 1=1
+            AND OPH.ORD_PRD_REG_DT BETWEEN REPLACE(#{searchStartDate},'-','')||'000000' AND REPLACE(#{searchEndDate},'-','')||'235959'
+            AND OPH.ORD_ORD_PRD_IDX = OP.ORD_PRD_IDX
+            AND OP.ORD_ORD_EDI_ORD_NO = OE.ORD_EDI_ORD_NO
+            AND OP.ORD_PRD_MST_CD = PM.PRD_MST_CD
+            AND OE.ORD_EDI_DLV_CORNER_CD = SM.CORNER_CD
+            <include refid="deliveryWhere"/>
+            GROUP BY
+                OE.ORD_EDI_DLV_TYPE,
+                OE.ORD_EDI_DLV_CORNER_CD
+            UNION ALL
+            /* 교환완료 */
+            SELECT
+                OE.ORD_EDI_DLV_TYPE AS DLV_TYPE,
+                OE.ORD_EDI_DLV_CORNER_CD AS CORNER_CD,
+                MAX(SM.TG_BRAND) AS BRAND_CD,
+                MAX(SM.CORNER_NM) AS CORNER_NM,
+                MAX(SM.TRADE_TYPE_NM) AS TRADE_TYPE_NM,
+                0 AS DLV_CNT,
+                COUNT(DISTINCT OE.ORD_EDI_ORD_NO) AS CHG_CNT,
+                0 AS BCK_CNT,
+                0 AS RJT_CNT,
+                SUM(OP.ORD_PRD_ORD_PRC * -1) AS SALE_PRICE
+            FROM
+                (SELECT 
+                    ORD_ORD_PRD_IDX, 
+                    MIN(ORD_PRD_REG_DT) AS ORD_PRD_REG_DT 
+                FROM 
+                    T_ORD_PRD_HIS 
+                WHERE 1=1
+                AND ORD_PRD_REG_DT BETWEEN REPLACE(#{searchStartDate},'-','')||'000000' AND REPLACE(#{searchEndDate},'-','')||'235959'
+                AND ORD_PRD_ORD_STATE IN(#{OST_SWAP_END})
+                GROUP BY ORD_ORD_PRD_IDX
+                ) OPH,  
+                T_ORD_PRD OP, T_ORD_EDI OE, T_PRD_MST PM, T_STR_MST SM
+            WHERE 1=1
+            AND OPH.ORD_PRD_REG_DT BETWEEN REPLACE(#{searchStartDate},'-','')||'000000' AND REPLACE(#{searchEndDate},'-','')||'235959'
+            AND OPH.ORD_ORD_PRD_IDX = OP.ORD_PRD_IDX
+            AND OP.ORD_ORD_EDI_ORD_NO = OE.ORD_EDI_ORD_NO
+            AND OP.ORD_PRD_MST_CD = PM.PRD_MST_CD
+            AND OE.ORD_EDI_DLV_CORNER_CD = SM.CORNER_CD
+            <include refid="deliveryWhere"/>
+            GROUP BY
+                OE.ORD_EDI_DLV_TYPE,
+                OE.ORD_EDI_DLV_CORNER_CD
+            UNION ALL
+            /* 반품완료 */
+            SELECT
+                OE.ORD_EDI_DLV_TYPE AS DLV_TYPE,
+                OE.ORD_EDI_DLV_CORNER_CD AS CORNER_CD,
+                MAX(SM.TG_BRAND) AS BRAND_CD,
+                MAX(SM.CORNER_NM) AS CORNER_NM,
+                MAX(SM.TRADE_TYPE_NM) AS TRADE_TYPE_NM,
+                0 AS DLV_CNT,
+                0 AS CHG_CNT,
+                COUNT(DISTINCT OE.ORD_EDI_ORD_NO) AS BCK_CNT,
+                0 AS RJT_CNT,
+                SUM(OP.ORD_PRD_ORD_PRC * -1) AS SALE_PRICE
+            FROM
+                (SELECT 
+                    ORD_ORD_PRD_IDX, 
+                    MIN(ORD_PRD_REG_DT) AS ORD_PRD_REG_DT 
+                FROM 
+                    T_ORD_PRD_HIS 
+                WHERE 1=1
+                AND ORD_PRD_REG_DT BETWEEN REPLACE(#{searchStartDate},'-','')||'000000' AND REPLACE(#{searchEndDate},'-','')||'235959'
+                AND ORD_PRD_ORD_STATE IN(#{OST_BACK_END})
+                GROUP BY ORD_ORD_PRD_IDX
+                ) OPH,  
+                T_ORD_PRD OP, T_ORD_EDI OE, T_PRD_MST PM, T_STR_MST SM
+            WHERE 1=1
+            AND OPH.ORD_PRD_REG_DT BETWEEN REPLACE(#{searchStartDate},'-','')||'000000' AND REPLACE(#{searchEndDate},'-','')||'235959'
+            AND OPH.ORD_ORD_PRD_IDX = OP.ORD_PRD_IDX
+            AND OP.ORD_ORD_EDI_ORD_NO = OE.ORD_EDI_ORD_NO
+            AND OP.ORD_PRD_MST_CD = PM.PRD_MST_CD
+            AND OE.ORD_EDI_DLV_CORNER_CD = SM.CORNER_CD
+            <include refid="deliveryWhere"/>
+            GROUP BY
+                OE.ORD_EDI_DLV_TYPE,
+                OE.ORD_EDI_DLV_CORNER_CD
+            UNION ALL
+            /* 배송거부 */
+            SELECT
+                OE.ORD_EDI_DLV_TYPE AS DLV_TYPE,
+                OE.ORD_EDI_DLV_CORNER_CD AS CORNER_CD,
+                MAX(SM.TG_BRAND) AS BRAND_CD,
+                MAX(SM.CORNER_NM) AS CORNER_NM,
+                MAX(SM.TRADE_TYPE_NM) AS TRADE_TYPE_NM,
+                0 AS DLV_CNT,
+                0 AS CHG_CNT,
+                0 AS BCK_CNT,
+                COUNT(DISTINCT OE.ORD_EDI_ORD_NO) AS RJT_CNT,
+                0 AS SALE_PRICE
+            FROM
+                T_ORD_EDI_HISTORY01 OE, T_ORD_PRD OP, T_PRD_MST PM, T_STR_MST SM
+            WHERE
+                OE.ORD_EDI_REGI_DATE BETWEEN REPLACE(#{searchStartDate},'-','')||'000000' AND REPLACE(#{searchEndDate},'-','')||'235959'
+            AND OE.ORD_EDI_DLV_TRANS_YN = 'N'
+            AND OE.ORD_EDI_ORD_NO = OP.ORD_ORD_EDI_ORD_NO
+            AND OP.ORD_PRD_MST_CD = PM.PRD_MST_CD
+            AND OE.ORD_EDI_DLV_CORNER_CD = SM.CORNER_CD
+            <include refid="deliveryWhere"/>
+            GROUP BY
+                OE.ORD_EDI_DLV_TYPE,
+                OE.ORD_EDI_DLV_CORNER_CD
+            )
+        GROUP BY
+            DLV_TYPE, CORNER_CD
+        ORDER BY
+            DLV_TYPE DESC, SORT, CORNER_NM
+    </select>
+
+    <!-- 통계 > 매장별통계 매장별 배송완료/거부 History -->
+    <select id="selectCornerStatsDeliveryHistory" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+        /* StatsCorner.selectCornerStatsDeliveryHistory */
+        SELECT
+            A.ORD_ORD_MST_CD,
+            A.ORD_EDI_ORD_NO,
+            A.ORD_EDI_SALE_BILL_NO,
+            A.ORD_EDI_DLV_TYPE,
+            A.ORD_EDI_DLV_CORNER_CD,
+            PO.PRD_OPT_ERP_PROD_CD,
+            PM.PRD_MST_NM,
+            OP.ORD_PRD_ORD_CNT,
+            A.ORD_EDI_DLV_TRANS_YN,
+            DECODE(A.ORD_EDI_DLV_TRANS_YN,'N','거부','접수완료') AS DLV_TRANS_NM,
+            (
+            SELECT
+                B.ORD_EDI_REGI_DATE
+            FROM
+                T_ORD_EDI_HISTORY01 B
+            WHERE 1=1
+            AND B.ORD_EDI_DLV_TRANS_YN IS NULL
+            AND B.ORD_ORD_MST_CD = A.ORD_ORD_MST_CD
+            AND B.ORD_EDI_ORD_NO = A.ORD_EDI_ORD_NO
+            AND B.ORD_EDI_SALE_BILL_NO = A.ORD_EDI_SALE_BILL_NO
+            AND B.ORD_EDI_DLV_TYPE = A.ORD_EDI_DLV_TYPE
+            AND B.ORD_EDI_DLV_CORNER_CD = A.ORD_EDI_DLV_CORNER_CD
+            ) AS REQ_DATE,
+            DECODE(A.ORD_EDI_DLV_TRANS_YN,'N',
+                A.RJT_DATE,
+                (
+                SELECT
+                    C.ORD_EDI_REGI_DATE
+                FROM
+                    T_ORD_EDI_HISTORY01 C
+                WHERE 1=1
+                AND C.ORD_EDI_DLV_TRANS_YN = 'Y'
+                AND C.ORD_EDI_INVOICE_NO IS NULL
+                AND C.ORD_ORD_MST_CD = A.ORD_ORD_MST_CD
+                AND C.ORD_EDI_ORD_NO = A.ORD_EDI_ORD_NO
+                AND C.ORD_EDI_SALE_BILL_NO = A.ORD_EDI_SALE_BILL_NO
+                AND C.ORD_EDI_DLV_TYPE = A.ORD_EDI_DLV_TYPE
+                AND C.ORD_EDI_DLV_CORNER_CD = A.ORD_EDI_DLV_CORNER_CD
+                )
+                ) AS RCV_DATE,
+            A.INVOICE_DATE,
+            DECODE(A.ORD_EDI_INVOICE_NO,NULL,
+                0,
+                (
+                SELECT
+                    SUM(ORD_PRD_ORD_PRC)
+                FROM
+                    T_ORD_PRD
+                WHERE 1=1
+                AND ORD_ORD_EDI_ORD_NO = ORD_EDI_ORD_NO
+                )
+                ) AS SALE_PRICE
+        FROM (
+            SELECT
+                OE.ORD_ORD_MST_CD,
+                OE.ORD_EDI_ORD_NO,
+                OE.ORD_EDI_SALE_BILL_NO,
+                OE.ORD_EDI_DLV_TYPE,
+                OE.ORD_EDI_DLV_CORNER_CD,
+                OE.ORD_EDI_DLV_TRANS_YN,
+                DECODE(OE.ORD_EDI_DLV_TRANS_YN,'N',OE.ORD_EDI_REGI_DATE,'') AS RJT_DATE,
+                OE.ORD_EDI_INVOICE_NO,
+                DECODE(OE.ORD_EDI_INVOICE_NO,NULL,'',OE.ORD_EDI_REGI_DATE) AS INVOICE_DATE
+            FROM
+                T_ORD_EDI_HISTORY01 OE
+            WHERE
+                OE.ORD_EDI_REGI_DATE BETWEEN REPLACE(#{searchStartDate},'-','')||'000000' AND REPLACE(#{searchEndDate},'-','')||'235959'
+            AND OE.ORD_EDI_DLV_CORNER_CD = #{searchCornerCd}
+            AND (
+                OE.ORD_EDI_DLV_TRANS_YN = 'N' 
+             OR OE.ORD_EDI_INVOICE_NO IS NOT NULL
+                )
+            ) A,
+            T_ORD_PRD OP, T_PRD_MST PM, T_PRD_OPT PO
+        WHERE 1=1
+        AND A.ORD_EDI_ORD_NO = OP.ORD_ORD_EDI_ORD_NO
+        AND OP.ORD_PRD_MST_CD = PM.PRD_MST_CD
+        AND OP.ORD_PRD_OPT_IDX = PO.PRD_OPT_IDX
+        ORDER BY
+            REQ_DATE DESC
+    </select>
+
+    <!-- 통계 > 매장별통계 매장별 배송완료 목록 -->
+    <select id="selectCornerStatsSendEndList" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+        /* StatsCorner.selectCornerStatsSendEndList */
+        SELECT
+            OE.ORD_EDI_DLV_CORNER_CD AS CORNER_CD,
+            OE.ORD_EDI_ORD_NO,
+            OE.ORD_ORD_MST_CD,
+            PO.PRD_OPT_ERP_PROD_CD,
+            PM.PRD_MST_NM,
+            OP.ORD_PRD_ORD_CNT,
+            OE.ORD_EDI_DLV_POS_SEND_DT as REQ_DATE,
+            OE.ORD_EDI_INVOICE_NO,
+            OE.ORD_EDI_INVOICE_DT as INVOICE_DATE,
+            OPH.ORD_PRD_REG_DT as SEND_END_DATE,
+            OP.ORD_PRD_ORD_PRC AS SALE_PRICE
+        FROM
+            (SELECT 
+                ORD_ORD_PRD_IDX, 
+                MIN(ORD_PRD_REG_DT) AS ORD_PRD_REG_DT 
+            FROM 
+                T_ORD_PRD_HIS 
+            WHERE 1=1
+            AND ORD_PRD_REG_DT BETWEEN REPLACE(#{searchStartDate},'-','')||'000000' AND REPLACE(#{searchEndDate},'-','')||'235959'
+            AND ORD_PRD_ORD_STATE = #{OST_SEND_END}
+            GROUP BY ORD_ORD_PRD_IDX
+            ) OPH,  
+         T_ORD_PRD OP, T_ORD_EDI OE, T_PRD_MST PM, T_PRD_OPT PO, T_STR_MST SM
+        WHERE 1=1
+        AND OPH.ORD_PRD_REG_DT BETWEEN REPLACE(#{searchStartDate},'-','')||'000000' AND REPLACE(#{searchEndDate},'-','')||'235959'
+        AND OPH.ORD_ORD_PRD_IDX = OP.ORD_PRD_IDX
+        AND OP.ORD_ORD_EDI_ORD_NO = OE.ORD_EDI_ORD_NO
+        AND OP.ORD_PRD_MST_CD = PM.PRD_MST_CD
+        AND OP.ORD_PRD_OPT_IDX = PO.PRD_OPT_IDX
+        AND OE.ORD_EDI_DLV_CORNER_CD = SM.CORNER_CD
+        <include refid="deliveryWhere"/>
+        ORDER BY ORD_EDI_ORD_NO
+    </select>
+
+    <!-- 통계 > 매장별통계 매장별 교환완료 목록 -->
+    <select id="selectCornerStatsSwapEndList" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+        /* StatsCorner.selectCornerStatsSwapEndList */
+        SELECT
+            OE.ORD_EDI_DLV_CORNER_CD AS CORNER_CD,
+            OE.ORD_EDI_ORD_NO,
+            OE.ORD_ORD_MST_CD,
+            PO.PRD_OPT_ERP_PROD_CD,
+            PM.PRD_MST_NM,
+            OP.ORD_PRD_ORD_CNT,
+            OE.ORD_EDI_DLV_POS_SEND_DT as REQ_DATE,
+            OE.ORD_EDI_INVOICE_NO,
+            OE.ORD_EDI_INVOICE_DT as INVOICE_DATE,
+            OPH.ORD_PRD_REG_DT as SEND_END_DATE,
+            OP.ORD_PRD_ORD_PRC AS SALE_PRICE
+        FROM
+            (SELECT 
+                ORD_ORD_PRD_IDX, 
+                MIN(ORD_PRD_REG_DT) AS ORD_PRD_REG_DT 
+            FROM 
+                T_ORD_PRD_HIS 
+            WHERE 1=1
+            AND ORD_PRD_REG_DT BETWEEN REPLACE(#{searchStartDate},'-','')||'000000' AND REPLACE(#{searchEndDate},'-','')||'235959'
+            AND ORD_PRD_ORD_STATE IN(#{OST_SWAP_END})
+            GROUP BY ORD_ORD_PRD_IDX
+            ) OPH,  
+         T_ORD_PRD OP, T_ORD_EDI OE, T_PRD_MST PM, T_PRD_OPT PO, T_STR_MST SM
+        WHERE 1=1
+        AND OPH.ORD_PRD_REG_DT BETWEEN REPLACE(#{searchStartDate},'-','')||'000000' AND REPLACE(#{searchEndDate,'-','')||'235959'
+        AND OPH.ORD_ORD_PRD_IDX = OP.ORD_PRD_IDX
+        AND OP.ORD_ORD_EDI_ORD_NO = OE.ORD_EDI_ORD_NO
+        AND OP.ORD_PRD_MST_CD = PM.PRD_MST_CD
+        AND OP.ORD_PRD_OPT_IDX = PO.PRD_OPT_IDX
+        AND OE.ORD_EDI_DLV_CORNER_CD = SM.CORNER_CD
+        <include refid="deliveryWhere"/>
+        ORDER BY ORD_EDI_ORD_NO
+    </select>
+
+    <!-- 통계 > 매장별통계 매장별 반품완료 목록 -->
+    <select id="selectCornerStatsBackEndList" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+        /* StatsCorner.selectCornerStatsBackEndList */
+        SELECT
+            OE.ORD_EDI_DLV_CORNER_CD AS CORNER_CD,
+            OE.ORD_EDI_ORD_NO,
+            OE.ORD_ORD_MST_CD,
+            PO.PRD_OPT_ERP_PROD_CD,
+            PM.PRD_MST_NM,
+            OP.ORD_PRD_ORD_CNT,
+            OE.ORD_EDI_DLV_POS_SEND_DT as REQ_DATE,
+            OE.ORD_EDI_INVOICE_NO,
+            OE.ORD_EDI_INVOICE_DT as INVOICE_DATE,
+            OPH.ORD_PRD_REG_DT as SEND_END_DATE,
+            OP.ORD_PRD_ORD_PRC AS SALE_PRICE
+        FROM
+            (SELECT 
+                ORD_ORD_PRD_IDX, 
+                MIN(ORD_PRD_REG_DT) AS ORD_PRD_REG_DT 
+            FROM 
+                T_ORD_PRD_HIS 
+            WHERE 1=1
+            AND ORD_PRD_REG_DT BETWEEN REPLACE(#{searchStartDate},'-','')||'000000' AND REPLACE(#{searchEndDate},'-','')||'235959'
+            AND ORD_PRD_ORD_STATE IN(#{OST_BACK_END})
+            GROUP BY ORD_ORD_PRD_IDX
+            ) OPH,  
+         T_ORD_PRD OP, T_ORD_EDI OE, T_PRD_MST PM, T_PRD_OPT PO, T_STR_MST SM
+        WHERE 1=1
+        AND OPH.ORD_PRD_REG_DT BETWEEN REPLACE(#{searchStartDate},'-','')||'000000' AND REPLACE(#{searchEndDate},'-','')||'235959'
+        AND OPH.ORD_ORD_PRD_IDX = OP.ORD_PRD_IDX
+        AND OP.ORD_ORD_EDI_ORD_NO = OE.ORD_EDI_ORD_NO
+        AND OP.ORD_PRD_MST_CD = PM.PRD_MST_CD
+        AND OP.ORD_PRD_OPT_IDX = PO.PRD_OPT_IDX
+        AND OE.ORD_EDI_DLV_CORNER_CD = SM.CORNER_CD
+        <include refid="deliveryWhere"/>
+        ORDER BY ORD_EDI_ORD_NO
+    </select>
+</mapper>

@@ -1,0 +1,233 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="Contents">
+
+    <select id="createContentIdx" resultType="HashMap">
+        SELECT SEQ_CNT_MST_IDX.NEXTVAL AS CNT_MST_IDX FROM DUAL
+    </select>    
+    
+    <insert id="insertContent" parameterType="HashMap">
+        /* Contents.insertContent */
+        INSERT INTO
+            T_CNT_MST
+            (
+                CNT_MST_IDX,                                
+                CNT_MST_CHANNEL_PC_YN,
+                CNT_MST_CHANNEL_MOBILE_YN,
+                CNT_MST_TITLE,
+                CNT_MST_ST_DT,
+                CNT_MST_ED_DT,
+                CNT_MST_ST_HH,
+                CNT_MST_ED_HH,
+                CNT_MST_ST_MI,
+                CNT_MST_ED_MI,
+                CNT_MST_USE_YN,
+                CNT_MST_REG_DT,
+                CNT_MST_REG_IP,
+                CNT_MST_REG_ID,
+                CNT_MST_PC_BANNER,
+            	CNT_MST_MOBILE_BANNER,
+            	CNT_MST_TYPE,
+                CNT_MST_DETAIL_TYPE,
+                CNT_MST_PC_SCRIPT,
+                CNT_MST_MOBILE_SCRIPT,
+                CNT_MST_URL,
+                CNT_MST_DESC,
+                CNT_MST_SEASON,
+                PRD_CTG_IDX ,
+                VDR_MST_IDX
+            )
+        VALUES
+            (
+                #{CNT_MST_IDX},
+                #{CNT_MST_CHANNEL_PC_YN},
+                #{CNT_MST_CHANNEL_MOBILE_YN},               
+                #{CNT_MST_TITLE},
+                REPLACE(#{CNT_MST_ST_DT}, '-', ''),
+                REPLACE(#{CNT_MST_ED_DT}, '-', ''),
+                #{CNT_MST_ST_HH},
+                #{CNT_MST_ED_HH},
+                #{CNT_MST_ST_MI},
+                #{CNT_MST_ED_MI},
+                NVL(#{CNT_MST_USE_YN}, 'Y'),
+                TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+                #{CNT_MST_REG_IP},
+                #{CNT_MST_REG_ID},
+                #{CNT_MST_PC_BANNER:CLOB},
+           		#{CNT_MST_MOBILE_BANNER:CLOB},
+           		#{CNT_MST_TYPE},
+                #{CNT_MST_DETAIL_TYPE},
+                #{CNT_MST_PC_SCRIPT:CLOB},
+                #{CNT_MST_MOBILE_SCRIPT:CLOB},
+                #{CNT_MST_URL},
+                #{CNT_MST_DESC},
+                #{CNT_MST_SEASON},
+                #{PRD_CTG_IDX} ,
+                #{VDR_MST_IDX}
+            )
+    </insert>
+    
+    <!-- 컨텐츠 상품구성 그룹 등록 -->
+    <insert id="insertContentDetailGroup" parameterType="HashMap">
+        <selectKey keyProperty="CNT_GRP_IDX" resultType="Integer" order="BEFORE">
+            SELECT SEQ_CNT_GRP_IDX.NEXTVAL AS CNT_GRP_IDX FROM DUAL
+        </selectKey>
+        /* Contents.insertContentDetailGroup */
+        INSERT INTO
+            T_CNT_GRP
+            (
+                CNT_GRP_IDX,
+                CNT_MST_IDX,
+                CNT_GRP_TITLE,
+                CNT_GRP_COL,
+                CNT_GRP_SORT,
+                CNT_GRP_TYPE
+            )
+        VALUES
+            (
+                #{CNT_GRP_IDX},
+                #{CNT_MST_IDX},
+                #{CNT_GRP_TITLE},
+                #{CNT_GRP_COL},
+                #{CNT_GRP_SORT},
+                #{CNT_GRP_TYPE}
+            )
+    </insert>
+    
+    <!-- 컨텐츠 상품구성 등록 -->
+    <insert id="insertContentDetail" parameterType="HashMap">
+        /* Contents.insertContentDetail */
+        INSERT INTO
+            T_CNT_DTL
+            (
+                CNT_DTL_IDX,
+                CNT_MST_IDX,   
+                CNT_GRP_IDX,             
+                CNT_PRD_MST_CD,
+                CNT_DTL_ORDER
+            )
+        VALUES
+            (
+                SEQ_CNT_DTL_IDX.NEXTVAL,
+                #{CNT_MST_IDX},             
+                #{CNT_GRP_IDX},   
+                #{CNT_PRD_MST_CD},
+                NVL(#{CNT_DTL_ORDER}, 0)
+            )
+    </insert>
+
+	<select id="selectDetailGroupList" parameterType="HashMap" resultType="HashMap">
+        /* ChannelOn.selectChannelOnDetailGroupList */
+       SELECT
+            CNT_GRP_IDX,
+            CNT_MST_IDX,
+            CNT_GRP_TITLE,
+            CNT_GRP_COL,
+            CNT_GRP_SORT,
+            CNT_GRP_TYPE
+        FROM
+            T_CNT_GRP G
+        WHERE
+            G.CNT_MST_IDX = #{CNT_MST_IDX}
+        ORDER BY CNT_GRP_IDX ASC
+    </select>
+    
+    <select id="selectDetailItemByGroupIndex" parameterType="HashMap" resultType="HashMap">
+        /* Contents.selectDetailItemByGroupIndex */
+      	SELECT 
+			TCD.CNT_PRD_MST_CD,
+			TPM.PRD_MST_NM,
+			FN_PRODUCT_IMG (TCD.CNT_PRD_MST_CD, #{THUMBNAIL_SIZE}) AS PRD_MST_IMG_URL_PATH,
+			TPM.PRD_MST_PRC,
+			TPM.PRD_MST_BRD_IDX,
+			TPM.PRD_MST_SEL_STATE,
+			TBM.BND_MST_BRAND_NM,
+			TCG.CNT_GRP_IDX
+        FROM
+        	T_CNT_GRP TCG
+        INNER JOIN T_CNT_DTL TCD ON TCG.CNT_GRP_IDX  = TCD.CNT_GRP_IDX 
+        INNER JOIN T_PRD_MST TPM ON TCD.CNT_PRD_MST_CD = TPM.PRD_MST_CD 
+        INNER JOIN T_BND_MST TBM ON TPM.PRD_MST_BRD_IDX = TBM.BND_MST_IDX 
+        WHERE TCG.CNT_GRP_IDX = #{CNT_GRP_IDX}
+          AND TPM.PRD_MST_DEL_YN = 'N'
+        ORDER BY CNT_DTL_ORDER ASC
+    </select>
+    
+    <select id="selectDetailItemByMasterIndex" parameterType="HashMap" resultType="HashMap">
+        /*Contents.selectDetailItemByMasterIndex */
+       	SELECT 
+			TCD.CNT_PRD_MST_CD,
+			TPM.PRD_MST_NM,
+			FN_PRODUCT_IMG (TCD.CNT_PRD_MST_CD, #{THUMBNAIL_SIZE}) AS PRD_MST_IMG_URL_PATH,
+			TPM.PRD_MST_PRC,
+			TPM.PRD_MST_SEL_STATE,
+			TPM.PRD_MST_BRD_IDX,
+			TBM.BND_MST_BRAND_NM
+        FROM
+            T_CNT_DTL TCD
+        INNER JOIN T_PRD_MST TPM ON TCD.CNT_PRD_MST_CD = TPM.PRD_MST_CD 
+        INNER JOIN T_BND_MST TBM ON TPM.PRD_MST_BRD_IDX = TBM.BND_MST_IDX 
+        WHERE TCD.CNT_MST_IDX = #{CNT_MST_IDX}
+          AND TPM.PRD_MST_DEL_YN = 'N'
+        ORDER BY CNT_DTL_ORDER ASC
+    </select>
+    <select id="selectContentAllFiles" parameterType="HashMap" resultType="HashMap">
+    	<include refid="selectContentFileList"></include>
+        <if test="CMM_FLE_TB_TYPE != null and CMM_FLE_TB_TYPE != ''">
+            AND CMM_FLE_TB_TYPE = '#{CMM_FLE_TB_TYPE}'         
+        </if>
+    </select>
+    <sql id="selectContentFileList">
+	    	SELECT
+	            CMM_FLE_IDX,
+	            CMM_FLE_TB_NM,
+	            CMM_FLE_TB_PK,
+	            CMM_FLE_TB_TYPE,
+	            CMM_FLE_SYS_PATH,
+	            CMM_FLE_ATT_PATH,
+	            CMM_FLE_ORG_NM,
+	            CMM_FLE_SYS_NM,
+	            CMM_FLE_ATT_SIZE,
+	            CMM_FLE_ATT_EXT,
+	            CMM_FLE_DW_CNT,
+	            CMM_FLE_SORT,
+	            CMM_FLE_USE_YN,
+	            CMM_FLE_REG_DT,
+	            CMM_FLE_REG_ID,
+	            CMN_FLE_ALT_TXT,
+	            CMM_FLE_SYS_PATH || CMM_FLE_ATT_PATH || CMM_FLE_SYS_NM AS CMM_FLE_SAVE_PATH
+	        FROM
+	            T_CMM_FLE
+	        WHERE
+	            CMM_FLE_TB_NM = 'T_CNT_MST'
+	            AND CMM_FLE_USE_YN = 'Y'
+	            AND CMM_FLE_TB_PK = #{CNT_MST_IDX}
+    </sql>
+    <select id ="selectContentFileList" parameterType="HashMap" resultType="HashMap">
+    	<include refid="selectContentFileList"></include>
+    </select>
+    <select id="selectContentPcListImage" parameterType="HashMap" resultType="HashMap">
+    		<include refid="selectContentFileList"></include>
+            AND CMM_FLE_TB_TYPE = 'P'
+            AND CMM_FLE_SORT = '1'  
+    </select>
+    <select id="selectContentMobileListImage" parameterType="HashMap" resultType="HashMap">
+    		<include refid="selectContentFileList"></include>
+            AND CMM_FLE_TB_TYPE = 'M'
+            AND CMM_FLE_SORT = '1'  
+    </select>
+    <select id="selectContentPcDetailImage" parameterType="HashMap" resultType="HashMap">
+    		<include refid="selectContentFileList"></include>
+            AND CMM_FLE_TB_TYPE = 'P'
+            AND CMM_FLE_SORT = '2'  
+    </select>
+    <select id="selectContentMobileDetailImage" parameterType="HashMap" resultType="HashMap">
+    		<include refid="selectContentFileList"></include>
+            AND CMM_FLE_TB_TYPE = 'M'
+            AND CMM_FLE_SORT = '2'
+    </select>
+    <update id="updateContent">
+    
+    </update>
+</mapper>

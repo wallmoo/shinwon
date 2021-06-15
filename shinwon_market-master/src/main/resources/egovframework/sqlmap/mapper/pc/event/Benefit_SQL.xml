@@ -1,0 +1,533 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="benefit">
+
+    <select id="selectMemberCouponList" parameterType="hashMap" resultType="hashMap">
+        /* benefit.selectMemberCouponList */
+        
+        SELECT CPN.CPN_MST_IDX
+             , CPN.CPN_MST_GBN
+             , CPN.CPN_MST_TITLE
+             , CPN.CPN_MST_ADM_TXT
+             , CPN.CPN_MST_SAL_GBN
+             , CPN.CPN_MST_SAL_PRC
+             , CPN.CPN_MST_SML_PRC
+             , CPN.CPN_MST_MXM_PRC
+             , CPN.CPN_MST_ISU_ST_DT
+             , CPN.CPN_MST_ISU_ST_HH
+             , CPN.CPN_MST_ISU_ST_MM
+             , CPN.CPN_MST_ISU_ED_DT
+             , CPN.CPN_MST_ISU_ED_HH
+             , CPN.CPN_MST_ISU_ED_MM
+             , NVL(CPN.CPN_MST_ISU_CNT, 0) AS CPN_MST_ISU_CNT
+             , CPN.CPN_MST_LMT_YN
+             , CPN.CPN_MST_ISU_GBN
+             , CPN.CPN_MST_ISU_DAY_GBN
+             , CPN.CPN_MST_USE_ST_DT
+             , CPN.CPN_MST_USE_ED_DT
+             , CPN.CPN_MST_USE_DAY
+             , CPN.CPN_MST_YN
+             , CPN.CPN_MST_PC_YN
+             , CPN.CPN_MST_MB_YN
+             , CPN.CPN_MST_MBR_GBN
+             , CPN.CPN_MST_NML_YN
+             , CPN.CPN_MST_MEM_GRD
+             , CPN.CPN_MST_SMP_YN
+             , CPN.CPN_MST_TGT_GBN
+             , CPN.CPN_MST_ETC_GBN
+             , CPN.CPN_MST_REG_DT
+             , CPN.CPN_MST_REG_IP
+             , CPN.CPN_MST_REG_ID
+             , CPN.CPN_MST_UPD_DT
+             , CPN.CPN_MST_UPD_IP
+             , CPN.CPN_MST_UPD_ID
+             , CPN_MST_PTN_SHP_GBN
+             , CPN_MST_PTN_SHP_RND
+             , CPN_MST_PTN_SHP_YN
+          FROM T_CPN_MST CPN
+         WHERE CPN.CPN_MST_YN   = 'Y'
+           AND SYSDATE BETWEEN TO_DATE(CPN.CPN_MST_ISU_ST_DT, 'yyyyMMdd') AND TO_DATE(CPN.CPN_MST_ISU_ED_DT, 'yyyyMMdd')
+         <if test="CPN_MST_GBN != null and CPN_MST_GBN != ''">
+            AND CPN.CPN_MST_GBN          = #{CPN_MST_GBN}
+         </if>
+         <if test="MEM_MST_MEM_GBN != null and MEM_MST_MEM_GBN == 682">
+           AND CPN.CPN_MST_NML_YN       = 'Y'
+           AND (CPN.CPN_MST_MEM_GRD     = #{MEM_MST_MEM_GRD} OR CPN.CPN_MST_MEM_GRD IS NULL)
+         </if>
+         <if test="MEM_MST_MEM_GBN != null and MEM_MST_MEM_GBN == 683">
+           AND CPN.CPN_MST_MEM_GRD      = #{MEM_MST_MEM_GRD} 
+         </if>
+         <if test="MEM_MST_MEM_GRD != null and MEM_MST_MEM_GRD == 1961">
+           AND CPN.CPN_MST_SMP_YN       = 'Y' 
+         </if>
+         <if test="CPN_MST_PC_YN != null and CPN_MST_PC_YN.equals('P'.toString())">
+           AND CPN.CPN_MST_PC_YN        = 'Y'
+         </if>
+         <if test="CPN_MST_MB_YN != null and CPN_MST_MB_YN.equals('M.toString())">
+           AND CPN.CPN_MST_MB_YN        = 'Y'   
+         </if>
+          ORDER BY CPN.CPN_MST_IDX DESC            
+    </select>
+    
+    <select id="selectCouponListCount" parameterType="hashMap" resultType="Integer">
+        /* benefit.selectCouponListCount */
+        
+        SELECT COUNT(CPN_MST_IDX)
+          FROM T_CPN_MST
+         WHERE CPN_MST_GBN = 'A'    
+           AND CPN_MST_ISU_GBN = 'C'
+           AND CPN_MST_YN   = 'Y'
+           AND SYSDATE BETWEEN TO_DATE(CPN_MST_ISU_ST_DT, 'yyyyMMdd') AND TO_DATE(CPN_MST_ISU_ED_DT, 'yyyyMMdd')
+        <if test="CPN_MST_PC_YN != null and CPN_MST_PC_YN.equals('P'.toString())">
+           AND CPN_MST_PC_YN        = 'Y'   
+        </if>
+        <if test="CPN_MST_MB_YN != null and CPN_MST_MB_YN.equals('M'.toString())">
+           AND CPN_MST_MB_YN        = 'Y'
+        </if>
+    </select>
+    
+    <select id="selectCouponList" parameterType="hashMap" resultType="hashMap">
+        /* benefit.selectCouponList */
+        
+        SELECT S2.*            
+          FROM (
+                SELECT ROWNUM AS RNUM
+                     , S1.*
+                  FROM (             
+                            SELECT CPN.CPN_MST_IDX
+                                 , CPN.CPN_MST_GBN
+                                 , CPN.CPN_MST_TITLE
+                                 , CPN.CPN_MST_ADM_TXT
+                                 , CPN.CPN_MST_SAL_GBN
+                                 , CPN.CPN_MST_SAL_PRC
+                                 , CPN.CPN_MST_SML_PRC
+                                 , CPN.CPN_MST_MXM_PRC
+                                 , CPN.CPN_MST_ISU_ST_DT
+                                 , CPN.CPN_MST_ISU_ST_HH
+                                 , CPN.CPN_MST_ISU_ST_MM
+                                 , CPN.CPN_MST_ISU_ED_DT
+                                 , CPN.CPN_MST_ISU_ED_HH
+                                 , CPN.CPN_MST_ISU_ED_MM
+                                 , NVL(CPN.CPN_MST_ISU_CNT, 0) AS CPN_MST_ISU_CNT
+                                 , CPN.CPN_MST_LMT_YN
+                                 , CPN.CPN_MST_ISU_GBN
+                                 , CPN.CPN_MST_ISU_DAY_GBN
+                                 , CPN.CPN_MST_USE_ST_DT
+                                 , CPN.CPN_MST_USE_ED_DT
+                                 , CPN.CPN_MST_USE_DAY
+                                 , CPN.CPN_MST_YN
+                                 , CPN.CPN_MST_PC_YN
+                                 , CPN.CPN_MST_MB_YN
+                                 , CPN.CPN_MST_MBR_GBN
+                                 , CPN.CPN_MST_NML_YN
+                                 , CPN.CPN_MST_MEM_GRD
+                                 , CPN.CPN_MST_SMP_YN
+                                 , CPN.CPN_MST_TGT_GBN
+                                 , CPN.CPN_MST_ETC_GBN
+                                 , CPN.CPN_MST_REG_DT
+                                 , CPN.CPN_MST_REG_IP
+                                 , CPN.CPN_MST_REG_ID
+                                 , CPN.CPN_MST_UPD_DT
+                                 , CPN.CPN_MST_UPD_IP
+                                 , CPN.CPN_MST_UPD_ID
+                                 , CPN_MST_PTN_SHP_GBN
+                                 , CPN_MST_PTN_SHP_RND
+                                 , CPN_MST_PTN_SHP_YN
+                                 , TO_CHAR(TO_DATE(CPN.CPN_MST_ISU_ST_DT, 'yyyyMMdd') + CPN_MST_USE_DAY, 'YYYY.MM.DD') AS CPN_MST_ISU_ED_DT_CHAR 
+                              FROM T_CPN_MST CPN
+                             WHERE CPN.CPN_MST_GBN = 'A'
+                               AND CPN.CPN_MST_ISU_GBN = 'C'
+                               AND CPN.CPN_MST_YN   = 'Y'
+                               AND SYSDATE BETWEEN TO_DATE(CPN.CPN_MST_ISU_ST_DT, 'yyyyMMdd') AND TO_DATE(CPN.CPN_MST_ISU_ED_DT, 'yyyyMMdd')
+                             <if test="CPN_MST_PC_YN != null and CPN_MST_PC_YN.equals('P'.toString())">
+                               AND CPN.CPN_MST_PC_YN        = 'Y'
+                             </if>
+                             <if test="CPN_MST_MB_YN != null and CPN_MST_MB_YN.equals('M'.toString())">
+                               AND CPN.CPN_MST_MB_YN        = 'Y'   
+                             </if>
+                             ORDER BY CPN.CPN_MST_IDX DESC
+                        ) S1
+                )S2
+        <if test="startNum != null and startNum != '' and endNum != null and endNum != ''">
+            WHERE S2.RNUM BETWEEN #{startNum} AND #{endNum}
+        </if>
+    </select>
+    
+    <select id="selectCardDivList" parameterType="hashMap" resultType="hashMap">
+        /* benefit.selectCardDivList */
+        
+        SELECT S2.*            
+          FROM (   
+                SELECT ROWNUM AS RNUM
+                     , S1.*
+                     , CASE S1.DIV_DTL_CD
+                        WHEN 1 THEN 9
+                        WHEN 2 THEN 5
+                        WHEN 3 THEN 6
+                        WHEN 4 THEN 7
+                        WHEN 5 THEN 3
+                        WHEN 6 THEN 2
+                        WHEN 7 THEN 1
+                        WHEN 8 THEN 4
+                        WHEN 9 THEN 13
+                        WHEN 10 THEN 10
+                        WHEN 11 THEN 8
+                        WHEN 12 THEN 11
+                        WHEN 13 THEN 12
+                       END AS RK 
+                  FROM (   
+                        SELECT DIV_DTL_CD
+                          FROM T_CRD_DIV CRD
+                             , T_DIV_DTL DTL
+                         WHERE CRD.CRD_DIV_IDX = DTL.CRD_DIV_IDX
+                           AND CRD.CRD_DIV_USE_YN = 'Y'
+                           AND SYSDATE BETWEEN TO_DATE(CRD_DIV_ST_DT||CRD_DIV_ST_HH||CRD_DIV_ST_MM||'00', 'YYYYMMDDHH24MISS') AND TO_DATE(CRD_DIV_ED_DT||CRD_DIV_ED_HH||CRD_DIV_ED_MM||'59', 'YYYYMMDDHH24MISS')
+                        <if test="strCardCode != null and strCardCode != ''">
+                           AND DTL.DIV_DTL_CD   = #{strCardCode}
+                        </if>
+                        <if test="strPrc != null and strPrc != ''">
+                           AND DTL.DIV_DTL_PRC <![CDATA[ >= ]]> #{strPrc}
+                        </if>
+                         GROUP BY DTL.DIV_DTL_CD
+                        ) S1 
+                ) S2
+          <if test="startNum != null and startNum != '' and endNum != null and endNum != ''">
+            WHERE S2.RNUM BETWEEN #{startNum} AND #{endNum}
+          </if>
+          ORDER BY S2.RK ASC            
+    </select>
+    
+    <select id="selectCardCodeList" parameterType="hashMap" resultType="hashMap">
+        /* benefit.selectCardCodeList */
+        
+        SELECT CRD_INF_IDX AS CMN_COM_IDX
+             , CRD_INF_NM AS CMN_COM_NM
+          FROM T_CRD_INF
+         ORDER BY CRD_INF_IDX
+    </select>
+    
+    <select id="selectCardEventList" parameterType="hashMap" resultType="hashMap">
+        /* benefit.selectCardEventList */
+        
+        SELECT S2.*
+          FROM (
+                SELECT ROWNUM AS RNUM
+                     , S1.*
+                  FROM (        
+                            SELECT CRD.CRD_PMT_IDX
+                                 , CRD.CRD_PMT_GBN
+                                 , CRD.CRD_PMT_NM
+                                 , CRD.CRD_PMT_ST_DT
+                                 , CRD.CRD_PMT_ST_HH
+                                 , CRD.CRD_PMT_ST_MM
+                                 , CRD.CRD_PMT_ED_DT
+                                 , CRD.CRD_PMT_ED_HH
+                                 , CRD.CRD_PMT_ED_MM
+                                 , CRD.CRD_PMT_USE_YN
+                                 , CRD.CRD_PMT_REG_DT
+                                 , CRD.CRD_PMT_REG_ID
+                                 , (SELECT CMN_COM_NM FROM T_CMM_COM WHERE CMN_COM_IDX =  CRD.CRD_PMT_GBN) AS CRD_PMT_GBN_NM
+                                 , PMT.PMT_CRD_SAL_GBN
+                                 , PMT.PMT_CRD_SAL_PRC
+                                 , PMT.PMT_CRD_SML_PRC
+                                 , PMT.PMT_CRD_MXM_PRC
+                                 , PMT.PMT_CRD_ETC
+                                 , PMT.PMT_CRD_IDX
+                              FROM T_CRD_PMT CRD
+                                 , T_PMT_CRD PMT
+                              WHERE CRD.CRD_PMT_IDX         = PMT.PMT_CRD_PMT_IDX
+                                AND CRD.CRD_PMT_GBN         = #{CRD_PMT_GBN}
+                                AND CRD.CRD_PMT_USE_YN      = 'Y'
+                                AND PMT.PMT_CRD_DPL_YN      = 'Y'
+                                AND SYSDATE BETWEEN TO_DATE(CRD_PMT_ST_DT) AND TO_DATE(CRD_PMT_ED_DT)
+                            <if test="strCardCode != null and strCardCode != ''">
+                                AND PMT.PMT_CRD_IDX = #{strCardCode}
+                            </if>
+                            <if test="strPrc != null and strPrc != ''">
+                                AND PMT.PMT_CRD_SML_PRC <![CDATA[ >= ]]> #{strPrc}
+                            </if>                       
+                              ORDER BY CRD.CRD_PMT_REG_DT DESC 
+                        ) S1
+                ) S2                        
+    </select>
+    
+    <select id="selectDivInfList" parameterType="hashMap" resultType="hashMap">
+        /* benefit.selectDivInfList */
+        
+         SELECT DIV_INF_IDX
+              , DIV_DTL_IDX
+              , DIV_INF_MNT
+              , DIV_INF_GBN
+              , DIV_INF_NTC
+              , DIV_INF_USE_YN
+              , (SELECT CRD_DIV_IDX FROM T_DIV_DTL WHERE DIV_DTL_IDX = INF.DIV_DTL_IDX) AS CRD_DIV_IDX
+           FROM T_DIV_INF INF 
+          WHERE DIV_DTL_IDX IN (SELECT DIV_DTL_IDX FROM T_DIV_DTL WHERE CRD_DIV_IDX IN (${arrCRD_DIV_IDX}))
+            AND DIV_INF_USE_YN = 'Y'
+          ORDER BY DIV_INF_GBN,DIV_INF_MNT
+    </select>   
+
+    <select id="selectCardOptList" parameterType="hashMap" resultType="hashMap">
+        /* benefit.selectCardOptList */
+        
+        SELECT INF.DIV_INF_NTC
+             , DTL.DIV_DTL_CD
+             , CRD.CRD_DIV_IDX
+             , INF.DIV_INF_MNT
+             , INF.DIV_INF_GBN
+             , DTL.DIV_DTL_PRC
+             , (SELECT CMN_COM_NM FROM T_CMM_COM WHERE CMN_COM_IDX = INF.DIV_INF_GBN) AS DIV_INF_GBN_NM
+          FROM T_CRD_DIV CRD
+             , T_DIV_DTL DTL
+             , T_DIV_INF INF
+         WHERE CRD.CRD_DIV_IDX  = DTL.CRD_DIV_IDX
+           AND DTL.DIV_DTL_IDX  = INF.DIV_DTL_IDX
+           AND CRD.CRD_DIV_USE_YN   = 'Y'
+           AND INF.DIV_INF_USE_YN   = 'Y'
+           AND SYSDATE BETWEEN TO_DATE(CRD_DIV_ST_DT) AND TO_DATE(CRD_DIV_ED_DT)
+         ORDER BY DTL.DIV_DTL_CD, DIV_INF_MNT, DIV_DTL_PRC  
+    </select>
+
+    <select id="selectCardBannerInfo" parameterType="hashMap" resultType="hashMap">
+        /* benefit.selectCardBannerInfo */
+        
+        SELECT S2.*
+          FROM (
+                SELECT S1.*
+                     , ROWNUM AS RNUM 
+                  FROM (             
+                        SELECT BNR_MST_URL
+                             , (SELECT CMM_FLE_ATT_PATH || CMM_FLE_SYS_NM FROM T_CMM_FLE WHERE CMM_FLE_TB_NM = 'T_BNR_MST' AND CMM_FLE_TB_PK = BM.BNR_MST_IDX AND CMM_FLE_SORT = 1 AND CMM_FLE_USE_YN = 'Y' AND ROWNUM = 1 ) AS FILE_NM
+                             , (SELECT CMN_FLE_ALT_TXT FROM T_CMM_FLE WHERE CMM_FLE_TB_NM = 'T_BNR_MST' AND CMM_FLE_TB_PK = BM.BNR_MST_IDX AND CMM_FLE_SORT = 1 AND CMM_FLE_USE_YN = 'Y' AND ROWNUM = 1 ) AS CMN_FLE_ALT_TXT
+                             , BNR_MST_TGT
+                             , BNR_MST_TITLE
+                          FROM T_BNR_MST BM
+                         WHERE BM.BNR_MST_USE_YN = 'Y'
+                           AND TO_CHAR(SYSDATE,'YYYYMMDDYYYYMMDDHH24MISS') BETWEEN BM.BNR_MST_ST_DT||BM.BNR_MST_ST_HH||BM.BNR_MST_ST_MM AND BM.BNR_MST_ED_DT||BM.BNR_MST_ED_HH||BM.BNR_MST_ED_MM
+                           AND CMN_COM_IDX = #{CMN_COM_IDX}
+                         ORDER BY BNR_MST_SRT ASC, BNR_MST_IDX DESC
+                        ) S1
+                ) S2
+        <if test="endNum != null and endNum != ''">
+        <![CDATA[                           
+         WHERE RNUM <= #{endNum}
+         ]]>
+        </if>
+    </select>   
+    
+    <select id="selectProductCouponList" parameterType="hashMap" resultType="hashMap">
+        /* benefit.selectProductCouponList */
+        
+        SELECT CMT.CPN_MST_IDX
+             , CMT.CPN_MST_GBN
+             , CMT.CPN_MST_TITLE
+             , CMT.CPN_MST_SAL_GBN
+             , NVL(CMT.CPN_MST_SAL_PRC,0) AS CPN_MST_SAL_PRC
+             , NVL(CMT.CPN_MST_SML_PRC,0) AS CPN_MST_SML_PRC
+             , NVL(CMT.CPN_MST_MXM_PRC,0) AS CPN_MST_MXM_PRC
+             , CMT.CPN_MST_TGT_GBN
+             , TO_CHAR(TO_DATE(CMT.CPN_MST_USE_ST_DT,'YYYYMMDDHH24MISS'),'YYYY.MM.DD') AS CPN_MST_USE_ST_DT
+             , TO_CHAR(TO_DATE(CMT.CPN_MST_USE_ED_DT,'YYYYMMDDHH24MISS'),'YYYY.MM.DD') AS CPN_MST_USE_ED_DT
+             , NVL(CMT.CPN_MST_USE_DAY,0) CPN_MST_USE_DAY
+             , CPN_MST_ISU_DAY_GBN
+             , CASE CMT.CPN_MST_GBN
+                WHEN 'F' THEN 'ship'
+                    ELSE
+                    CASE CMT.CPN_MST_SAL_GBN
+                        WHEN 'A' THEN 'sale'
+                        WHEN 'B' THEN 'price'
+                    END
+                END  AS CPN_MST_GBN_CLASS
+           FROM T_CPN_MST CMT
+          WHERE CMT.CPN_MST_YN = 'Y'
+            AND (
+                    CASE WHEN CMT.CPN_MST_LMT_YN = 'Y' THEN 1 
+                    ELSE
+                        CASE WHEN (SELECT COUNT(0) FROM T_CPN_MEM CMM WHERE CMM.CPN_MST_IDX = CMT.CPN_MST_IDX) > CMT.CPN_MST_ISU_CNT THEN 0
+                        ELSE 1 END
+                    END
+                ) = 1
+            AND CMT.CPN_MST_ISU_GBN = 'C'
+            AND CMT.CPN_MST_PC_YN = 'Y' 
+            AND CPN_MST_IDX         = #{CPN_MST_IDX}
+            AND TO_CHAR(SYSDATE,'YYYYMMDDHH24MISS') BETWEEN CMT.CPN_MST_ISU_ST_DT||CPN_MST_ISU_ST_HH||CPN_MST_ISU_ST_MM AND CMT.CPN_MST_ISU_ED_DT||CPN_MST_ISU_ED_HH||CPN_MST_ISU_ED_MM
+    </select>
+    
+    <select id="selectMyCouponListCount" parameterType="hashMap" resultType="Integer">
+        /* benefit.selectMyCouponListCount */
+        
+        SELECT COUNT(0)
+          FROM T_CPN_MST MST
+             , T_CPN_MEM MEM
+         WHERE MST.CPN_MST_IDX      = MEM.CPN_MST_IDX            
+           AND MEM.CPN_MEM_ID       = #{MEM_MST_MEM_ID}
+           AND MEM.CPN_MEM_USE_YN   = 'N'
+           AND MST.CPN_MST_YN       = 'Y'
+           AND (
+                ( MST.CPN_MST_ISU_DAY_GBN = 'A' AND TO_CHAR(SYSDATE,'YYYYMMDD') BETWEEN MST.CPN_MST_USE_ST_DT AND MST.CPN_MST_USE_ED_DT)
+                OR (MST.CPN_MST_ISU_DAY_GBN = 'B' AND MST.CPN_MST_USE_DAY >= TO_DATE(TO_CHAR(SYSDATE, 'YYYYMMDD')) +1 - TO_DATE(TO_CHAR(TO_DATE(MEM.CPN_MEM_ISU_DT,'YYYYMMDDHH24MISS'),'YYYYMMDD'),'YYYYMMDD'))
+                OR (MST.CPN_MST_ISU_DAY_GBN = 'M' AND SYSDATE BETWEEN TO_DATE(MEM.CPN_MEM_ISU_DT,'YYYYMMDDHH24MISS') AND TO_CHAR(LAST_DAY(TO_DATE(MEM.CPN_MEM_ISU_DT,'YYYYMMDDHH24MISS')),'YYYYMMDD') )
+                )               
+    </select>
+    
+    <select id="selectMyCouponList" parameterType="hashMap" resultType="hashMap">
+        /* benefit.selectMyCouponList */
+        
+           SELECT RUNM 
+                , CPN_MST_IDX
+                , CPN_MST_GBN
+                , CPN_MST_TITLE
+                , CPN_MST_SAL_GBN
+                , CPN_MST_SAL_PRC
+                , CPN_MST_SML_PRC
+                , CPN_MST_MXM_PRC
+                , CPN_MST_TGT_GBN
+                , CPN_MST_USE_ST_DT
+                , CPN_MST_USE_ED_DT
+                , CPN_MST_USE_DAY
+                , CPN_MST_GBN_CLASS
+                , ORDER_DAY 
+                , CPN_MST_ISU_CNT
+             FROM ( SELECT ROWNUM AS RUNM
+                         , CPN_MST_IDX
+                         , CPN_MST_GBN
+                         , CPN_MST_TITLE
+                         , CPN_MST_SAL_GBN
+                         , CPN_MST_SAL_PRC
+                         , CPN_MST_SML_PRC
+                         , CPN_MST_MXM_PRC
+                         , CPN_MST_TGT_GBN
+                         , CPN_MST_USE_ST_DT
+                         , CPN_MST_USE_ED_DT
+                         , CPN_MST_USE_DAY
+                         , CPN_MST_GBN_CLASS
+                         , ORDER_DAY
+                         , CPN_MST_ISU_CNT      
+                      FROM (    SELECT CPN_MST_IDX
+                                     , CPN_MST_GBN
+                                     , CPN_MST_TITLE
+                                     , CPN_MST_SAL_GBN
+                                     , CPN_MST_SAL_PRC
+                                     , CPN_MST_SML_PRC
+                                     , CPN_MST_MXM_PRC
+                                     , CPN_MST_TGT_GBN
+                                     , CPN_MST_USE_ST_DT
+                                     , CPN_MST_USE_ED_DT
+                                     , CPN_MST_USE_DAY
+                                     , CPN_MST_GBN_CLASS
+                                     , ORDER_DAY
+                                     , CPN_MST_ISU_CNT
+                                  FROM (    SELECT CMT.CPN_MST_IDX
+                                                 , CMT.CPN_MST_GBN
+                                                 , CMT.CPN_MST_TITLE
+                                                 , CMT.CPN_MST_SAL_GBN
+                                                 , NVL(CMT.CPN_MST_SAL_PRC,0) AS CPN_MST_SAL_PRC
+                                                 , NVL(CMT.CPN_MST_SML_PRC,0) AS CPN_MST_SML_PRC
+                                                 , NVL(CMT.CPN_MST_MXM_PRC,0) AS CPN_MST_MXM_PRC
+                                                 , CMT.CPN_MST_TGT_GBN
+                                                 , TO_CHAR(TO_DATE(CMT.CPN_MST_USE_ST_DT,'YYYYMMDDHH24MISS'),'YYYY.MM.DD') AS CPN_MST_USE_ST_DT
+                                                 , TO_CHAR(TO_DATE(CMT.CPN_MST_USE_ED_DT,'YYYYMMDDHH24MISS'),'YYYY.MM.DD') AS CPN_MST_USE_ED_DT
+                                                 , NVL(CMT.CPN_MST_USE_DAY,0) CPN_MST_USE_DAY
+                                                 , NVL(CMT.CPN_MST_ISU_CNT, 0) AS CPN_MST_ISU_CNT
+                                                 , <![CDATA[CASE CMT.CPN_MST_GBN
+                                                                WHEN 'F' THEN 'ship'
+                                                            ELSE
+                                                                CASE CMT.CPN_MST_SAL_GBN
+                                                                    WHEN 'A' THEN 'sale'
+                                                                    WHEN 'B' THEN 'price'
+                                                                END
+                                                            END]]> AS CPN_MST_GBN_CLASS
+                                                 , <![CDATA[CASE CMT.CPN_MST_ISU_DAY_GBN
+                                                                WHEN 'A' THEN TO_DATE(TO_CHAR(TO_DATE(CMT.CPN_MST_USE_ED_DT,'YYYYMMDDHH24MISS'),'YYYYMMDD'),'YYYYMMDD') - TO_DATE(TO_CHAR(SYSDATE, 'YYYYMMDD')) +1
+                                                                WHEN 'B' THEN CMT.CPN_MST_USE_DAY - (TO_DATE(TO_CHAR(SYSDATE, 'YYYYMMDD')) +1 - TO_DATE(TO_CHAR(TO_DATE(CMM.CPN_MEM_ISU_DT,'YYYYMMDDHH24MISS'),'YYYYMMDD'),'YYYYMMDD'))
+                                                                WHEN 'M' THEN TO_DATE(TO_CHAR(LAST_DAY(TO_DATE(CMM.CPN_MEM_ISU_DT,'YYYYMMDDHH24MISS')),'YYYYMMDD')) - TO_DATE(TO_CHAR(SYSDATE, 'YYYYMMDD')) +1
+                                                            END]]> AS ORDER_DAY
+                                                 , CASE CMT.CPN_MST_GBN
+                                                        WHEN 'E' THEN 1
+                                                        WHEN 'D' THEN 2
+                                                        WHEN 'F' THEN 3
+                                                        WHEN 'B' THEN 4
+                                                        WHEN 'C' THEN 5
+                                                        WHEN 'A' THEN 6
+                                                        WHEN 'G' THEN 7
+                                                      END ORDER_NUM                                                             
+                                              FROM T_CPN_MST CMT
+                                                 , T_CPN_MEM CMM
+                                             WHERE CMM.CPN_MST_IDX = CMT.CPN_MST_IDX
+                                               AND CMM.CPN_MEM_ID = #{MEM_MST_MEM_ID}
+                                               AND CMM.CPN_MEM_USE_YN = 'N'
+                                               AND CMT.CPN_MST_YN = 'Y'
+                                               AND (
+                                                        ( CMT.CPN_MST_ISU_DAY_GBN = 'A' AND TO_CHAR(SYSDATE,'YYYYMMDD') BETWEEN CMT.CPN_MST_USE_ST_DT AND CMT.CPN_MST_USE_ED_DT)
+                                                    OR (CMT.CPN_MST_ISU_DAY_GBN = 'B' AND CMT.CPN_MST_USE_DAY >= TO_DATE(TO_CHAR(SYSDATE, 'YYYYMMDD')) +1 - TO_DATE(TO_CHAR(TO_DATE(CMM.CPN_MEM_ISU_DT,'YYYYMMDDHH24MISS'),'YYYYMMDD'),'YYYYMMDD'))
+                                                    OR (CMT.CPN_MST_ISU_DAY_GBN = 'M' AND SYSDATE BETWEEN TO_DATE(CMM.CPN_MEM_ISU_DT,'YYYYMMDDHH24MISS') AND TO_CHAR(LAST_DAY(TO_DATE(CMM.CPN_MEM_ISU_DT,'YYYYMMDDHH24MISS')),'YYYYMMDD') )
+                                                    )
+                                        ) S1
+                                 ORDER BY S1.ORDER_NUM ASC
+                            )S2
+                    )S3
+        <if test="startNum != null and startNum != '' and endNum != null and endNum != ''">
+            WHERE S3.RUNM BETWEEN #{startNum} AND #{endNum}
+        </if>
+    </select>
+    
+    <select id="selectCouponInfo" parameterType="hashMap" resultType="hashMap">
+        /* benefit.selectCouponInfo */
+        
+        SELECT CPN.CPN_MST_IDX
+             , CPN.CPN_MST_GBN
+             , CPN.CPN_MST_TITLE
+             , CPN.CPN_MST_ADM_TXT
+             , CPN.CPN_MST_SAL_GBN
+             , CPN.CPN_MST_SAL_PRC
+             , CPN.CPN_MST_SML_PRC
+             , CPN.CPN_MST_MXM_PRC
+             , CPN.CPN_MST_ISU_ST_DT
+             , CPN.CPN_MST_ISU_ST_HH
+             , CPN.CPN_MST_ISU_ST_MM
+             , CPN.CPN_MST_ISU_ED_DT
+             , CPN.CPN_MST_ISU_ED_HH
+             , CPN.CPN_MST_ISU_ED_MM
+             , NVL(CPN.CPN_MST_ISU_CNT, 0) AS CPN_MST_ISU_CNT
+             , CPN.CPN_MST_LMT_YN
+             , CPN.CPN_MST_ISU_GBN
+             , CPN.CPN_MST_ISU_DAY_GBN
+             , CPN.CPN_MST_USE_ST_DT
+             , CPN.CPN_MST_USE_ED_DT
+             , CPN.CPN_MST_USE_DAY
+             , CPN.CPN_MST_YN
+             , CPN.CPN_MST_PC_YN
+             , CPN.CPN_MST_MB_YN
+             , CPN.CPN_MST_MBR_GBN
+             , CPN.CPN_MST_NML_YN
+             , NVL(CPN.CPN_MST_MEM_GRD, 999) CPN_MST_MEM_GRD
+             , CPN.CPN_MST_SMP_YN
+             , CPN.CPN_MST_TGT_GBN
+             , CPN.CPN_MST_ETC_GBN
+             , CPN.CPN_MST_REG_DT
+             , CPN.CPN_MST_REG_IP
+             , CPN.CPN_MST_REG_ID
+             , CPN.CPN_MST_UPD_DT
+             , CPN.CPN_MST_UPD_IP
+             , CPN.CPN_MST_UPD_ID
+             , CPN_MST_PTN_SHP_GBN
+             , CPN_MST_PTN_SHP_RND
+             , CPN_MST_PTN_SHP_YN
+             , TO_CHAR(TO_DATE(CPN.CPN_MST_ISU_ST_DT, 'yyyyMMdd') + CPN_MST_USE_DAY, 'YYYY.MM.DD') AS CPN_MST_ISU_ED_DT_CHAR 
+          FROM T_CPN_MST CPN
+         WHERE CPN.CPN_MST_IDX  = #{CPN_MST_IDX}
+           AND CPN.CPN_MST_YN   = 'Y'         
+    </select>
+    
+    <select id="selectCardBannerTotalCount" resultType="integer" parameterType="hashmap">
+        /* benefit.selectCardBannerTotalCount */
+        
+        SELECT COUNT(*)
+          FROM T_BNR_MST BM
+         WHERE BM.BNR_MST_USE_YN = 'Y'
+           AND TO_CHAR(SYSDATE,'YYYYMMDDYYYYMMDDHH24MISS') BETWEEN BM.BNR_MST_ST_DT||BM.BNR_MST_ST_HH||BM.BNR_MST_ST_MM AND BM.BNR_MST_ED_DT||BM.BNR_MST_ED_HH||BM.BNR_MST_ED_MM
+           AND CMN_COM_IDX = #{CMN_COM_IDX}
+         ORDER BY BNR_MST_SRT ASC, BNR_MST_IDX DESC     
+    </select>
+</mapper>

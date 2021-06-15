@@ -1,0 +1,659 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="PcJoinMember">
+    
+	<!-- 프론트 > 회원가입 > SM ID 체크 -->
+	<select id="selectCheckId" parameterType="HashMap" resultType="String">
+		/* PcJoinMember.selectCheckId */
+		SELECT
+			TMV.MEM_MST_MEM_ID
+		FROM
+			T_MEM_VIEW TMV, T_MEM_IPN TMI
+		WHERE
+			TMV.MEM_MST_MEM_ID = TMI.MEM_MST_MEM_ID
+		AND
+			TMI.MEM_IPN_CI = #{MEM_IPN_CI}  
+        <if test="MEM_MST_MEM_GBN != null and MEM_MST_MEM_GBN != ''">
+            AND TMV.MEM_MST_MEM_GBN = #{MEM_MST_MEM_GBN}
+        </if>
+        <if test="MEM_MST_JOI_RTE != null and MEM_MST_JOI_RTE != ''">
+            AND TMV.MEM_MST_JOI_RTE = #{MEM_MST_JOI_RTE}
+        </if>
+	</select>
+    
+    <!-- 프론트 > 회원가입 > CI 중복 체크 -->
+    <select id="selectCheckCI" parameterType="HashMap" resultType="Integer">
+        /* PcJoinMember.selectCheckCI */
+        SELECT   
+            COUNT(0)
+        FROM T_MEM_VIEW TMV
+            INNER JOIN T_MEM_IPN TMI
+            ON TMV.MEM_MST_MEM_ID = TMI.MEM_MST_MEM_ID
+        WHERE
+            TMI.MEM_IPN_CI = #{MEM_IPN_CI}
+    </select>
+    
+    <!-- 프론트 > 회원가입 > DI 중복 체크 -->
+    <select id="selectCheckDI" parameterType="HashMap" resultType="Integer">
+        /* PcJoinMember.selectCheckDI */
+        SELECT   
+            COUNT(0)
+        FROM T_MEM_VIEW TMV
+            INNER JOIN T_MEM_IPN TMI
+            ON TMV.MEM_MST_MEM_ID = TMI.MEM_MST_MEM_ID
+        WHERE
+            TMI.MEM_IPN_DI = #{MEM_IPN_DI}
+    </select>
+
+	<!-- 프론트 > 회원가입 > 온라인회원인 경우(SM CI, ID가 모두 존재) > SM에 있는 회원정보 가져오기 -->
+	<select id="selectOnlineMemberInfo" parameterType="HashMap" resultType="HashMap">
+		/* PcJoinMember.selectOnlineMemberInfo */
+		SELECT
+        	MEM_MST_MEM_ID,
+        	MEM_MST_MEM_NM,    
+        	MEM_MST_SEX,    	
+        	MEM_MST_MAIL,	
+			MEM_MST_TEL1,
+			MEM_MST_TEL2,
+			MEM_MST_TEL3,
+			MEM_MST_HP1,
+			MEM_MST_HP2,
+			MEM_MST_HP3,
+			MEM_MST_BIR_DT,
+			MEM_MST_ZIP_CDE5,
+			MEM_MST_DRO_ADR1,
+			MEM_MST_DRO_ADR2,	
+			MEM_MST_JBN_ADR1,
+			MEM_MST_JBN_ADR2,
+			SUBSTR(MEM_MST_REG_DT,0,8) AS MEM_MST_REG_DT,
+			SMS_YN,
+			TM_YN,
+			DM_YN,
+			EMAIL_YN,			
+       		AD_YN,
+			KAKAO_YN,
+			S_ELEC_YN,
+			LG_YN
+        FROM
+        	T_MEM_VIEW TMV    
+        	,
+        	(
+        		SELECT
+        			MEM_AGR_MEM_ID
+					, DECODE(SMS_YN, 0, 'Y', 'N') AS SMS_YN
+					, DECODE(TM_YN, 0, 'Y', 'N') AS TM_YN
+					, DECODE(DM_YN, 0, 'Y', 'N') AS DM_YN
+					, DECODE(EMAIL_YN, 0, 'Y', 'N') AS EMAIL_YN
+					, DECODE(AD_YN, 0, 'Y', 'N') AS AD_YN
+					, DECODE(KAKAO_YN, 0, 'Y', 'N') AS KAKAO_YN
+					, DECODE(S_ELEC_YN, 0, 'Y', 'N') AS S_ELEC_YN
+					, DECODE(LG_YN, 0, 'Y', 'N') AS LG_YN
+				FROM
+				(
+					SELECT 
+						MEM_AGR_MEM_ID
+						, DECODE(MEM_AGR_TRM_YN, 'Y', 0, 1) AS TRM_YN_CNT
+						, DECODE(MEM_AGR_TRM_CD, 0001, 'SMS_YN', 0002, 'TM_YN', 0003, 'DM_YN', 0004, 'EMAIL_YN', 0005, 'AD_YN', 0006, 'KAKAO_YN', 0007, 'S_ELEC_YN', 0008, 'LG_YN') AS YN
+					FROM T_MEM_AGR
+					WHERE
+        				MEM_AGR_MEM_ID = #{MEM_MST_MEM_ID}     
+				)
+				PIVOT 
+				(
+					SUM(TRM_YN_CNT)
+					FOR YN IN ('SMS_YN' SMS_YN,'TM_YN' TM_YN, 'DM_YN' DM_YN, 'EMAIL_YN' EMAIL_YN, 'AD_YN' AD_YN, 'KAKAO_YN' KAKAO_YN, 'S_ELEC_YN' S_ELEC_YN, 'LG_YN' LG_YN)
+				) 
+        	) AGR  
+        WHERE
+        	TMV.MEM_MST_MEM_ID = AGR.MEM_AGR_MEM_ID
+        	AND TMV.MEM_MST_MEM_ID = #{MEM_MST_MEM_ID}       
+	</select>
+	
+	<!-- 프론트 > 회원가입 > 닉네임 중복 체크 -->
+	<select id="selectCheckNicknameCount" parameterType="HashMap" resultType="Integer">
+		/* PcJoinMember.selectCheckIdCount */
+		SELECT
+			COUNT(0)
+		FROM	
+			T_MEM_VIEW
+		WHERE
+			MEM_MST_NCK_NM = #{MEM_MST_NCK_NM}
+	</select>
+	
+	<!-- 프론트 > 회원가입 > 아이디 중복 체크 -->
+	<select id="selectCheckIdCount" parameterType="HashMap" resultType="Integer">
+		/* PcJoinMember.selectCheckIdCount */
+		SELECT
+			COUNT(0)
+		FROM	
+			T_MEM_VIEW
+		WHERE
+			MEM_MST_MEM_ID = #{MEM_MST_MEM_ID}
+	</select>
+    
+	<!-- 프론트 > 회원가입 > 등록 -->
+	<insert id="insertMember" parameterType="HashMap">
+/* PcJoinMember.insertMember */	
+		INSERT INTO
+			T_MEM_MST
+			(
+                MEM_MST_MEM_ID,
+                MEM_MST_MEM_NM,
+                MEM_MST_PW,
+                MEM_MST_MAIL,
+                MEM_MST_MEM_GB,
+                MEM_MST_MEM_GBN,
+                MEM_MST_MEM_GRD,
+                MEM_MST_ZIP_CDE6,
+                MEM_MST_JBN_ADR1,
+                MEM_MST_JBN_ADR2,
+                MEM_MST_ZIP_CDE5,
+                MEM_MST_DRO_ADR1,
+                MEM_MST_DRO_ADR2,
+                MEM_MST_TEL1,
+                MEM_MST_TEL2,
+                MEM_MST_TEL3,
+                MEM_MST_HP1,
+                MEM_MST_HP2,
+                MEM_MST_HP3,
+                MEM_MST_STATUS,
+                MEM_MST_LEV_DT,
+                MEM_MST_LEV_YN,  
+                MEM_MST_LEV_RSN_CD,
+                MEM_MST_LEV_RSN,
+                MEM_MST_NOTE,
+                MEM_MST_BIR_DT,
+                MEM_MST_VST_CNT,
+                MEM_MST_VST_LAT,
+                MEM_MST_SEX,
+                MEM_MST_TMP_PW_YN,
+                MEM_MST_TMP_PW_DT, 
+                MEM_MST_DCT_YN,
+                MEM_MST_REG_DT,
+                MEM_MST_REG_IP,
+                MEM_MST_REG_ID,
+                MEM_MST_UPD_DT,
+                MEM_MST_UPD_IP,
+                MEM_MST_UPD_ID,
+                MEM_MST_TKN_ID,
+                MEM_MST_DVS,
+                MEM_MST_PSH_YN,
+                MEM_MST_NCK_NM,
+                MEM_MST_STY_JOB,
+                <if test="MEM_MST_ERP_ID != null and MEM_MST_ERP_ID != ''">
+		            MEM_MST_ERP_ID,
+		        </if>
+                MEM_MST_STY_HEIGHT,
+                MEM_MST_STY_WEIGHT
+            )
+        VALUES
+            (  
+                #{MEM_MST_MEM_ID},
+                #{MEM_MST_MEM_NM},
+                #{MEM_MST_PW},
+                #{MEM_MST_MAIL},
+                #{MEM_MST_MEM_GB},
+                #{MEM_MST_MEM_GBN},
+                #{MEM_MST_MEM_GRD},             
+                #{MEM_MST_ZIP_CDE6},
+                #{MEM_MST_JBN_ADR1},
+                #{MEM_MST_ADR2},
+                #{MEM_MST_ZIP_CDE5},
+                #{MEM_MST_DRO_ADR1},  
+                #{MEM_MST_ADR2},
+                #{MEM_MST_TEL1},
+                #{MEM_MST_TEL2},
+                #{MEM_MST_TEL3},
+                #{MEM_MST_HP1},
+                #{MEM_MST_HP2}, 
+                #{MEM_MST_HP3},      
+                NVL(#{MEM_MST_STATUS},'Y'),
+                #{MEM_MST_LEV_DT},
+                NVL(#{MEM_MST_LEV_YN},'N'),
+                #{MEM_MST_LEV_RSN_CD},
+                #{MEM_MST_LEV_RSN},
+                #{MEM_MST_NOTE},
+                #{MEM_MST_BIR_DT},
+                NVL(#{MEM_MST_VST_CNT}, 1),
+                TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+                #{MEM_MST_SEX},
+                #{MEM_MST_TMP_PW_YN},
+                #{MEM_MST_TMP_PW_DT}, 
+                #{MEM_MST_DCT_YN},
+                TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+                #{MEM_MST_REG_IP},
+                #{MEM_MST_MEM_ID},
+                #{MEM_MST_UPD_DT},
+                #{MEM_MST_UPD_IP},
+                #{MEM_MST_UPD_ID},
+                #{MEM_MST_TKN_ID},
+                #{MEM_MST_DVS},
+                #{MEM_MST_PSH_YN},
+                #{MEM_MST_NCK_NM},
+                #{MEM_MST_STY_JOB},
+                 <if test="MEM_MST_ERP_ID != null and MEM_MST_ERP_ID != ''">
+		            #{MEM_MST_ERP_ID},
+		        </if>
+                #{MEM_MST_STY_HEIGHT},
+                #{MEM_MST_STY_WEIGHT}
+			)
+</insert>
+	
+	<!-- 프론트 > 회원가입 > 본인인증정보 > 등록 -->	
+	<insert id="insertCertInfo" parameterType="HashMap">
+		/* pcJoinMember.insertCertInfo */
+		INSERT INTO
+			T_MEM_IPN
+			(
+				MEM_MST_MEM_ID,
+				MEM_IPN_NO, 
+				MEM_IPN_NM,
+				MEM_IPN_RST,
+				MEM_IPN_AGE,
+				MEM_IPN_SEX,
+				MEM_IPN_AUT,
+				MEM_IPN_BIR,
+				MEM_IPN_FGN,
+				MEM_IPN_DI,
+				MEM_IPN_CI,
+				MEM_IPN_CI_VER,
+				MEM_IPN_ETC1,
+				MEM_IPN_ETC2,
+				MEM_IPN_ETC3,
+				MEM_IPN_AUT_GB,
+				MEM_IPN_HP_CRP,
+				MEM_IPN_CRT_DT,
+				MEM_IPN_BIR_GB
+			)
+		VALUES
+			(
+				#{MEM_MST_MEM_ID},
+				#{MEM_IPN_NO},
+				#{MEM_MST_MEM_NM},
+				#{MEM_IPN_RST},
+				#{MEM_IPN_AGE},	
+				#{MEM_IPN_SEX},
+				#{MEM_IPN_AUT},
+				#{MEM_IPN_BIR_DT},
+				#{MEM_IPN_FGN},
+				#{MEM_IPN_DI},
+				#{MEM_IPN_CI},
+				#{MEM_IPN_CI_VER},
+				#{MEM_IPN_ETC1},
+				#{MEM_IPN_ETC2},
+				#{MEM_IPN_ETC3},
+				#{MEM_IPN_AUT_GB},
+				#{MEM_IPN_HP_CRP},
+				#{MEM_IPN_CRT_DT},
+				#{MEM_IPN_BIR_GB}
+			)
+	</insert>
+	
+	<!-- 프론트 > 회원가입 > 약관동의 > 등록 -->
+	<insert id="insertTermsAgree" parameterType="HashMap">
+		<selectKey keyProperty="MEM_AGR_IDX" resultType="Integer" order="BEFORE">
+            SELECT SEQ_MEM_AGR_IDX.NEXTVAL AS MEM_AGR_IDX FROM DUAL
+        </selectKey>
+		/* pcJoinMember.insertTermsAgree */
+		INSERT INTO
+			T_MEM_AGR
+			(
+				MEM_AGR_IDX,
+				MEM_AGR_MEM_ID,
+				MEM_AGR_TRM_CD,
+				MEM_AGR_TRM_YN,
+				MEM_AGR_REG_DT,
+				MEM_AGR_REG_IP,
+				MEM_AGR_REG_ID	
+			)
+		VALUES
+			(
+				#{MEM_AGR_IDX},
+				#{MEM_MST_MEM_ID},
+				#{MEM_AGR_TRM_CD},
+				NVL(#{MEM_AGR_TRM_YN},'N'),
+				TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+				#{MEM_MST_REG_IP},
+				#{MEM_MST_MEM_ID}			
+			)
+	</insert>
+	
+	<!-- 회원가입 시 쿠폰 발행 -->
+	<insert id="insertJoinMemCoupon" parameterType="HashMap">
+		/* PcJoinMember.insertJoinMemCoupon */
+		INSERT INTO
+			T_CPN_MEM
+			(
+				CPN_MEM_IDX,
+				CPN_MST_IDX,
+				CPN_MEM_ID,
+				CPN_MEM_ISU_DT,
+				CPN_MEM_USE_DT,
+				CPN_MEM_USE_YN
+			)
+		VALUES
+			(
+				SEQ_CPN_MEM_IDX.NEXTVAL,
+				#{CPN_MST_IDX},
+				#{MEM_MST_MEM_ID},
+				TO_CHAR(SYSDATE,'YYYYMMDDHH24MISS'),
+				'',
+				'N'
+			)
+	</insert>
+	
+	<!-- 프론트 > 회원가입 > 간편회원 > 이메일 중복체크 -->
+	<select id="selectCheckEmailCount" parameterType="HashMap" resultType="Integer">
+		/* PcJoinMember.selectCheckEmailCount */
+		SELECT
+			COUNT(0)
+		FROM
+			T_MEM_VIEW
+		WHERE
+			MEM_MST_LEV_YN = 'N'
+		AND
+			MEM_MST_MAIL = (SELECT #{MEM_CTF_MAIL} FROM DUAL)
+	</select>
+	
+	<!-- 프론트 > 회원가입 > 간편회원 > 인증번호 등록 -->
+	<insert id="insertCertifyNo" parameterType="HashMap">
+		/* PcJoinMember.insertCertifyNo */
+		MERGE INTO T_MEM_CTF
+			USING DUAL
+				ON (MEM_CTF_MAIL = #{MEM_CTF_MAIL})
+		WHEN MATCHED THEN
+			UPDATE
+			    SET MEM_CTF_NO = #{MEM_CTF_NO}, 
+                MEM_CTF_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS') 
+			WHERE 
+                MEM_CTF_MAIL = #{MEM_CTF_MAIL}
+		WHEN NOT MATCHED THEN
+			INSERT 
+				(
+					MEM_CTF_MAIL,
+					MEM_CTF_NO,
+					MEM_CTF_DT
+				)
+			VALUES
+				(
+					#{MEM_CTF_MAIL},
+					#{MEM_CTF_NO},
+					TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS')
+				)
+	</insert>
+	
+	<!-- 프론트 > 회원가입 > 간편회원 > 이메일 여부 체크 -->
+	<select id="selectCheckCertMailCount" parameterType="HashMap" resultType="Integer">
+		/* PcJoinMember.selectCheckCertMailCount */
+		SELECT
+			COUNT(0)
+		FROM
+			T_MEM_CTF
+		WHERE
+			MEM_CTF_MAIL = #{MEM_CTF_MAIL}
+	</select>
+	
+    <!-- 프론트 > 회원가입 > SNS 간편회원 > SNS ID 가입여부 확인 -->
+    <select id="selectCheckSnsIdCount" parameterType="HashMap" resultType="Integer">
+        /* PcJoinMember.selectCheckSnsIdCount */
+        SELECT   
+            COUNT(0)
+        FROM 
+            T_MEM_SNS
+        WHERE
+            MEM_SNS_ID = #{MEM_SNS_ID} 
+    </select>
+    
+    <!-- 프론트 > 회원가입 > SNS 간편회원 > SNS 테이블 등록 -->
+    <insert id="insertSnsMember" parameterType="HashMap">
+        /* PcJoinMember.insertSnsMember */    
+        INSERT INTO
+            T_MEM_SNS
+            (  
+                MEM_SNS_IDX,
+                MEM_MST_MEM_ID,
+                MEM_SNS_ID,
+                MEM_SNS_REG_DT,
+                MEM_SNS_REG_IP,
+                MEM_SNS_REG_ID,
+                MEM_SNS_TYPE
+            )
+        VALUES
+            (
+                SEQ_MEM_SNS_IDX.NEXTVAL,
+                #{MEM_MST_MEM_ID},
+                #{MEM_SNS_ID},  
+                TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+                #{MEM_SNS_REG_IP},  
+                #{MEM_MST_MEM_ID},
+                #{MEM_SNS_TYPE} 
+            )
+    </insert>
+    
+	<!-- 프론트 > 회원가입 > 이메일 간편회원 > 유효기간 체크 -->
+	<select id="selectCheckCertDtCount" parameterType="HashMap" resultType="Integer">
+		/* PcJoinMember.selectCheckCertDtCount */
+		SELECT
+			COUNT(0)
+		FROM	
+			T_MEM_CTF
+		WHERE
+			MEM_CTF_MAIL = #{MEM_CTF_MAIL}
+		AND
+			<![CDATA[
+			MEM_CTF_DT BETWEEN TO_CHAR(TO_DATE(TO_CHAR(SYSDATE,'YYYYMMDDHH24MISS'),'YYYYMMDDHH24MISS') - 4/24,'YYYYMMDDHH24MISS') AND TO_CHAR(SYSDATE,'YYYYMMDDHH24MISS')
+			]]> 
+	</select>
+	
+	<!-- 프론트 > 회원가입 > 이메일 간편회원 > 인증번호 체크 -->
+	<select id="selectCheckCertNoCount" parameterType="HashMap" resultType="Integer">
+		/* PcJoinMember.selectCheckCertNoCount */
+		SELECT 
+			COUNT(0)
+		FROM
+			T_MEM_CTF
+		WHERE
+			MEM_CTF_NO = #{MEM_CTF_NO}
+		AND	
+			MEM_CTF_MAIL = #{MEM_CTF_MAIL}
+	</select>
+	
+	<!-- 프론트 > 회원가입 > 이메일 간편회원 > 인증번호 정보 삭제 -->
+	<delete id="deleteEmailCertInfo" parameterType="HashMap">
+		/* PcJoinMember.deleteEmailCertInfo */
+		DELETE FROM T_MEM_CTF WHERE MEM_CTF_MAIL = #{MEM_CTF_MAIL}
+	</delete>
+	
+	<!-- 프론트 > 회원가입 > 기업회원 > 사업자등록번호 체크 -->
+	<select id="selectCheckBusinessNoCount" parameterType="HashMap" resultType="Integer">
+		/* PcJoinMember.selectCheckBusinessNoCount */
+		SELECT
+			COUNT(0)
+		FROM
+			T_MEM_CPR TMC , T_MEM_VIEW TMV
+		WHERE
+			TMC.MEM_CPR_MEM_ID = TMV.MEM_MST_MEM_ID
+		AND
+			TMC.MEM_CPR_NO1 = #{MEM_CPR_NO1}
+		AND
+			TMC.MEM_CPR_NO2 = #{MEM_CPR_NO2}
+		AND
+			TMC.MEM_CPR_NO3 = #{MEM_CPR_NO3}
+	</select>
+	
+	<!-- 프론트 > 회원가입 > 기업회원 > 사업자등록번호에 대한 기업의 아이디 목록 -->
+	<select id="selectBusinessInfo" parameterType="HashMap" resultType="HashMap">
+		/* PcJoinMember.selectBusinessInfo */
+		SELECT
+			SUBSTR(TMC.MEM_CPR_MEM_ID,0,LENGTH(TMC.MEM_CPR_MEM_ID) -3)||'***' AS MEM_CPR_MEM_ID,
+			TMC.MEM_CPR_NM,
+			TMC.MEM_CPR_NO1,
+			TMC.MEM_CPR_NO2,
+			TMC.MEM_CPR_NO3
+		FROM
+			T_MEM_CPR TMC , T_MEM_VIEW TMV
+		WHERE
+			TMC.MEM_CPR_MEM_ID = TMV.MEM_MST_MEM_ID			
+		AND
+			TMC.MEM_CPR_NO1 = #{MEM_CPR_NO1}
+		AND
+			TMC.MEM_CPR_NO2 = #{MEM_CPR_NO2}
+		AND
+			TMC.MEM_CPR_NO3 = #{MEM_CPR_NO3}
+		ORDER BY TMV.MEM_MST_REG_DT DESC
+	</select>
+	
+	<!-- 프론트 > 회원가입 > 기업회원 > 정보등록 -->
+	<insert id="insertBusinessInfo" parameterType="HashMap">
+		/* PcJoinMember.insertBusinessInfo */
+		INSERT INTO
+			T_MEM_CPR
+			(
+				MEM_CPR_MEM_ID,
+				MEM_CPR_NM,
+				MEM_CPR_CEO_NM,
+				MEM_CPR_NO1,
+				MEM_CPR_NO2,
+				MEM_CPR_NO3,
+				MEM_CPR_TYPE,
+				MEM_CPR_STUS,
+				MEM_CPR_TEL1,
+				MEM_CPR_TEL2,
+				MEM_CPR_TEL3,
+				MEM_CPR_FAX1,
+				MEM_CPR_FAX2,
+				MEM_CPR_FAX3,
+				MEM_CPR_JBN_ADR1,
+				MEM_CPR_JBN_ADR2,
+				MEM_CPR_ZIP_CDE5,
+				MEM_CPR_DRO_ADR1,
+				MEM_CPR_DRO_ADR2
+			)
+		VALUES
+			(
+				#{MEM_MST_MEM_ID},
+				#{MEM_CPR_NM},
+				#{MEM_CPR_CEO_NM},
+				#{MEM_CPR_NO1},
+				#{MEM_CPR_NO2},
+				#{MEM_CPR_NO3},
+				#{MEM_CPR_TYPE},
+				#{MEM_CPR_STUS},
+				#{MEM_CPR_TEL1},
+				#{MEM_CPR_TEL2},
+				#{MEM_CPR_TEL3},
+				#{MEM_CPR_FAX1},
+				#{MEM_CPR_FAX2},
+				#{MEM_CPR_FAX3},
+				#{MEM_CPR_JBN_ADR1},
+				#{MEM_CPR_ADR2},
+				#{MEM_CPR_ZIP_CDE5},
+				#{MEM_CPR_DRO_ADR1},
+				#{MEM_CPR_ADR2}
+			)
+	</insert>
+	
+	<!-- 프론트 > 간편회원 전환 > 간편회원 주문건수 조회 -->
+	<select id="selectSimpleMemOrderCnt" parameterType="HashMap" resultType="Integer">
+		/* PcJoinMember.selectSimpleMemOrderCnt */
+		SELECT
+			COUNT(0)
+		FROM
+			T_ORD_MST
+		WHERE
+			ORD_MST_ORD_ID = #{MEM_MST_MEM_ID}
+	</select>
+	
+	<!-- 프론트 > 회원가입 > 가입축하 이메일 보낼 회원의 간략한 정보 조회 -->
+	<select id="selectJoinMemInfo" parameterType="HashMap" resultType="HashMap">
+		/* PcJoinMember.selectJoinMemInfo */
+		SELECT 
+			MEM_MST_MEM_NM     /* 이름 */
+			,MASK_MEM_MST_MEM_NM     /* 이름 마스킹 */ 
+			,MEM_MST_MEM_ID     /* 아이디 */
+			,MASK_MEM_MST_MEM_ID  /* 아이디 마스킹 */
+			,MEM_MST_MAIL      /* 이메일 */
+			,SUBSTR(MEM_MST_MAIL,1,INSTR(MEM_MST_MAIL,'@', 1)-4 )||LPAD('*',3,'*') || SUBSTR(MEM_MST_MAIL,INSTR(MEM_MST_MAIL,'@', 1)) AS MASK_MEM_MST_MAIL /* 이메일 마스킹 */
+			,MEM_MST_HP1 || '-' || MASK_MEM_MST_HP2 || '-' || MEM_MST_HP3 AS MEM_MST_HP /* 휴대폰 */
+			,MEM_MST_OCB_NO     /*  멤버쉽 번호 */
+			,MEM_CPR_NM		/* 회사명 */
+			,MEM_MST_MEM_GBN /* 회원 구분 */
+		FROM
+			( 
+				SELECT 
+			  		MEM_MST_MEM_NM                       
+			   		,SUBSTR(MEM_MST_MEM_NM,1,length(MEM_MST_MEM_NM)-1)||LPAD('*',1,'*') AS MASK_MEM_MST_MEM_NM 
+			  		,MEM_MST_MEM_ID                      
+			   		,SUBSTR(MEM_MST_MEM_ID,1,length(MEM_MST_MEM_ID)-3)||LPAD('*',3,'*') AS MASK_MEM_MST_MEM_ID   
+			  		,MEM_MST_MAIL 
+			  		,MEM_MST_HP1                        
+			   		,SUBSTR(MEM_MST_HP2,1,length(MEM_MST_HP2)-3)||LPAD('*',3,'*') AS MASK_MEM_MST_HP2   
+			  		,MEM_MST_HP3  
+			 		,SUBSTR(MEM_MST_OCB_NO,0,4) || '-' || SUBSTR(MEM_MST_OCB_NO,5,4) || '-' || SUBSTR(MEM_MST_OCB_NO,9,4) || '-' || SUBSTR(MEM_MST_OCB_NO,13,4) AS  MEM_MST_OCB_NO
+			 		,(SELECT MEM_CPR_NM FROM T_MEM_CPR WHERE MEM_CPR_MEM_ID = #{MEM_MST_MEM_ID}) AS MEM_CPR_NM 
+			 		,MEM_MST_MEM_GBN
+			 	FROM  
+			 		T_MEM_MST
+			 	WHERE 1=1
+			  	AND MEM_MST_MEM_GBN = #{MEM_MST_MEM_GBN}     /* 일반 회원 */
+			  	/* ------------------- 필수 PARAM 값 (값 변경필요) ------------------- */
+			  	AND MEM_MST_MEM_ID = #{MEM_MST_MEM_ID}   /*  해당 아이디 입력해야 함. */
+			) T1
+	</select>
+	
+	<!-- 프론트 > 회원가입 > 가입축하 쿠폰 보낼 회원의 간략 정보 -->
+	<select id="selectSendCouponMemInfo" parameterType="HashMap" resultType="HashMap">
+		/* PcJoinMember.selectSendCouponMemInfo */
+		SELECT 
+		   	MEM_MST_MEM_NM AS TXT1      /* 이름 */                 
+		   	,TCM.CPN_MST_SAL_PRC AS TXT2
+		   	,TCM.CPN_MST_SAL_PRC || '% 할인쿠폰(1장)' AS TXT3   
+		   	,TRIM(TO_CHAR(TCM.CPN_MST_SML_PRC,'999,999,999,999,999')) || '원 이상 구매시 최대 ' || TRIM(TO_CHAR(TCM.CPN_MST_MXM_PRC,'999,999,999,999,999') || '원 할인') AS TXT4
+			,#{frontUrl} || MEM_MST_MAIL || '&amp;mailMemId=' || MEM_MST_MEM_ID as REJECT_URL  /*수신거부 URL*/
+		 	,TO_CHAR(TO_DATE(NVL(MEM_AGR_UPD_DT,MEM_AGR_REG_DT),'YYYYMMDDHH24MISS'),'YYYY') || '년 ' ||
+		 	 TO_CHAR(TO_DATE(NVL(MEM_AGR_UPD_DT,MEM_AGR_REG_DT),'YYYYMMDDHH24MISS'),'MM') || '월 ' ||
+		  	TO_CHAR(TO_DATE(NVL(MEM_AGR_UPD_DT,MEM_AGR_REG_DT),'YYYYMMDDHH24MISS'),'DD') || '일' AS MEM_AGR_REG_DT  /* 수신동의 일자*/
+	  	FROM  
+ 			T_MEM_MST TMM, T_MEM_AGR TMA, T_CPN_MST TCM
+	  	WHERE 1=1
+	    AND  TMA.MEM_AGR_MEM_ID = TMM.MEM_MST_MEM_ID 
+	    AND  TMA.MEM_AGR_TRM_CD = '0004'
+	    AND  TMA.MEM_AGR_TRM_YN = 'Y'    /* 수신거부 */											
+	    AND TCM.CPN_MST_IDX= #{CPN_MST_IDX}
+	    AND MEM_MST_MEM_ID = #{MEM_MST_MEM_ID}
+	</select>
+	 
+	<!-- 프론트 > 회원가입 > 간편회원 가입을 위한 인증번호 정보 -->
+	<select id="selectCertifyInfo" parameterType="HashMap" resultType="HashMap">
+		/* PcJoinMember.selectCertifyInfo */	
+		SELECT
+			MEM_CTF_MAIL,
+			MEM_CTF_NO,
+			TO_CHAR(TO_DATE(MEM_CTF_DT,'YYYYMMDDHH24MISS') + 4/24,'YYYY-MM-DD HH24:MI') AS VAILD_DT
+		FROM
+			T_MEM_CTF
+		WHERE 1=1
+		AND MEM_CTF_MAIL = #{MEM_CTF_MAIL}
+	</select>
+	
+	<!-- 프론트 > 회원가입 시 > 휴면회원여부 체크 -->
+	<select id="selectCheckRstYn" parameterType="HashMap" resultType="String">
+		/* PcJoinMember.selectCheckRstYn */
+		SELECT
+			TMV.RST_YN
+		FROM
+			T_MEM_VIEW TMV, T_MEM_IPN TMI
+		WHERE
+			TMV.MEM_MST_MEM_ID = TMI.MEM_MST_MEM_ID
+		AND
+			TMI.MEM_IPN_CI = #{MEM_IPN_CI}
+        <if test="MEM_MST_MEM_GBN != null and MEM_MST_MEM_GBN != ''">
+            AND TMV.MEM_MST_MEM_GBN = #{MEM_MST_MEM_GBN}
+        </if>
+        <if test="MEM_MST_JOI_RTE != null and MEM_MST_JOI_RTE != ''">
+            AND TMV.MEM_MST_JOI_RTE = #{MEM_MST_JOI_RTE}
+        </if>
+	</select>
+	
+</mapper>

@@ -1,0 +1,152 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="PcInquiry">
+
+    <!-- 프론트 > 고객센터 > 1:1문의 등록 -->
+    <insert id="insertInquiry" parameterType="HashMap">
+        <selectKey keyProperty="BRD_INQ_IDX" resultType="Integer" order="BEFORE">
+            SELECT SEQ_BRD_INQ_IDX.NEXTVAL AS BRD_INQ_IDX FROM DUAL
+        </selectKey>
+        /* PcInquiry.insertInquiry */
+        INSERT INTO
+        T_BRD_INQ
+        (
+        BRD_INQ_IDX,
+        BRD_INQ_TYPE,
+        BRD_CMN_COM_IDX,
+        BRD_INQ_TITLE,
+        BRD_INQ_CONTENTS,
+        BRD_INQ_REG_ID,
+        BRD_INQ_REG_IP,
+        BRD_INQ_REG_NM,
+        BRD_INQ_REG_DT,
+        BRD_INQ_REPLY_CD,
+        BRD_INQ_BRAND_CD,
+        BRD_INQ_EMAIL,
+        BRD_INQ_RET_YN,
+        BRD_ORD_MST_CD
+        )
+        VALUES
+        (
+        #{BRD_INQ_IDX},
+        'I',
+        #{BRD_CMN_COM_IDX},
+        #{BRD_INQ_TITLE},
+        #{BRD_INQ_CONTENTS},
+        #{BRD_INQ_REG_ID},
+        #{BRD_INQ_REG_IP},
+        #{BRD_INQ_REG_NM},
+        TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+        'N',
+        #{BRAND_CD},
+        UTL_RAW.CAST_TO_RAW(#{BRD_INQ_EMAIL}),
+        NVL(#{BRD_INQ_RET_YN},'N'),
+        #{ORD_MST_CD}
+        )
+    </insert>
+    
+    <!-- 모바일 > 고객센터 > 1:1 문의 등록 -->
+    <insert id="insertMobileInquiry" parameterType="HashMap">
+        <selectKey keyProperty="MEM_ADV_IDX" resultType="Integer" order="BEFORE">
+            SELECT SEQ_MEM_ADV_IDX.NEXTVAL AS MEM_ADV_IDX FROM DUAL
+        </selectKey>
+        /* PcInquiry.insertMobileInquiry */
+        INSERT INTO T_MEM_ADV
+        (
+            MEM_ADV_IDX,
+            MEM_ADV_TYPE,
+            MEM_ADV_QST_TYPE,
+            MEM_MST_MEM_ID,
+            MEM_MST_MEM_NM,
+            MEM_ADV_MDL_NO,
+            ORD_MST_CD,
+            MEM_ADV_TITLE,
+            MEM_ADV_CONTENTS,
+            MEM_ADV_RPL_YN,
+            MEM_ADV_MAIL_YN,
+            MEM_ADV_READ_CNT,
+            MEM_ADV_MBL_YN,
+            MEM_ADV_REG_DT,
+            MEM_ADV_REG_IP,
+            MEM_ADV_REG_ID,
+            MEM_ADV_HP1,
+            MEM_ADV_HP2,
+            MEM_ADV_HP3,
+            MEM_ADV_MAIL,
+            MEM_ADV_CHN_GBN
+        ) 
+        VALUES(
+            #{MEM_ADV_IDX},
+            #{MEM_ADV_TYPE},
+            #{MEM_ADV_QST_TYPE},
+            #{MEM_MST_MEM_ID},
+            #{MEM_MST_MEM_NM},
+            #{MEM_ADV_MDL_NO},
+            #{ORD_MST_CD},
+            #{MEM_ADV_TITLE},
+            #{MEM_ADV_CONTENTS},
+            'N',
+            #{MEM_ADV_MAIL_YN},
+            0,
+            NVL(#{MEM_ADV_MBL_YN},'N'),
+            TO_CHAR(SYSDATE,'yyyymmddhh24miss'),
+            #{MEM_ADV_REG_IP},
+            #{MEM_MST_MEM_ID},
+            #{MEM_ADV_HP1},
+            #{MEM_ADV_HP2},
+            #{MEM_ADV_HP3},
+            #{MEM_ADV_MAIL},
+            #{MEM_ADV_CHN_GBN}
+        )
+    </insert>
+
+    <!-- 프론트 > 고객센터 > 1:1문의 주문 상품 리스트 -->
+    <select id="selectInquiryOrderProductList" parameterType="hashMap"
+        resultType="hashMap">
+        /* PcInquiry.selectInquiryOrderProductList */
+        SELECT
+        OM.ORD_MST_CD,
+        COUNT(1) OVER(PARTITION BY OM.ORD_MST_CD) as ORD_PRD_CNT,
+        OM.ORD_MST_ORD_DT,
+        OP.ORD_PRD_MST_CD,
+        PO.PRD_OPT_COLR_NM,
+        PO.PRD_OPT_SIZE_NM,
+        NVL(PM.PRD_MST_NM,'') PRD_MST_NM,
+        FN_PRODUCT_IMG (OP.ORD_PRD_MST_CD, #{THUMBNAIL_SIZE}) PRODUCT_THUM_IMG,
+        FN_PRODUCT_IMG_ALT(OP.ORD_PRD_MST_CD, #{THUMBNAIL_SIZE}) PRD_IMAGE_ALT,
+        OP.ORD_PRD_ORD_STATE
+        , (SELECT 
+                CASE /* 겟잇나우 배송은 주문상태를 다르게 보여줘야 한다. */
+                    WHEN OM.ORD_MST_DLV_GBN = 2097 AND CMN_COM_ETC2 IS NOT NULL THEN CMN_COM_ETC2
+                    ELSE CMN_COM_NM    
+                END
+            FROM T_CMM_COM WHERE CMN_COM_IDX = OP.ORD_PRD_ORD_STATE) as ORD_PRD_ORD_STATE_NM
+        , OP.ORD_ORD_EDI_ORD_NO,
+        OP.ORD_PRD_ORD_PRC,
+        OP.ORD_PRD_ORD_CNT,
+        OM.ORD_MST_PAY_PRC,
+        OP.ORD_PRD_ORG_IDX
+        FROM
+        T_ORD_MST OM
+        INNER JOIN T_ORD_PRD OP
+        ON OP.ORD_ORD_MST_CD = OM.ORD_MST_CD
+        LEFT OUTER JOIN T_PRD_MST PM
+        ON PM.PRD_MST_CD = OP.ORD_PRD_MST_CD
+        LEFT OUTER JOIN T_PRD_OPT PO
+        ON PO.PRD_OPT_IDX = OP.ORD_PRD_OPT_IDX
+        LEFT OUTER JOIN T_DLV_CPN DC
+        ON DC.DLV_CPN_IDX = OP.ORD_DLV_CPN_IDX
+        WHERE
+        OM.ORD_MST_ORD_ID = #{ORD_MST_ORD_ID}
+        <if test="MobileInquiryOrderList != null and MobileInquiryOrderList != ''">
+            AND ORD_MST_ORD_DT BETWEEN TO_CHAR(SYSDATE-90,'YYYYMMDD')||'000000' AND TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS')
+        </if>
+        <if test="MobileInquiryOrderList == null or MobileInquiryOrderList == ''">
+            AND ORD_MST_ORD_DT BETWEEN TO_CHAR(SYSDATE-150,'YYYYMMDD')||'000000' AND TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS')
+        </if>
+        ORDER BY
+        ORD_MST_ORD_DT DESC, ORD_ORD_EDI_ORD_NO
+    </select>
+
+</mapper>

@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="DeliveryState">
+    <sql id="deliveryStateWhere">
+        <if test="searchVdrMstNm != null and searchVdrMstNm != ''">
+            AND TVM.VDR_MST_NM LIKE '%' || #{searchVdrMstNm} || '%'
+        </if>
+        <if test="searchDLVStateUseYN != null and searchDLVStateUseYN != ''">
+            AND TDI.DLV_INF_USE_YN = #{searchDLVStateUseYN}
+        </if>
+    </sql>
+    <!-- 관리자 > 사이트 관리 > 배송/교환/반품정보관리 목록 갯수 -->
+    <select id="selectDeliveryStateListCount" parameterType="HashMap" resultType="Integer">
+        /* DeliveryState.selectDeliveryStateListCount */
+        SELECT
+            COUNT(TDI.DLV_INF_IDX)
+        FROM
+            T_DLV_INF TDI LEFT OUTER JOIN T_VDR_MST TVM ON TVM.VDR_MST_IDX = TDI.VDR_MST_IDX
+        WHERE
+            1=1
+            <include refid="deliveryStateWhere"/>
+    </select>
+
+    <!-- 관리자 > 사이트 관리 > 배송/교환/반품정보관리 목록 -->    
+    <select id="selectDeliveryStateList" parameterType="HashMap" resultType="HashMap">
+        /* DeliveryState.selectDeliveryStateList */
+        SELECT
+            S2.* 
+        FROM
+            (   SELECT
+                    ROWNUM AS RNUM,
+                    S1.* 
+                FROM
+                    (   SELECT
+                            TDI.DLV_INF_IDX,
+                            TVM.VDR_MST_NM,
+                            TDI.DLV_INF_USE_YN,
+                            TDI.DLV_INF_REG_DT,
+                            TDI.DLV_INF_REG_IP,
+                            TDI.DLV_INF_REG_ID
+                        FROM
+                            T_DLV_INF TDI LEFT OUTER JOIN T_VDR_MST TVM ON TVM.VDR_MST_IDX = TDI.VDR_MST_IDX
+                        WHERE
+							1=1
+                            <include refid="deliveryStateWhere"/>
+                        ORDER BY TDI.DLV_INF_REG_DT DESC
+                    )
+                    S1 
+            )
+            S2 
+        WHERE
+            S2.RNUM BETWEEN #{startNum} AND #{endNum}
+    </select>
+    
+    <!-- 관리자 > 사이트 관리 > 배송/교환/반품정보 관리 상세정보 -->
+    <select id="selectDeliveryStateInfo" parameterType="HashMap" resultType="HashMap">
+        /* DeliveryState.selectDeliveryStateInfo */
+        SELECT
+			TDID.DLV_INF_DTL_IDX,
+            TDID.DLV_INF_IDX,   
+            TDID.DLV_INF_DTL_TITLE,             
+            TDID.DLV_INF_DTL_DESC,
+            TDID.DLV_INF_DTL_DPL_YN
+        FROM
+            T_DLV_INF TDI, T_DLV_INF_DTL TDID
+        WHERE 1=1
+        	AND TDI.DLV_INF_IDX = TDID.DLV_INF_IDX
+        	<if test="DLV_INF_IDX != null and DLV_INF_IDX != ''">
+        		AND TDID.DLV_INF_IDX = #{DLV_INF_IDX}
+        	</if>
+			<if test="searchVdrMstIdx != null and searchVdrMstIdx != ''">
+				AND TDI.VDR_MST_IDX = #{searchVdrMstIdx}
+			</if>
+    </select>
+    
+    <!-- 관리자 > 사이트 관리 > 배송/교환/반품정보 관리 등록 -->
+    <insert id="insertDeliveryState" parameterType="HashMap">
+    	<selectKey resultType="Integer" keyProperty="DLV_INF_IDX" order="BEFORE">
+            SELECT SEQ_DLV_INF_IDX.NEXTVAL AS DLV_INF_IDX FROM DUAL
+        </selectKey>
+        /* DeliveryState.insertDeliveryState */
+        INSERT INTO
+            T_DLV_INF
+            (
+                DLV_INF_IDX,
+                VDR_MST_IDX,
+                DLV_INF_USE_YN,
+                DLV_INF_REG_DT,
+                DLV_INF_REG_IP,
+                DLV_INF_REG_ID
+            )
+        VALUES
+            (
+                #{DLV_INF_IDX},
+                #{VDR_MST_IDX},
+                NVL(#{DLV_INF_USE_YN}, 'Y'),
+                TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+                #{DLV_INF_REG_IP},
+                #{DLV_INF_REG_ID}
+            )
+    </insert>
+    
+	<insert id="insertDeliveryStateDetail" parameterType="HashMap">
+        /* DeliveryState.insertDeliveryStateDetail */
+        INSERT ALL
+        <foreach collection="DeliveryStateDetailList" item="row" separator=" ">
+            INTO
+            	T_DLV_INF_DTL
+	            (
+	                DLV_INF_DTL_IDX,
+	                DLV_INF_IDX,   
+	                DLV_INF_DTL_TITLE,             
+	                DLV_INF_DTL_DESC,
+	                DLV_INF_DTL_DPL_YN
+	            )
+	        	VALUES
+	            (
+	            	FN_GET_NEXT_SEQ('SEQ_DLV_INF_DTL_IDX'),
+	                #{row.DLV_INF_IDX},             
+	                #{row.DLV_INF_DTL_TITLE},   
+	                #{row.DLV_INF_DTL_DESC},
+	                #{row.DLV_INF_DTL_DPL_YN}
+	            )
+		</foreach>
+    	SELECT * FROM DUAL
+    	
+    </insert>
+    
+    <!-- 관리자 > 사이트 관리 > 배송/교환/반품정보 관리 삭제  -->
+    <delete id="deleteDeliveryStateDetail" parameterType="HashMap">
+        /* DeliveryState.deleteDeliveryStateDetail */
+        DELETE FROM T_DLV_INF_DTL WHERE DLV_INF_IDX = #{DLV_INF_IDX}
+    </delete>
+
+</mapper>

@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="ko" class="no-js is-sm">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<meta name="format-detection" content="telephone=no">
+<meta property="og:title" content="SMART PUSHR">
+<meta property="og:url" content="">
+<meta property="og:image" content="">
+<meta property="og:description" content="">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta http-equiv="content-language" content="kr" />
+<meta http-equiv="imagetoolbar" content="no" />
+<title>CAMPAIGN PUSH ADMIN</title>
+<meta name="title" content="SMART PUSHR" />
+<meta name="description" content="SMART PUSHR" />
+<meta name="copyright" content="SMART PUSHR" />
+<link rel="author" href="http://epasscni.com"/>
+<link rel="publisher" href="http://epasscni.com" />
+<link rel="apple-touch-icon" href="../img/apple-touch-icon.png" />
+<link rel="stylesheet" href="../css/normalize-3.0.2.css" />
+<link rel="stylesheet" href="../css/fontium.css" /><!-- fontium css -->
+<!--
+<link rel="stylesheet" href="../css/epass.base-0.1.css" />
+-->
+<link rel="stylesheet" href="../css/style.css" /><!-- less compiled css -->
+<script>document.documentElement.className = document.documentElement.className.replace(/\bno-js\b/,'js');</script>
+<script src="../js/vendor/modernizr.custom.2.8.3.min.js"></script>
+<!--[if (gte IE 6)&(lte IE 8)]>
+    <script src="../js/vendor/jquery-1.11.2.min.js"></script>
+<![endif]-->
+<!--[if (gt IE 8)|!(IE)]> <!--> <script src="../js/vendor/jquery-2.1.3.min.js"></script> <!--<![endif]-->
+<script>window.jQuery || document.write('<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js"><\/script>')</script>
+<style type="text/css">
+<!--
+--> 
+</style>
+</head>
+<body><!-- body class, 중요 -->
+
+<div id="header"><!-- header -->
+
+    <div id="top" class="container" style="background: #414547 url('../img/bg_head.png') no-repeat center top;"><!-- top -->
+        <div class="wrap">
+            <div class="menu"><!-- menu -->
+                <div id="togglerAside" class="toggler left">
+                    <a href="#!" class="js-toggle-nav" data-class="is-aside-in" data-lg-class="is-aside-out">
+                        <i class="fonti um-fog on"><em>메뉴 펼치기</em></i>
+                        <i class="fonti um-fog off"><em>메뉴 접기</em></i>
+                    </a>
+                </div>
+            </div><!-- // menu -->
+            <h1 class="logo">
+                <a href="01.dashboard.html"><img src="../img/logo.png" alt="HOME" /></a>
+            </h1>
+            <div class="util"><!-- util -->
+                <div class="col">
+                    <a href="05.config.html"><i class="fonti um-gears"><em>환경설정</em></i></a>
+                </div>
+                <div class="col">
+                    <a href="#!"><i class="fonti um-sign-out"><em>로그아웃</em></i></a>
+                </div>
+                <div class="col">
+                    <!-- <a href="#!"><i class="icon nth-child-3"><em>설정</em></i></a> -->
+                    <div id="togglerQuick" class="toggler left">
+                        <a href="#!" class="js-toggle-nav" data-class="is-quick-in" data-lg-class="is-quick-out">
+                            <i class="fonti um-ellipsis-h on"><em>사용자 메뉴 펼치기</em></i>
+                            <i class="fonti um-ellipsis-v off"><em>사용자 메뉴 접기</em></i>
+                        </a>
+                    </div>
+                </div>
+            </div><!-- // util -->
+        </div>
+    </div><!-- // top -->
+
+    <div id="gnb" class="container">
+        <div class="wrap core"></div><!-- // gnb -->
+        <div class="spacer"></div>
+    </div>
+
+</div><!-- // header -->
+
+<div id="container"><!-- container -->
+
+    <div id="aside" class="aside left"><!-- aside -->
+
+        <div class="holder"><!-- holder -->
+            <!--
+            <div id="togglerAside" class="toggler left">
+                <a href="#!" class="js-toggle-nav" data-class="is-aside-in" data-lg-class="is-aside-out"><span><em>사이드바 토글</em></span></a>
+            </div>
+            // menu -->
+
+            <div id="lnb" class="container">
+                <div class="wrap modules"><!-- modules -->
+                    <div class="title">
+                        MENU
+                    </div>
+                    <div class="core"></div>
+                </div><!-- // modules -->
+            </div>
+
+        </div><!-- // holder -->
+
+    </div><!-- // aside -->
+
+    <div id="wrapper"><!-- wrapper -->
+
+        <div id="breadcrumb"></div><!-- breadcrumb -->
+
+        <div id="contents"><!-- contents -->
+
+            <div class="container">
+
+                <h2 class="title"><span>대시보드</span></h2>
+
+                <h3 class="title"><span>서비스 현황</span></h3>
+
+                <table cellspacing="0" class="table-row table-a"><!-- table -->
+                    <colgroup>
+                        <col style="width: 15%; min-width: 180px;" />
+                        <col style="width: auto;" />
+                    </colgroup>
+                    <tbody>
+                        <tr><!-- row -->
+                            <th><span>서비스 아이디</span></th>
+                            <td>
+                                <div style="margin-bottom: 10px;">
+                                    <img src="../img/temp/app.png" alt="" style="width: 90px; height: 90px;" />
+                                </div>
+                                USER0001
+                                /
+                                <a href="05.config.html">테스트앱</a>
+                                <p class="small">
+                                    - 최초 서비스 등록 2011-10-10
+                                </p>
+                            </td>
+                        </tr>
+                        <tr><!-- row -->
+                            <th><span>서비스 활성상태</span></th>
+                            <td>
+                                정상 작동 중 
+                                <p class="small">
+                                    - <a href="05.config.html">환경 설정 값 - ON</a>
+                                </p>
+                            </td>
+                        </tr>
+                        <tr><!-- row -->
+                            <th><span>전체 캠페인</span></th>
+                            <td>
+                                총 <a href="#!">1040</a> 건 
+                                <p class="small">
+                                    - 즉시 <a href="03.campaign.list.instant.html">1000</a> 건 
+                                    /
+                                    예약 <a href="03.campaign.list.schedule.html">20</a> 건
+                                    /
+                                    인앱 <a href="03.campaign.list.inapp.html">10</a> 건
+                                    /
+                                    업데이트 알림 <a href="03.campaign.list.update.html">10</a> 건
+                                </p>
+                                <p class="small">
+                                    - 발송완료 1120 건 / 발송대기 20 건
+                                </p>
+                            </td>
+                        </tr>
+                        <tr><!-- row -->
+                            <th><span>앱 사용자</span></th>
+                            <td>
+                                총 <a href="04.user.list.html">2,020</a> 명
+                                <p class="small">
+                                    - 활성 <a href="04.user.list.active.html">2,000</a> 명
+                                </p>
+                                <p class="small">
+                                    - 비활성 <a href="04.user.list.deactive.html">20</a> 명
+                                </p>
+                                <p class="small">
+                                    - 최근 1주일간 +1200 명 증가 했습니다.
+                                </p>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table><!-- // table -->
+
+                <div class="section-chart"><!-- section-chart -->
+                    <div class="grid">
+                        <div class="col col-1-2">
+                            <h3 class="title"><span>앱 활성 사용자 가감 추이 (최근 5개월)</span></h3>
+                            <div class="canvas-holder">
+                                <!-- 앱 활성 사용자 가감 추이 -->
+                                <canvas id="chartActiveUsers" width="500" height="300" />
+                            </div>
+                        </div>
+                        <div class="col col-1-2">
+                            <h3 class="title"><span>월별 발송 캠페인 현황 (최근 5개월)</span></h3>
+                            <div class="canvas-holder">
+                                <!-- 월별 발송 캠페인 현황 -->
+                                <canvas id="chartMonthSends" width="500" height="300" />
+                            </div>
+                        </div>
+                    </div>
+                    <div class="grid">
+                        <div class="col col-1-2">
+                            <h3 class="title"><span>시간별 발송 캠페인 현황 (최근 5개월)</span></h3>
+                            <div class="canvas-holder">
+                                <!-- 시간별 발송 캠페인 현황 -->
+                                <canvas id="chartTimeSends" width="500" height="300" />
+                            </div>
+                        </div>
+                        <div class="col col-1-2">
+                            <h3 class="title"><span>앱 링크 유도율 통계 (최근 5개월 / 단위 %)</span></h3>
+                            <div class="canvas-holder">
+                                <!-- 월별 발송 캠페인 현황 -->
+                                <canvas id="chartReacts" width="500" height="300" />
+                            </div>
+                        </div>
+                    </div>
+                    <div id="chartjs-tooltip"></div>
+                </div><!-- // section-chart -->
+
+                <hr style="margin-top: 40px;" />
+
+                <div class="section-title"><!-- section-title -->
+                    <h3 class="title"><span>최근 발송 캠페인 (최근 5 건)</span></h3>
+                    <div class="more">
+                        <a href="#!" class="button primary small"><span>전체 캠페인 목록 보기</span></a>
+                    </div>
+                </div><!-- // section-title -->
+
+                <table cellspacing="0" class="table-row table-a table-recent-push"><!-- 최근 발송 건 -->
+                    <colgroup>
+                        <col style="width: 15%; min-width: 180px;" />
+                        <col style="width: auto;" />
+                    </colgroup>
+                    <tbody>
+                        <tr><!-- row -->
+                            <th><span>캠페인 아이디</span></th>
+                            <td>
+                                #SCHED0012
+                            </td>
+                        </tr>
+                        <tr><!-- row -->
+                            <th><span>캠페인 유형</span></th>
+                            <td>
+                                예약 발송 (Android + iOS) 
+                                <p class="small">
+                                    - 2011-11-11 02:10
+                                </p>
+                            </td>
+                        </tr>
+                        <tr><!-- row -->
+                            <th><span>발송 현황</span></th>
+                            <td>
+                                총 128 건 발송
+                                <p class="small">
+                                    - 성공 98 / 실패 2
+                                </p>
+                            </td>
+                        </tr>
+                        <tr><!-- row -->
+                            <th><span>제목</span></th>
+                            <td>
+                                <div class="push-subject">
+                                    곧 주목할 만한 서비스가 시작됩니다.
+                                </div>
+                            </td>
+                        </tr>
+                        <tr><!-- row -->
+                            <th><span>내용</span></th>
+                            <td>
+                                <div class="push-content">
+                                    Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod
+                                    tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam,
+                                    quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo
+                                    consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse
+                                    cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non
+                                    proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table><!-- // table -->
+
+                <table cellspacing="0" class="table-col table-b"><!-- table -->
+                <colgroup>
+                    <col style="width: auto;" />
+                    <col style="width: auto;" />
+                    <col style="width: auto;" />
+                    <col style="width: auto;" />
+                    <col style="width: auto;" />
+                </colgroup>
+                <thead>
+                    <tr>
+                        <th><span>캠페인 ID</span></th>
+                        <th><span>캠페인 유형</span></th>
+                        <th><span>상태</span></th>
+                        <th><span>발송시간</span></th>
+                        <th><span>제목</span></th>
+                        <th><span>플랫폼</span></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><!-- row -->
+                        <td>#INSTA0016</td>
+                        <td>즉시 발송</td>
+                        <td>처리중</td>
+                        <td>2011-12-22 12:00 발송</td>
+                        <td><a href="03.campaign.view.html">곧 획기적인 서비스가 시작됩니다</a></td>
+                        <td>ALL</td>
+                    </tr>
+                    <tr><!-- row -->
+                        <td>#INSTA0015</td>
+                        <td>즉시 발송</td>
+                        <td>완료</td>
+                        <td>2011-12-22 12:00 발송</td>
+                        <td><a href="03.campaign.view.html">곧 획기적인 서비스가 시작됩니다</a></td>
+                        <td>iOS</td>
+                    </tr>
+                    <tr><!-- row -->
+                        <td>#SCHED0015</td>
+                        <td>예약 발송</td>
+                        <td>예약 대기</td>
+                        <td>2011-12-22 12:00 예정</td>
+                        <td><a href="03.campaign.view.html">곧 획기적인 서비스가 시작됩니다</a></td>
+                        <td>Android</td>
+                    </tr>
+                    <tr><!-- row -->
+                        <td>#SCHED0015</td>
+                        <td>예약 발송</td>
+                        <td>예약 대기</td>
+                        <td>2011-12-22 12:00 예정</td>
+                        <td><a href="03.campaign.view.html">곧 획기적인 서비스가 시작됩니다</a></td>
+                        <td>Android</td>
+                    </tr>
+                </tbody>
+                </table><!-- // table -->
+
+            </div>
+
+        </div><!-- // contents -->
+
+    </div><!-- // wrapper -->  
+
+    <div id="quickmenu" class="aside right"><!-- quickmenu-->
+
+        <div class="holder"><!-- holder -->
+
+            <!--
+            <div id="togglerQuick" class="toggler left">
+                <a href="#!" class="js-toggle-nav" data-class="is-quick-in" data-lg-class="is-quick-out"><span><em>사이드바 토글</em></span></a>
+            </div>
+            -->
+
+            <div id="quick" class="container">
+
+                <div class="wrap modules"><!-- modules -->
+                    <ul class="core">
+                        <li class="d2 active">
+                            <a href="#!" class="d2"><span>USER001 님</span></a>
+                            <div class="d3 show"><!-- d3 -->
+                                <ul class="d3">
+                                    <li class="d3">
+                                        <a href="#!" class="d3"><span>로그아웃</span></a>
+                                    </li>
+                                </ul>
+                            </div><!-- // d3 -->
+                        </li>
+                    </ul>
+                </div><!-- // modules -->
+
+                <div class="wrap modules">
+                    <ul class="core">
+                        <li class="d2 active">
+                            <a href="#!" class="d2"><span>바로가기</span></a>
+                            <div class="d3">
+                                <ul class="d3">
+                                    <li class="d3">
+                                        <a href="#!" class="d3"><span>Google Play Store</span></a>
+                                    </li>
+                                    <li class="d3">
+                                        <a href="#!" class="d3"><span>Apple AppStore</span></a>
+                                    </li>
+                                </ul>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+
+            </div>
+
+        </div><!-- // holder -->
+
+    </div><!-- // quickmenu -->
+
+</div><!-- // container -->
+
+<div id="footer">
+    <div id="copyrights"><!-- copyrights -->
+        <div class="container">
+            <p>
+                Copyrights &copy; 2015 epasscni, co.ltd. All rights Reserved.
+            </p>
+        </div>
+    </div><!-- // copyrights -->
+</div>
+
+
+<script>
+/**
+ * 전역 변수 설정
+ * $.params 배열을 전역 변수로 사용합니다.
+ * epass.base-0.3.js / ui.js 외 기타 모든 플러그인에서 사용됩니다.
+ */
+$.params = ($.params !== undefined) ? $.params : [];
+$.params.domain = (typeof $.params.domain !== 'undefined') ? $.params.domain : '..';
+$.params.STR = (typeof $.params.STR !== 'undefined') ? $.params.STR : []; // 문자열
+$.params.nav = (typeof $.params.nav !== 'undefined') ? $.params.nav : [null, null];
+
+$.params.nav = [0]; // nav 활성화
+
+$.params.tree = {"child":[{"name":"대시보드","src":"http://bo.marketplanta.epasscni.com:8080/am/main/dashboardMain.do"},{"child":[{"name":"회원관리","src":"http://bo.marketplanta.epasscni.com:8080/am/member/infoMemberList.do"},{"name":"휴면회원관리","src":"http://bo.marketplanta.epasscni.com:8080/am/member/restMemberList.do"},{"name":"탈퇴회원관리","src":"http://bo.marketplanta.epasscni.com:8080/am/member/secessionMemberList.do"}],"name":"회원관리","src":"http://bo.marketplanta.epasscni.com:8080/am/member/infoMemberList.do"},{"child":[{"name":"전시카테고리관리","src":"http://bo.marketplanta.epasscni.com:8080/am/product/categoryProductList.do"},{"name":"상품관리","src":"http://bo.marketplanta.epasscni.com:8080/am/product/basicProductList.do"},{"name":"상품고시관리","src":"http://bo.marketplanta.epasscni.com:8080/am/product/productNotificationInfoList.do"},{"name":"입점업체 승인요청","src":"http://bo.marketplanta.epasscni.com:8080/am/product/vendorApprovalList.do"},{"name":"입점업체 상품변경요청","src":"http://bo.marketplanta.epasscni.com:8080/am/product/vendorProductChangeList.do"},{"name":"일괄업로드","src":"http://bo.marketplanta.epasscni.com:8080/am/product/productUploadList.do"},{"name":"사은품관리","src":"http://bo.marketplanta.epasscni.com:8080/am/product/giftList.do"},{"name":"견적관리","src":"http://bo.marketplanta.epasscni.com:8080/am/product/estimateManagementList.do"},{"name":"스펙관리","src":"http://bo.marketplanta.epasscni.com:8080/am/product/specManagementList.do"}],"name":"상품관리","src":"http://bo.marketplanta.epasscni.com:8080/am/product/basicProductList.do"},{"child":[{"name":"전체주문","src":"http://bo.marketplanta.epasscni.com:8080/am/order/orderList.do?searchYn=Y"},{"name":"입금대기","src":"http://bo.marketplanta.epasscni.com:8080/am/order/orderPayReadyList.do?searchYn=Y"},{"name":"결제완료","src":"http://bo.marketplanta.epasscni.com:8080/am/order/orderPayList.do?searchYn=Y"},{"name":"배송관리","src":"http://bo.marketplanta.epasscni.com:8080/am/order/orderSendList.do?searchYn=Y"},{"name":"구매확정","src":"http://bo.marketplanta.epasscni.com:8080/am/order/orderFixList.do?searchYn=Y"},{"name":"취소관리","src":"http://bo.marketplanta.epasscni.com:8080/am/order/orderCancelList.do?searchYn=Y"},{"name":"교환관리","src":"http://bo.marketplanta.epasscni.com:8080/am/order/orderSwapList.do?searchYn=Y"},{"name":"반품관리","src":"http://bo.marketplanta.epasscni.com:8080/am/order/orderBackList.do?searchYn=Y"},{"name":"환불관리","src":"http://bo.marketplanta.epasscni.com:8080/am/order/orderRefundList.do?searchYn=Y"},{"name":"세금계산서 신청관리","src":"http://bo.marketplanta.epasscni.com:8080/am/order/taxIvc/taxIvcList.do"},{"name":"입점업체취소요청","src":"http://bo.marketplanta.epasscni.com:8080/am/order/orderScmCancelList.do?searchYn=Y"},{"name":"오픈마켓 주문조회","src":"http://bo.marketplanta.epasscni.com:8080/am/order/orderOpenMarketList.do?searchYn=Y"},{"name":"입점업체 주문조회(통합)","src":"http://bo.marketplanta.epasscni.com:8080/am/order/orderScmOrderList.do?searchYn=Y"},{"name":"입점업체 주문조회(SCM) ","src":"http://bo.marketplanta.epasscni.com:8080/am/order/orderOnlyScmOrderList.do?searchYn=Y"},{"name":"결제오류조회","src":"http://bo.marketplanta.epasscni.com:8080/am/order/orderError/orderErrorList.do"},{"name":"출고관리","src":"http://bo.marketplanta.epasscni.com:8080/am/order/orderDeliveryList.do"},{"name":"O2O 주문조회","src":"http://bo.marketplanta.epasscni.com:8080/am/order/orderCleanKingList.do"}],"name":"주문관리","src":"http://bo.marketplanta.epasscni.com:8080/am/order/orderList.do"},{"child":[{"name":"전시배너관리","src":"http://bo.marketplanta.epasscni.com:8080/am/display/bannerDisplayView.do"},{"name":"전시상품관리","src":"http://bo.marketplanta.epasscni.com:8080/am/display/productDisplayView.do"},{"name":"팝업관리","src":"http://bo.marketplanta.epasscni.com:8080/am/display/popupList.do"},{"name":"공통전시","src":"http://bo.marketplanta.epasscni.com:8080/am/display/vendorDisplayView.do"},{"name":"테마전시배너관리","src":"http://bo.marketplanta.epasscni.com:8080/am/display/themeBannerView.do"},{"name":"테마전시상품관리","src":"http://bo.marketplanta.epasscni.com:8080/am/display/themeProductView.do"},{"name":"브랜드공지관리","src":"http://bo.marketplanta.epasscni.com:8080/am/display/bannerProductBrandNoticeList.do"},{"name":"MD공지관리","src":"http://bo.marketplanta.epasscni.com:8080/am/display/bannerProductMdNoticeList.do"},{"name":"광고관리","src":"http://bo.marketplanta.epasscni.com:8080/am/display/adList.do"}],"name":"전시관리","src":"http://bo.marketplanta.epasscni.com:8080/am/display/privateShopList.do"},{"child":[{"name":"기획전관리","src":"http://bo.marketplanta.epasscni.com:8080/am/marketing/planList.do"},{"name":"이벤트관리","src":"http://bo.marketplanta.epasscni.com:8080/am/marketing/eventList.do"},{"name":"고객체험단","src":"http://bo.marketplanta.epasscni.com:8080/am/marketing/kingerList.do"},{"name":"원데이특가","src":"http://bo.marketplanta.epasscni.com:8080/am/marketing/oneDayList.do"},{"name":"게릴라 세일","src":"http://bo.marketplanta.epasscni.com:8080/am/marketing/timeSaleList.do"},{"child":[{"name":"쿠폰목록","src":"http://bo.marketplanta.epasscni.com:8080/am/marketing/onlineCouponList.do"},{"name":"쿠폰생성","src":"http://bo.marketplanta.epasscni.com:8080/am/marketing/onlineCouponForm.do"},{"name":"쿠폰발행내역","src":"http://bo.marketplanta.epasscni.com:8080/am/marketing/onlineCouponIssueList.do"}],"name":"쿠폰","src":"http://bo.marketplanta.epasscni.com:8080/"},{"child":[{"name":"포인트 내역조회","src":"http://bo.marketplanta.epasscni.com:8080/am/marketing/pointDetail.do"},{"name":"포인트 리스트","src":"http://bo.marketplanta.epasscni.com:8080/am/marketing/pointList.do"},{"name":"포인트 적립/차감","src":"http://bo.marketplanta.epasscni.com:8080/am/marketing/pointForm.do"}],"name":"포인트","src":"http://bo.marketplanta.epasscni.com:8080/"},{"name":"카드행사관리","src":"http://bo.marketplanta.epasscni.com:8080/am/marketing/cardEventList.do"},{"name":"카드할부관리","src":"http://bo.marketplanta.epasscni.com:8080/am/marketing/cardDivList.do"},{"name":"채널관리","src":"http://bo.marketplanta.epasscni.com:8080/am/marketing/channelView.do"}],"name":"프로모션관리","src":"http://bo.marketplanta.epasscni.com:8080/am/marketing/promotionList.do"},{"child":[{"name":"게시판 생성","src":"http://bo.marketplanta.epasscni.com:8080/am/createboard/createBoardList.do"}],"name":"게시판 관리","src":"http://bo.marketplanta.epasscni.com:8080/am/createboard/createBoardList.do"},{"child":[{"name":"공지사항","src":"http://bo.marketplanta.epasscni.com:8080/am/board/noticeBoardList.do"},{"name":"FAQ","src":"http://bo.marketplanta.epasscni.com:8080/am/board/faqBoardList.do"},{"name":"상품후기","src":"http://bo.marketplanta.epasscni.com:8080/am/board/commentBoardList.do"},{"name":"상품Q&A","src":"http://bo.marketplanta.epasscni.com:8080/am/board/productInquiryList.do"},{"name":"1:1 문의","src":"http://bo.marketplanta.epasscni.com:8080/am/board/inquiryList.do"},{"name":"약관관리","src":"http://bo.marketplanta.epasscni.com:8080/am/board/agreementBoardList.do"}],"name":"고객센터","src":"http://bo.marketplanta.epasscni.com:8080/am/board/noticeBoardList.do"},{"child":[{"name":"로고목록","src":"http://bo.marketplanta.epasscni.com:8080/am/logo/logoList.do"}],"name":"로고관리","src":"http://bo.marketplanta.epasscni.com:8080/am/logo/logoList.do"},{"child":[{"name":"SNS관리","src":"http://bo.marketplanta.epasscni.com:8080/am/sns/snsManagerList.do"}],"name":"SNS관리","src":"http://bo.marketplanta.epasscni.com:8080/am/sns/snsManagerList.do"},{"child":[{"name":"회원통계","src":"http://bo.marketplanta.epasscni.com:8080/am/stats/memberJoinDateList.do"},{"name":"매출통계","src":"http://bo.marketplanta.epasscni.com:8080/am/stats/orderStatsSalesList.do"},{"name":"매장별통계","src":"http://bo.marketplanta.epasscni.com:8080/am/stats/orderMallStatsShopList.do"},{"name":"채널별매출","src":"http://bo.marketplanta.epasscni.com:8080/am/stats/orderChannelList.do"}],"name":"통계","src":"http://bo.marketplanta.epasscni.com:8080/"},{"child":[{"name":"입점업체공지사항","src":"http://bo.marketplanta.epasscni.com:8080/am/vendor/vendorNoticeList.do"},{"name":"입점업체문의사항","src":"http://bo.marketplanta.epasscni.com:8080/am/vendor/vendorInqList.do"},{"name":"입점상담 업체관리","src":"http://bo.marketplanta.epasscni.com:8080/am/vendor/vendorLoginManagerList.do"},{"name":"입점상담 관리","src":"http://bo.marketplanta.epasscni.com:8080/am/vendor/vendorCounselList.do"},{"name":"입점신청서 관리","src":"http://bo.marketplanta.epasscni.com:8080/am/vendor/vendorReqList.do"}],"name":"입점업체관리","src":"http://bo.marketplanta.epasscni.com:8080/am/vendor/vendorNoticeList.do"},{"child":[{"name":"정보수정","src":"http://bo.marketplanta.epasscni.com:8080/am/info/managerInfoEdit.do"}],"name":"관리자정보수정","src":"http://bo.marketplanta.epasscni.com:8080/am/info/managerInfoEdit.do"},{"child":[{"name":"관리자 관리","src":"http://bo.marketplanta.epasscni.com:8080/am/site/basicManagerList.do"},{"name":"권한 관리","src":"http://bo.marketplanta.epasscni.com:8080/am/site/authManagerList.do"},{"name":"메뉴 관리","src":"http://bo.marketplanta.epasscni.com:8080/am/site/menuManagerList.do"},{"name":"입점업체정보 관리","src":"http://bo.marketplanta.epasscni.com:8080/am/site/vendorManagerList.do"},{"name":"브랜드 관리","src":"http://bo.marketplanta.epasscni.com:8080/am/site/brandManagerList.do"},{"name":"제조사 관리","src":"http://bo.marketplanta.epasscni.com:8080/am/site/makerManagerList.do"},{"name":"배송업체 관리","src":"http://bo.marketplanta.epasscni.com:8080/am/site/delivCompanyList.do"},{"name":"차단단어 관리","src":"http://bo.marketplanta.epasscni.com:8080/am/site/banWordManagerList.do"},{"name":"공통코드관리","src":"http://bo.marketplanta.epasscni.com:8080/am/site/commonCodeManagerList.do"},{"name":"인기 검색어 관리","src":"http://bo.marketplanta.epasscni.com:8080/am/site/popularSearchWordList.do"}],"name":"시스템 관리","src":"http://bo.marketplanta.epasscni.com:8080/am/site/basicManagerList.do"},{"child":[{"child":[{"name":"정산목록","src":"http://bo.marketplanta.epasscni.com:8080/am/accounting/companyAccountingList.do"},{"name":"업체별상세","src":"http://bo.marketplanta.epasscni.com:8080/am/accounting/companyAccountingDetail.do"}],"name":"업체정산","src":"http://bo.marketplanta.epasscni.com:8080/"}],"name":"정산","src":"http://bo.marketplanta.epasscni.com:8080/"},{"child":[{"name":"APP 푸시관리","src":"http://bo.marketplanta.epasscni.com:8080/am/app/appPushManageList.do"},{"name":"APP 버전관리","src":"http://bo.marketplanta.epasscni.com:8080/am/app/appVersionManageList.do"}],"name":"APP 관리","src":"http://bo.marketplanta.epasscni.com:8080/am/app/appPushManageList.do"},{"child":[{"name":"타겟목록","src":"http://bo.marketplanta.epasscni.com:8080/am/target/targetList.do"}],"name":"타겟관리","src":"http://bo.marketplanta.epasscni.com:8080/am/target/targetList.do"}],"name":[""],"src":[""]};
+
+</script>
+<!-- 
+<script src="../js/json.nav.js"></script>
+ -->
+<script src="../js/epass.base-0.3.js"></script>
+<script src="../js/plugins.js"></script>
+<script src="../js/plugins/jquery.menu-aim.js"></script>
+<script src="../js/plugins/nanobar.js"></script>
+<script src="../js/plugins/alertify.custom-0.3.11.js"></script>
+<script src="../js/plugins/Chart.bundle.js"></script>
+<script src="../js/common/jquery.cookie.js"></script>
+<script src="../js/epass.helper.notify-0.1.js"></script>
+<script src="../js/epass.modalr-0.1.js"></script>
+<!-- run -->
+<script src="../js/ui.nav.js"></script>
+<script src="../js/ui.js"></script>
+<script src="../js/admin.js"></script>
+<script src="../js/common.js"></script>
+<!-- common -->
+<script>
+$(function(){
+
+});
+//-->
+</script>
+<script src="../js/ui.chart.js"></script>
+</body>
+</html>

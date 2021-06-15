@@ -1,0 +1,255 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="VendorReq">
+
+    <!-- 관리자 > 입점업체관리 > 입점신청서관리 조건절 -->
+    <sql id="vendorReqWhere">
+        <if test="searchStartDate != null and searchStartDate != '' and searchEndDate != null and searchEndDate != ''">
+            AND TVR.VDR_REQ_REG_DT BETWEEN REPLACE(#{searchStartDate},'-', '')||'000000' AND REPLACE(#{searchEndDate},'-', '')||'235959'
+        </if>
+
+        <if test="searchBusiNo != null and searchBusiNo != ''">
+            AND TVR.VDR_REQ_BUSI1 || TVR.VDR_REQ_BUSI2 || TVR.VDR_REQ_BUSI3 LIKE '%' || #{searchBusiNo} || '%'
+        </if>
+
+        <if test="searchVendorNm != null and searchVendorNm != ''">
+            AND TVR.VDR_REQ_NM LIKE '%' || #{searchVendorNm} || '%'
+        </if>
+
+        <if test="searchCeoNm != null and searchCeoNm != ''">
+            AND TVR.VDR_REQ_CEO_NM LIKE '%' || #{searchCeoNm} || '%'
+        </if>
+
+        <if test="searchGubun != null and searchGubun != ''">
+            AND TVR.VDR_REQ_GBN = #{searchGubun}
+        </if>
+    </sql>
+    
+    <!-- 관리자 > 입점업체관리 > 입점신청서 관리 목록 갯수 -->
+    <select id="selectVendorReqListCount" parameterType="HashMap" resultType="Integer">
+        /* VendorReq.selectVendorReqListCount */
+        SELECT
+            COUNT(0)
+        FROM
+            T_VDR_REQ TVR
+        WHERE
+            1=1
+            <include refid="vendorReqWhere"/>
+    </select>
+    
+    <!-- 관리자 > 입점업체관리 > 입점신청서 관리 목록 -->
+    <select id="selectVendorReqList" parameterType="HashMap" resultType="HashMap">
+        /* VendorReq.selectVendorReqList */
+        SELECT
+            S2.*
+        FROM
+        (
+            SELECT
+                ROWNUM AS RNUM,
+                S1.*
+            FROM
+            (
+                SELECT
+                    TVR.VDR_REQ_IDX,
+                    TVR.VDR_REQ_NM,
+                    TVR.VDR_REQ_GBN,
+                    TVR.VDR_REQ_CEO_NM,
+                    TVR.VDR_REQ_TEL1,
+                    TVR.VDR_REQ_TEL2,
+                    TVR.VDR_REQ_TEL3 AS VDR_REQ_TEL3,
+                    TVR.VDR_REQ_REG_DT
+                FROM
+                    T_VDR_REQ TVR
+                WHERE
+                    1=1
+                    <include refid="vendorReqWhere"/>
+                ORDER BY TVR.VDR_REQ_REG_DT DESC
+            ) S1
+        ) S2
+        <if test="startNum != null and startNum != '' and endNum != null and endNum != ''">
+        WHERE 
+            S2.RNUM BETWEEN #{startNum} AND #{endNum}
+        </if>
+    </select>
+    
+    <!-- 관리자 > 입점업체관리 > 입점신청서관리 상세정보 -->
+    <select id="selectVendorReqInfo" parameterType="HashMap" resultType="HashMap">
+        /* VendorReq.selectVendorReqInfo */
+        SELECT
+            VDR_REQ_IDX,
+            VDR_REQ_GBN,
+            VDR_REQ_NM,
+            VDR_REQ_CEO_NM,
+            VDR_REQ_BUSI1,
+            VDR_REQ_BUSI2,
+            VDR_REQ_BUSI3,
+            VDR_REQ_SUB_BUSI,
+            VDR_REQ_TYPE,
+            VDR_REQ_JRD_NO1,
+            VDR_REQ_JRD_NO2,
+            VDR_REQ_POST5,
+            VDR_REQ_JB_ADDR1,
+            VDR_REQ_JB_ADDR2,
+            VDR_REQ_DR_ADDR1,
+            VDR_REQ_DR_ADDR2,
+            VDR_REQ_TAX_MAIL,
+            VDR_REQ_MAIL AS VDR_REQ_MAIL,
+            VDR_REQ_BUSI_CDT,
+            VDR_REQ_BUSI_TYPE,
+            VDR_REQ_REF_TEL1,   /*대표 연락처1*/
+            VDR_REQ_REF_TEL2,   /*대표 연락처2*/
+            VDR_REQ_REF_TEL3,   /*대표 연락처3*/
+            VDR_REQ_TEL1,   /*담당자 연락처1*/
+            VDR_REQ_TEL2,   /*담당자 연락처2*/
+            VDR_REQ_TEL3 AS VDR_REQ_TEL3,   /*담당자 연락처3*/
+            VDR_REQ_FAX1,
+            VDR_REQ_FAX2,
+            VDR_REQ_FAX3 AS VDR_REQ_FAX3,
+            VDR_REQ_BANK_CD,
+            VDR_REQ_ACT_NO,
+            VDR_REQ_ACT_HDR,
+            VDR_REQ_SHP_NM,
+            VDR_REQ_URL,
+            VDR_REQ_SHP_GUBUN,
+            VDR_REQ_REG_DT,
+            VDR_REQ_UPD_ID,
+            VDR_REQ_UPD_DT,
+            (SELECT ADM_MST_NM FROM T_ADM_MST TAM WHERE TAM.ADM_MST_ID = VDR_REQ_UPD_ID) AS VDR_REQ_UPD_NM,
+            VDR_REQ_MNG_NM,
+            VDR_REQ_HP1,    /* 담당자 휴대폰1 */
+            VDR_REQ_HP2,    /* 담당자 휴대폰2 */
+            VDR_REQ_HP3,    /* 담당자 휴대폰3 */
+            VDR_REQ_PATH,   /* 입점경로 */
+            VDR_REQ_CNT     /* 요청사항 */
+        FROM
+            T_VDR_REQ
+        WHERE
+            VDR_REQ_IDX = #{VDR_REQ_IDX}
+    </select>
+    
+    <!-- 입점신청서 외부채널 조회 -->
+    <select id="selectVendorRouteChannel" parameterType="HashMap" resultType="HashMap">
+        /* VendorReq.selectVendorRouteChannel */
+        SELECT
+        	TVRC.VDR_REQ_CHN_TYPE
+        FROM 
+        	T_VDR_REQ TVR, T_VDR_REQ_CHN TVRC
+        WHERE
+        	TVR.VDR_REQ_IDX = #{VDR_REQ_IDX}
+        	AND TVR.VDR_REQ_IDX = TVRC.VDR_REQ_IDX
+    </select>
+    
+    <!-- 관리자 > 입점업체관리 > 입점신청서관리 상세정보 메일폼 -->
+    <select id="selectVendorReqMailInfo" parameterType="HashMap" resultType="HashMap">
+        /* VendorReq.selectVendorReqMailInfo */
+        <![CDATA[
+        SELECT  
+             /* ------------------- 필수 PARAM 값 (값 변경필요) ------------------- */
+              'm89824@naver.com' AS RECEIVE_MAIL /*  메일 수신자(미정)  */
+              ,'김영준' AS RECEIVE_NM /* 메일 수신자이름 */
+              ,VDR_REQ_IDX     /* 입점상담 IDX  */  
+              ,VDR_REQ_UPD_DT    /* 작성일자 */
+              ,DIVISION_CODE_NM ||'('|| DIVISION_CODE || ')' AS RESULT_DIVISION   /* 부서명(부서코드) */
+              ,USE_REASON    /* 사용이유 */
+              ,CODE_PARTITION   /* 코드구분 */
+              ,VDR_REQ_TYPE_NM /* 거래형태 */
+              ,VDR_REQ_NM   /*  거래처명 */
+              ,VDR_REQ_CEO_NM /*  대표자명 */
+              ,VDR_LGN_BUSI  /* 사업자번호 */
+              ,VDR_REQ_JB_ADDR1 || ' ' || VDR_REQ_JB_ADDR2  AS VDR_REQ_JB_ADDR /*지번주소 1, 2*/
+              ,VDR_REQ_POST5    /* 우편번호 */
+              ,VDR_REQ_BUSI_CDT /* 업태 */
+              ,VDR_REQ_BUSI_TYPE /* 업종 */
+              ,VDR_REQ_TEL1 || '-' || VDR_REQ_TEL2 || '-' || VDR_REQ_TEL3  AS VDR_REQ_TEL /* 전화 */
+              ,VDR_REQ_FAX1 || '-' || VDR_REQ_FAX2 || '-' || VDR_REQ_FAX3  AS VDR_REQ_FAX /* FAX */ 
+              ,VDR_REQ_MAIL /* 담당자 이메일 */
+              ,VDR_REQ_BANK_CD_NM /* 은행명 */
+              ,VDR_REQ_ACT_NO   /* 계좌번호 */
+              ,VDR_REQ_ACT_HDR   /* 예금주 */
+            FROM
+            ( 
+              SELECT 
+                TVR.VDR_REQ_IDX
+                ,TO_CHAR(TO_DATE(TVR.VDR_REQ_UPD_DT,'YYYYMMDDHH24MISS'),'YYYY-MM-DD HH24:MI:SS') AS VDR_REQ_UPD_DT 
+                /* ------------------- 필수 PARAM 값 (값 변경필요) ------------------- */          
+                ,'온라인영업그룹' AS DIVISION_CODE_NM 
+                /* ------------------- 필수 PARAM 값 (값 변경필요) ------------------- */            
+                ,'40040' AS DIVISION_CODE 
+                ,'MarketPlant 프라이스킹 입점신청'  AS USE_REASON
+                ,'매입' AS CODE_PARTITION
+                ,'매출(' ||(SELECT CMN_COM_NM FROM T_CMM_COM WHERE CMN_COM_IDX= TVR.VDR_REQ_TYPE)  || '), 매입(일반매입)'AS VDR_REQ_TYPE_NM
+                ,TVR.VDR_REQ_NM
+                ,TVR.VDR_REQ_CEO_NM
+                ,(SELECT VDR_LGN_BUSI1 || '-' || VDR_LGN_BUSI2 || '-' || VDR_LGN_BUSI3  FROM T_VDR_LGN WHERE VDR_LGN_IDX = TVR.VDR_LGN_IDX) AS VDR_LGN_BUSI
+                ,TVR.VDR_REQ_JB_ADDR1
+                ,TVR.VDR_REQ_JB_ADDR2
+                ,TVR.VDR_REQ_POST5
+                ,TVR.VDR_REQ_BUSI_CDT
+                ,TVR.VDR_REQ_BUSI_TYPE
+                ,TVR.VDR_REQ_TEL1 
+                ,TVR.VDR_REQ_TEL2
+                ,TVR.VDR_REQ_TEL3 AS VDR_REQ_TEL3
+                ,TVR.VDR_REQ_FAX1 
+                ,TVR.VDR_REQ_FAX2
+                ,TVR.VDR_REQ_FAX3 AS VDR_REQ_FAX3  
+                ,TVR.VDR_REQ_MAIL AS VDR_REQ_MAIL
+                ,(SELECT CMN_COM_NM FROM T_CMM_COM WHERE CMN_COM_UP_IDX='1703' AND CMN_COM_ETC1 = TVR.VDR_REQ_BANK_CD  ) AS VDR_REQ_BANK_CD_NM 
+                ,TVR.VDR_REQ_ACT_NO    
+                ,TVR.VDR_REQ_ACT_HDR
+              FROM 
+               T_VDR_REQ TVR
+               WHERE VDR_REQ_IDX = #{VDR_REQ_IDX}
+            )T1
+            ]]>
+    </select>
+    
+    <!-- 관리자 > 입점업체관리 > 입점신청서관리 수정 -->
+    <update id="updateVendorReq" parameterType="HashMap">
+        /* VendorReq.updateVendorReq */
+        UPDATE
+            T_VDR_REQ
+        SET
+            VDR_REQ_GBN = #{VDR_REQ_GBN},
+            VDR_REQ_NM = #{VDR_REQ_NM},
+            VDR_REQ_CEO_NM = #{VDR_REQ_CEO_NM},
+            VDR_REQ_BUSI1 = #{VDR_REQ_BUSI1},
+            VDR_REQ_BUSI2 = #{VDR_REQ_BUSI2},
+            VDR_REQ_BUSI3 = #{VDR_REQ_BUSI3},
+            VDR_REQ_SUB_BUSI = #{VDR_REQ_SUB_BUSI},
+            VDR_REQ_TYPE = #{VDR_REQ_TYPE},
+            VDR_REQ_JRD_NO1 = #{VDR_REQ_JRD_NO1},
+            VDR_REQ_JRD_NO2 = #{VDR_REQ_JRD_NO2},
+            VDR_REQ_POST5 = #{VDR_REQ_POST5},
+            VDR_REQ_JB_ADDR1 = #{VDR_REQ_JB_ADDR1},
+            VDR_REQ_JB_ADDR2 = #{VDR_REQ_JB_ADDR2},
+            VDR_REQ_DR_ADDR1 = #{VDR_REQ_DR_ADDR1},
+            VDR_REQ_DR_ADDR2 = #{VDR_REQ_DR_ADDR2},
+            VDR_REQ_TAX_MAIL = #{VDR_REQ_TAX_MAIL},
+            VDR_REQ_BUSI_CDT = #{VDR_REQ_BUSI_CDT},
+            VDR_REQ_BUSI_TYPE = #{VDR_REQ_BUSI_TYPE},
+            VDR_REQ_REF_TEL1 = #{VDR_REQ_REF_TEL1},
+            VDR_REQ_REF_TEL2 = #{VDR_REQ_REF_TEL2},
+            VDR_REQ_REF_TEL3 = #{VDR_REQ_REF_TEL3},
+            VDR_REQ_TEL1 = #{VDR_REQ_TEL1}, /*담당자 연락처1*/
+            VDR_REQ_TEL2 = #{VDR_REQ_TEL2},
+            VDR_REQ_TEL3 = #{VDR_REQ_TEL3},
+            VDR_REQ_FAX1 = #{VDR_REQ_FAX1},
+            VDR_REQ_FAX2 = #{VDR_REQ_FAX2},
+            VDR_REQ_FAX3 = #{VDR_REQ_FAX3},
+            VDR_REQ_BANK_CD = #{VDR_REQ_BANK_CD},
+            VDR_REQ_ACT_NO = #{VDR_REQ_ACT_NO},
+            VDR_REQ_ACT_HDR = #{VDR_REQ_ACT_HDR},
+            VDR_REQ_SHP_NM = #{VDR_REQ_SHP_NM},
+            VDR_REQ_URL = #{VDR_REQ_URL},
+            VDR_REQ_UPD_DT = TO_CHAR(SYSDATE,'YYYYMMDDHH24MISS'),
+            VDR_REQ_UPD_ID = #{VDR_REQ_UPD_ID},
+            VDR_REQ_UPD_IP = #{VDR_REQ_UPD_IP},
+            VDR_REQ_MNG_NM = #{VDR_REQ_MNG_NM},
+            VDR_REQ_HP1 = #{VDR_REQ_HP1},    /* 담당자 휴대폰1 */
+            VDR_REQ_HP2 = #{VDR_REQ_HP2},    /* 담당자 휴대폰2 */
+            VDR_REQ_HP3 = #{VDR_REQ_HP3}    /* 담당자 휴대폰3 */
+        WHERE
+            VDR_REQ_IDX = #{VDR_REQ_IDX}
+    </update>
+    
+</mapper>

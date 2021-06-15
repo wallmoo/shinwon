@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="LmsHistory">
+	<!-- LMS이력 검색 조건 -->
+    <sql id="LmsHistoryWhere"> 
+        <if test="searchStartDate != null and searchStartDate != '' and searchEndDate != null and searchEndDate != ''">
+            AND LMS_MST_REG_DT BETWEEN REPLACE(TRIM(#{searchStartDate}),'-', '')||'000000' AND REPLACE(TRIM(#{searchEndDate}),'-', '')||'235959'
+        </if>
+        <if test="searchTitle != null and searchTitle != ''">
+            AND LMS_MST_TITLE LIKE '%' || TRIM(#{searchTitle}) || '%'
+        </if>
+        <if test="searchContents != null and searchContents != ''">
+            AND LMS_MST_CONTENTS LIKE '%' || TRIM(#{searchContents}) || '%'
+        </if>
+    </sql>
+    
+    <!-- 관리자 > 회원관리 > LMS이력 목록 갯수 -->
+    <select id="selectLmsHistoryListCount" parameterType="HashMap" resultType="Integer">
+    	/* LmsHistory.selectLmsHistoryListCount */
+    	SELECT
+    		COUNT(1)
+    	FROM
+    		T_LMS_MST
+    	WHERE
+    		1=1
+    		<include refid="LmsHistoryWhere"/>
+    </select>
+    
+    <!-- 관리자 > 회원관리 > LMS이력 목록 -->
+    <select id="selectLmsHistoryList" parameterType="HashMap" resultType="HashMap">
+    	/* LmsHistory.selectLmsHistoryList */
+    	SELECT 
+    		S2.*
+    	FROM
+    	(
+    		SELECT
+	    		ROWNUM AS RNUM,
+	    		S1.*
+	    	FROM
+	    	(
+	    		SELECT
+		    		LMS_MST_IDX,
+		    		LMS_MST_HP1,
+		    		LMS_MST_HP2,
+		    		LMS_MST_HP3,
+		    		LMS_MST_TITLE,
+		    		LMS_MST_CONTENTS,
+		    		LMS_MST_REG_ID,
+		    		LMS_MST_REG_DT
+				FROM
+					T_LMS_MST
+				WHERE 
+					1=1
+					<include refid="LmsHistoryWhere"/>
+				ORDER BY LMS_MST_REG_DT DESC
+	    	) S1    	
+    	) S2
+        <if test="startNum != null and startNum != '' and endNum != null and endNum != ''">
+            WHERE S2.RNUM BETWEEN #{startNum} AND #{endNum} 
+        </if>   
+    </select>
+</mapper>

@@ -1,0 +1,368 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="TimeSale">
+
+    <!-- 타임세일 검색 조건 -->
+    <sql id="timeSaleWhere">
+        <if test="searchPrdMstCd != null and searchPrdMstCd != ''">
+            AND TTD.TIM_PRD_MST_CD LIKE '%'|| #{searchPrdMstCd} ||'%'
+        </if>
+        <if test="searchPrdMstNm != null and searchPrdMstNm != ''">
+            <![CDATA[
+                AND P.PRD_MST_NM LIKE '%'||#{searchPrdMstNm}||'%'
+            ]]> 
+        </if>
+        <if test="searchStartDate != null and searchStartDate != '' and searchEndDate != null and searchEndDate != ''">
+            <![CDATA[
+                AND (D.TIM_SAL_ST_DT <= REPLACE(#{searchEndDate},'-', '')
+                OR REPLACE(#{searchStartDate},'-', '') <= D.TIM_SAL_ED_DT)
+            ]]>
+        </if>
+        <if test="searchTimeSaleUseYn != null and searchTimeSaleUseYn != ''">
+            <![CDATA[
+                AND D.TIM_SAL_USE_YN = #{searchTimeSaleUseYn}
+            ]]>
+        </if>
+		<if test="searchTimeSaleType != null and searchTimeSaleType != ''">
+			AND D.TIM_SAL_TYPE = #{searchTimeSaleType}
+        </if>
+    </sql>
+    
+    <sql id="searchPopupWhere">
+    	<if test="searchPrdMstErpCd != null and searchPrdMstErpCd != ''">
+			AND TPM.PRD_MST_ERP_CD = #{searchPrdMstErpCd}
+    	</if>
+    	<if test="searchTimeSaleNm != null and searchTimeSaleNm != ''">
+			AND D.TIM_SAL_NM LIKE '%'||UPPER(#{searchTimeSaleTitle})||'%'
+    	</if>
+		<if test="searchPrdMstNm != null and searchPrdMstNm != ''">
+            AND UPPER(TPM.PRD_MST_NM) LIKE '%'||UPPER(#{searchPrdMstNm})||'%'
+        </if>
+		<if test="searchPrdMstSellState != null and searchPrdMstSellState != ''">
+            AND TPM.PRD_MST_SEL_STATE = #{searchPrdMstSellState}
+        </if>
+    	<if test="searchPrdMstBrandNm != null and searchPrdMstBrandNm != ''">
+			AND EXISTS(
+				SELECT TBM.BND_MST_BRAND_NM
+				FROM T_BND_MST TBM, T_VDR_MST TVM
+				WHERE
+					TBM.VDR_MST_IDX = TPM.PRD_MST_VDR_IDX
+					AND UPPER(TBM.BND_MST_BRAND_NM) LIKE '%'||UPPER(#{searchPrdMstBrandNm})||'%'
+				)
+    	</if>
+    </sql>
+    
+    <!-- 팝업관리 리스트 갯수 -->
+    <select id="selectTimeSaleCount" parameterType="hashMap" resultType="integer">
+        /* TimeSale.selectTimeSaleCount */
+		SELECT 
+			COUNT(D.TIM_SAL_IDX)
+		FROM 
+			(SELECT
+				   DISTINCT(D.TIM_SAL_IDX)
+			FROM
+			    T_TIM_SAL D, T_PRD_MST P , T_TIM_DTL TTD                            
+			WHERE
+			    P.PRD_MST_CD = TTD.TIM_PRD_MST_CD
+			    AND D.TIM_SAL_IDX = TTD.TIM_SAL_IDX 
+			    <include refid="timeSaleWhere"/>
+			    ) S1, T_TIM_SAL D
+		WHERE D.TIM_SAL_IDX IN (S1.TIM_SAL_IDX)
+    </select> 
+    
+    <!-- 타임세일 리스트 조회 -->
+    <select id="selectTimeSaleList" parameterType="hashMap" resultType="hashMap">
+        /* TimeSale.selectTimeSaleList */
+        SELECT
+            S2.*            
+        FROM
+            (   SELECT
+                    ROWNUM AS RNUM,
+                    S1.* 
+                FROM
+                    (   SELECT
+                               D.TIM_SAL_IDX,
+                               D.TIM_SAL_NM,
+                               D.TIM_SAL_ST_DT,
+                               D.TIM_SAL_ST_HH,
+                               D.TIM_SAL_ST_MM,
+                               D.TIM_SAL_ED_DT,
+                               D.TIM_SAL_ED_HH,
+                               D.TIM_SAL_ED_MM,
+                               D.TIM_SAL_USE_YN,
+                               D.TIM_SAL_REG_DT,
+                               D.TIM_SAL_TYPE,
+                               D.TIM_SAL_DSP_YN
+                        FROM
+                            T_TIM_SAL D                            
+                        WHERE
+							1=1
+                            <if test="arrTIM_SAL_IDX !=null and arrTIM_SAL_IDX !=''">
+                            	AND D.TIM_SAL_IDX IN
+                            	<foreach collection="arrTIM_SAL_IDX" item="TIM_SAL_IDX" open="(" close=")" separator=",">
+                            		#{TIM_SAL_IDX}
+                            	</foreach>
+                            </if>
+                        ORDER BY TIM_SAL_REG_DT DESC
+                    )
+                    S1 
+            )
+            S2 
+        WHERE
+            S2.RNUM BETWEEN #{startNum} AND #{endNum}
+    </select>
+
+	<!-- 타임세일 상품 리스트 조회 -->
+    <select id="selectTimeSaleProductList" parameterType="hashMap" resultType="hashMap">
+        /* TimeSale.selectTimeSaleProductList */
+		SELECT
+			D.TIM_SAL_IDX,
+			TTD.TIM_PRD_MST_CD,
+			FN_PRODUCT_IMG(P.PRD_MST_CD, 500) AS PRD_IMAGE,
+			P.PRD_MST_NM,
+			P.PRD_MST_PRC,
+			P.PRD_MST_SEL_CNT,
+			CASE WHEN TTD.TIM_PRD_MST_UNT = 'R' THEN P.PRD_MST_PRC - (P.PRD_MST_PRC * (TTD.TIM_PRD_MST_SALE_RATE/100))
+			WHEN TTD.TIM_PRD_MST_UNT = 'S' THEN P.PRD_MST_PRC - TTD.TIM_PRD_MST_SALE_RATE
+			ELSE 0 END AS SALED_PRICE
+		FROM
+		    T_TIM_SAL D, T_PRD_MST P , T_TIM_DTL TTD                            
+		WHERE
+		    TTD.TIM_PRD_MST_CD = P.PRD_MST_CD
+		    AND D.TIM_SAL_IDX = TTD.TIM_SAL_IDX
+		    <include refid="timeSaleWhere"/>
+		ORDER BY D.TIM_SAL_IDX DESC
+    </select>
+ 
+    <select id="selectTimeSaleInfo" parameterType="hashMap" resultType="hashMap">
+        <![CDATA[
+        /* TimeSale.selectTimeSaleInfo */
+        SELECT
+            D.TIM_SAL_IDX,
+            D.TIM_SAL_TYPE,
+            D.TIM_SAL_DSP_YN, 
+            D.TIM_SAL_NM, 
+            D.TIM_SAL_ST_DT, 
+            D.TIM_SAL_ST_HH, 
+            D.TIM_SAL_ST_MM,
+            D.TIM_SAL_ED_DT, 
+            D.TIM_SAL_ED_HH, 
+            D.TIM_SAL_ED_MM,
+            D.TIM_SAL_USE_YN,
+            D.TIM_SAL_REG_DT, 
+            D.TIM_SAL_REG_IP, 
+            D.TIM_SAL_REG_ID,
+            (SELECT ADM_MST_NM FROM T_ADM_MST WHERE ADM_MST_ID = D.TIM_SAL_REG_ID) TIM_SAL_REG_NM,
+            NVL(D.TIM_SAL_UPD_DT,D.TIM_SAL_REG_DT) TIM_SAL_UPD_DT,
+            (SELECT ADM_MST_NM FROM T_ADM_MST WHERE ADM_MST_ID = NVL(D.TIM_SAL_UPD_ID,D.TIM_SAL_REG_ID)) TIM_SAL_UPD_NM,
+            NVL(D.TIM_SAL_UPD_ID,D.TIM_SAL_REG_ID) TIM_SAL_UPD_ID
+        FROM
+            T_TIM_SAL D
+        WHERE
+            D.TIM_SAL_IDX = #{TIM_SAL_IDX}
+        ]]>
+    </select>
+
+    <!-- 타임세일 > 상품구성 목록 -->
+    <select id="selectTimeSaleDetailList" parameterType="HashMap" resultType="HashMap">
+        /* TimeSale.selectTimeSaleDetailList */
+        SELECT
+        	TTD.TIM_DTL_IDX
+        	, TTD.TIM_PRD_MST_CD
+        	, TPM.PRD_MST_NM
+        	, FN_PRODUCT_IMG(TPM.PRD_MST_CD, 500) AS PRD_IMAGE
+        	, (SELECT TBM.BND_MST_BRAND_NM FROM T_BND_MST TBM WHERE TBM.VDR_MST_IDX = TPM.PRD_MST_VDR_IDX ) AS BND_MST_BRAND_NM
+        	, TPM.PRD_MST_PRC
+        	, TPM.PRD_MST_SEL_CNT
+        	, TPM.PRD_MST_DPL_STATE
+        	, TTD.TIM_DTL_ORDER
+        	, TTD.TIM_PRD_MST_UNT
+        	, TTD.TIM_PRD_MST_SALE_RATE
+        	, CASE WHEN TTD.TIM_PRD_MST_UNT = 'R' THEN TPM.PRD_MST_PRC - (TPM.PRD_MST_PRC * (TTD.TIM_PRD_MST_SALE_RATE/100))
+			WHEN TTD.TIM_PRD_MST_UNT = 'S' THEN TPM.PRD_MST_PRC - TTD.TIM_PRD_MST_SALE_RATE
+			ELSE 0 END AS SALED_PRICE
+        FROM T_TIM_SAL TTS, T_TIM_DTL TTD, T_PRD_MST TPM
+        WHERE 
+        	TTS.TIM_SAL_IDX = TTD.TIM_SAL_IDX
+        	AND TTS.TIM_SAL_IDX = #{TIM_SAL_IDX}
+        	AND TPM.PRD_MST_CD = TTD.TIM_PRD_MST_CD
+    </select>
+
+    <!-- 타임세일 등록 -->
+    <insert id="insertTimeSale" parameterType="hashMap">
+    <selectKey keyProperty="TIM_SAL_IDX" resultType="Integer" order="BEFORE">
+        SELECT SEQ_TIM_SAL_IDX.NEXTVAL AS TIM_SAL_IDX  FROM DUAL
+    </selectKey>
+        <![CDATA[
+        /* TimeSale.insertTimeSale */
+        INSERT INTO T_TIM_SAL (
+            TIM_SAL_IDX
+            , TIM_SAL_TYPE
+            , TIM_SAL_NM
+            , TIM_SAL_CTS
+            , TIM_SAL_ST_DT
+            , TIM_SAL_ST_HH
+            , TIM_SAL_ST_MM
+            , TIM_SAL_ED_DT
+            , TIM_SAL_ED_HH
+            , TIM_SAL_ED_MM
+            , TIM_SAL_USE_YN
+            , TIM_SAL_REG_DT
+            , TIM_SAL_REG_IP
+            , TIM_SAL_REG_ID
+            , TIM_SAL_DSP_CNT
+            , TIM_SAL_DSP_YN
+        )VALUES (
+            #{TIM_SAL_IDX}
+            , #{TIM_SAL_TYPE}
+            , #{TIM_SAL_NM}
+            , #{TIM_SAL_CTS}
+            , REPLACE(#{TIM_SAL_ST_DT},'-','')
+            , #{TIM_SAL_ST_HH}
+            , #{TIM_SAL_ST_MM}
+            , REPLACE(#{TIM_SAL_ED_DT},'-','')
+            , #{TIM_SAL_ED_HH}
+            , #{TIM_SAL_ED_MM}
+            , #{TIM_SAL_USE_YN}
+            , TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS')
+            , #{TIM_SAL_REG_IP}
+            , #{TIM_SAL_REG_ID}
+            , #{TIM_SAL_DSP_CNT}
+            , NVL(#{TIM_SAL_DSP_YN},'Y')
+        ) 
+        ]]>
+    </insert>
+   
+    <!-- 타임세일 상품구성 등록 -->
+    <insert id="insertTimeSaleProduct" parameterType="hashMap">
+    <selectKey keyProperty="TIM_DTL_IDX" resultType="Integer" order="BEFORE">
+        SELECT SEQ_TIM_DTL_IDX.NEXTVAL AS TIM_DTL_IDX  FROM DUAL
+    </selectKey>
+        /* TimeSale.insertTimeSaleProduct */
+        INSERT INTO T_TIM_DTL (
+            TIM_DTL_IDX
+            , TIM_SAL_IDX
+            , TIM_DTL_ORDER
+            , TIM_PRD_MST_CD
+            , TIM_PRD_MST_SALE_RATE
+            , TIM_PRD_MST_UNT
+        )VALUES (
+            #{TIM_DTL_IDX}
+            , #{TIM_SAL_IDX}
+            , #{TIM_DTL_ORDER}
+            , #{TIM_PRD_MST_CD}
+            , #{TIM_PRD_MST_SALE_RATE}
+            , #{TIM_PRD_MST_UNT}
+        ) 
+    </insert>
+   
+    <!-- 팝업관리 수정 -->
+    <update id="updateTimeSale" parameterType="hashMap">
+        <![CDATA[
+        /* TimeSale.updateTimeSale */
+        UPDATE 
+            T_TIM_SAL
+        SET
+            TIM_SAL_NM = #{TIM_SAL_NM}
+            , TIM_SAL_TYPE = #{TIM_SAL_TYPE}
+            , TIM_SAL_ST_DT = REPLACE(#{TIM_SAL_ST_DT},'-','')
+            , TIM_SAL_ST_HH = #{TIM_SAL_ST_HH}
+            , TIM_SAL_ST_MM = #{TIM_SAL_ST_MM}
+            , TIM_SAL_ED_DT = REPLACE(#{TIM_SAL_ED_DT},'-','')
+            , TIM_SAL_ED_HH = #{TIM_SAL_ED_HH}
+            , TIM_SAL_ED_MM = #{TIM_SAL_ED_MM}
+            , TIM_SAL_USE_YN = #{TIM_SAL_USE_YN}
+            , TIM_SAL_UPD_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS')
+            , TIM_SAL_UPD_IP = #{TIM_SAL_UPD_IP}
+            , TIM_SAL_UPD_ID = #{TIM_SAL_UPD_ID}
+            , TIM_SAL_PRD_CNT = #{TIM_SAL_PRD_CNT}
+        WHERE
+            TIM_SAL_IDX = #{TIM_SAL_IDX}
+        ]]>
+    </update>
+    
+    <!-- 관리자 > 프로모션관리 > 타임세일관리 상품구성 그룹 삭제 -->    
+    <delete id="deleteTimeSaleDetailGroup" parameterType="HashMap">
+        /* TimeSale.deleteTimeSaleDetailGroup */
+        DELETE FROM T_TIM_DTL WHERE TIM_SAL_IDX = #{TIM_SAL_IDX}
+    </delete>
+    
+	<!-- 관리자 > 프로모션 관리 > 스페셜 목록 전시여부 수정 -->
+    <update id="updateTimeSaleList" parameterType="HashMap">
+        /* TimeSale.updateTimeSaleList */
+        <foreach collection="selectedTimeSaleList" item="item" index="index" open="DECLARE BEGIN" close="; END;" separator=";">
+			UPDATE
+	            T_TIM_SAL 
+	        SET
+	            TIM_SAL_DSP_YN = NVL(#{item.TIM_SAL_DSP_YN}, 'Y'),
+	            TIM_SAL_UPD_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+	            TIM_SAL_UPD_IP = #{TIM_SAL_UPD_IP},
+	            TIM_SAL_UPD_ID = #{TIM_SAL_UPD_ID}
+	        WHERE
+	            TIM_SAL_IDX = #{item.TIM_SAL_IDX}        
+        </foreach>
+
+    </update>
+    
+	<!-- 타임세일 > 타임특가플로팅팝업 목록 갯수 -->
+    <select id="selectSearchTimeSaleProductCount" parameterType="hashMap" resultType="integer">
+        /* TimeSale.selectSearchTimeSaleProductCount */
+		SELECT 
+			COUNT(D.TIM_SAL_IDX)
+		FROM 
+			T_TIM_SAL D, T_TIM_DTL TTD, T_PRD_MST TPM
+		WHERE 1=1
+			AND D.TIM_SAL_TYPE = 'G'
+			AND D.TIM_SAL_DSP_YN = 'Y'
+			AND D.TIM_SAL_IDX = TTD.TIM_SAL_IDX
+			AND SYSDATE <![CDATA[ <= ]]> TO_DATE(D.TIM_SAL_ED_DT || D.TIM_SAL_ED_HH || D.TIM_SAL_ED_MM || '59', 'YYYYMMDDHH24MISS')
+			AND TTD.TIM_PRD_MST_CD = TPM.PRD_MST_CD
+			<include refid="searchPopupWhere"/>
+    </select> 
+    
+    <!-- 타임세일 > 타임특가플로팅팝업 목록 -->
+    <select id="selectSearchTimeSaleProductList" parameterType="HashMap" resultType="HashMap">
+        /* TimeSale.selectSearchTimeSaleProductList */
+        SELECT
+        	S2.*
+        FROM
+        (
+	        SELECT
+	        	ROWNUM AS RNUM,
+	        	S1.*
+	        FROM
+	        (
+		        SELECT
+		        	D.TIM_SAL_IDX,
+					D.TIM_SAL_NM,
+					D.TIM_SAL_USE_YN,
+					D.TIM_SAL_DSP_YN,
+					TPM.PRD_MST_NM,
+		        	FN_PRODUCT_IMG(TTD.TIM_PRD_MST_CD, 500) AS PRD_IMAGE,
+		        	TPM.PRD_MST_CD,
+		        	TPM.PRD_MST_ERP_CD,
+					TPM.PRD_MST_PRC,
+		        	CASE 
+		        		WHEN TTD.TIM_PRD_MST_UNT = 'R' THEN TPM.PRD_MST_PRC - (TPM.PRD_MST_PRC * (TTD.TIM_PRD_MST_SALE_RATE/100))
+						WHEN TTD.TIM_PRD_MST_UNT = 'S' THEN TPM.PRD_MST_PRC - TTD.TIM_PRD_MST_SALE_RATE
+					ELSE 0 END AS SALED_PRICE,
+					TPM.PRD_MST_SEL_STATE,
+					TO_CHAR(TO_DATE(SUBSTR(D.TIM_SAL_REG_DT,1,8),'YYYYMMDD'),'YYYY-MM-DD') AS TIM_SAL_REG_DT,
+					D.TIM_SAL_TYPE
+		        FROM T_TIM_SAL D, T_TIM_DTL TTD, T_PRD_MST TPM
+		        WHERE 1=1
+		        	AND D.TIM_SAL_TYPE = 'G'
+					AND D.TIM_SAL_DSP_YN = 'Y'
+					AND D.TIM_SAL_IDX = TTD.TIM_SAL_IDX
+					AND SYSDATE <![CDATA[ <= ]]> TO_DATE(D.TIM_SAL_ED_DT || D.TIM_SAL_ED_HH || D.TIM_SAL_ED_MM || '59', 'YYYYMMDDHH24MISS')
+					AND TTD.TIM_PRD_MST_CD = TPM.PRD_MST_CD
+					<include refid="searchPopupWhere"/>
+		       	ORDER BY D.TIM_SAL_REG_DT DESC
+	       	) S1
+       	) S2
+       	WHERE 
+        	S2.RNUM BETWEEN #{startNum} AND #{endNum}
+    </select>
+    
+</mapper>

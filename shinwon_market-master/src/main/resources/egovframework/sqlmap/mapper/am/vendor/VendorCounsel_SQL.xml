@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="VendorCounsel">
+
+    <!-- 관리자 > 입점업체관리 > 입점상담관리 조건절 -->
+    <sql id="vendorCounselWhere">
+        <if test="searchStartDate != null and searchStartDate != '' and searchEndDate != null and searchEndDate != ''">
+            AND TVC.VDR_CST_REG_DT BETWEEN REPLACE(#{searchStartDate},'-', '')||'000000' AND REPLACE(#{searchEndDate},'-', '')||'235959'
+        </if>
+
+        <if test="searchBusiNo != null and searchBusiNo != ''">
+            AND TVC.VDR_CST_BUSI1 || TVC.VDR_CST_BUSI2 || TVC.VDR_CST_BUSI3 LIKE '%' || #{searchBusiNo} || '%'
+        </if>
+        
+        <if test="searchVendorNm != null and searchVendorNm != ''">
+            AND TVC.VDR_CST_NM LIKE '%' || #{searchVendorNm} || '%'
+        </if>
+               
+        <if test="searchManagerNm != null and searchManagerNm != ''">
+            AND TVC.VDR_CST_MNG_NM LIKE '%' || #{searchManagerNm} || '%'
+        </if>
+
+    </sql>
+    
+    <!-- 관리자 > 입점업체관리 > 입점상담관리 목록 갯수 -->
+    <select id="selectVendorCounselListCount" parameterType="HashMap" resultType="Integer">
+        /* VendorCounsel.selectVendorCounselListCount */
+        SELECT
+            COUNT(0)
+        FROM
+            T_VDR_CST TVC
+        WHERE
+            1=1
+            <include refid="vendorCounselWhere"/>
+    </select>
+    
+    <!-- 관리자 > 입점업체관리 > 입점상담관리 목록 -->
+    <select id="selectVendorCounselList" parameterType="HashMap" resultType="HashMap">
+        /* VendorCounsel.selectVendorCounselList */
+        SELECT
+            S2.*
+        FROM
+        (
+            SELECT
+                ROWNUM AS RNUM,
+                S1.*
+            FROM
+            (
+                SELECT
+                    TVC.VDR_CST_IDX,
+                    TVC.VDR_CST_NM,
+                    TVC.VDR_CST_BUSI1,
+                    TVC.VDR_CST_BUSI2,
+                    TVC.VDR_CST_BUSI3,     
+                    TVC.VDR_CST_MNG_NM,
+                    TVC.VDR_CST_TEL1,
+                    TVC.VDR_CST_TEL2,
+                    TVC.VDR_CST_TEL3 AS VDR_CST_TEL3,
+                    TVC.VDR_CST_HP1,
+                    TVC.VDR_CST_HP2,
+                    TVC.VDR_CST_HP3 AS VDR_CST_HP3,
+                    TVC.VDR_CST_GBN,
+                    TVC.VDR_CST_REG_DT,
+                    TVC.VDR_CST_USE_YN
+                FROM
+                    T_VDR_CST TVC
+                WHERE
+                    1=1
+                    <include refid="vendorCounselWhere"/>
+                ORDER BY TVC.VDR_CST_REG_DT DESC
+            ) S1
+        ) S2
+        <if test="startNum != null and startNum != '' and endNum != null and endNum != ''">
+        WHERE 
+            S2.RNUM BETWEEN #{startNum} AND #{endNum}
+        </if>
+    </select>
+    
+    <!-- 관리자 > 입점업체 관리 > 입점상담관리 상세정보 -->
+    <select id="selectVendorCounselInfo" parameterType="HashMap" resultType="HashMap">
+        /* VendorCounsel.selectVendorCounselInfo */
+        SELECT
+            TVC.VDR_CST_IDX,
+            TVC.VDR_CST_NM,
+            TVC.VDR_CST_GUBUN,      /* 쇼핑몰 분류 */
+            TVC.VDR_CST_TITLE,      /* 입점문의 제목  */
+            TVC.VDR_CST_BUSI1,
+            TVC.VDR_CST_BUSI2,
+            TVC.VDR_CST_BUSI3,
+            TVC.VDR_CST_USE_YN,
+            TVC.VDR_CST_MNG_NM,
+            TVC.VDR_CST_TEL1,
+            TVC.VDR_CST_TEL2,
+            TVC.VDR_CST_TEL3 AS VDR_CST_TEL3,
+            TVC.VDR_CST_HP1,        /* 담당자 휴대폰1 */
+            TVC.VDR_CST_HP2,        /* 담당자 휴대폰2 */
+            TVC.VDR_CST_HP3,        /* 담당자 휴대폰3 */
+            TVC.VDR_CST_TEL1,       /* 담당자_유선전화1 */
+            TVC.VDR_CST_TEL2,      /* 담당자_유선전화2 */
+            TVC.VDR_CST_TEL3,       /* 담당자_유선전화3 */
+            TVC.VDR_CST_MAIL,
+            TVC.VDR_CST_CTS,        /* 입점신청내용 */
+            TVC.VDR_CST_URL,
+            TVC.VDR_CST_MEMO,
+            TVC.VDR_CST_REG_DT,
+            TVC.VDR_CST_UPD_ID,
+            TVC.VDR_CST_UPD_DT,
+            (SELECT ADM_MST_NM FROM T_ADM_MST TAM WHERE TAM.ADM_MST_ID = TVC.VDR_CST_UPD_ID) AS VDR_CST_UPD_NM
+        FROM
+            T_VDR_CST TVC
+        WHERE
+            VDR_CST_IDX = #{VDR_CST_IDX}
+    </select>
+    
+    <!-- 관리자 > 입점업체관리 > 입점상담관리 > 현재 유통방법 리스트 가져오기 -->
+    <select id="selectDtbList" parameterType="HashMap" resultType="HashMap">
+        /* VendorCounsel.selectDtbList */
+        SELECT
+            CMN_COM_NM
+        FROM
+            T_CMM_COM
+        WHERE
+            CMN_COM_IDX IN
+            <foreach collection="VDR_CST_DTBs" item="VDR_CST_DTB" open="(" close=")" separator=",">#{VDR_CST_DTB}</foreach>
+    </select>
+    
+    <!-- 관리자 > 입점업체관리 > 입점상담관리 수정 -->
+    <update id="updateVendorCounsel" parameterType="HashMap">
+        /* VendorCounsel.updateVendorCounsel */
+        UPDATE
+            T_VDR_CST
+        SET
+            VDR_CST_MEMO = #{VDR_CST_MEMO},
+            VDR_CST_UPD_DT = TO_CHAR(SYSDATE,'YYYYMMDDHH24MISS'),
+            VDR_CST_UPD_ID = #{VDR_CST_UPD_ID},
+            VDR_CST_UPD_IP = #{VDR_CST_UPD_IP}
+        WHERE
+            VDR_CST_IDX = #{VDR_CST_IDX}
+    </update>
+    
+</mapper>

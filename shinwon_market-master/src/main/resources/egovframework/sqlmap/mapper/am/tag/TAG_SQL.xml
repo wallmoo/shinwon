@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="Tag">
+    
+    <!-- 헤쉬태그 그룹 조회 -->
+    <select id="selectTagGroup" parameterType="HashMap" resultType="HashMap">
+    /* Tag.selectTagGroup */
+    SELECT 
+        TGP.TAG_GRP_ID, 
+        TGP.TAG_GRP_TITLE, 
+        TGP.TAG_GRP_DES,
+        (SELECT count(TTGB.TAG_GRP_ID) FROM T_TAG_GRP_BND TTGB WHERE TTGB.TAG_GRP_ID = TGP.TAG_GRP_ID) AS TAG_GRP_CNT
+    FROM 
+        T_TAG_GRP TGP
+    WHERE
+    	TGP.TAG_GRP_STATUS = 'Y'
+    </select>
+    
+    <!-- 컨텐츠에 바인딩된 해시태그  조회 -->
+    <select id="selectContentWithTagList" parameterType="HashMap" resultType="HashMap">
+    /* Tag.selectContentWithTagList */
+    SELECT 
+        TTM.TAG_MST_TITLE,
+        TTM.TAG_MST_ID,
+        TAG_BND_REP
+    FROM
+        T_TAG_BND TTB, T_TAG_MST TTM
+    WHERE 
+        TTB.TAG_BND_TYPE = #{TAG_BND_TYPE}
+        AND TTB.TAG_BND_ID = TO_CHAR(#{TAG_BND_ID})
+        AND TTB.TAG_MST_ID = TTM.TAG_MST_ID
+        AND TTB.TAG_BND_STATUS = 'USE'
+    </select>
+    
+    
+    <!-- 사용자에 바인딩된 해시태그  조회 -->
+    <select id="selectUserTagList" parameterType="HashMap" resultType="HashMap">
+    /* Tag.selectContentWithTagList */
+    SELECT 
+        TTM.TAG_MST_TITLE,
+        TTM.TAG_MST_ID
+    FROM
+        T_TAG_BND TTB, T_TAG_MST TTM
+    WHERE 
+    	TTB.TAG_MST_ID = TTM.TAG_MST_ID
+        AND TTB.TAG_BND_ID = TO_CHAR(#{TAG_BND_ID})
+        AND TTB.TAG_BND_STATUS = 'USE'
+    </select>
+    
+    
+    <!-- 컨텐츠에 바인딩된 헤쉬태그 삭제 -->
+    <delete id="deleteContentWithTagList" parameterType="HashMap">
+    /* Tag.deleteContentWithTagList */
+    DELETE FROM T_TAG_BND TTB WHERE TTB.TAG_BND_TYPE = #{TAG_BND_TYPE} AND TTB.TAG_BND_ID = TO_CHAR(#{TAG_BND_ID})
+    </delete>
+
+</mapper>

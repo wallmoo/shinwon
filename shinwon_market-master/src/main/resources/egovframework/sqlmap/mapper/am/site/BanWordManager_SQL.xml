@@ -1,0 +1,153 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="BanWordManager">
+	<!-- 관리자 > 시스템 관리 > 차단단어 관리 > 조건절  -->
+    <sql id="BanWordManagerWhere">
+        <if test="searchBanWordTxt != null and searchBanWordTxt != ''">
+            AND BAN_WRD_TXT LIKE '%' || #{searchBanWordTxt} || '%'
+        </if>
+        <if test="searchBanWrdUseYn != null and searchBanWrdUseYn != ''">
+            AND BAN_WRD_USE_YN = #{searchBanWrdUseYn}
+        </if>
+    </sql>
+    
+    <!-- 관리자 > 시스템 관리 > 차단단어 관리 목록 갯수 -->
+	<select id="selectBanWordManagerListCount" parameterType="HashMap" resultType="Integer">
+		/* BanWordManager.selectBanWordManagerListCount */
+		SELECT
+			COUNT(1)
+		FROM
+			T_BAN_WRD
+		WHERE 
+			1=1
+            <if test="banWrdUserYn != null and banWrdUserYn != ''">
+                AND BAN_WRD_USE_YN = #{banWrdUserYn}
+            </if>
+			<include refid="BanWordManagerWhere"/>
+	</select>
+	
+	<!-- 관리자 > 시스템 관리 > 차단단어 관리 목록 -->
+	<select id="selectBanWordManagerList" parameterType="HashMap" resultType="HashMap">
+		/* BanWordManager.selectBanWordManagerList */
+		SELECT
+			S2.*
+		FROM
+		(
+			SELECT
+				ROWNUM AS RNUM,
+				S1.*
+			FROM
+			(
+				SELECT
+					BAN_WRD_IDX,
+					BAN_WRD_TXT,
+					BAN_WRD_USE_YN,
+					BAN_WRD_REG_DT,
+					BAN_WRD_REG_ID
+				FROM
+					T_BAN_WRD
+				WHERE
+					1=1
+					<if test="banWrdUserYn != null and banWrdUserYn != ''">
+                        AND BAN_WRD_USE_YN = #{banWrdUserYn}
+                    </if>
+					<include refid="BanWordManagerWhere"/>
+				ORDER BY BAN_WRD_REG_DT DESC		
+			) S1
+		) S2
+        <if test="startNum != null and startNum != '' and endNum != null and endNum != '' and (excelDown == null or !'Y'.toString().equals(excelDown))">
+            WHERE 
+                S2.RNUM BETWEEN #{startNum} AND #{endNum}
+        </if>
+	</select>
+	
+	<!-- 관리자 > 시스템 관리 > 차단단어 관리 등록 -->
+	<insert id="insertBanWordManager" parameterType="HashMap">
+		<selectKey keyProperty="BAN_WRD_IDX" resultType="Integer" order="BEFORE">
+            SELECT SEQ_BAN_WRD_IDX.NEXTVAL AS BAN_WRD_IDX FROM DUAL
+        </selectKey>
+		/* BanWordManager.insertBanWordManager */
+		INSERT INTO
+			T_BAN_WRD
+			(
+				BAN_WRD_IDX,
+				BAN_WRD_TXT,
+				BAN_WRD_USE_YN,
+				BAN_WRD_REG_DT,
+				BAN_WRD_REG_IP,
+				BAN_WRD_REG_ID
+			)
+		VALUES
+			(
+				#{BAN_WRD_IDX},
+				#{BAN_WRD_TXT},
+				NVL(#{BAN_WRD_USE_YN},'Y'),
+				TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+				#{BAN_WRD_REG_IP},
+				#{BAN_WRD_REG_ID}
+			)
+	</insert>
+	
+	<!-- 관리자 > 시스템 관리 > 차단단어 관리 상세정보 -->
+	<select id="selectBanWordManagerInfo" parameterType="HashMap" resultType="HashMap">
+		/* BanWordManager.selectBanWordManagerInfo */
+		SELECT
+			BAN_WRD_IDX,
+			BAN_WRD_TXT,
+			BAN_WRD_USE_YN
+		FROM
+			T_BAN_WRD
+		WHERE
+			BAN_WRD_IDX = #{BAN_WRD_IDX}
+	</select>
+	
+	<!-- 관리자 > 시스템관리 > 차단단어 관리 수정 -->
+	<update id="updateBanWordManager" parameterType="HashMap">
+		/* BanWordManager.updateBanWordManager */
+		UPDATE 
+			T_BAN_WRD
+		SET
+			BAN_WRD_TXT = #{BAN_WRD_TXT},
+			BAN_WRD_USE_YN = NVL(#{BAN_WRD_USE_YN},'Y'),
+			BAN_WRD_UPD_IP = #{BAN_WRD_UPD_IP},
+			BAN_WRD_UPD_ID = #{BAN_WRD_UPD_ID},
+			BAN_WRD_UPD_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS')
+		WHERE
+			BAN_WRD_IDX = #{BAN_WRD_IDX}
+	</update>
+	
+	<!-- 관리자 > 시스템관리 > 차단단어 관리 > 차단단어(금지어) 중복체크 -->
+	<select id="selectBanWordManagerTxtCheckCount" parameterType="HashMap" resultType="Integer">
+		/* BanWordManager.selectBanWordManagerTxtCheckCount */
+		SELECT
+			COUNT(1)
+		FROM
+			T_BAN_WRD
+		WHERE
+			BAN_WRD_TXT = #{BAN_WRD_TXT}
+            <if test="BAN_WRD_IDX != null and BAN_WRD_IDX != ''">
+                AND BAN_WRD_IDX != #{BAN_WRD_IDX}
+            </if>
+	</select>
+	
+	<!-- 관리자 > 시스템관리 > 차단단어 관리 > 가공 금지어 데이터 삭제 -->
+	<delete id="deleteBanWordTxt" parameterType="HashMap">
+		/* BanWordManager.deleteBanWordTxt */
+		DELETE FROM T_BAN_TXT
+	</delete>
+	
+	<!-- 관리자 > 시스템관리 > 차단단어 관리 > 가공 금지어 데이터 삽입 -->
+	<insert id="insertBanWordTxt" parameterType="HashMap">
+		/* BanWordManager.insertBanWordTxt */
+		INSERT INTO
+			T_BAN_TXT
+			(
+				BAN_TXT_LONG_TXT
+			)
+		VALUES
+			(
+				#{BAN_TXT_LONG_TXT}			
+			)
+	</insert>
+</mapper>

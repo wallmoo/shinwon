@@ -1,0 +1,50 @@
+/* Tooltip ========================================================================== */
+.js-tooltip {
+    cursor: pointer;
+}
+.tooltip {
+    position: absolute;
+    line-height: 1.4;
+    border: solid 1px #ddd;
+    background-color: #fff;
+    text-align: left;
+    color: #666;
+    font-size: 12px;
+    -moz-transition: opacity 0.2s;
+    -o-transition: opacity 0.2s;
+    -webkit-transition: opacity 0.2s;
+    transition: opacity 0.2s;
+    -moz-box-shadow: 2px 2px 2px #ddd;
+    -webkit-box-shadow: 2px 2px 2px #ddd;
+    box-shadow: 2px 2px 2px #ddd;
+    
+    .tooltip-holder {
+        position: relative;
+    }
+    .tooltip-inner {
+        padding: 15px;
+    }
+    .tooltip-tail {
+        position: absolute;
+        left: 20px;
+        bottom: 0;
+        margin-bottom: -14px;
+        min-height: 14px;
+        .icon-set(15px, 14px, 'module/tooltip_tail');
+    }
+    .opacity & {
+        opacity: 0;
+    }
+    .no-opacity & {
+        display: none;
+    }
+    &.in {
+        .opacity & {
+            opacity: 1;
+        }
+        .no-opacity & {
+            display: block;
+        }
+    }
+
+}

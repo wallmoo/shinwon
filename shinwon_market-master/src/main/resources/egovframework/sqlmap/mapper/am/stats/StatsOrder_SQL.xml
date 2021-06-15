@@ -1,0 +1,882 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="StatsOrder">
+
+     <!-- 매출통계 > 판매실적 -->
+     <select id="selectOrderStatsSales" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+        /* StatsOrder.selectOrderStatsSales */
+        <![CDATA[
+        SELECT
+           *
+         FROM
+         (
+            SELECT
+                ORD_MST_BRAND_CD
+                , (SELECT BND_MST_BRAND_NM FROM T_BND_MST WHERE BND_MST_BRAND_CD = ORD_MST_BRAND_CD) as ORD_MST_BRAND_NM /* 브랜드명*/
+                , SUBSTR(T1.ORD_MST_ORD_DT, 0, 8) as ORDER_DT
+                , SUM(REMAIN_ORD_MST_ORD_PRC) as REMAIN_ORD_MST_ORD_PRC
+                , SUM(ORD_MST_DC_CPN) as ORD_MST_DC_CPN
+                , SUM(REMAIN_ORD_MST_DC_MLG) as REMAIN_ORD_MST_DC_MLG
+                , SUM(ORD_MST_DC_OCB_PIT) as ORD_MST_DC_OCB_PIT
+                , SUM(ORD_MST_DLV_CAG) as ORD_MST_DLV_CAG
+                , SUM(ORD_MST_ORD_PRC - ORD_MST_PARTIAL_CANCEL_PRICE - ORD_MST_DC_CPN - ORD_MST_DC_OCB_PIT - REMAIN_ORD_MST_DC_MLG + ORD_MST_DLV_CAG) as REAL_ORD_MST_ORD_PRC
+            FROM       
+            (    
+            SELECT 
+              DISTINCT
+              ORD_MST_CD 
+              , ORD_MST_BRAND_CD /* 브랜드 CD*/  
+              , ORD_MST_ORD_TYPE
+              , ORD_MST_ORD_PRC  
+              , ORD_MST_ORD_PRC - ORD_MST_PARTIAL_CANCEL_PRICE as REMAIN_ORD_MST_ORD_PRC /* 주문금액 */
+              , ORD_MST_PARTIAL_CANCEL_PRICE
+              , ORD_MST_DLV_CAG /* 배송비 */
+              , ORD_MST_PAY_PRC
+              , ORD_MST_DC_CPN /* 쿠폰할인금액 */
+              , NVL(ORD_MST_DC_OCB_PIT,0) as ORD_MST_DC_OCB_PIT /* OK 캐쉬백 할인금액 */
+              , ORD_MST_DC_MLG     
+              , ORD_MST_POINT_RETURN_YN
+              , DECODE(ORD_MST_POINT_RETURN_YN, 'Y', 0, ORD_MST_DC_MLG) as REMAIN_ORD_MST_DC_MLG /* 포인트할인금액 */
+              , SUBSTR(TOM.ORD_MST_ORD_DT, 0, 8) as ORD_MST_ORD_DT
+            FROM T_ORD_MST TOM, T_ORD_PRD TOP
+            WHERE TOM.ORD_MST_CD = TOP.ORD_ORD_MST_CD
+            AND TOP.ORD_PRD_ORD_STATE IN
+            (
+                405, 406, 407, 408, 431, 435, 1664, 1665, 1666, 1667, 1668, 1669, 421, 424, 1671
+            )
+            ]]>
+            <if test="searchStartDate != null and searchStartDate != '' and searchEndDate != null and searchEndDate != ''">
+                AND SUBSTR(TOM.ORD_MST_ORD_DT, 0, 8) BETWEEN REPLACE(#{searchStartDate},'-', '') AND REPLACE(#{searchEndDate},'-', '')
+            </if>
+            <if test="searchChannel != null and searchChannel != ''">
+                AND TOM.ORD_MST_ORD_TYPE=#{searchChannel}
+            </if>
+            <![CDATA[
+            ) T1
+            GROUP BY ROLLUP  (T1.ORD_MST_BRAND_CD,T1.ORD_MST_ORD_DT)
+            ORDER BY T1.ORD_MST_BRAND_CD NULLS FIRST, SUBSTR(T1.ORD_MST_ORD_DT, 0, 8) DESC
+        ) T2
+        WHERE (ORD_MST_BRAND_CD IS NOT NULL AND ORDER_DT IS NOT NULL) OR (ORD_MST_BRAND_CD IS NULL AND ORDER_DT IS NULL)
+        ]]>
+     </select>
+     
+     <!-- 매출통계 > 판매실적 상세-->
+     <select id="selectOrderStatsSalesDetail" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+        /* StatsOrder.selectOrderStatsSalesDetail */
+        <![CDATA[
+        SELECT
+            T2.*
+            , SUM(REMAIN_ORD_MST_ORD_PRC) OVER() as TOT_ORD_MST_ORD_PRC
+            , SUM(ORD_MST_DC_CPN) OVER() as TOT_ORD_MST_DC_CPN
+            , SUM(REMAIN_ORD_MST_DC_MLG) OVER() as TOT_ORD_MST_DC_MLG
+            , SUM(ORD_MST_DC_OCB_PIT) OVER() as TOT_ORD_MST_DC_OCB_PIT
+            , SUM(ORD_MST_DLV_CAG) OVER() as TOT_ORD_MST_DLV_CAG
+            , SUM(REAL_ORD_MST_ORD_PRC) OVER() as TOT_REAL_ORD_MST_ORD_PRC
+         FROM
+         (
+            SELECT
+                A.ORDER_DT
+                , SUBSTR(A.ORDER_DT, 9, 10) || '~' as ORDER_DATE
+                , (SELECT BND_MST_BRAND_NM FROM T_BND_MST WHERE BND_MST_BRAND_CD = #{targetBrandCd}) as ORD_MST_BRAND_NM /* 브랜드명*/
+                , NVL(B.REMAIN_ORD_MST_ORD_PRC,0) as REMAIN_ORD_MST_ORD_PRC
+                , NVL(B.ORD_MST_DC_CPN,0) as ORD_MST_DC_CPN
+                , NVL(B.REMAIN_ORD_MST_DC_MLG,0) as REMAIN_ORD_MST_DC_MLG
+                , NVL(B.ORD_MST_DC_OCB_PIT,0) as ORD_MST_DC_OCB_PIT
+                , NVL(B.ORD_MST_DLV_CAG,0) as ORD_MST_DLV_CAG
+                , NVL(B.REAL_ORD_MST_ORD_PRC,0) as REAL_ORD_MST_ORD_PRC
+            FROM
+                (
+                SELECT
+                    #{targetDate}||'00' as ORDER_DT
+                FROM DUAL
+                UNION ALL
+                SELECT
+                    #{targetDate}||'01' as ORDER_DT
+                FROM DUAL
+                 UNION ALL
+                SELECT
+                    #{targetDate}||'02' as ORDER_DT
+                FROM DUAL
+                 UNION ALL
+                SELECT
+                    #{targetDate}||'03' as ORDER_DT
+                FROM DUAL
+                 UNION ALL
+                SELECT
+                    #{targetDate}||'04' as ORDER_DT
+                FROM DUAL
+                 UNION ALL
+                SELECT
+                    #{targetDate}||'05' as ORDER_DT
+                FROM DUAL
+                UNION ALL
+                SELECT
+                    #{targetDate}||'06' as ORDER_DT
+                FROM DUAL
+                UNION ALL
+                SELECT
+                    #{targetDate}||'07' as ORDER_DT
+                FROM DUAL
+                UNION ALL
+                SELECT
+                    #{targetDate}||'08' as ORDER_DT
+                FROM DUAL
+                UNION ALL
+                SELECT
+                    #{targetDate}||'09' as ORDER_DT
+                FROM DUAL
+                UNION ALL
+                SELECT
+                    #{targetDate}||'10' as ORDER_DT
+                FROM DUAL
+                UNION ALL
+                SELECT
+                    #{targetDate}||'11' as ORDER_DT
+                FROM DUAL    
+                UNION ALL
+                SELECT
+                    #{targetDate}||'12' as ORDER_DT
+                FROM DUAL
+                UNION ALL
+                SELECT
+                    #{targetDate}||'13' as ORDER_DT
+                FROM DUAL
+                UNION ALL
+                SELECT
+                    #{targetDate}||'14' as ORDER_DT
+                FROM DUAL
+                UNION ALL
+                SELECT
+                    #{targetDate}||'15' as ORDER_DT
+                FROM DUAL
+                UNION ALL
+                SELECT
+                    #{targetDate}||'16' as ORDER_DT
+                FROM DUAL
+                UNION ALL
+                SELECT
+                    #{targetDate}||'17' as ORDER_DT
+                FROM DUAL
+                UNION ALL
+                SELECT
+                    #{targetDate}||'18' as ORDER_DT
+                FROM DUAL
+                UNION ALL
+                SELECT
+                    #{targetDate}||'19' as ORDER_DT
+                FROM DUAL
+                UNION ALL
+                SELECT
+                    #{targetDate}||'20' as ORDER_DT
+                FROM DUAL
+                UNION ALL
+                SELECT
+                    #{targetDate}||'21' as ORDER_DT
+                FROM DUAL
+                UNION ALL
+                SELECT
+                    #{targetDate}||'22' as ORDER_DT
+                FROM DUAL
+                UNION ALL
+                SELECT
+                    #{targetDate}||'23' as ORDER_DT
+                FROM DUAL    
+                ) A,
+                (
+                SELECT
+                    ORD_MST_BRAND_CD
+                    , (SELECT BND_MST_BRAND_NM FROM T_BND_MST WHERE BND_MST_BRAND_CD = ORD_MST_BRAND_CD) as ORD_MST_BRAND_NM /* 브랜드명*/
+                    , SUBSTR(T1.ORD_MST_ORD_DT, 0, 10) as ORDER_DT
+                    , SUM(REMAIN_ORD_MST_ORD_PRC) as REMAIN_ORD_MST_ORD_PRC
+                    , SUM(ORD_MST_DC_CPN) as ORD_MST_DC_CPN
+                    , SUM(REMAIN_ORD_MST_DC_MLG) as REMAIN_ORD_MST_DC_MLG
+                    , SUM(ORD_MST_DC_OCB_PIT) as ORD_MST_DC_OCB_PIT
+                    , SUM(ORD_MST_DLV_CAG) as ORD_MST_DLV_CAG
+                    , SUM(ORD_MST_ORD_PRC - ORD_MST_PARTIAL_CANCEL_PRICE - ORD_MST_DC_CPN - ORD_MST_DC_OCB_PIT - REMAIN_ORD_MST_DC_MLG + ORD_MST_DLV_CAG) as REAL_ORD_MST_ORD_PRC
+                FROM       
+                (    
+                SELECT 
+                  DISTINCT
+                  ORD_MST_CD 
+                  , ORD_MST_ORD_DT
+                  , ORD_MST_BRAND_CD /* 브랜드 CD*/  
+                  , ORD_MST_ORD_TYPE
+                  , ORD_MST_ORD_PRC  
+                  , ORD_MST_ORD_PRC - ORD_MST_PARTIAL_CANCEL_PRICE as REMAIN_ORD_MST_ORD_PRC /* 주문금액 */
+                  , ORD_MST_PARTIAL_CANCEL_PRICE
+                  , ORD_MST_DLV_CAG /* 배송비 */
+                  , ORD_MST_PAY_PRC
+                  , ORD_MST_DC_CPN /* 쿠폰할인금액 */
+                  , NVL(ORD_MST_DC_OCB_PIT,0) as ORD_MST_DC_OCB_PIT /* OK 캐쉬백 할인금액 */
+                  , ORD_MST_DC_MLG     
+                  , ORD_MST_POINT_RETURN_YN
+                  , DECODE(ORD_MST_POINT_RETURN_YN, 'Y', 0, ORD_MST_DC_MLG) as REMAIN_ORD_MST_DC_MLG /* 포인트할인금액 */
+                FROM T_ORD_MST TOM, T_ORD_PRD TOP
+                WHERE TOM.ORD_MST_CD = TOP.ORD_ORD_MST_CD
+                AND TOP.ORD_PRD_ORD_STATE IN
+                (
+                    405, 406, 407, 408, 431, 435, 1664, 1665, 1666, 1667, 1668, 1669, 421, 424, 1671
+                )
+                ]]>
+                AND SUBSTR(TOM.ORD_MST_ORD_DT, 0, 8) = #{targetDate}
+                <if test="targetChannel != null and targetChannel != ''">
+                AND TOM.ORD_MST_ORD_TYPE=#{targetChannel}
+                </if>
+                <![CDATA[
+                ) T1
+                GROUP BY SUBSTR(T1.ORD_MST_ORD_DT, 0, 10), T1.ORD_MST_BRAND_CD
+                ) B
+                WHERE A.ORDER_DT = B.ORDER_DT(+)
+                ORDER BY A.ORDER_DT
+            ) T2 
+        ]]>
+     </select>
+     
+     <!-- 상품 카테고리 검색 조건 -->
+    <sql id="productCategoryWhere">
+        <where>
+            <if test="searchPrdCtgEnv != null and searchPrdCtgEnv != '0' ">
+                AND PC.PRD_CTG_ENV = #{searchPrdCtgEnv} 
+            </if>
+        </where>
+        <if test="searchPrdCtgIdx != null and searchPrdCtgIdx != ''">
+            START WITH PC.PRD_CTG_IDX = #{searchPrdCtgIdx}
+            CONNECT BY PRIOR PC.PRD_CTG_IDX = PC.PRD_CTG_UP_IDX
+        </if>
+    </sql>
+    
+     <!-- 매출통계 > 판매상품-->
+     <select id="selectOrderStatsProduct" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+        /* StatsOrder.selectOrderStatsProduct */
+        <![CDATA[
+             WITH WT1 AS(
+                SELECT PC.PRD_CTG_IDX, PC.PRD_CTG_NM, PC.PRD_CTG_TOP_IDX, PC.PRD_CTG_ENV
+                FROM T_PRD_CTG PC
+                ]]>
+                <include refid="productCategoryWhere"/>
+                <![CDATA[
+            )
+            SELECT
+                B.*
+                , ROWNUM RNUM
+           FROM
+           (
+             SELECT
+                A.*               
+            FROM
+            (
+            SELECT
+                PRD_MST_CD
+                , PRD_MST_NM
+                , SUM(PAY_ORD_PRD_ORD_CNT) as PAY_ORD_PRD_ORD_CNT
+                , SUM(PAY_ORD_PRD_ORD_PRC) as PAY_ORD_PRD_ORD_PRC
+                , SUM(CANCEL_ORD_PRD_ORD_CNT) as CANCEL_ORD_PRD_ORD_CNT
+                , SUM(CANCEL_ORD_PRD_ORD_PRC) as CANCEL_ORD_PRD_ORD_PRC
+                , SUM(RETURN_ORD_PRD_ORD_CNT) as RETURN_ORD_PRD_ORD_CNT
+                , SUM(RETURN_ORD_PRD_ORD_PRC) as RETURN_ORD_PRD_ORD_PRC
+            FROM
+            (
+            SELECT 
+              ORD_MST_CD
+              , ORD_MST_ORD_DT
+              , ORD_MST_ORD_TYPE
+              , ORD_PRD_ORD_PRC /* 주문금액 */
+              , ORD_PRD_ORD_CNT /* 주문수량 */
+              , ORD_PRD_ORD_STATE
+              , TPM.PRD_MST_CD
+              , TPM.PRD_MST_NM
+              ,
+               CASE
+                    WHEN ORD_PRD_ORD_STATE >= 405 AND ORD_PRD_ORD_STATE <> 433 THEN ORD_PRD_ORD_CNT
+                    ELSE 0
+                 END as PAY_ORD_PRD_ORD_CNT   /*주문수량*/
+                ,
+                CASE
+                    WHEN ORD_PRD_ORD_STATE >= 405 AND ORD_PRD_ORD_STATE <> 433 THEN ORD_PRD_ORD_PRC
+                    ELSE 0
+                 END as PAY_ORD_PRD_ORD_PRC /*주문금액*/
+                , DECODE(ORD_PRD_ORD_STATE, 403, ORD_PRD_ORD_CNT, 0) as CANCEL_ORD_PRD_ORD_CNT /*취소수량*/
+                , DECODE(ORD_PRD_ORD_STATE, 403, ORD_PRD_ORD_PRC, 0) as CANCEL_ORD_PRD_ORD_PRC /*취소금액*/
+                , DECODE(ORD_PRD_ORD_STATE, 433, ORD_PRD_ORD_CNT, 0) as RETURN_ORD_PRD_ORD_CNT /*반품수량*/
+                , DECODE(ORD_PRD_ORD_STATE, 433, ORD_PRD_ORD_PRC, 0) as RETURN_ORD_PRD_ORD_PRC /*반품금액*/
+            FROM T_ORD_MST TOM, T_ORD_PRD TOP, T_PRD_MST TPM
+            WHERE TOM.ORD_MST_CD = TOP.ORD_ORD_MST_CD
+            AND TOP.ORD_PRD_MST_CD = TPM.PRD_MST_CD
+            AND TOM.ORD_MST_PAY_DT <> '00000000000000' /* 결제대기 상태인 주문은 나오지 않는다 */
+            ]]>
+            <if test="searchStartDate != null and searchStartDate != '' and searchEndDate != null and searchEndDate != ''">
+                AND SUBSTR(TOM.ORD_MST_ORD_DT, 0, 8) BETWEEN REPLACE(#{searchStartDate},'-', '') AND REPLACE(#{searchEndDate},'-', '')
+            </if>
+            <if test="searchChannel != null and searchChannel != ''">
+                AND TOM.ORD_MST_ORD_TYPE=#{searchChannel}
+            </if>
+            <if test="searchCategoryYn != null and searchCategoryYn.equals('Y'.toString())">
+                AND TPM.PRD_MST_CD IN ( 
+                          SELECT DSP_PRD_MST_CD
+                          FROM T_DSP_CTG, WT1
+                          WHERE
+                            T_DSP_CTG.DSP_PRD_CTG_IDX = WT1.PRD_CTG_IDX
+                          )
+            </if>
+            <if test="searchPrdMstCd != null and searchPrdMstCd != ''">
+                AND TPM.PRD_MST_CD = #{searchPrdMstCd}
+            </if>
+            <if test="searchPrdMstNmKor != null and searchPrdMstNmKor != ''">
+                AND UPPER(TPM.PRD_MST_NM) LIKE '%'||UPPER(#{searchPrdMstNmKor})||'%'
+            </if>
+            <if test="searchPrdMstNmPos != null and searchPrdMstNmPos != ''">
+                AND UPPER(TPM.PRD_MST_NM_POS) LIKE '%'||UPPER(#{searchPrdMstNmPos})||'%'
+            </if>
+            <![CDATA[           
+            AND TOP.ORD_PRD_ORD_STATE IN
+            (
+                401, 402, 403, 404, 405, 406, 407, 408, 431, 433, 435, 1664, 1665, 1666, 1667, 1668, 1669, 421, 424, 1671
+            )
+            )
+            GROUP BY PRD_MST_CD, PRD_MST_NM
+            ) A
+            WHERE PAY_ORD_PRD_ORD_CNT > 0
+            ORDER BY PAY_ORD_PRD_ORD_PRC DESC
+            ) B
+        ]]>
+     </select>  
+     
+     <!-- 매출통계 > 객단가-->
+     <select id="selectOrderStatsCustomerUnit" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+        /* StatsOrder.selectOrderStatsCustomerUnit */
+        <![CDATA[
+        WITH WT1 AS(
+                SELECT PC.PRD_CTG_IDX, PC.PRD_CTG_NM, PC.PRD_CTG_TOP_IDX, PC.PRD_CTG_ENV
+                    FROM T_PRD_CTG PC
+                ]]>
+                <include refid="productCategoryWhere"/>
+                <![CDATA[
+                )
+        SELECT
+            T2.*
+            , (SELECT BND_MST_BRAND_NM FROM T_BND_MST WHERE BND_MST_BRAND_CD = ORD_MST_BRAND_CD) as ORD_MST_BRAND_NM /* 브랜드명*/
+        FROM
+        (           
+        SELECT
+            PRD_CTG_IDX
+            , MAX(ORD_MST_BRAND_CD) as ORD_MST_BRAND_CD
+            , MAX(TOP_CAT_NM) as TOP_CAT_NM
+            , MAX(UP_CAT_NM) as UP_CAT_NM
+            , MAX(PRD_CTG_NM) as PRD_CTG_NM
+            , COUNT(ORD_MST_MEMBER_NO) as CUSTOMER_CNT
+            , SUM(SUM_ORD_PRD_ORD_PRC) as SUM_ORD_PRD_ORD_PRC
+            , ROUND(SUM(SUM_ORD_PRD_ORD_PRC)/COUNT(ORD_MST_MEMBER_NO)) as CUSTOMER_UNIT_PRICE
+        FROM
+        (
+        SELECT   
+            ORD_MST_BRAND_CD
+            , ORD_MST_MEMBER_NO
+            , COUNT(ORD_MST_MEMBER_NO) as ORD_MST_MEMBER_NO_CNT
+            , SUM(ORD_PRD_ORD_PRC) as SUM_ORD_PRD_ORD_PRC
+            , PRD_MST_CD
+            , MAX(PRD_CTG_TOP_IDX) as PRD_CTG_TOP_IDX
+            , MAX(PRD_CTG_UP_IDX) as PRD_CTG_UP_IDX
+            , MAX(PRD_CTG_IDX) as PRD_CTG_IDX
+            , MAX(TOP_CAT_NM) as TOP_CAT_NM
+            , MAX(UP_CAT_NM) as UP_CAT_NM
+            , MAX(PRD_CTG_NM) as PRD_CTG_NM
+        FROM
+        (
+            SELECT 
+              ORD_MST_CD
+              , ORD_MST_ORD_ID
+              , ORD_MST_MEMBER_NO
+              , ORD_MST_ORD_DT
+              , ORD_MST_ORD_TYPE
+              , ORD_MST_BRAND_CD
+              , ORD_PRD_ORD_PRC /* 주문금액 */
+              , ORD_PRD_ORD_CNT /* 주문수량 */
+              , TOP.ORD_PRD_ORD_STATE
+              , TPM.PRD_MST_CD
+              , TPM.PRD_MST_NM
+              , TPC.PRD_CTG_TOP_IDX
+              , TPC.PRD_CTG_UP_IDX
+              , TPC.PRD_CTG_IDX
+              , TPC.TOP_CAT_NM
+              , TPC.UP_CAT_NM
+              , TPC.PRD_CTG_NM
+            FROM T_ORD_MST TOM, T_ORD_PRD TOP, T_PRD_MST TPM
+            ,
+            (
+                SELECT PC.PRD_CTG_ENV
+                     ,  PC.PRD_CTG_TOP_IDX 
+                     ,  (SELECT PRD_CTG_NM FROM T_PRD_CTG WHERE PRD_CTG_IDX = PC.PRD_CTG_TOP_IDX)  TOP_CAT_NM
+                     ,  PC.PRD_CTG_UP_IDX
+                     ,  (SELECT PRD_CTG_NM FROM T_PRD_CTG WHERE PRD_CTG_IDX = PC.PRD_CTG_UP_IDX)  UP_CAT_NM
+                     ,   PC.PRD_CTG_IDX
+                      ,  PC.PRD_CTG_NM
+                      , DC.DSP_PRD_MST_CD
+              FROM T_PRD_CTG PC, T_DSP_CTG DC
+             WHERE PC.PRD_CTG_IDX = DC.DSP_PRD_CTG_IDX
+                 AND PC.PRD_CTG_USE_YN = 'Y'
+                ]]>
+                <if test="searchChannel != null and searchChannel != ''">
+                    AND PRD_CTG_ENV=#{searchChannel}
+                </if>
+                <![CDATA[
+                 AND PRD_CTG_LEVEL = 3
+             ORDER BY PRD_CTG_TOP_IDX, PRD_CTG_UP_IDX, PRD_CTG_SORT
+            ) TPC    
+            WHERE TOM.ORD_MST_CD = TOP.ORD_ORD_MST_CD
+            AND TOP.ORD_PRD_MST_CD = TPM.PRD_MST_CD
+            AND TPM.PRD_MST_CD = TPC.DSP_PRD_MST_CD
+            AND TOM.ORD_MST_PAY_DT <> '00000000000000' /* 결제대기 상태인 주문은 나오지 않는다 */
+            AND TOM.ORD_MST_ORD_ID <> '_GUEST_'
+            AND TOP.ORD_PRD_ORD_STATE IN
+            (
+                401, 402, 403, 404, 405, 406, 407, 408, 431, 435, 1664, 1665, 1666, 1667, 1668, 1669, 421, 424, 1671
+            )
+            ]]>
+            <if test="searchStartDate != null and searchStartDate != '' and searchEndDate != null and searchEndDate != ''">
+                AND SUBSTR(TOM.ORD_MST_ORD_DT, 0, 8) BETWEEN REPLACE(#{searchStartDate},'-', '') AND REPLACE(#{searchEndDate},'-', '')
+            </if>
+            <if test="searchPrdCtgEnv != null and searchPrdCtgEnv != '0'">
+                AND TOM.ORD_MST_ORD_TYPE = #{searchPrdCtgEnv}
+            </if>
+            <if test="searchChannel != null and searchChannel != ''">
+                AND TOM.ORD_MST_ORD_TYPE=#{searchChannel}
+            </if>
+            <if test="searchCategoryYn != null and searchCategoryYn.equals('Y'.toString())">
+                AND TPM.PRD_MST_CD IN ( 
+                          SELECT DSP_PRD_MST_CD
+                          FROM T_DSP_CTG, WT1
+                          WHERE
+                            T_DSP_CTG.DSP_PRD_CTG_IDX = WT1.PRD_CTG_IDX
+                          )
+            </if>
+            <![CDATA[
+        )
+            GROUP BY ORD_MST_BRAND_CD, ORD_MST_MEMBER_NO, PRD_MST_CD
+        ) T1
+        GROUP BY PRD_CTG_IDX
+        ) T2
+        ORDER BY ORD_MST_BRAND_CD, SUM_ORD_PRD_ORD_PRC DESC
+        ]]>
+     </select>
+     
+     <!-- 매장별통계 > 배송매장 -->
+     <select id="selectOrderStatsShop" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+        /* StatsOrder.selectOrderStatsShop */
+        <![CDATA[
+              SELECT
+                T1.*
+                , (SELECT BND_MST_BRAND_NM FROM T_BND_MST WHERE BND_MST_BRAND_CD = ORD_MST_BRAND_CD) as ORD_MST_BRAND_NM /* 브랜드명*/
+              FROM
+              (
+              SELECT
+                ORD_MST_BRAND_CD
+                , ORD_MST_BCNC_CD
+                , ORD_PRD_BCNC_NM
+                , SUM(PAY_PAYMENT_PRICE) as PAY_PAYMENT_PRICE
+                , SUM(PAY_ORD_MST_CNT) as PAY_ORD_MST_CNT
+                , SUM(CANCEL_PAYMENT_PRICE) as CANCEL_PAYMENT_PRICE
+                , SUM(CANCEL_ORD_MST_CNT) as CANCEL_ORD_MST_CNT
+              FROM
+              (
+                SELECT
+                    ORD_MST_BRAND_CD
+                    , ORD_MST_BCNC_CD
+                    , MAX(ORD_PRD_BCNC_NM) as ORD_PRD_BCNC_NM
+                    , SUM(REMAIN_ORD_MST_PAY_PRC) as PAY_PAYMENT_PRICE
+                    , COUNT(ORD_MST_CD) as PAY_ORD_MST_CNT
+                    , 0 as CANCEL_PAYMENT_PRICE
+                    , 0 as CANCEL_ORD_MST_CNT
+               FROM
+               (
+                    SELECT 
+                       DISTINCT
+                      ORD_MST_CD
+                      , ORD_MST_BRAND_CD
+                      , ORD_MST_ORD_DT
+                      , ORD_MST_ORD_TYPE
+                      , ORD_MST_BCNC_CD
+                      , ORD_MST_PAY_PRC - ORD_MST_PARTIAL_CANCEL_PRICE as REMAIN_ORD_MST_PAY_PRC /* 결제금액 */
+                      , ORD_PRD_DLV_TYPE
+                      , ORD_PRD_BCNC_NM
+                      , ORD_PRD_SUB_BCNC_CD
+                      , ORD_PRD_IDX
+                      , ORD_PRD_ORD_STATE              
+                    FROM T_ORD_MST TOM, T_ORD_PRD TOP
+                    WHERE TOM.ORD_MST_CD = TOP.ORD_ORD_MST_CD
+                    AND TOM.ORD_MST_PAY_DT <> '00000000000000' /* 결제대기 상태인 주문은 나오지 않는다 */
+                    ]]>
+                    <if test="searchStartDate != null and searchStartDate != '' and searchEndDate != null and searchEndDate != ''">
+                        AND SUBSTR(TOM.ORD_MST_ORD_DT, 0, 8) BETWEEN REPLACE(#{searchStartDate},'-', '') AND REPLACE(#{searchEndDate},'-', '')
+                    </if>
+                    <if test="searchBcncCd != null and searchBcncCd != ''">
+                        AND TOM.ORD_MST_BCNC_CD = #{searchBcncCd}
+                    </if>
+                    <![CDATA[
+                    AND ORD_PRD_ORD_STATE >= 405 AND ORD_PRD_ORD_STATE <> 433
+                    AND TOP.ORD_PRD_DLV_TYPE IN ('P','S')
+                    ) 
+                    GROUP BY ORD_MST_BRAND_CD, ORD_MST_BCNC_CD
+                  UNION ALL
+                SELECT
+                    ORD_MST_BRAND_CD                      
+                    , ORD_MST_BCNC_CD
+                    , ORD_PRD_BCNC_NM
+                    , 0 as PAY_PAYMENT_PRICE
+                    , 0 as PAY_ORD_MST_CNT
+                    , 
+                    CASE
+                        WHEN ORD_MST_PRODUCT_CNT = ORD_MST_CANCLE_CNT THEN ORD_MST_PAY_PRC /* 전체취소한 경우 */
+                        WHEN ORD_MST_PRODUCT_CNT > ORD_MST_CANCLE_CNT THEN ORD_MST_PAY_PRC - ORD_MST_PARTIAL_CANCEL_PRICE /* 부분취소한 경우 */
+                    END CANCEL_PAYMENT_PRICE
+                     , ORD_MST_CD_CNT as CANCEL_ORD_MST_CNT
+                FROM
+                (
+                SELECT
+                    ORD_MST_BCNC_CD  
+                    , COUNT(ORD_MST_CD) as  ORD_MST_CD_CNT                   
+                    , MAX(ORD_MST_BRAND_CD) as ORD_MST_BRAND_CD  
+                    , MAX(ORD_PRD_BCNC_NM) as ORD_PRD_BCNC_NM
+                    , MAX(ORD_MST_PAY_PRC) as ORD_MST_PAY_PRC
+                    , MAX(ORD_MST_PARTIAL_CANCEL_PRICE) as ORD_MST_PARTIAL_CANCEL_PRICE
+                    , SUM(ORD_MST_PRODUCT_CNT) as ORD_MST_PRODUCT_CNT
+                    , SUM(ORD_MST_CANCLE_CNT) as ORD_MST_CANCLE_CNT             
+                FROM
+                (    
+                   SELECT 
+                      ORD_MST_CD
+                      , ORD_MST_BRAND_CD
+                      , ORD_MST_ORD_DT
+                      , ORD_MST_ORD_TYPE
+                      , ORD_MST_BCNC_CD
+                      , ORD_MST_PAY_PRC
+                      , ORD_MST_PARTIAL_CANCEL_PRICE
+                      , ORD_PRD_DLV_TYPE
+                      , ORD_PRD_BCNC_NM
+                      , ORD_PRD_SUB_BCNC_CD
+                      , ORD_PRD_IDX
+                      , ORD_PRD_ORD_STATE
+                      ,
+                        CASE    
+                            WHEN 
+                                ORD_PRD_ORD_STATE <> 1670
+                                AND ORD_PRD_ORD_STATE <> 1672
+                                AND ORD_PRD_ORD_STATE <> 1673
+                                AND ORD_PRD_ORD_STATE <> 423
+                            THEN 1
+                            ELSE 0                    
+                        END ORD_MST_PRODUCT_CNT /* 교환 관련 상태 제외한 실 주문상품 개수 */         
+                        ,
+                        CASE
+                            WHEN ORD_PRD_ORD_STATE = 403 OR ORD_PRD_ORD_STATE = 433 THEN 1 ELSE 0 
+                        END ORD_MST_CANCLE_CNT /* 취소 상품 개수 */                            
+                    FROM T_ORD_MST TOM, T_ORD_PRD TOP
+                    WHERE TOM.ORD_MST_CD = TOP.ORD_ORD_MST_CD
+                    AND TOM.ORD_MST_PAY_DT <> '00000000000000' /* 결제대기 상태인 주문은 나오지 않는다 */
+                    AND (ORD_PRD_ORD_STATE = 403 OR ORD_PRD_ORD_STATE = 433)
+                    ]]>
+                    <if test="searchStartDate != null and searchStartDate != '' and searchEndDate != null and searchEndDate != ''">
+                        AND SUBSTR(TOM.ORD_MST_ORD_DT, 0, 8) BETWEEN REPLACE(#{searchStartDate},'-', '') AND REPLACE(#{searchEndDate},'-', '')
+                    </if>
+                    <if test="searchBcncCd != null and searchBcncCd != ''">
+                        AND TOM.ORD_MST_BCNC_CD = #{searchBcncCd}
+                    </if>
+                    <![CDATA[
+                    AND TOP.ORD_PRD_DLV_TYPE IN ('P','S')
+                    ORDER BY ORD_MST_ORD_DT DESC
+                    )
+                    GROUP BY ORD_MST_BRAND_CD, ORD_MST_BCNC_CD
+                    )
+                  ) GROUP BY ORD_MST_BRAND_CD
+                , ORD_MST_BCNC_CD
+                , ORD_PRD_BCNC_NM
+                ) T1
+            ]]>    
+     </select>
+     
+     <!-- 사용자 > 퀵메뉴 > 단골매장 팝업 > 매장 목록 갯수 -->
+    <select id="selectOrderStatsRegularStoreCount" parameterType="HashMap" resultType="Integer">
+        /* StatsOrder.selectOrderStatsRegularStoreCount */
+            <![CDATA[
+            SELECT
+                    COUNT(TB.BCNC_CD)                
+            FROM US_YAK.V_TCT_BCNC TB
+            WHERE COMP_CD = 003
+            AND BCNC_DIV='A'
+            AND DEAL_STAT='DEAL'  /*거래상태(CM211)*/
+            AND OPEN_STAT='30'   /*개설상태(CM212)*/
+            AND (BUSI_DIV='OBY' OR BUSI_DIV='OBK')  /*매장_사업구분(CM213)*/
+            AND SHOP_DIV='2'    /* 매장구분 : 직영점 */
+            AND NOT EXISTS (
+                SELECT SHOP_CD
+                FROM US_YAK.TSU_SHOP_MLT
+                WHERE COMP_CD= 003
+                    AND SHOP_CD = TB.BCNC_CD
+                    AND SHOP_CD!=MLT_SHOP_CD
+                    AND USE_YN='Y'
+            )
+             ]]>
+             <if test="searchShopText != null and searchShopText != ''">
+                AND (TB.BCNC_CD LIKE '%'||#{searchShopText}||'%' OR  TB.BCNC_NM  LIKE '%'||#{searchShopText}||'%' )
+             </if>
+    </select>
+     
+     <!-- 매장별통계 > 배송매장 > O2O 매장 리스트(팝업)-->
+     <select id="selectOrderStatsRegularStoreList" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+        /* StatsOrder.selectOrderStatsRegularStoreList */
+        <![CDATA[
+        SELECT
+            S2.*
+        FROM
+        (
+            SELECT
+                ROWNUM AS RNUM,
+                S1.*
+            FROM
+            (
+            SELECT
+                    TB.BCNC_CD,
+                    TB.BCNC_NM,
+                    TB.BPLC_ZIP_CD as ZIP_CD,
+                    TB.BPLC_ROAD_ADDR as ROAD_ADDR,
+                    TB.BPLC_ROAD_ADDR_DETL as ROAD_ADDR_DETL,
+                    TB.BPLC_ADDR as ADDR,
+                    TB.BPLC_ADDR_DETL as ADDR_DETL,
+                    TB.TEL_EXCH_NO,
+                    TB.TEL_OFFC_NO,
+                    TB.TEL_LAST_NO,
+                    DECODE(TB.BPLC_TEL_OFFC_NO,'','',(TB.BPLC_TEL_EXCH_NO || '-' || TB.BPLC_TEL_OFFC_NO || '-' || TB.BPLC_TEL_LAST_NO)) AS TEL,
+                    NVL((TB.BPLC_ROAD_ADDR || '' || TB.BPLC_ROAD_ADDR_DETL), (TB.BPLC_ADDR || '' || TB.BPLC_ADDR_DETL)) AS ADDR2     
+                FROM US_YAK.V_TCT_BCNC TB
+                WHERE COMP_CD = 003
+                AND BCNC_DIV='A'
+                AND DEAL_STAT='DEAL'  /*거래상태(CM211)*/
+                AND OPEN_STAT='30'   /*개설상태(CM212)*/
+                AND (BUSI_DIV='OBY' OR BUSI_DIV='OBK')  /*매장_사업구분(CM213)*/
+                AND SHOP_DIV='2'   /* 매장구분 : 직영점 */
+                AND NOT EXISTS (
+                    SELECT SHOP_CD
+                    FROM US_YAK.TSU_SHOP_MLT
+                    WHERE COMP_CD= 003
+                        AND SHOP_CD = TB.BCNC_CD
+                        AND SHOP_CD!=MLT_SHOP_CD
+                        AND USE_YN='Y'
+                        )
+                 ]]>
+                <if test="searchShopText != null and searchShopText != ''">
+                    AND (TB.BCNC_CD LIKE '%'||#{searchShopText}||'%' OR  TB.BCNC_NM  LIKE '%'||#{searchShopText}||'%' )
+                </if>
+                <![CDATA[
+                ORDER BY TB.BCNC_NM ASC
+           ) S1
+        ) S2
+        WHERE 
+            S2.RNUM BETWEEN #{startNum} AND #{endNum}     
+        ]]>
+    </select>   
+    
+
+     
+     <!-- 매출통계 > 성별/연령별 -->
+     <select id="selectOrderStatsAgeSex" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+        /* StatsOrder.selectOrderStatsAgeSex */
+        <![CDATA[
+            SELECT
+                SEX_DIV
+                ,
+                  CASE
+                    WHEN SEX_DIV = 'M' THEN 'MAN'
+                    WHEN SEX_DIV = 'W' THEN 'WOMAN'
+                    WHEN SEX_DIV = 'Z' THEN 'ETC'
+                  END as SEX_DIV_NM  
+                ,
+                  CASE
+                    WHEN AGE_BOUND = 1 THEN '~19'
+                    WHEN AGE_BOUND = 2 THEN '20~'
+                    WHEN AGE_BOUND = 3 THEN '30~'
+                    WHEN AGE_BOUND = 4 THEN '40~'
+                    WHEN AGE_BOUND = 5 THEN '50~'
+                    WHEN AGE_BOUND = 6 THEN '60~'
+                    WHEN AGE_BOUND = 9 THEN 'ETC'
+                    WHEN AGE_BOUND IS NULL THEN 'TOTAL'
+                  END as AGE_BOUND_NM
+                , AGE_BOUND
+                , SUM(MEMBER_CNT) as MEMBER_CNT
+                , SUM(ORDER_CNT) as ORDER_CNT
+                , SUM(ORDER_PRD_PRICE) as ORDER_PRD_PRICE
+                , SUM(PAY_ORDER_CNT) as PAY_ORDER_CNT
+                , SUM(PAY_ORDER_PRD_PRICE) as PAY_ORDER_PRD_PRICE
+                , SUM(PRD_PRICE) as PRD_PRICE
+                , SUM(ORD_PRICE) as ORD_PRICE
+                , SUM(MEMBER_PRICE) as MEMBER_PRICE
+            FROM
+            (
+            SELECT SEX_DIV, AGE_BOUND, MEMBER_CNT, ORDER_CNT, ORDER_PRD_PRICE, PAY_ORDER_CNT, PAY_ORDER_PRD_PRICE
+                    ,  DECODE(PAY_ORDER_PRD_PRICE,0,0,ROUND(PAY_ORDER_PRD_PRICE / PAY_ORDER_PRD_CNT)) AS PRD_PRICE
+                    ,  DECODE(PAY_ORDER_PRD_PRICE,0,0,ROUND(PAY_ORDER_PRD_PRICE / ORDER_CNT)) AS ORD_PRICE
+                    ,  DECODE(PAY_ORDER_PRD_PRICE,0,0,ROUND(PAY_ORDER_PRD_PRICE / MEMBER_CNT)) AS MEMBER_PRICE
+            FROM
+            (
+            SELECT DUM.SEX_DIV
+                     ,  DUM.AGE_BOUND
+                     ,  NVL(MEMBER_CNT,0) MEMBER_CNT  /*  고객수 */
+                     ,  NVL(ORDER_CNT,0) AS ORDER_CNT  /*  주문건수 */
+                     ,  NVL(ORDER_PRD_CNT,0) AS ORDER_PRD_CNT /* 주문 상품 수 */
+                     ,  NVL(ORDER_PRD_PRICE,0) AS ORDER_PRD_PRICE /* 주문 금액 */
+                     ,  NVL(PAY_ORDER_CNT,0) AS PAY_ORDER_CNT /* 매출 건수 */
+                     ,  NVL(PAY_ORDER_PRD_CNT,0) AS PAY_ORDER_PRD_CNT /* 매출 상품 수 */
+                     ,  NVL(PAY_ORDER_PRD_PRICE,0) AS PAY_ORDER_PRD_PRICE /*  매출 금액 */
+            FROM
+            (
+            SELECT 'M' AS SEX_DIV , 1 AS AGE_BOUND FROM DUAL
+            UNION ALL
+            SELECT 'M' AS SEX_DIV , 2 AS AGE_BOUND FROM DUAL
+            UNION ALL
+            SELECT 'M' AS SEX_DIV , 3 AS AGE_BOUND FROM DUAL
+            UNION ALL
+            SELECT 'M' AS SEX_DIV , 4 AS AGE_BOUND FROM DUAL
+            UNION ALL
+            SELECT 'M' AS SEX_DIV , 5 AS AGE_BOUND FROM DUAL
+            UNION ALL
+            SELECT 'M' AS SEX_DIV , 6 AS AGE_BOUND FROM DUAL
+            UNION ALL
+            SELECT 'M' AS SEX_DIV , 9 AS AGE_BOUND FROM DUAL
+            UNION ALL
+            SELECT 'W' AS SEX_DIV , 1 AS AGE_BOUND FROM DUAL
+            UNION ALL
+            SELECT 'W' AS SEX_DIV , 2 AS AGE_BOUND FROM DUAL
+            UNION ALL
+            SELECT 'W' AS SEX_DIV , 3 AS AGE_BOUND FROM DUAL
+            UNION ALL
+            SELECT 'W' AS SEX_DIV , 4 AS AGE_BOUND FROM DUAL
+            UNION ALL
+            SELECT 'W' AS SEX_DIV , 5 AS AGE_BOUND FROM DUAL
+            UNION ALL
+            SELECT 'W' AS SEX_DIV , 6 AS AGE_BOUND FROM DUAL
+            UNION ALL
+            SELECT 'W' AS SEX_DIV , 9 AS AGE_BOUND FROM DUAL
+            UNION ALL
+            SELECT 'Z' AS SEX_DIV , 9 AS AGE_BOUND FROM DUAL
+            ) DUM
+            LEFT OUTER JOIN 
+            (
+            SELECT SEX_DIV
+                     ,  AGE_BOUND
+                     ,  COUNT(ORD_MST_MEMBER_NO) MEMBER_CNT
+                     ,  SUM(ORDER_CNT) AS ORDER_CNT
+                     ,  SUM(ORDER_PRD_CNT) AS ORDER_PRD_CNT
+                     ,  SUM(ORDER_PRD_PRICE) AS ORDER_PRD_PRICE
+                     ,  SUM(PAY_ORDER_CNT) AS PAY_ORDER_CNT
+                     ,  SUM(PAY_ORDER_PRD_CNT) AS PAY_ORDER_PRD_CNT
+                     ,  SUM(PAY_ORDER_PRD_PRICE) AS PAY_ORDER_PRD_PRICE
+            FROM
+                    (
+                    /* 고객기준 */
+                    SELECT ORD.ORD_MST_MEMBER_NO
+                             ,  ORD.ORD_MST_ERP_COMP_CD
+                             ,  TC.BITH_DAY
+                             ,  CASE WHEN TC.SEX_DIV IS NULL THEN 9
+                                         ELSE
+                                         CASE
+                                                 WHEN TO_CHAR(SYSDATE,'YYYY')+1 - SUBSTR(BITH_DAY,0,4)   IS NULL THEN 9
+                                                  WHEN TO_CHAR(SYSDATE,'YYYY')+1 - SUBSTR(BITH_DAY,0,4)  < 20 THEN 1
+                                                  WHEN TO_CHAR(SYSDATE,'YYYY')+1 - SUBSTR(BITH_DAY,0,4)  < 30 THEN 2
+                                                  WHEN TO_CHAR(SYSDATE,'YYYY')+1 - SUBSTR(BITH_DAY,0,4)  < 40 THEN 3
+                                                  WHEN TO_CHAR(SYSDATE,'YYYY')+1 - SUBSTR(BITH_DAY,0,4)  < 50 THEN 4
+                                                  WHEN TO_CHAR(SYSDATE,'YYYY')+1 - SUBSTR(BITH_DAY,0,4)  < 60 THEN 5
+                                                  WHEN TO_CHAR(SYSDATE,'YYYY')+1 - SUBSTR(BITH_DAY,0,4)  > 59 THEN 6
+                                          END 
+                                END AGE_BOUND 
+                             ,  NVL(TC.SEX_DIV,'Z') SEX_DIV
+                             ,  NVL(ORDER_CNT, 0) AS ORDER_CNT
+                             ,  NVL(ORDER_PRD_CNT,0) AS ORDER_PRD_CNT
+                             ,  NVL(ORDER_PRD_PRICE,0) AS ORDER_PRD_PRICE
+                             ,  NVL(PAY_ORDER_CNT, 0) AS PAY_ORDER_CNT
+                             ,  NVL(PAY_ORDER_PRD_CNT,0) AS PAY_ORDER_PRD_CNT
+                             ,  NVL(PAY_ORDER_PRD_PRICE,0) AS PAY_ORDER_PRD_PRICE
+                    FROM
+                              (
+                                    /* 고객별 주문 정보 */
+                                    SELECT ORD_MST_MEMBER_NO
+                                             ,  ORD_MST_ERP_COMP_CD
+                                             ,  COUNT(DISTINCT ORD_MST_CD ) AS ORDER_CNT
+                                             ,  SUM(ORD_PRD_ORD_CNT) AS ORDER_PRD_CNT
+                                             ,  SUM(ORD_PRD_ORD_PRC) AS ORDER_PRD_PRICE
+                                    FROM
+                                            (
+                                                    SELECT 
+                                                            ORD_MST_CD /* 주문코드 */
+                                                          , ORD_MST_MEMBER_NO /* 주문자 회원번호 */ 
+                                                          , ORD_MST_ERP_COMP_CD  /* 법인코드  */
+                                                          , ORD_PRD_ORD_STATE /* 주문상태 */
+                                                          , ORD_PRD_ORD_CNT   /* 주문수량  */
+                                                          , ORD_PRD_ORD_PRC /* 주문금액 */
+                                                    FROM T_ORD_MST TOM, T_ORD_PRD TOP
+                                                    WHERE TOM.ORD_MST_CD = TOP.ORD_ORD_MST_CD
+                                                    AND TOM.ORD_MST_MEMBER_NO IS NOT NULL
+                                                    ]]>
+                                                    <if test="searchStartDate != null and searchStartDate != '' and searchEndDate != null and searchEndDate != ''">
+                                                        AND SUBSTR(TOM.ORD_MST_ORD_DT, 0, 8) BETWEEN REPLACE(#{searchStartDate},'-', '') AND REPLACE(#{searchEndDate},'-', '')
+                                                    </if>
+                                                    <if test="searchChannel != null and searchChannel != ''">
+                                                        AND TOM.ORD_MST_ORD_TYPE=#{searchChannel}
+                                                    </if>
+                                                    <![CDATA[
+                                                    AND TOM.ORD_MST_PAY_DT <> '00000000000000' /* 결제대기 상태인 주문은 나오지 않는다 */
+                                                    AND TOP.ORD_PRD_ORD_STATE IN
+                                                    ( /* 408 : 배송완료 */
+                                                        405, 406, 407, 408, 431, 435, 1664, 1665, 1666, 1667, 1668, 1669, 421, 424, 1671
+                                                    )
+                                            ) 
+                                    GROUP BY  ORD_MST_MEMBER_NO, ORD_MST_ERP_COMP_CD
+                                ) ORD
+                                LEFT OUTER JOIN 
+                                (
+                                    /* 고객별  매출 정보 */
+                                    SELECT ORD_MST_MEMBER_NO
+                                             ,  ORD_MST_ERP_COMP_CD
+                                             ,  COUNT(DISTINCT ORD_MST_CD ) AS PAY_ORDER_CNT
+                                             ,  SUM(ORD_PRD_ORD_CNT) AS PAY_ORDER_PRD_CNT
+                                             ,  SUM(ORD_PRD_ORD_PRC) AS PAY_ORDER_PRD_PRICE
+                                    FROM
+                                            (
+                                                    SELECT 
+                                                            ORD_MST_CD /* 주문코드 */
+                                                          , ORD_MST_MEMBER_NO /* 주문자 회원번호 */ 
+                                                          , ORD_MST_ERP_COMP_CD  /* 법인코드  */
+                                                          , ORD_PRD_ORD_STATE /* 주문상태 */
+                                                          , ORD_PRD_ORD_CNT   /* 매출수량  */
+                                                          , ORD_PRD_ORD_PRC /* 매출금액 */
+                                                    FROM T_ORD_MST TOM, T_ORD_PRD TOP
+                                                    WHERE TOM.ORD_MST_CD = TOP.ORD_ORD_MST_CD
+                                                    AND TOM.ORD_MST_MEMBER_NO IS NOT NULL
+                                                    ]]>
+                                                    <if test="searchStartDate != null and searchStartDate != '' and searchEndDate != null and searchEndDate != ''">
+                                                        AND SUBSTR(TOM.ORD_MST_ORD_DT, 0, 8) BETWEEN REPLACE(#{searchStartDate},'-', '') AND REPLACE(#{searchEndDate},'-', '')
+                                                    </if>
+                                                    <if test="searchChannel != null and searchChannel != ''">
+                                                        AND TOM.ORD_MST_ORD_TYPE=#{searchChannel}
+                                                    </if>
+                                                    <![CDATA[
+                                                    AND TOM.ORD_MST_PAY_DT <> '00000000000000' /* 결제대기 상태인 주문은 나오지 않는다 */
+                                                    AND TOP.ORD_PRD_ORD_STATE = 408
+                                            ) 
+                                    GROUP BY  ORD_MST_MEMBER_NO, ORD_MST_ERP_COMP_CD                 
+                                ) PAY
+                                ON ORD.ORD_MST_MEMBER_NO = PAY.ORD_MST_MEMBER_NO
+                                AND ORD.ORD_MST_ERP_COMP_CD = PAY.ORD_MST_ERP_COMP_CD
+                                INNER JOIN TSM_CUST TC
+                                ON ORD.ORD_MST_MEMBER_NO =  TC.CUST_NO
+                                AND ORD.ORD_MST_ERP_COMP_CD = TC.COMP_CD
+                    )
+            GROUP BY SEX_DIV, AGE_BOUND
+            ) DT
+            ON DUM.SEX_DIV =  DT.SEX_DIV
+            AND DUM.AGE_BOUND = DT.AGE_BOUND
+            ) A
+            ) B
+            GROUP BY ROLLUP (SEX_DIV, AGE_BOUND)
+            HAVING SEX_DIV IS NOT NULL OR AGE_BOUND IS NOT NULL
+            ORDER BY SEX_DIV NULLS FIRST, AGE_BOUND NULLS FIRST
+        ]]>
+     </select>
+</mapper>

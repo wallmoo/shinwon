@@ -1,0 +1,20 @@
+[10:12:31] [T00027292hQFI9TSc6b] START:mall_id=[T0002729]+tr_cd=[00101000]+order_no=[2016032301772]
+[10:12:31] [T00027292hQFI9TSc6b] DATA:pay_data=common=tot_amt=5440000currency=00client_ip=127.0.0.1escrow_yn=Ncomplex_yn=Ncli_ver=N8vacct=vacct_txtype=10vacct_amt=5440000bank_cd=003expire_date=20160326expire_time=235959cash_yn=0order_data=order_no=2016032301772user_phone2=01072530937product_nm=LG전자50LF5800AKR●직원연고판매건●15년 LG전자50LF5800 벽product_amt=5440000
+[10:12:31] [T00027292hQFI9TSc6b] RESULT:res_cd=0000res_msg=계좌 채번 정상cno=16032310094923511324order_no=2016032301772amount=5440000tran_date=20160323100949bank_cd=003bank_nm=기업은행account_no=T8201370697005deposit_nm=epasscniexpire_date=20160326235959escrow_yn=Ncomplex_yn=Nstat_cd=TS07stat_msg=입금대기pay_type=22memb_id=T0002729memb_gubun=2bk_pay_yn=N
+[10:12:31] [T00027292hQFI9TSc6b] ENDED :mall_id=[T0002729]+tr_cd=[00101000]+order_no=[2016032301772]
+[11:03:46] [T0002729Slb1YmqQuaD] START:mall_id=[T0002729]+tr_cd=[00101000]+order_no=[2016032301774]
+[11:03:46] [T0002729Slb1YmqQuaD] DATA:pay_data=common=tot_amt=5440000currency=00client_ip=127.0.0.1escrow_yn=Ncomplex_yn=Ncli_ver=N8vacct=vacct_txtype=10vacct_amt=5440000bank_cd=003expire_date=20160326expire_time=235959cash_yn=0order_data=order_no=2016032301774user_phone2=01072530937product_nm=LG전자50LF5800AKR●직원연고판매건●15년 LG전자50LF5800 벽product_amt=5440000
+[11:03:49] [T0002729Slb1YmqQuaD] RESULT:res_cd=0000res_msg=계좌 채번 정상cno=16032311010423511409order_no=2016032301774amount=5440000tran_date=20160323110106bank_cd=003bank_nm=기업은행account_no=T8201370697119deposit_nm=epasscniexpire_date=20160326235959escrow_yn=Ncomplex_yn=Nstat_cd=TS07stat_msg=입금대기pay_type=22memb_id=T0002729memb_gubun=2bk_pay_yn=N
+[11:03:49] [T0002729Slb1YmqQuaD] ENDED :mall_id=[T0002729]+tr_cd=[00101000]+order_no=[2016032301774]
+[11:05:27] [T00019811VApzu3bt9s] START:mall_id=[T0001981]+tr_cd=[00101000]+order_no=[2016032301774]
+[11:05:27] [T00019811VApzu3bt9s] DATA:pay_data=common=tot_amt=13056currency=00client_ip=127.0.0.1escrow_yn=Ncomplex_yn=Ncli_ver=N8pnt=pnt_txtype=40pnt_amt=13056cp_cd=OCBpnt_idno=201602pnt_pwd=0000order_data=order_no=2016032301774product_amt=13056
+[11:05:28] [T00019811VApzu3bt9s] RESULT:res_cd=2061res_msg=적립불가        가맹점cno=16032311024540511413order_no=2016032301774
+[11:05:28] [T00019811VApzu3bt9s] ENDED :mall_id=[T0001981]+tr_cd=[00101000]+order_no=[2016032301774]
+[11:12:04] [T0002729r1Vh9DWbIGs] START:mall_id=[T0002729]+tr_cd=[00101000]+order_no=[2016032301775]
+[11:12:04] [T0002729r1Vh9DWbIGs] DATA:pay_data=common=tot_amt=5440000currency=00client_ip=127.0.0.1escrow_yn=Ncomplex_yn=Ncli_ver=N8vacct=vacct_txtype=10vacct_amt=5440000bank_cd=004expire_date=20160326expire_time=235959cash_yn=0order_data=order_no=2016032301775user_phone2=01094164393product_nm=LG전자50LF5800AKR●직원연고판매건●15년 LG전자50LF5800 벽product_amt=5440000
+[11:12:04] [T0002729r1Vh9DWbIGs] RESULT:res_cd=0000res_msg=계좌 채번 정상cno=16032311092223511424order_no=2016032301775amount=5440000tran_date=20160323110922bank_cd=004bank_nm=국민은행account_no=T9649078203678deposit_nm=epasscniexpire_date=20160326235959escrow_yn=Ncomplex_yn=Nstat_cd=TS07stat_msg=입금대기pay_type=22memb_id=T0002729memb_gubun=2bk_pay_yn=N
+[11:12:04] [T0002729r1Vh9DWbIGs] ENDED :mall_id=[T0002729]+tr_cd=[00101000]+order_no=[2016032301775]
+[11:13:31] [T0001981WphcGGBil47] START:mall_id=[T0001981]+tr_cd=[00101000]+order_no=[2016032301775]
+[11:13:31] [T0001981WphcGGBil47] DATA:pay_data=common=tot_amt=13056currency=00client_ip=127.0.0.1escrow_yn=Ncomplex_yn=Ncli_ver=N8pnt=pnt_txtype=40pnt_amt=13056cp_cd=OCBpnt_idno=0000000000000000pnt_pwd=0000order_data=order_no=2016032301775product_amt=13056
+[11:13:31] [T0001981WphcGGBil47] RESULT:res_cd=2061res_msg=적립불가        가맹점cno=16032311104940511431order_no=2016032301775
+[11:13:31] [T0001981WphcGGBil47] ENDED :mall_id=[T0001981]+tr_cd=[00101000]+order_no=[2016032301775]

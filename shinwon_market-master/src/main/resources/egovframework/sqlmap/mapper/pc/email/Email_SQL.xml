@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="Email">
+
+	<!-- 회원이메일 정보확인 -->
+    <select id="selectMemberEmailInfo" parameterType="hashMap" resultType="hashMap">
+        /* Email.selectMemberEmailInfo */
+		SELECT
+        	MEM_MST_MEM_ID
+        	,MEM_MST_MEM_NM
+        	,CON_MEM_MST_MAIL
+        	,MEM_MST_MAIL
+        FROM
+        	T_MEM_MST T1 
+      		 WHERE 1=1
+      		 	AND T1.MEM_MST_MEM_ID = #{MAILMEMID}
+      		    AND T1.MEM_MST_MAIL = #{MAILADDR}	
+	</select>
+	
+	<!-- 회원이메일 수신거부 설정 -->
+	<update id="updateMemberEmailYn" parameterType="HashMap">
+        /* Email.updateMemberEmailYn */	
+		UPDATE 
+			T_MEM_AGR
+		SET 
+			MEM_AGR_TRM_YN = 'N'
+		WHERE 
+			MEM_AGR_MEM_ID = #{MAILMEMID}           	 	        				
+			AND MEM_AGR_TRM_CD = '0004'	
+	</update>
+</mapper>

@@ -1,0 +1,4 @@
+[16:22:52] [T0002729O2Rk2sLOD8o] START:mall_id=[T0002729]+tr_cd=[00201000]+order_no=[2016021801259]
+[16:22:52] [T0002729O2Rk2sLOD8o] DATA:mgr_data=mgr_txtype=61mgr_subtype=ES02org_cno=16021809214423368105order_no=2016021801259req_ip=130.1.184.157
+[16:22:52] [T0002729O2Rk2sLOD8o] RESULT:res_cd=E204res_msg=에스크로 상태변경 불가
+[16:22:52] [T0002729O2Rk2sLOD8o] ENDED :mall_id=[T0002729]+tr_cd=[00201000]+order_no=[2016021801259]

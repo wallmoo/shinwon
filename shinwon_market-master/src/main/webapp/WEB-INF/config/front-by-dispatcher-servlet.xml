@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xmlns:p="http://www.springframework.org/schema/p" xmlns:context="http://www.springframework.org/schema/context"
+        xmlns:mvc="http://www.springframework.org/schema/mvc"
+        xmlns:task="http://www.springframework.org/schema/task"
+        xsi:schemaLocation="http://www.springframework.org/schema/mvc http://www.springframework.org/schema/mvc/spring-mvc-3.0.xsd
+                http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
+                http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.0.xsd
+                http://www.springframework.org/schema/task http://www.springframework.org/schema/task/spring-task-3.0.xsd">
+
+    <!--  annotation 설정 -->
+    <context:component-scan base-package="com.market.mall">
+        <context:include-filter type="annotation" expression="org.springframework.stereotype.Controller"/>
+        <context:exclude-filter type="annotation" expression="org.springframework.stereotype.Service"/>
+        <context:exclude-filter type="annotation" expression="org.springframework.stereotype.Repository"/>
+    </context:component-scan>
+    <context:component-scan base-package="com.epasscni.framework.util" />
+    
+    <!-- Scheduler 설정-->
+    <task:scheduler id="jobScheduler" pool-size="10" />
+    <task:annotation-driven scheduler="jobScheduler" />
+
+    <!-- URL Mapping 설정 -->
+    <bean class="org.springframework.web.servlet.mvc.annotation.AnnotationMethodHandlerAdapter">
+        <property name="customArgumentResolvers" >
+            <bean class="com.epasscni.util.CommandMapArgumentResolver" />
+        </property>
+        <property name="messageConverters">
+         <list>
+            <bean class="org.springframework.http.converter.json.MappingJacksonHttpMessageConverter"/>
+         </list>
+        </property>
+    </bean>
+    <!-- 
+    <bean class="org.springframework.web.servlet.mvc.annotation.DefaultAnnotationHandlerMapping"/>
+     -->
+    <!-- 서블릿컨네이너상의 exception에 대한 오류 페이지를 연결하는 mvc 설정-->
+    <bean class="org.springframework.web.servlet.handler.SimpleMappingExceptionResolver">
+        <property name="defaultErrorView" value="common/error/error"/>
+        <property name="exceptionMappings">
+            <props>
+                <!-- 공통 -->
+                <prop key="com.epasscni.common.exception.FileUploadException">common/error/error_fileUpload</prop>
+                <prop key="com.epasscni.common.exception.SendMailException">common/error/error_mail</prop>
+                <prop key="com.epasscni.common.exception.ParamFilterException">common/error/error_paramFilter</prop>
+                <prop key="com.epasscni.common.exception.TransactionException">common/error/error_transaction</prop>
+                <prop key="com.epasscni.common.exception.SessionException">common/error/error_session</prop>
+                <prop key="com.epasscni.common.exception.DoubleSubmitException">common/error/error_doublesubmit</prop>
+                
+                <!-- 관리자 -->
+                <prop key="com.epasscni.common.exception.AmAuthenticationException">am/common/error/error_login</prop>
+                <prop key="com.epasscni.common.exception.AccessException">am/common/error/error_access</prop>
+                
+                <!-- 프론트 -->
+                <prop key="com.epasscni.common.exception.PcAuthenticationException">pc/common/error/error_login</prop>
+                <prop key="com.epasscni.common.exception.AccreditationException">pc/common/error/accreditation</prop>
+                <prop key="com.epasscni.common.exception.PcTrafficException">pc/common/error/error_traffic</prop>
+                <prop key="java.lang.Throwable">pc/common/error/error_page_not_found</prop>
+                <prop key="org.springframework.jdbc.UncategorizedSQLException">pc/common/error/error_traffic</prop>
+
+                <!-- 모바일 -->
+                <prop key="com.epasscni.common.exception.MobileAuthenticationException">mobile/common/error/error_login</prop>
+                <prop key="com.epasscni.common.exception.MobileAccreditationException">mobile/common/error/accreditation</prop>
+            </props>
+        </property>
+    </bean>
+
+    <!-- @Controllers에서 연결되는 JSP 경로 설정 -->
+    <bean id="viewResolver" class="org.springframework.web.servlet.view.InternalResourceViewResolver">
+        <property name="prefix" value="/WEB-INF/jsp/" />
+        <property name="suffix" value=".jsp" />
+        <property name="order" value="1" />
+    </bean>
+
+    <bean id="downloadView" class="com.epasscni.util.DownloadView"/>
+
+    <bean id="downloadViewResolver" class="org.springframework.web.servlet.view.BeanNameViewResolver">
+        <property name="order">
+            <value>0</value>
+        </property>
+    </bean>
+
+    <!-- 파일업로드 Resolver 설정 -->
+     <bean id="multipartResolver" class="org.springframework.web.multipart.commons.CommonsMultipartResolver">
+        <property name="maxUploadSize" value="10737418"/> <!-- 10M -->
+    </bean>
+
+    <!-- 인터셉터 설정 -->
+    <mvc:interceptors>
+        <bean class="com.market.mall.common.interceptor.LoggingInterceptor" />
+        <bean class="com.market.mall.common.interceptor.WebAccessInterceptor" />
+    </mvc:interceptors>
+
+    <!-- 트랜잭션 및 AOP 설정 -->
+    <import resource="classpath:/egovframework/spring/context-transaction.xml" />
+    <import resource="classpath:/egovframework/spring/context-aspect.xml"/>
+
+
+
+</beans>

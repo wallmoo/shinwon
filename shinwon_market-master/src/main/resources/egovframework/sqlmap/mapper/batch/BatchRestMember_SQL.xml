@@ -1,0 +1,228 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="BatchRestMember">
+
+    <!-- 배치 > 휴면회원 정보 이관  -->
+    <insert id="insertRestMember" parameterType="HashMap">
+        /* BatchRestMember.insertRestMember */
+        <![CDATA[
+        INSERT INTO
+            T_MEM_RST (
+                 MEM_MST_MEM_ID
+                ,MEM_MST_MEM_NM
+                ,MEM_MST_PW
+                ,MEM_MST_MAIL
+                ,MEM_MST_MEM_GB
+                ,MEM_MST_MEM_GBN
+                ,MEM_MST_MEM_GRD
+                ,MEM_MST_RST_ID
+                ,MEM_MST_RCM_ID
+                ,MEM_MST_JOB
+                ,MEM_MST_ZIP_CDE6
+                ,MEM_MST_JBN_ADR1
+                ,MEM_MST_JBN_ADR2
+                ,MEM_MST_ZIP_CDE5
+                ,MEM_MST_DRO_ADR1
+                ,MEM_MST_DRO_ADR2
+                ,MEM_MST_TEL1
+                ,MEM_MST_TEL2
+                ,MEM_MST_TEL3
+                ,MEM_MST_HP1
+                ,MEM_MST_HP2
+                ,MEM_MST_HP3
+                ,MEM_MST_STATUS
+                ,MEM_MST_EMP_NO
+                ,MEM_MST_FML_CD
+                ,MEM_MST_LEV_DT
+                ,MEM_MST_LEV_YN
+                ,MEM_MST_LEV_RSN_CD
+                ,MEM_MST_LEV_RSN
+                ,MEM_MST_NOTE
+                ,MEM_MST_JIN_CHN
+                ,MEM_MST_BIR_DT
+                ,MEM_MST_BIR_GB
+                ,MEM_MST_VST_CNT
+                ,MEM_MST_OCB_NO
+                ,MEM_MST_JOI_RTE
+                ,MEM_MST_VST_LAT
+                ,MEM_MST_OCB_REQ_YN
+                ,MEM_MST_PRM_NO
+                ,MEM_MST_ERP_ID
+                ,MEM_MST_JIN_MDM
+                ,MEM_MST_SEX
+                ,MEM_MST_EVT_YN
+                ,MEM_MST_CUT_CD
+                ,MEM_MST_CUT_RSN
+                ,MEM_MST_CUT_MEMO
+                ,MEM_MST_CUT_DT
+                ,MEM_MST_CUT_ID
+                ,MEM_MST_BLK_YN
+                ,MEM_MST_BLK_CD
+                ,MEM_MST_BLK_ST
+                ,MEM_MST_BLK_ED
+                ,MEM_MST_BLK_RSN
+                ,MEM_MST_BLK_MEMO
+                ,MEM_MST_BLK_DT
+                ,MEM_MST_BLK_ID
+                ,MEM_MST_OUT_RSN
+                ,MEM_MST_OUT_MEMO
+                ,MEM_MST_OUT_DT
+                ,MEM_MST_OUT_ID
+                ,MEM_MST_TMP_PW_YN
+                ,MEM_MST_TMP_PW_DT
+                ,MEM_MST_DCT_YN 
+                ,MEM_MST_ERP_YN
+                ,MEM_MST_REG_DT
+                ,MEM_MST_REG_IP
+                ,MEM_MST_REG_ID
+                ,MEM_MST_UPD_DT
+                ,MEM_MST_UPD_IP
+                ,MEM_MST_UPD_ID
+                ,MEM_MST_RST_DT
+            )
+            SELECT 
+                 MEM_MST_MEM_ID
+                ,MEM_MST_MEM_NM
+                ,MEM_MST_PW
+                ,MEM_MST_MAIL
+                ,MEM_MST_MEM_GB
+                ,MEM_MST_MEM_GBN
+                ,MEM_MST_MEM_GRD
+                ,MEM_MST_RST_ID
+                ,MEM_MST_RCM_ID
+                ,MEM_MST_JOB
+                ,MEM_MST_ZIP_CDE6
+                ,MEM_MST_JBN_ADR1
+                ,MEM_MST_JBN_ADR2
+                ,MEM_MST_ZIP_CDE5
+                ,MEM_MST_DRO_ADR1
+                ,MEM_MST_DRO_ADR2
+                ,MEM_MST_TEL1
+                ,MEM_MST_TEL2
+                ,MEM_MST_TEL3
+                ,MEM_MST_HP1
+                ,MEM_MST_HP2
+                ,MEM_MST_HP3
+                ,MEM_MST_STATUS
+                ,MEM_MST_EMP_NO
+                ,MEM_MST_FML_CD
+                ,MEM_MST_LEV_DT
+                ,MEM_MST_LEV_YN
+                ,MEM_MST_LEV_RSN_CD
+                ,MEM_MST_LEV_RSN
+                ,MEM_MST_NOTE
+                ,MEM_MST_JIN_CHN
+                ,MEM_MST_BIR_DT
+                ,MEM_MST_BIR_GB
+                ,MEM_MST_VST_CNT
+                ,MEM_MST_OCB_NO
+                ,MEM_MST_JOI_RTE
+                ,MEM_MST_VST_LAT
+                ,MEM_MST_OCB_REQ_YN
+                ,MEM_MST_PRM_NO
+                ,MEM_MST_ERP_ID
+                ,MEM_MST_JIN_MDM
+                ,MEM_MST_SEX
+                ,MEM_MST_EVT_YN
+                ,MEM_MST_CUT_CD
+                ,MEM_MST_CUT_RSN
+                ,MEM_MST_CUT_MEMO
+                ,MEM_MST_CUT_DT
+                ,MEM_MST_CUT_ID
+                ,MEM_MST_BLK_YN
+                ,MEM_MST_BLK_CD
+                ,MEM_MST_BLK_ST
+                ,MEM_MST_BLK_ED
+                ,MEM_MST_BLK_RSN
+                ,MEM_MST_BLK_MEMO
+                ,MEM_MST_BLK_DT
+                ,MEM_MST_BLK_ID
+                ,MEM_MST_OUT_RSN
+                ,MEM_MST_OUT_MEMO
+                ,MEM_MST_OUT_DT
+                ,MEM_MST_OUT_ID
+                ,MEM_MST_TMP_PW_YN
+                ,MEM_MST_TMP_PW_DT
+                ,MEM_MST_DCT_YN
+                ,MEM_MST_ERP_YN 
+                ,MEM_MST_REG_DT
+                ,MEM_MST_REG_IP
+                ,MEM_MST_REG_ID
+                ,MEM_MST_UPD_DT
+                ,MEM_MST_UPD_IP
+                ,MEM_MST_UPD_ID
+                ,TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS')
+            FROM T_MEM_MST
+           WHERE SUBSTR(MEM_MST_VST_LAT,0,8)  = TO_CHAR(ADD_MONTHS(SYSDATE-1,-12),'YYYYMMDD')
+             AND MEM_MST_LEV_YN = 'N'
+
+        ]]>
+    </insert>
+    
+    <!-- 배치 > 휴면회원 정보 이관 후 마스터 삭제  -->
+    <delete id="deleteMasterMember" parameterType="HashMap">
+        /* BatchRestMember.deleteMasterMember */
+        <![CDATA[
+        DELETE FROM T_MEM_MST
+         WHERE SUBSTR(MEM_MST_VST_LAT,0,8)  = TO_CHAR(ADD_MONTHS(SYSDATE-1,-12),'YYYYMMDD')
+           AND MEM_MST_LEV_YN = 'N'
+
+        ]]>
+    </delete>    
+    
+    <!-- 배치 > 휴면회원 포인트 소멸  -->
+    <insert id="insertPoint" parameterType="HashMap">
+        /* BatchRestMember.insertPoint */
+        <![CDATA[
+        INSERT INTO
+            T_MEM_PIT
+            (
+                MEM_PIT_IDX,
+                MEM_PIT_MEM_ID,
+                MEM_PIT_GBN,               
+                MEM_PIT_BRK_DWN,
+                MEM_PIT_PLS,
+                MEM_PIT_MNS,
+                MEM_PIT_EXT,
+                MEM_PIT_TOT_PIT,
+                MEM_PIT_REG_DT,
+                MEM_PIT_REG_ID
+            ) SELECT
+                SEQ_MEM_PIT_IDX.NEXTVAL,
+                MEM_PIT_MEM_ID,
+                'D',
+                #{MEMBER_BREAK_DOWN},
+                0,
+                0,
+                MEM_PIT_TOT_PIT,
+                0,
+                TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+                #{BCH_MST_REQ_ID}
+               FROM ( SELECT ROW_NUMBER( ) OVER (PARTITION BY MEM_PIT_MEM_ID ORDER BY MEM_PIT_REG_DT DESC) RECENT_TOTAL,
+                             MEM_PIT_MEM_ID,
+                             MEM_PIT_TOT_PIT
+                        FROM T_MEM_PIT MP
+                       WHERE EXISTS ( SELECT 1
+                                        FROM T_MEM_MST
+                                       WHERE SUBSTR(MEM_MST_VST_LAT, 0, 8) = TO_CHAR(ADD_MONTHS(SYSDATE-1,-12),'YYYYMMDD')
+                                         AND MP.MEM_PIT_MEM_ID = MEM_MST_MEM_ID
+                                         AND MEM_MST_LEV_YN = 'N') ) T
+                      WHERE T.RECENT_TOTAL <= 1
+                        AND T.MEM_PIT_TOT_PIT > 0
+        ]]>
+    </insert>    
+    
+   <!-- 휴면회원 -->
+    <select id="selectRestMember" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+        /* BatchRestMember.selectRestMember */
+        SELECT MEM_MST_ERP_ID AS P8AN8,
+        CASE WHEN MEM_MST_MEM_GBN = 682 AND MEM_MST_JOI_RTE =1840 then '02'
+             WHEN MEM_MST_MEM_GBN = 682 AND MEM_MST_JOI_RTE =1830 then '12'
+             WHEN MEM_MST_MEM_GBN = 683 THEN '22'
+             WHEN MEM_MST_MEM_GBN = 1961 THEN '12'
+        END AS P8E1URCD4
+        FROM T_MEM_RST
+        WHERE MEM_MST_ERP_ID IS NOT NULL
+        AND SUBSTR(MEM_MST_RST_DT,1,8) = TO_CHAR(SYSDATE, 'YYYYMMDD')
+    </select>      
+</mapper>

@@ -1,0 +1,183 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="BatchMemberGradeYear">
+    
+    <!-- 개인회원(온라인 통합회원) 최근 1년 구매금액 -->
+    <select id="selectMemberGradeYear" parameterType="HashMap" resultType="HashMap">
+        /* BatchMemberGradeYear.selectMemberGradeYear */
+        SELECT
+            T6.*
+            ,( SELECT CMN_COM_NM FROM T_CMM_COM WHERE CMN_COM_UP_IDX = #{MEM_MST_MEM_GBN} AND CMN_COM_IDX = T6.UPDATE_CMN_COM_IDX) AS UPDATE_CMN_COM_NM
+        FROM (
+                SELECT 
+                    T5.*
+                    
+                    ,(
+                            SELECT
+                                CMN_COM_IDX
+                            FROM
+                                T_CMM_COM
+                            WHERE
+                                CMN_COM_UP_IDX = (SELECT MEM_MST_MEM_GBN FROM T_MEM_VIEW WHERE MEM_MST_MEM_ID = T5.ORD_MST_ORD_ID)
+                            AND
+                                CMN_COM_ETC1 = T5.TOT_AMOUNT_CHANGE_GRD_CODE
+                         ) AS UPDATE_CMN_COM_IDX  /* 변경될 회원의 등급  */ 
+                FROM (
+                            SELECT 
+                                T4.*
+                                ,(
+                                    CASE
+                                        WHEN T4.RE_ADD_TOT_AMOUNT = 0 THEN '5'
+                                        WHEN T4.RE_ADD_TOT_AMOUNT <![CDATA[>=]]> 1  AND T4.RE_ADD_TOT_AMOUNT <![CDATA[<]]> 1200000 THEN '4'
+                                        WHEN T4.RE_ADD_TOT_AMOUNT <![CDATA[>=]]> 1200000  AND T4.RE_ADD_TOT_AMOUNT <![CDATA[<]]> 2000000 THEN '3'             
+                                        WHEN T4.RE_ADD_TOT_AMOUNT <![CDATA[>=]]> 2000000  AND T4.RE_ADD_TOT_AMOUNT <![CDATA[<]]> 4000000 THEN '2'                          
+                                        WHEN T4.RE_ADD_TOT_AMOUNT <![CDATA[>=]]> 4000000 THEN '1'                                       
+                                    END
+                                ) AS TOT_AMOUNT_CHANGE_GRD_CODE                     /*  변경 될 회원등급  */
+                            FROM
+                                (               
+                                SELECT 
+                                    T3.*
+                                    ,(
+                                        CASE 
+                                            WHEN T3.MEM_MST_REG_YEAR_CNT <![CDATA[<]]> -1 THEN T3.TOT_AMOUNT 
+                                        ELSE
+                                            CASE
+                                                WHEN T3.MEM_MST_QUARTER = 1 THEN T3.TOT_AMOUNT
+                                                WHEN T3.MEM_MST_QUARTER = 2 THEN ROUND((T3.TOT_AMOUNT * 0.75),0)
+                                                WHEN T3.MEM_MST_QUARTER = 3 THEN ROUND((T3.TOT_AMOUNT * 0.5),0)
+                                                WHEN T3.MEM_MST_QUARTER = 4 THEN ROUND((T3.TOT_AMOUNT * 0.25),0)
+                                            END
+                                        END
+                                    )AS RE_ADD_TOT_AMOUNT
+                                FROM 
+                                (
+                                    SELECT 
+                                        T2.*
+                                        , TMM.MEM_MST_MAIL AS MEM_MST_MAIL /* 회원 이메일*/
+                                        , TMA.MEM_AGR_TRM_YN AS EMAILYN /* 이메일 수신여부*/                                               
+                                        , TMM.MEM_MST_MEM_NM /* 회원 이름*/
+                                        , 'http://www.etland.co.kr/pc/email/emailRejectReceive.do' || #{MASK} || 'mailAddr=' || MEM_MST_MAIL || <![CDATA['&mailMemId=']]> || MEM_MST_MEM_ID as REJECT_URL  /*수신거부 URL*/                    
+                                        , TO_CHAR(SYSDATE,'MM') AS NOW_MONTH /* 현재 월 */
+                                        , TO_CHAR(TO_DATE(NVL(MEM_AGR_UPD_DT,MEM_AGR_REG_DT),'YYYYMMDDHH24MISS'),'YYYY') || '년 ' ||
+                                            TO_CHAR(TO_DATE(NVL(MEM_AGR_UPD_DT,MEM_AGR_REG_DT),'YYYYMMDDHH24MISS'),'MM') || '월 ' ||
+                                            TO_CHAR(TO_DATE(NVL(MEM_AGR_UPD_DT,MEM_AGR_REG_DT),'YYYYMMDDHH24MISS'),'DD') || '일' AS MEM_AGR_REG_DT  /* 수신동의 일자*/ 
+                                        , TO_CHAR(TO_DATE(TO_DATE(TMM.MEM_MST_REG_DT,'YYYYMMDDHH24MISS'),'YYYY/MM/DD'),'q') AS MEM_MST_QUARTER /* 회원 가입 분기(1분기,2분기,3분기,4분기) */
+                                        , TRUNC(MONTHS_BETWEEN(TO_DATE(TO_CHAR(SYSDATE, 'YYYYMMDD')), TO_DATE(TO_CHAR(TO_DATE(TMM.MEM_MST_REG_DT,'YYYYMMDDHH24MISS'),'YYYYMMDD')))/12) AS MEM_MST_REG_YEAR_CNT /* 오늘날짜에서 가입년의 날짜 차이 */
+                                    FROM 
+                                        (
+                                        SELECT 
+                                            SUM(T1.ORD_MST_PAY_PRC) AS TOT_AMOUNT       /* 회원의 최근 1년 토탈금액*/
+                                            , T1.ORD_MST_ORD_ID                         /* 회원 아이디 */
+                                        FROM
+                                            (
+                                            
+                                            SELECT
+                                                     TOM.ORD_MST_CD                          /* 주문번호 */
+                                                    , TOM.ORD_MST_PAY_PRC                    /* 결제금액(합계) */
+                                                    , TOM.ORD_MST_ORD_ID                     /* 주문자 아이디 */
+                                                    , (
+                                                         SELECT  
+                                                            COUNT(ORD_PRD_IDX) FROM T_ORD_PRD
+                                                         WHERE 
+                                                            ORD_ORD_MST_CD = TOM.ORD_MST_CD
+                                                            AND ORD_PRD_ORD_STATE NOT IN   
+                                                            <foreach collection="IGNO_ORD_PRD_ORD_STATE" item="STATE" open="(" close=")" separator=",">
+                                                                #{STATE}           /* 교환완료, 교환대기중, 교환취소 */
+                                                            </foreach>            
+                                                      ) AS PRODUCT_CNT                      /* 주문당 상품 카운트 */
+                                                    ,(
+                                                        SELECT  
+                                                            COUNT(ORD_PRD_IDX) FROM T_ORD_PRD
+                                                        WHERE 
+                                                            ORD_ORD_MST_CD = TOM.ORD_MST_CD
+                                                            AND ORD_PRD_ORD_STATE = #{ORD_PRD_ORD_STATE}         
+                                                     ) AS FIX_PROCT_CNT                     /* 주문당 구매확정 카운트  */
+                                                    ,(
+                                                          SELECT MAX(ORD_PRD_REG_DT) KEEP(DENSE_RANK FIRST ORDER BY ORD_PRD_HIS_IDX DESC) FROM T_ORD_PRD_HIS HIS
+                                                          WHERE HIS.ORD_ORD_MST_CD = TOM.ORD_MST_CD 
+                                                          AND HIS.ORD_PRD_ORD_STATE = #{ORD_PRD_ORD_STATE}        
+                                                      ) AS FIX_DT                           /* 구매확정 날짜(주문당) */
+                                                    ,(
+                                                        SELECT
+                                                            MEM_MST_MEM_GBN 
+                                                        FROM
+                                                            T_MEM_VIEW
+                                                        WHERE
+                                                            MEM_MST_MEM_ID =  TOM.ORD_MST_ORD_ID                        
+                                                      ) AS MEM_MST_MEM_GBN                  /* 회원등급  */
+                                                
+                                                    
+                                            FROM T_ORD_MST TOM
+                                            WHERE EXISTS (
+                                                            SELECT DISTINCT OPT.ORD_ORD_MST_CD FROM T_ORD_PRD OPT
+                                                            WHERE OPT.ORD_ORD_MST_CD = TOM.ORD_MST_CD
+                                                            AND OPT.ORD_PRD_ORD_STATE = #{ORD_PRD_ORD_STATE} 
+                                                         )
+                                                        
+                                            )T1     
+                                            WHERE 1=1
+                                                AND T1.PRODUCT_CNT = T1.FIX_PROCT_CNT                                 /* 주문상품 카운트와 구매확정 카운트 동일하게.( 주문기준으로 ) */
+                                                AND T1.MEM_MST_MEM_GBN = #{MEM_MST_MEM_GBN}                            /* 개인회원 */
+                                                AND T1.FIX_DT <![CDATA[>]]> TO_CHAR(ADD_MONTHS(SYSDATE,-12),'YYYYMMDDHH24MISS')   /* 날짜 조건추가 오늘 날짜 기준으로 최근 1년을 한다. */   
+                                                GROUP BY T1.ORD_MST_ORD_ID                                            /* 아이디별 정렬 */
+                                        )T2, T_MEM_AGR TMA, T_MEM_MST TMM       
+                                    WHERE 1=1
+                                    AND ORD_MST_ORD_ID = TMA.MEM_AGR_MEM_ID
+                                    AND MEM_AGR_TRM_CD = '0004'
+                                    AND ORD_MST_ORD_ID = TMM.MEM_MST_MEM_ID 
+                                 )T3        
+                            )T4
+                    ) T5
+            ) T6        
+                    
+    </select>   
+    
+
+        
+    <!-- 개인회원 등급 변경처리 -->
+    <update id="updateMemberGradeYear" parameterType="HashMap">
+        /* BatchMemberGradeYear".updateMemberGradeYear */
+        <![CDATA[
+        
+        UPDATE T_MEM_MST
+            SET MEM_MST_MEM_GRD = #{UPDATE_CMN_COM_IDX}
+        WHERE MEM_MST_MEM_ID = #{ORD_MST_ORD_ID}
+            
+          ]]>
+    </update>
+    
+    <!-- 개인회원(온라인 통합회원) 최근 1년 구매이력 없는 회원 -->
+    <select id="selectMemberOrderCntYear" parameterType="HashMap" resultType="HashMap">
+        /* BatchMemberGradeYear.selectMemberOrderCntYear */
+        SELECT
+            S1.*
+            ,( SELECT CMN_COM_NM FROM T_CMM_COM WHERE CMN_COM_UP_IDX = #{MEM_MST_MEM_GBN} AND CMN_COM_IDX = 1833) AS UPDATE_CMN_COM_NM
+        FROM(
+            SELECT 
+                MEM_MST_MEM_ID
+                , ( SELECT COUNT(0) FROM T_ORD_MST OMT, T_ORD_PRD_HIS HIS 
+                    WHERE OMT.ORD_MST_CD = HIS.ORD_ORD_MST_CD  
+                    AND OMT.ORD_MST_ORD_ID = MMT.MEM_MST_MEM_ID 
+                    AND ORD_PRD_REG_DT > TO_CHAR(ADD_MONTHS(SYSDATE,-12),'YYYYMMDDHH24MISS') 
+                    AND HIS.ORD_PRD_ORD_STATE = '409' 
+                  ) AS ORD_MST_ORD_CNT
+                ,MMT.MEM_MST_MAIL AS MEM_MST_MAIL /* 회원 이메일*/
+                , TMA.MEM_AGR_TRM_YN AS EMAILYN /* 이메일 수신여부*/                                               
+                , MMT.MEM_MST_MEM_NM /* 회원 이름*/
+                , 'http://www.etland.co.kr/pc/email/emailRejectReceive.do' || #{MASK} || 'mailAddr=' || MEM_MST_MAIL || <![CDATA['&mailMemId=']]> || MEM_MST_MEM_ID as REJECT_URL  /*수신거부 URL*/                    
+                , TO_CHAR(SYSDATE,'MM') AS NOW_MONTH /* 현재 월 */
+                , TO_CHAR(TO_DATE(NVL(MEM_AGR_UPD_DT,MEM_AGR_REG_DT),'YYYYMMDDHH24MISS'),'YYYY') || '년 ' ||
+                        TO_CHAR(TO_DATE(NVL(MEM_AGR_UPD_DT,MEM_AGR_REG_DT),'YYYYMMDDHH24MISS'),'MM') || '월 ' ||
+                        TO_CHAR(TO_DATE(NVL(MEM_AGR_UPD_DT,MEM_AGR_REG_DT),'YYYYMMDDHH24MISS'),'DD') || '일' AS MEM_AGR_REG_DT  /* 수신동의 일자*/
+            FROM T_MEM_MST MMT, T_MEM_AGR TMA
+            WHERE TMA.MEM_AGR_MEM_ID = MMT.MEM_MST_MEM_ID
+            AND TMA.MEM_AGR_TRM_CD = '0004'
+        )S1
+        WHERE S1.ORD_MST_ORD_CNT = 0    
+                    
+    </select>   
+    
+    
+
+</mapper>

@@ -1,0 +1,590 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="pcKinger">
+    
+    
+    <select id="selectKingerIngInfo" parameterType="hashMap" resultType="hashMap">
+        /* pcKinger.selectKingerIngInfo */
+    
+        SELECT S2.* 
+          FROM(     
+                SELECT ROWNUM AS RNUM
+                     , S1.*
+                  FROM(   
+                        SELECT EXP.EXP_MST_CD
+                             , EXP.PRD_MST_CD
+                             <![CDATA[
+                             , CASE 
+                                WHEN PRD.PRD_MST_CPS_MDL IS NOT NULL THEN
+                                    CASE 
+                                        WHEN LOWER(PRD.PRD_MST_CPS_MDL) <> 'xxxx' THEN
+                                            CASE 
+                                                WHEN INSTR(PRD.PRD_MST_CPS_MDL,'.') > 0 THEN 
+                                                    SUBSTR(PRD.PRD_MST_CPS_MDL,0,INSTR(PRD.PRD_MST_CPS_MDL,'.')-1)
+                                            ELSE
+                                                PRD.PRD_MST_CPS_MDL
+                                            END
+                                        ELSE
+                                            NULL
+                                    END
+                                ELSE NULL
+                            END
+                            ]]> AS PRD_ERP_CD
+                             , EXP.EXP_MST_NM
+                             , EXP.EXP_MST_SUB_NM
+                             , EXP.EXP_MST_RCT_ST_DT
+                             , EXP.EXP_MST_RCT_ED_DT
+                             , (SELECT COUNT(*) FROM T_EXP_ETR WHERE EXP_MST_CD = EXP.EXP_MST_CD) AS EXP_MST_ETR_CNT
+                             , EXP.EXP_MST_WIN_CNT
+                             , EXP.EXP_MST_REG_DT
+                             , EXP.EXP_MST_USE_YN
+                             , (SELECT PRD_IMG_ATT_PATH || PRD_IMG_SYS_NM FROM T_PRD_IMG WHERE PRD_PRD_MST_CD = PRD.PRD_MST_CD AND ROWNUM = 1) AS PRD_IMG_URL_PATH
+                             , (SELECT PRD_IMG_ALT_TEXT FROM T_PRD_IMG WHERE PRD_PRD_MST_CD = PRD.PRD_MST_CD AND ROWNUM = 1) AS PRD_IMG_ALT_TEXT
+                             , CEIL(TO_DATE(EXP.EXP_MST_RCT_ED_DT, 'yyyymmdd') - SYSDATE) AS DDAY
+                             , (SELECT COUNT(*) FROM T_EXP_WIN WHERE EXP_MST_CD = EXP.EXP_MST_CD ) AS WINCNT
+                             , (SELECT BND_MST_BRAND_NM FROM T_BND_MST WHERE BND_MST_IDX = PRD.PRD_MST_BRD_IDX ) AS PRD_MST_BRAND_NM
+                             , EXP.EXP_KINGER_CD
+                          FROM T_EXP_MST EXP
+                             , T_PRD_MST PRD
+                         WHERE PRD.PRD_MST_CD = EXP.PRD_MST_CD
+                           AND EXP.EXP_MST_USE_YN = 'Y'
+                         ORDER BY EXP.EXP_MST_REG_DT DESC 
+                        ) S1 
+                ) S2 
+         WHERE S2.RNUM = 1
+    </select>
+
+    <select id="selectKingerList" parameterType="hashMap" resultType="hashMap">
+        /* pcKinger.selectKingerList */
+        
+        SELECT S2.* 
+          FROM(     
+                SELECT ROWNUM AS RNUM
+                     , S1.* 
+                  FROM(   
+                        SELECT EXP.EXP_MST_CD
+                             , EXP.PRD_MST_CD
+                             <![CDATA[
+                             , CASE 
+                                WHEN PRD.PRD_MST_CPS_MDL IS NOT NULL THEN
+                                    CASE 
+                                        WHEN LOWER(PRD.PRD_MST_CPS_MDL) <> 'xxxx' THEN
+                                            CASE 
+                                                WHEN INSTR(PRD.PRD_MST_CPS_MDL,'.') > 0 THEN 
+                                                    SUBSTR(PRD.PRD_MST_CPS_MDL,0,INSTR(PRD.PRD_MST_CPS_MDL,'.')-1)
+                                            ELSE
+                                                PRD.PRD_MST_CPS_MDL
+                                            END
+                                        ELSE
+                                            NULL
+                                    END
+                                ELSE NULL
+                            END
+                            ]]> AS PRD_ERP_CD
+                             , EXP.EXP_MST_NM
+                             , EXP.EXP_MST_SUB_NM
+                             , EXP.EXP_MST_RCT_ST_DT
+                             , EXP.EXP_MST_RCT_ED_DT
+                             , (SELECT COUNT(*) FROM T_EXP_ETR WHERE EXP_MST_CD = EXP.EXP_MST_CD) AS EXP_MST_ETR_CNT
+                             , EXP.EXP_MST_WIN_CNT
+                             , EXP.EXP_MST_REG_DT
+                             , EXP.EXP_MST_USE_YN
+                             , (SELECT PRD_IMG_ATT_PATH || PRD_IMG_SYS_NM FROM T_PRD_IMG WHERE PRD_PRD_MST_CD = PRD.PRD_MST_CD AND ROWNUM = 1) AS PRD_IMG_URL_PATH
+                             , (SELECT PRD_IMG_ALT_TEXT FROM T_PRD_IMG WHERE PRD_PRD_MST_CD = PRD.PRD_MST_CD AND ROWNUM = 1) AS PRD_IMG_ALT_TEXT
+                             , (SELECT COUNT(*) FROM T_EXP_REV WHERE EXP_MST_CD = EXP.EXP_MST_CD) AS T_EXP_REV_CNT
+                             , (SELECT COUNT(*) FROM T_EXP_REV WHERE EXP_MST_CD = EXP.EXP_MST_CD AND EXP_REV_BST_YN = 'Y') AS T_EXP_REV_BEST_CNT
+                             , (SELECT BND_MST_BRAND_NM FROM T_BND_MST WHERE BND_MST_IDX = PRD.PRD_MST_BRD_IDX ) AS PRD_MST_BRAND_NM
+                             , CEIL(TO_DATE(EXP.EXP_MST_RCT_ED_DT, 'yyyymmdd') - SYSDATE) AS DDAY
+                             , EXP.EXP_KINGER_CD
+                          FROM T_EXP_MST EXP
+                             , T_PRD_MST PRD
+                         WHERE PRD.PRD_MST_CD = EXP.PRD_MST_CD
+                           AND EXP.EXP_MST_USE_YN = 'Y'
+                           AND EXP_MST_CD <![CDATA[<>]]>#{NOT_EXP_MST_CD}
+                         ORDER BY EXP.EXP_MST_REG_DT DESC 
+                        ) S1 
+                ) S2 
+         WHERE S2.RNUM BETWEEN #{startNum} AND #{endNum}
+    </select>
+    
+    <select id="selectKingerListCount" parameterType="hashMap" resultType="Integer">
+    
+        /* pcKinger.selectKingerListCount */
+        
+        SELECT COUNT(MST.EXP_MST_CD)
+          FROM T_EXP_MST MST
+             , T_PRD_MST PRD
+         WHERE PRD.PRD_MST_CD = MST.PRD_MST_CD
+           AND EXP_MST_CD <![CDATA[<>]]>#{NOT_EXP_MST_CD} 
+           AND EXP_MST_USE_YN = 'Y'
+    </select>
+    
+    <select id="selectKingerView" parameterType="hashMap" resultType="hashMap">
+        /* pcKinger.selectKingerView */
+        
+        SELECT EXP.EXP_MST_CD
+             , EXP.PRD_MST_CD
+             <![CDATA[
+             , CASE 
+                WHEN PRD.PRD_MST_CPS_MDL IS NOT NULL THEN
+                    CASE 
+                        WHEN LOWER(PRD.PRD_MST_CPS_MDL) <> 'xxxx' THEN
+                            CASE 
+                                WHEN INSTR(PRD.PRD_MST_CPS_MDL,'.') > 0 THEN 
+                                    SUBSTR(PRD.PRD_MST_CPS_MDL,0,INSTR(PRD.PRD_MST_CPS_MDL,'.')-1)
+                            ELSE
+                                PRD.PRD_MST_CPS_MDL
+                            END
+                        ELSE
+                            NULL
+                    END
+                ELSE NULL
+            END
+            ]]> AS PRD_ERP_CD
+             , EXP.EXP_MST_NM
+             , EXP.EXP_MST_SUB_NM
+             , EXP.EXP_MST_RCT_ST_DT
+             , EXP.EXP_MST_RCT_ED_DT
+             , (SELECT COUNT(*) FROM T_EXP_ETR WHERE EXP_MST_CD = EXP.EXP_MST_CD) AS EXP_MST_ETR_CNT
+             , EXP.EXP_MST_WIN_CNT
+             , EXP.EXP_MST_REG_DT
+             , EXP.EXP_MST_USE_YN
+             , NVL((SELECT PRD_IMG_ATT_PATH || PRD_IMG_SYS_NM FROM T_PRD_IMG WHERE PRD_PRD_MST_CD = PRD.PRD_MST_CD AND ROWNUM = 1 ), '') AS PRD_IMG_URL_PATH
+             , NVL((SELECT PRD_IMG_ALT_TEXT FROM T_PRD_IMG WHERE PRD_PRD_MST_CD = PRD.PRD_MST_CD AND ROWNUM = 1 ), '') AS PRD_IMG_ALT_TEXT
+             , (SELECT COUNT(*) FROM T_EXP_REV WHERE EXP_MST_CD = EXP.EXP_MST_CD) AS T_EXP_REV_CNT
+             , (SELECT COUNT(*) FROM T_EXP_REV WHERE EXP_MST_CD = EXP.EXP_MST_CD AND EXP_REV_BST_YN = 'Y') AS T_EXP_REV_BEST_CNT
+             , PRD.PRD_MST_NM
+             , CEIL(TO_DATE(EXP.EXP_MST_RCT_ED_DT, 'yyyymmdd') - SYSDATE) AS DDAY
+             , EXP.EXP_MST_WIN_DT
+             , EXP.EXP_MST_ATV_ST_DT
+             , EXP.EXP_MST_ATV_ED_DT
+             , EXP.EXP_MST_BNF
+             , (SELECT COUNT(*) FROM T_EXP_WIN WHERE EXP_MST_CD = EXP.EXP_MST_CD ) AS WINCNT
+             , CEIL(TO_DATE(EXP.EXP_MST_ATV_ED_DT, 'yyyymmdd') - SYSDATE) AS ATVDAY
+             , (SELECT CMM_FLE_ATT_PATH || CMM_FLE_SYS_NM FROM T_CMM_FLE WHERE CMM_FLE_TB_NM = 'T_EXP_MST' AND CMM_FLE_USE_YN = 'Y' AND CMM_FLE_TB_TYPE = 'P' AND CMM_FLE_TB_PK = EXP.EXP_MST_CD AND ROWNUM = 1) AS CMM_FLE_SAVE_PATH
+             , EXP.EXP_KINGER_CD
+          FROM T_EXP_MST EXP
+             , T_PRD_MST PRD
+         WHERE PRD.PRD_MST_CD       = EXP.PRD_MST_CD
+           AND EXP_MST_CD           = #{EXP_MST_CD} 
+           AND EXP.EXP_MST_USE_YN   = 'Y'
+    </select>
+    
+    <select id="selectKingerReqCheck" parameterType="hashMap" resultType="Integer">
+        /* pcKinger.selectKingerReqCheck */
+        
+        SELECT COUNT(*)
+          FROM T_EXP_ETR
+         WHERE EXP_MST_CD       = #{EXP_MST_CD}
+           AND MEM_MST_MEM_ID   = #{MEM_MST_MEM_ID} 
+    </select>
+    
+    <insert id="insertKigerReq" parameterType="HashMap">
+        <selectKey keyProperty="EXP_ETR_IDX" resultType="Integer" order="BEFORE">
+            SELECT SEQ_EXP_ETR_IDX.NEXTVAL AS EXP_ETR_IDX FROM DUAL
+        </selectKey>
+        
+        /* pcKinger.insertKigerReq */
+        
+        INSERT 
+          INTO T_EXP_ETR (    EXP_ETR_IDX
+                            , EXP_MST_CD
+                            , MEM_MST_MEM_ID 
+                            , EXP_ETR_SNS_URL
+                            , EXP_ETR_BLG_URL
+                            , EXP_ETR_CMT
+                            , EXP_ETR_REG_DT
+                            , EXP_ETR_REG_IP
+                            , EXP_ETR_REG_ID
+                        )
+        VALUES          (     #{EXP_ETR_IDX}
+                            , #{EXP_MST_CD}
+                            , #{MEM_MST_MEM_ID}
+                            , #{EXP_ETR_SNS_URL}
+                            , #{EXP_ETR_BLG_URL}
+                            , #{EXP_ETR_CMT}
+                            , TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS')
+                            , #{EXP_ETR_REG_IP}
+                            , #{MEM_MST_MEM_ID}
+                        )                           
+    </insert>
+    
+    <select id="selectKingerReqCount" parameterType="hashMap" resultType="Integer">
+        /* pcKinger.selectKingerReqCount */
+        
+        SELECT COUNT(EXP_ETR_IDX)
+          FROM T_EXP_ETR
+         WHERE EXP_MST_CD = #{EXP_MST_CD}
+         <if test="MYASK != null and MYASK.equals('Y'.toString())">
+            AND EXP_ETR_REG_ID  = #{MEM_MST_MEM_ID}
+         </if>
+    </select>
+    
+    <select id="selectKingerReqList" parameterType="hashMap" resultType="hashMap">
+        /* pcKinger.selectKingerReqList */
+        
+        SELECT S2.* 
+             , $totalCount$ - S2.RNUM AS NO 
+          FROM(     
+                SELECT ROWNUM AS RNUM
+                     , S1.* 
+                  FROM( 
+                        SELECT ETR.EXP_ETR_IDX
+                             , ETR.EXP_MST_CD
+                             , ETR.MEM_MST_MEM_ID 
+                             , ETR.EXP_ETR_SNS_URL
+                             , ETR.EXP_ETR_BLG_URL
+                             , ETR.EXP_ETR_CMT
+                             , ETR.EXP_ETR_REG_DT
+                             , ETR.EXP_ETR_REG_IP
+                             , ETR.EXP_ETR_REG_ID
+                             , (SELECT MEM_MST_MEM_NM FROM T_MEM_MST WHERE MEM_MST_MEM_ID = ETR.MEM_MST_MEM_ID) AS MEM_MST_MEM_NM
+                             , SUBSTR(ETR.MEM_MST_MEM_ID,1,LENGTH(ETR.MEM_MST_MEM_ID)-3)|| LPAD('*',3,'*') AS HID_MEM_MST_MEM_ID
+                             , TO_CHAR(TO_DATE(ETR.EXP_ETR_REG_DT, 'YYYYMMDDHH24MISS'), 'YYYY.MM.DD') AS EXP_ETR_REG_DT_PAT
+                          FROM T_EXP_ETR ETR
+                         WHERE EXP_MST_CD = #{EXP_MST_CD}
+                         <if test="MYASK != null and MYASK.equals('Y'.toString())">
+                            AND EXP_ETR_REG_ID  = #{MEM_MST_MEM_ID}
+                         </if>
+                         ORDER BY EXP_ETR_IDX DESC 
+                        ) S1 
+                ) S2 
+         WHERE S2.RNUM BETWEEN #{startNum} AND #{endNum}
+    </select>
+    
+    <select id="selectKingerReviewCount" parameterType="hashMap" resultType="Integer">
+        /* pcKinger.selectKingerReviewCount */
+        
+        SELECT COUNT(EXP_REV_IDX)
+          FROM T_EXP_REV
+         WHERE EXP_MST_CD = #{EXP_MST_CD}
+         <if test="MYASK != null and MYASK.equals('Y'.toString())">
+            AND EXP_REV_REG_ID = #{MEM_MST_MEM_ID}
+         </if>
+    </select>
+    
+    <select id="selectKingerReviewList" parameterType="hashMap" resultType="hashMap">
+        /* pcKinger.selectKingerReviewList */
+        
+        SELECT S2.* 
+             , ${totalCount} - S2.RNUM AS NO 
+          FROM(     
+                SELECT ROWNUM AS RNUM
+                     , S1.* 
+                  FROM( 
+                        SELECT REV.EXP_REV_IDX
+                             , REV.EXP_MST_CD
+                             , REV.MEM_MST_MEM_ID
+                             , REV.EXP_REV_NM
+                             , NVL(REV.EXP_REV_SUB_NM, ' ') EXP_REV_SUB_NM
+                             , REV.EXP_REV_URL
+                             , REV.EXP_REV_CTS
+                             , REV.EXP_REV_USE_YN
+                             , REV.EXP_REV_REG_DT
+                             , SUBSTR(REV.MEM_MST_MEM_ID,1,LENGTH(REV.MEM_MST_MEM_ID)-3)|| LPAD('*',3,'*') AS HID_MEM_MST_MEM_ID
+                             , (SELECT CMM_FLE_ATT_PATH || CMM_FLE_SYS_NM FROM T_CMM_FLE WHERE CMM_FLE_TB_NM = 'T_EXP_REV' AND CMM_FLE_TB_PK = REV.EXP_REV_IDX AND CMM_FLE_USE_YN = 'Y' ) AS CMM_FLE_SAVE_PATH
+                             , TO_CHAR(TO_DATE(REV.EXP_REV_REG_DT, 'YYYYMMDDHH24MISS'), 'YYYY.MM.DD') AS EXP_REV_REG_DT_PAT
+                             , REV.EXP_REV_BST_YN
+                          FROM T_EXP_REV REV
+                         WHERE EXP_MST_CD = #{EXP_MST_CD}
+                        <if test="MYASK != null and MYASK.equals('Y'.toString())">
+                             AND EXP_REV_REG_ID = #{MEM_MST_MEM_ID}  
+                        </if>
+                         ORDER BY REV.EXP_REV_IDX DESC
+                        ) S1 
+                ) S2 
+         WHERE S2.RNUM BETWEEN #startNum# AND #endNum#             
+    </select>
+    
+    <delete id="deleteKigerReq" parameterType="hashMap">
+        /* pcKinger.deleteKigerReq */
+        
+        DELETE 
+          FROM T_EXP_ETR
+         WHERE EXP_MST_CD       = #{EXP_MST_CD}
+           AND EXP_ETR_IDX      = #{EXP_ETR_IDX}
+           AND MEM_MST_MEM_ID   = #{MEM_MST_MEM_ID}         
+    </delete>
+    
+    <select id="selectKingerRevView" parameterType="hashMap" resultType="hashMap">
+        /* pcKinger.selectKingerRevView */
+    <![CDATA[
+    
+        SELECT S1.*
+          FROM  (        
+                SELECT REV.EXP_REV_IDX
+                     , REV.EXP_MST_CD
+                     , REV.MEM_MST_MEM_ID
+                     , REV.EXP_REV_NM
+                     , REV.EXP_REV_SUB_NM
+                     , REV.EXP_REV_URL
+                     , REV.EXP_REV_CTS
+                     , REV.EXP_REV_USE_YN
+                     , REV.EXP_REV_REG_DT
+                     , SUBSTR(REV.MEM_MST_MEM_ID,1,LENGTH(REV.MEM_MST_MEM_ID)-3)|| LPAD('*',3,'*') AS HID_MEM_MST_MEM_ID
+                     , (SELECT CMM_FLE_ATT_PATH || CMM_FLE_SYS_NM FROM T_CMM_FLE WHERE CMM_FLE_TB_NM = 'T_EXP_REV' AND CMM_FLE_TB_PK = REV.EXP_REV_IDX AND CMM_FLE_USE_YN = 'Y' AND ROWNUM = 1) AS CMM_FLE_SAVE_PATH
+                     , (SELECT MAX(EXP_REV_IDX) FROM T_EXP_REV WHERE EXP_MST_CD = REV.EXP_MST_CD AND EXP_REV_IDX < REV.EXP_REV_IDX) AS PREV_EXP_REV_IDX
+                     , (SELECT MIN(EXP_REV_IDX) FROM T_EXP_REV WHERE EXP_MST_CD = REV.EXP_MST_CD AND EXP_REV_IDX > REV.EXP_REV_IDX) AS NEXT_EXP_REV_IDX
+                     , MST.PRD_MST_CD
+                     , MST.EXP_MST_NM
+                     , PRD.PRD_MST_NM
+                     , (SELECT CMM_FLE_ORG_NM FROM T_CMM_FLE WHERE CMM_FLE_TB_NM = 'T_EXP_REV' AND CMM_FLE_TB_PK = REV.EXP_REV_IDX AND CMM_FLE_USE_YN = 'Y' AND ROWNUM = 1) AS CMM_FLE_ORG_NM
+                     , (SELECT CMM_FLE_IDX FROM T_CMM_FLE WHERE CMM_FLE_TB_NM = 'T_EXP_REV' AND CMM_FLE_TB_PK = REV.EXP_REV_IDX AND CMM_FLE_USE_YN = 'Y' AND ROWNUM = 1) AS CMM_FLE_IDX
+                     , CASE 
+                        WHEN PRD.PRD_MST_CPS_MDL IS NOT NULL THEN
+                            CASE 
+                                WHEN LOWER(PRD.PRD_MST_CPS_MDL) <> 'xxxx' THEN
+                                    CASE 
+                                        WHEN INSTR(PRD.PRD_MST_CPS_MDL,'.') > 0 THEN 
+                                            SUBSTR(PRD.PRD_MST_CPS_MDL,0,INSTR(PRD.PRD_MST_CPS_MDL,'.')-1)
+                                    ELSE
+                                        PRD.PRD_MST_CPS_MDL
+                                    END
+                                ELSE
+                                    NULL
+                            END
+                        ELSE NULL
+                    END AS PRD_ERP_CD
+                    , MST.EXP_KINGER_CD
+                  FROM T_EXP_REV REV
+                     , T_EXP_MST MST
+                     , T_PRD_MST PRD
+                 WHERE REV.EXP_MST_CD   = MST.EXP_MST_CD
+                   AND PRD.PRD_MST_CD   = MST.PRD_MST_CD
+                   AND REV.EXP_REV_IDX  = #{EXP_REV_IDX}
+                   AND MST.EXP_MST_USE_YN = 'Y'
+                 ]]>
+                 <if test="edit != null and edit.equals('Y'.toString())">
+                    AND REV.MEM_MST_MEM_ID = #{MEM_MST_MEM_ID}
+                 </if>          
+            ) S1                 
+    </select>
+    
+    <select id="selectKingerWinListCount" parameterType="hashMap" resultType="Integer">
+        
+        /* pcKinger.selectKingerWinListCount */
+        
+        SELECT COUNT(WIN.EXP_MST_CD)
+          FROM T_EXP_WIN WIN
+             , T_EXP_MST MST
+         WHERE WIN.EXP_MST_CD = MST.EXP_MST_CD
+           AND MST.EXP_MST_USE_YN = 'Y'
+    </select>
+    
+    <select id="selectKingerWinList" parameterType="hashMap" resultType="hashMap">
+        /* pcKinger.selectKingerWinList */
+        
+         SELECT S2.* 
+           FROM(    
+                SELECT ROWNUM AS RNUM
+                     , S1.* 
+                  FROM( 
+                        SELECT WIN.EXP_MST_CD
+                             , WIN.EXP_WIN_NM
+                             , WIN.EXP_WIN_MAN_CPY
+                             , WIN.EXP_WIN_SUB_CPY
+                             , WIN.EXP_WIN_ATN
+                             , WIN.EXP_WIN_REG_DT
+                             , NVL(WIN.EXP_WIN_CNT, 0) EXP_WIN_CNT
+                             , CASE 
+                                WHEN 
+                                    TO_DATE(WIN.EXP_WIN_REG_DT, 'yyyymmddhh24miss') + 7 >= SYSDATE THEN 'Y'
+                                ELSE
+                                    'N'
+                               END AS NEWMARK
+                             , MST.EXP_KINGER_CD
+                          FROM T_EXP_WIN WIN
+                             , T_EXP_MST MST
+                         WHERE WIN.EXP_MST_CD = MST.EXP_MST_CD
+                           AND MST.EXP_MST_USE_YN = 'Y'
+                         ORDER BY WIN.EXP_MST_CD DESC
+                    ) S1
+                ) S2 
+          WHERE S2.RNUM BETWEEN #{startNum} AND #{endNum}          
+    </select>
+    
+    <select id="selectKingerWinView" parameterType="hashMap" resultType="hashMap">
+        /* pcKinger.selectKingerWinView */
+    
+        SELECT WIN.EXP_MST_CD
+             , WIN.EXP_WIN_NM
+             , WIN.EXP_WIN_MAN_CPY
+             , WIN.EXP_WIN_SUB_CPY
+             , WIN.EXP_WIN_ATN
+             , WIN.EXP_WIN_REG_DT
+             , WIN.EXP_WIN_CNT
+             , (SELECT PRD_IMG_ATT_PATH || PRD_IMG_SYS_NM FROM T_PRD_IMG WHERE PRD_PRD_MST_CD = MST.PRD_MST_CD AND PRD_IMG_IDX = 0 AND PRD_IMG_SORT = 0) AS PRD_IMG_URL_PATH
+             , MST.EXP_KINGER_CD    
+          FROM T_EXP_WIN WIN
+             , T_EXP_MST MST
+         WHERE WIN.EXP_MST_CD = MST.EXP_MST_CD
+           AND MST.EXP_MST_USE_YN = 'Y'
+           AND WIN.EXP_MST_CD = #{EXP_MST_CD}
+    </select>
+    
+    <select id="selectKingerWinerList" parameterType="hashMap" resultType="hashMap">
+        /* pcKinger.selectKingerWinerList */
+        
+        SELECT ETR.EXP_ETR_IDX
+             , ETR.EXP_MST_CD
+             , ETR.MEM_MST_MEM_ID 
+             , ETR.EXP_ETR_SNS_URL
+             , ETR.EXP_ETR_BLG_URL
+             , ETR.EXP_ETR_CMT
+             , ETR.EXP_ETR_REG_DT
+             , ETR.EXP_ETR_REG_IP
+             , ETR.EXP_ETR_REG_ID
+             , SUBSTR(ETR.MEM_MST_MEM_ID,1,LENGTH(ETR.MEM_MST_MEM_ID)-3)|| LPAD('*',3,'*') AS HID_MEM_MST_MEM_ID
+             , SUBSTR(MEM.MEM_MST_MEM_NM,1,LENGTH(MEM.MEM_MST_MEM_NM)-1)|| LPAD('*',1,'*') AS HID_MEM_MST_MEM_NM
+          FROM T_EXP_ETR ETR
+             , T_MEM_MST MEM
+         WHERE ETR.MEM_MST_MEM_ID = MEM.MEM_MST_MEM_ID
+           AND EXP_MST_CD = #{EXP_MST_CD}
+           AND EXP_ETR_WIN_YN = 'Y'
+    </select>
+    
+    <select id="selectKingerWinerSearchList" parameterType="hashMap" resultType="hashMap">
+        /* pcKinger.selectKingerWinerSearchList */
+        
+        SELECT ETR.EXP_ETR_IDX
+             , ETR.EXP_MST_CD
+             , ETR.MEM_MST_MEM_ID 
+             , ETR.EXP_ETR_SNS_URL
+             , ETR.EXP_ETR_BLG_URL
+             , ETR.EXP_ETR_CMT
+             , ETR.EXP_ETR_REG_DT
+             , ETR.EXP_ETR_REG_IP
+             , ETR.EXP_ETR_REG_ID
+          FROM T_EXP_ETR ETR
+         WHERE EXP_MST_CD = #{EXP_MST_CD}
+           AND EXP_ETR_WIN_YN = 'Y'
+           AND ETR.MEM_MST_MEM_ID   = #{SEARCHKEY} 
+    </select>
+    
+    <select id="selectKingerMissionInfo" parameterType="hashMap" resultType="hashMap">
+        /* pcKinger.selectKingerMissionInfo */
+        
+        SELECT ETR.EXP_ETR_IDX
+             , ETR.EXP_MST_CD
+             , ETR.MEM_MST_MEM_ID 
+             , ETR.EXP_ETR_SNS_URL
+             , ETR.EXP_ETR_BLG_URL
+             , ETR.EXP_ETR_CMT
+             , ETR.EXP_ETR_REG_DT
+             , ETR.EXP_ETR_REG_IP
+             , ETR.EXP_ETR_REG_ID
+             , ETR.EXP_ETR_WIN_YN
+             , ETR.EXP_ETR_AGR_YN
+             , (SELECT EXP_MST_NM FROM T_EXP_MST WHERE EXP_MST_CD = ETR.EXP_MST_CD) AS EXP_MST_NM
+          FROM T_EXP_ETR ETR
+         WHERE EXP_MST_CD       = #{EXP_MST_CD}
+           AND MEM_MST_MEM_ID   = #{MEM_MST_MEM_ID}
+           <if test="EXP_ETR_WIN_YN != null and EXP_ETR_WIN_YN != ''">
+            AND EXP_ETR_WIN_YN   = #{EXP_ETR_WIN_YN}
+           </if>
+    </select>
+    
+    <select id="selectKingerMissionInfoCnt" parameterType="hashMap" resultType="Integer">
+        /* pcKinger.selectKingerMissionInfoCnt */
+        
+        SELECT COUNT(EXP_MST_CD)
+          FROM T_EXP_WIN
+         WHERE EXP_MST_CD       = #{EXP_MST_CD}        
+    </select>
+    
+    <update id="updateKingerConsntSend" parameterType="hashMap">
+        /* pcKinger.updateKingerConsntSend */
+        
+        UPDATE T_EXP_ETR
+           SET EXP_ETR_AGR_YN = 'Y'
+         WHERE EXP_ETR_WIN_YN = 'Y'
+           AND EXP_MST_CD = #{EXP_MST_CD}    
+           AND MEM_MST_MEM_ID   = #{MEM_MST_MEM_ID}     
+    </update>
+    
+    <insert id="insertKingerReview" parameterType="hashMap">
+        <selectKey keyProperty="EXP_REV_IDX" resultType="Integer" order="BEFORE">
+            SELECT SEQ_EXP_REV_IDX.NEXTVAL AS EXP_REV_IDX FROM DUAL
+        </selectKey>
+        /* pcKinger.insertKingerReview */
+        
+        INSERT
+          INTO T_EXP_REV    (     EXP_REV_IDX
+                                , EXP_MST_CD
+                                , MEM_MST_MEM_ID
+                                , EXP_REV_NM
+                                , EXP_REV_SUB_NM
+                                , EXP_REV_URL
+                                , EXP_REV_CTS
+                                , EXP_REV_USE_YN
+                                , EXP_REV_BST_YN
+                                , EXP_REV_REG_DT
+                                , EXP_REV_REG_IP
+                                , EXP_REV_REG_ID
+                            )
+        VALUES              (
+                                  #{EXP_REV_IDX}
+                                , #{EXP_MST_CD}
+                                , #{MEM_MST_MEM_ID}
+                                , #{EXP_REV_NM}
+                                , #{EXP_REV_SUB_NM}
+                                , #{EXP_REV_URL}
+                                , #{EXP_REV_CTS}
+                                , 'N'
+                                , 'N'
+                                , TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS')
+                                , #{MEM_MST_REG_IP}
+                                , #{MEM_MST_MEM_ID}
+                            )                                                           
+    </insert>
+    
+    <delete id="deleteKigerReview" parameterType="hashMap">
+        /* pcKinger.deleteKigerReview*/
+        
+        DELETE 
+          FROM T_EXP_REV
+         WHERE EXP_MST_CD       = #{EXP_MST_CD}
+           AND EXP_REV_IDX      = #{EXP_REV_IDX}
+           AND MEM_MST_MEM_ID   = #{MEM_MST_MEM_ID}         
+    </delete>
+    
+    <select id="selectKingerMyReqCnt" parameterType="hashMap" resultType="Integer">
+        /* pcKinger.selectKingerMyReqCnt */
+        
+        SELECT COUNT(EXP_REV_IDX) AS CNT
+          FROM T_EXP_REV
+         WHERE EXP_MST_CD       = #{EXP_MST_CD}
+           AND MEM_MST_MEM_ID   = #{MEM_MST_MEM_ID}              
+    </select>
+    
+    <select id="selectKingerMyRevCnt" parameterType="hashMap" resultType="Integer">
+        /* pcKinger.selectKingerMyRevCnt */
+        
+        SELECT COUNT(EXP_ETR_IDX) AS CNT
+          FROM T_EXP_ETR
+         WHERE EXP_MST_CD       = #{EXP_MST_CD}
+           AND MEM_MST_MEM_ID   = #{MEM_MST_MEM_ID}            
+    </select>
+    
+    <update id="updateKingerWinVist" parameterType="hashMap">
+        /* pcKinger.updateKingerWinVist */
+        
+        UPDATE T_EXP_WIN
+           SET EXP_WIN_CNT  = NVL(EXP_WIN_CNT, 0) + 1
+         WHERE EXP_MST_CD   = #{EXP_MST_CD}
+    </update>
+    
+    <update id="updateKingerReview" parameterType="hashMap">
+        /* pcKinger.updateKingerReview */
+        
+        UPDATE T_EXP_REV
+           SET EXP_REV_NM       = #{EXP_REV_NM}
+             , EXP_REV_SUB_NM   = #{EXP_REV_SUB_NM}
+             , EXP_REV_URL      = #{EXP_REV_URL}
+             , EXP_REV_CTS      = #{EXP_REV_CTS} 
+         WHERE EXP_REV_IDX      = #{EXP_REV_IDX}
+           AND EXP_MST_CD       = #{EXP_MST_CD}
+           AND MEM_MST_MEM_ID   = #{MEM_MST_MEM_ID}  
+    </update>
+</mapper>

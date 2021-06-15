@@ -1,0 +1,399 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="ProductInquiry">
+
+    <!-- 관리자 > 고객센터 > 상품 문의 조건절 -->
+    <sql id="productInquiryWhere">
+        <if test="searchStartDate != null and searchStartDate != '' and searchEndDate != null and searchEndDate != ''">
+            AND TBI.BRD_INQ_REG_DT BETWEEN REPLACE(#{searchStartDate},'-', '')||'000000' AND REPLACE(#{searchEndDate},'-', '')||'235959'
+        </if>
+        
+        <if test="searchRegNm != null and searchRegNm != ''">
+            AND TBI.BRD_INQ_REG_NM LIKE '%' || #{searchRegNm} || '%'
+        </if>
+
+        <if test="searchRegId != null and searchRegId !=''">
+            AND TBI.BRD_INQ_REG_ID LIKE '%' || #{searchRegId}|| '%'
+        </if>
+                
+        <if test="searchKeyword != null and searchKeyword !=''">
+            AND
+                ((TBI.BRD_INQ_TITLE LIKE '%' || #{searchKeyword} || '%') OR (TBI.BRD_INQ_CONTENTS LIKE '%' || #{searchKeyword} || '%'))
+        </if>
+
+        <if test="searchBrdInqReplyCd != null and searchBrdInqReplyCd != ''">
+            AND TBI.BRD_INQ_REPLY_CD = #{searchBrdInqReplyCd}
+        </if>
+        
+        <if test="searchBrdInqUseYn != null and searchBrdInqUseYn != ''">
+            AND TBI.BRD_INQ_USE_YN = #{searchBrdInqUseYn}
+        </if>
+        
+        <if test="searchVdrMstIdx != null and searchVdrMstIdx !=''">
+        	AND TBI.VDR_MST_IDX = #{searchVdrMstIdx}
+        </if>
+        
+        <if test="MEM_MST_MEM_ID != null and MEM_MST_MEM_ID != ''">
+            AND TBI.BRD_INQ_REG_ID = #{MEM_MST_MEM_ID}
+        </if>
+        
+        <if test="searchPrdMstCd != null and searchPrdMstCd != ''">
+            AND TPM.PRD_MST_CD LIKE '%'|| #{searchPrdMstCd}||'%'
+        </if>
+        
+        <if test="searchPrdMstNm != null and searchPrdMstNm != ''">
+            AND TPM.PRD_MST_NM LIKE '%'||#{searchPrdMstNm}||'%'
+        </if>
+        
+        <if test="searchBrdInqContents != null and searchBrdInqContents != ''">
+            AND TBI.BRD_INQ_CONTENTS LIKE '%'||#{searchBrdInqContents}||'%'
+        </if>
+        
+        <if test="searchBrdInqTitle != null and searchBrdInqTitle != ''">
+            AND TBI.BRD_INQ_TITLE LIKE '%'||#{searchBrdInqTitle}||'%'
+        </if>
+        
+        <if test="searchBrdInqSelNm != null and searchBrdInqSelNm != ''">
+            AND TBM.BND_MST_SEL_NM LIKE '%'||UPPER(#{searchBrdInqSelNm})||'%'
+        </if>
+        
+       
+        
+        
+    </sql>
+    
+    <!-- 관리자 > 고객센터 > 상품문의 목록 갯수 -->
+    <select id="selectProductInquiryListCount" parameterType="HashMap" resultType="Integer">
+        /* ProductInquiry.selectProductInquiryListCount */
+        SELECT
+            COUNT(BRD_INQ_IDX)
+        FROM
+            T_BRD_INQ TBI, T_PRD_MST TPM
+        WHERE
+            TBI.BRD_PRD_MST_CD = TPM.PRD_MST_CD
+        AND
+        	BRD_INQ_TYPE= #{BRD_INQ_TYPE}
+            <include refid="productInquiryWhere"/>
+    </select>
+    
+    <!-- 관리자 > 고객센터 > 상품문의 목록 -->
+    <resultMap id="resultProductInquiryList" type="HashMap">
+        <result column="BRD_INQ_IDX" property="BRD_INQ_IDX" />
+        <result column="BRD_INQ_TYPE" property="BRD_INQ_TYPE" />
+        <result column="BRD_PRD_MST_CD" property="BRD_PRD_MST_CD" />
+        <result column="PRD_MST_REF_IMG_URL" property="PRD_MST_REF_IMG_URL" />
+        <result column="BRD_PRD_MST_NM" property="BRD_PRD_MST_NM" />
+        <result column="BRD_INQ_TITLE" property="BRD_INQ_TITLE" />
+        <result column="BRD_INQ_CONTENTS" property="BRD_INQ_CONTENTS" jdbcType="CLOB" javaType="java.lang.String"/>
+        <result column="BRD_INQ_REG_ID" property="BRD_INQ_REG_ID" />
+        <result column="BRD_INQ_REG_NM" property="BRD_INQ_REG_NM" />
+        <result column="BRD_INQ_REG_IP" property="BRD_INQ_REG_IP" />
+        <result column="BRD_INQ_REG_DT" property="BRD_INQ_REG_DT" />
+        <result column="BRD_INQ_USE_YN" property="BRD_INQ_USE_YN" />
+        <result column="BRD_INQ_REPLY_CD" property="BRD_INQ_REPLY_CD" />
+        <result column="BRD_INQ_REPLY_ID" property="BRD_INQ_REPLY_ID" />
+        <result column="BRD_INQ_REPLY_NM" property="BRD_INQ_REPLY_NM" />
+        <result column="BRD_INQ_REPLY_DT" property="BRD_INQ_REPLY_DT" />
+    </resultMap>
+    <select id="selectProductInquiryList" parameterType="HashMap" resultMap="resultProductInquiryList">
+        /* ProductInquiry.selectProductInquiryList */
+        SELECT
+            S2.*
+        FROM
+            (   SELECT
+                    ROWNUM AS RNUM,
+                    S1.* 
+                FROM
+                    (   SELECT
+                            BRD_INQ_IDX,
+                            BRD_INQ_TYPE,
+                            BRD_PRD_MST_CD,
+                            FN_PRODUCT_IMG(TBI.BRD_PRD_MST_CD, #{THUMBNAIL_SIZE}) AS PRD_IMAGE,
+                            (   SELECT
+				                    PRD_MST_NM
+				                FROM
+				                    T_PRD_MST
+				                WHERE
+				                    PRD_MST_CD = BRD_PRD_MST_CD
+				            )
+				            AS BRD_PRD_MST_NM,
+                            BRD_INQ_TITLE,
+                            BRD_INQ_CONTENTS,
+                            BRD_INQ_REPLY_CD,
+                            BRD_INQ_REG_ID,
+                            BRD_INQ_REG_NM,
+                            BRD_INQ_REG_IP,
+                            BRD_INQ_REG_DT,
+                            BRD_INQ_USE_YN,
+                            BRD_INQ_REPLY_ID,
+                            BRD_INQ_REPLY_NM,
+                            BRD_INQ_REPLY_DT,
+                            DECODE( BRD_INQ_REPLY_CD , 'Y' , '답변완료' , 'N' , '문의접수' , '' ) AS BRD_INQ_REPLY_CD_NM ,
+                            TO_CHAR( TO_DATE( BRD_INQ_REG_DT  , 'YYYYMMDDHH24MISS') ,'YYYY-MM-DD HH24:MI:SS' ) AS BRD_INQ_REG_DT_CHAR ,
+                            TO_CHAR( TO_DATE( BRD_INQ_REPLY_DT, 'YYYYMMDDHH24MISS') ,'YYYY-MM-DD HH24:MI:SS' ) AS BRD_INQ_REPLY_DT_CHAR 
+                        FROM
+                            T_BRD_INQ TBI, T_PRD_MST TPM 
+                        WHERE
+                            TBI.BRD_PRD_MST_CD = TPM.PRD_MST_CD
+                        AND
+        					BRD_INQ_TYPE= #{BRD_INQ_TYPE}
+                            <include refid="productInquiryWhere"/>
+                        ORDER BY BRD_INQ_REG_DT DESC 
+                    )
+                    S1 
+            )
+            S2
+    <if test="startNum != null and startNum != '' and endNum != null and endNum != ''">
+        WHERE S2.RNUM BETWEEN #{startNum} AND #{endNum}
+    </if>              
+
+    </select>
+    
+    <!-- 관리자 > 고객센터 > 상품문의 상세정보 -->
+    <resultMap id="resultProductInquiryInfo" type="HashMap">
+        <result column="BRD_INQ_IDX" property="BRD_INQ_IDX" />
+        <result column="BRD_INQ_TYPE" property="BRD_INQ_TYPE" />
+        <result column="BRD_CMN_COM_IDX" property="BRD_CMN_COM_IDX" />
+        <result column="BRD_PRD_MST_CD" property="BRD_PRD_MST_CD" />
+        <result column="BRD_INQ_TITLE" property="BRD_INQ_TITLE" />
+        <result column="BRD_INQ_CONTENTS" property="BRD_INQ_CONTENTS" jdbcType="CLOB" javaType="java.lang.String"/>
+        <result column="BRD_INQ_REPLY_CD" property="BRD_INQ_REPLY_CD" />
+        <result column="BRD_INQ_REPLY_CONTENTS" property="BRD_INQ_REPLY_CONTENTS" jdbcType="CLOB" javaType="java.lang.String"/>
+        <result column="BRD_INQ_REG_ID" property="BRD_INQ_REG_ID" />
+        <result column="BRD_INQ_REG_NM" property="BRD_INQ_REG_NM" />
+        <result column="PRD_MST_IMG_URL_PATH" property="PRD_MST_IMG_URL_PATH" />
+        <result column="BRD_INQ_REG_IP" property="BRD_INQ_REG_IP" />
+        <result column="BRD_INQ_REG_DT" property="BRD_INQ_REG_DT" />
+        <result column="BRD_INQ_REPLY_ID" property="BRD_INQ_REPLY_ID" />
+        <result column="BRD_INQ_REPLY_NM" property="BRD_INQ_REPLY_NM" />
+        <result column="BRD_INQ_REPLY_DT" property="BRD_INQ_REPLY_DT" />
+        <result column="BRD_INQ_REPLY_IP" property="BRD_INQ_REPLY_IP" />
+        <result column="BRD_PRD_MST_NM" property="BRD_PRD_MST_NM" />
+        <result column="CMN_COM_NM" property="CMN_COM_NM" />
+        <result column="BRD_INQ_USE_YN" property="BRD_INQ_USE_YN" />
+    </resultMap>
+    <select id="selectProductInquiryInfo" parameterType="HashMap" resultMap="resultProductInquiryInfo">
+        /* ProductInquiry.selectProductInquiryInfo */
+        SELECT
+            BRD_INQ_IDX,
+            BRD_INQ_TYPE,
+            BRD_CMN_COM_IDX,
+            BRD_PRD_MST_CD,
+            BRD_INQ_TITLE,
+            BRD_INQ_CONTENTS,
+            BRD_INQ_REPLY_CD,
+            (   SELECT
+					BND_MST_SEL_NM
+				FROM
+				    T_BND_MST BM
+				WHERE
+					VDR_MST_IDX = BI.VDR_MST_IDX
+			) AS BND_MST_SEL_NM,
+            BRD_INQ_REPLY_CONTENTS,
+            BRD_INQ_REG_ID,
+            BRD_INQ_REG_NM,
+            BRD_INQ_REG_IP,
+            BRD_INQ_REG_DT,
+            BRD_INQ_REPLY_ID,
+            BRD_INQ_REPLY_NM,
+            BRD_INQ_REPLY_DT,
+            BRD_INQ_REPLY_IP,
+            PM.PRD_MST_NM AS BRD_PRD_MST_NM,            
+            FN_PRODUCT_IMG (BRD_PRD_MST_CD, #{THUMBNAIL_SIZE}) AS PRD_MST_IMG_URL_PATH,
+            (   SELECT
+                    CMN_COM_NM 
+                FROM
+                    T_CMM_COM 
+                WHERE
+                    CMN_COM_IDX = BRD_CMN_COM_IDX 
+            )
+            AS CMN_COM_NM, 
+            BRD_INQ_USE_YN,
+            (SELECT TMM.MEM_MST_MAIL FROM T_MEM_MST TMM WHERE TMM.MEM_MST_MEM_ID = BRD_INQ_REG_ID) AS MEM_MST_MAIL
+        FROM
+            T_BRD_INQ BI, T_PRD_MST PM
+        WHERE
+        	BI.BRD_PRD_MST_CD = PM.PRD_MST_CD(+)
+            AND BRD_INQ_IDX = #{BRD_INQ_IDX}
+    </select>
+    
+    <!-- 관리자 > 고객센터 > 셀러문의 상세정보 -->
+    <resultMap id="resultSellerInquiryInfo" type="HashMap">
+        <result column="BRD_INQ_IDX" property="BRD_INQ_IDX" />
+        <result column="BRD_INQ_TYPE" property="BRD_INQ_TYPE" />
+        <result column="BRD_INQ_TITLE" property="BRD_INQ_TITLE" />
+        <result column="BRD_INQ_CONTENTS" property="BRD_INQ_CONTENTS" jdbcType="CLOB" javaType="java.lang.String"/>
+        <result column="BRD_INQ_REPLY_CD" property="BRD_INQ_REPLY_CD" />
+        <result column="BND_MST_SEL_NM" property="BND_MST_SEL_NM" />
+        <result column="BRD_INQ_REPLY_CONTENTS" property="BRD_INQ_REPLY_CONTENTS" jdbcType="CLOB" javaType="java.lang.String"/>
+        <result column="BRD_INQ_REG_ID" property="BRD_INQ_REG_ID" />
+        <result column="BRD_INQ_REG_NM" property="BRD_INQ_REG_NM" />
+        <result column="BRD_INQ_REG_IP" property="BRD_INQ_REG_IP" />
+        <result column="BRD_INQ_REG_DT" property="BRD_INQ_REG_DT" />
+        <result column="BRD_INQ_REPLY_ID" property="BRD_INQ_REPLY_ID" />
+        <result column="BRD_INQ_REPLY_NM" property="BRD_INQ_REPLY_NM" />
+        <result column="BRD_INQ_REPLY_DT" property="BRD_INQ_REPLY_DT" />
+        <result column="BRD_INQ_REPLY_IP" property="BRD_INQ_REPLY_IP" />
+        <result column="BRD_INQ_USE_YN" property="BRD_INQ_USE_YN" />
+        <result column="BRD_INQ_PUB_YN" property="BRD_INQ_PUB_YN" />
+    </resultMap>
+    <select id="selectSellerInquiryInfo" parameterType="HashMap" resultMap="resultSellerInquiryInfo">
+        /* ProductInquiry.selectSellerInquiryInfo */
+        SELECT
+            BRD_INQ_IDX,
+            BRD_INQ_TYPE,
+            BRD_INQ_TITLE,
+            BRD_INQ_CONTENTS,
+            BRD_INQ_REPLY_CD,
+            (   SELECT
+					BND_MST_SEL_NM
+				FROM
+				    T_BND_MST BM
+				WHERE
+					VDR_MST_IDX = BI.VDR_MST_IDX
+			) AS BND_MST_SEL_NM,
+            BRD_INQ_REPLY_CONTENTS,
+            BRD_INQ_REG_ID,
+            BRD_INQ_REG_NM,
+            BRD_INQ_REG_IP,
+            BRD_INQ_REG_DT,
+            BRD_INQ_REPLY_ID,
+            BRD_INQ_REPLY_NM,
+            BRD_INQ_REPLY_DT,
+            BRD_INQ_REPLY_IP,
+            BRD_INQ_USE_YN,
+            BRD_INQ_PUB_YN
+        FROM
+            T_BRD_INQ BI
+        WHERE 1=1
+            AND BRD_INQ_IDX = #{BRD_INQ_IDX}
+            AND BRD_INQ_TYPE = 'S'
+            <if test="VDR_MST_IDX != null and VDR_MST_IDX != ''">
+           		AND BI.VDR_MST_IDX = #{VDR_MST_IDX} 
+            </if>
+    </select>
+    
+    <!-- 관리자 > 고객센터 > 1:1문의 답변 등록 -->
+    <update id="updateProductInquiry" parameterType="HashMap">
+        /* ProductInquiry.updateProductInquiry */
+        UPDATE
+            T_BRD_INQ 
+        SET
+            BRD_INQ_REPLY_CD = 'Y',
+            BRD_INQ_REPLY_CONTENTS = #{BRD_INQ_REPLY_CONTENTS:CLOB},
+            BRD_INQ_REPLY_ID = #{BRD_INQ_REPLY_ID},
+            BRD_INQ_REPLY_NM = #{BRD_INQ_REPLY_NM},
+            BRD_INQ_REPLY_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+            BRD_INQ_REPLY_IP = #{BRD_INQ_REPLY_IP},
+            BRD_INQ_USE_YN = #{BRD_INQ_USE_YN}
+        WHERE
+            BRD_INQ_IDX = #{BRD_INQ_IDX}
+    </update>
+    
+    <!-- 관리자 > 고객센터 > 상품문의 메일 상세정보 -->
+    <resultMap id="resultProductInquiryMailInfo" type="HashMap">
+        <result column="BRD_INQ_REG_NM" property="BRD_INQ_REG_NM" />
+        <result column="BRD_PRD_MST_NM" property="BRD_PRD_MST_NM" />
+        <result column="BRD_INQ_REG_DT" property="BRD_INQ_REG_DT" />
+        <result column="BRD_INQ_REG_ID" property="BRD_INQ_REG_ID" />
+        <result column="MEM_MST_MAIL" property="MEM_MST_MAIL" />
+        <result column="BRD_INQ_CONTENTS" property="BRD_INQ_CONTENTS"  jdbcType="CLOB" javaType="java.lang.String" />
+        <result column="BRD_INQ_REPLY_NM" property="BRD_INQ_REPLY_NM" />
+        <result column="BRD_INQ_REPLY_ID" property="BRD_INQ_REPLY_ID" />
+        <result column="BRD_INQ_REPLY_DT" property="BRD_INQ_REPLY_DT" />
+        <result column="BRD_INQ_REPLY_CONTENTS" property="BRD_INQ_REPLY_CONTENTS"  jdbcType="CLOB" javaType="java.lang.String" />
+        <result column="BRD_INQ_TITLE" property="BRD_INQ_TITLE" />
+    </resultMap>
+    <select id="selectProductInquiryMailInfo" parameterType="HashMap" resultMap="resultProductInquiryMailInfo">
+        /* ProductInquiry.selectProductInquiryMailInfo */
+        SELECT 
+		    BRD_INQ_REG_NM,  /* 문의자 */
+		 	PM.PRD_MST_NM AS BRD_PRD_MST_NM,  /* 상품명 */
+		    TO_CHAR(TO_DATE(BRD_INQ_REG_DT,'YYYYMMDDHH24MISS'),'YYYY-MM-DD HH24:MI:SS') AS BRD_INQ_REG_DT,    /* 등록일 */
+		 	BRD_INQ_REG_ID,
+		    (SELECT MEM_MST_MAIL FROM T_MEM_MST WHERE MEM_MST_MEM_ID = BRD_INQ_REG_ID) AS MEM_MST_MAIL, /* 등록자 이메일 */
+		    BRD_INQ_CONTENTS,   /* 질문내용 */           
+		    BRD_INQ_REPLY_NM,   /* 답변자 */
+		    BRD_INQ_REPLY_ID,     /* 답변자 ID */
+		    TO_CHAR(TO_DATE(BRD_INQ_REPLY_DT,'YYYYMMDDHH24MISS'),'YYYY-MM-DD HH24:MI:SS') AS BRD_INQ_REPLY_DT ,            /* 답변등록일 */
+		    BRD_INQ_REPLY_CONTENTS,           /*답변내용*/
+		    BRD_INQ_TITLE
+		FROM
+		    T_BRD_INQ BI, T_PRD_MST PM
+		WHERE
+		 BI.BRD_PRD_MST_CD = PM.PRD_MST_CD(+)
+		 AND BRD_INQ_IDX = #{BRD_INQ_IDX}
+    </select>
+    
+    <select id="selectSellerInquiryListCount" parameterType="HashMap" resultType="Integer">
+        /* ProductInquiry.selectSellerInquiryListCount */
+        SELECT
+            COUNT(BRD_INQ_IDX)
+        FROM
+            T_BRD_INQ TBI, T_BND_MST TBM
+        WHERE
+            TBI.VDR_MST_IDX = TBM.VDR_MST_IDX
+        AND
+        	BRD_INQ_TYPE= #{BRD_INQ_TYPE}
+    </select>
+    
+    <!-- 관리자 > 고객센터 > 상품문의 목록 -->
+    <resultMap id="resultSellerInquiryList" type="HashMap">
+        <result column="BRD_INQ_IDX" property="BRD_INQ_IDX" />
+        <result column="BRD_INQ_TYPE" property="BRD_INQ_TYPE" />
+        <result column="BRD_PRD_MST_CD" property="BRD_PRD_MST_CD" />
+        <result column="BRD_PRD_MST_NM" property="BRD_PRD_MST_NM" />
+        <result column="BRD_INQ_REG_ID" property="BRD_INQ_REG_ID" />
+        <result column="BRD_INQ_REG_NM" property="BRD_INQ_REG_NM" />
+        <result column="BRD_INQ_REG_IP" property="BRD_INQ_REG_IP" />
+        <result column="BRD_INQ_REG_DT" property="BRD_INQ_REG_DT" />
+        <result column="BRD_INQ_USE_YN" property="BRD_INQ_USE_YN" />
+        <result column="BRD_INQ_REPLY_CD" property="BRD_INQ_REPLY_CD" />
+        <result column="BRD_INQ_REPLY_ID" property="BRD_INQ_REPLY_ID" />
+        <result column="BRD_INQ_REPLY_NM" property="BRD_INQ_REPLY_NM" />
+        <result column="BRD_INQ_REPLY_DT" property="BRD_INQ_REPLY_DT" />
+        <result column="BND_MST_SEL_NM" property="BND_MST_SEL_NM" />
+        <result column="BRD_INQ_TITLE" property="BRD_INQ_TITLE" />
+        <result column="BRD_INQ_CONTENTS" property="BRD_INQ_CONTENTS" jdbcType="CLOB" javaType="java.lang.String"/>
+    </resultMap>
+    <select id="selectSellerInquiryList" parameterType="HashMap" resultMap="resultSellerInquiryList">
+        /* ProductInquiry.selectSellerInquiryList */
+       SELECT
+            S2.*
+        FROM
+            (   SELECT
+                    ROWNUM AS RNUM,
+                    S1.* 
+                FROM
+                    (   SELECT
+                	       TBI.BRD_INQ_IDX,
+                	       TBI.BRD_INQ_TYPE,
+                	       TBI.BRD_INQ_TITLE,
+                	       TBM.BND_MST_SEL_NM,
+                	       TBI.BRD_INQ_REG_ID,
+                	       TBI.BRD_INQ_REG_NM,
+                	       TBI.BRD_INQ_REG_IP,
+                	       TBI.BRD_INQ_REG_DT,
+                	       TBI.BRD_INQ_USE_YN,
+                	       TBI.BRD_INQ_REPLY_ID,
+                	       TBI.BRD_INQ_REPLY_NM,
+                	       TBI.BRD_INQ_REPLY_DT,
+                	       TBI.BRD_INQ_REPLY_CD,
+                	       TBI.BRD_INQ_CONTENTS
+                        FROM
+                            T_BRD_INQ TBI, T_BND_MST TBM 
+                        WHERE
+                            TBI.VDR_MST_IDX = TBM.VDR_MST_IDX
+                        AND
+                            BRD_INQ_TYPE= #{BRD_INQ_TYPE}
+                            <include refid="productInquiryWhere"/>
+                        ORDER BY TBI.BRD_INQ_REG_DT DESC 
+                    )
+                    S1 
+            )
+            S2 
+        WHERE
+            S2.RNUM BETWEEN #{startNum} AND #{endNum}
+        
+    </select>
+</mapper>

@@ -1,0 +1,422 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="PcMyProductComment">
+
+	<!-- 프론트 > MY LAND > 쇼핑활동 > 상품후기 > 작성 가능한 상품후기 목록 갯수 -->
+	<select id="selectMyWritableProductCommentListCount" parameterType="HashMap" resultType="Integer">
+		/* PcMyProductComment.selectMyWritableProductCommentListCount */
+		SELECT 
+			COUNT(1)
+		FROM
+		(
+			SELECT 
+				TOM.ORD_MST_CD
+				, (
+					  SELECT 
+						COUNT(1) 
+					  FROM T_ORD_PRD 
+					  WHERE ORD_PRD_UP_IDX = TOP.ORD_PRD_IDX
+					  AND ORD_PRD_ORD_STATE NOT IN  /* 교환완료/교환대기중/교환취소는 제외 */
+                      <foreach collection="OST_SWAP_IGNORE_ARR" item="OST_SWAP_IGNORE" open="(" close=")" separator=",">#{OST_SWAP_IGNORE}</foreach>
+					 ) as SWAP_IGNORE_SUB_OPTION_CNT /* 교환관련 상품 제외한 선택옵션 개수 */
+				, (
+					  SELECT 
+						COUNT(1) 
+					  FROM T_ORD_PRD 
+					  WHERE ORD_PRD_UP_IDX = TOP.ORD_PRD_IDX
+					  AND ORD_PRD_ORD_STATE IN (#{OST_SEND_END}, #{OST_FIX}) /* 배송완료/구매확정 */
+					 ) as SEND_END_SUB_OPTION_CNT /* 배송완료/구매확정 선택옵션 개수 */
+			FROM	
+				T_ORD_MST TOM,
+				T_ORD_PRD TOP
+			WHERE
+				TOM.ORD_MST_CD = TOP.ORD_ORD_MST_CD
+			AND
+				TOM.ORD_MST_ORD_ID = #{MEM_MST_MEM_ID}
+			AND
+				TOP.ORD_PRD_ORD_STATE IN (#{OST_SEND_END}, #{OST_FIX})
+			AND
+				TOP.ORD_PRD_SLT_YN = 'N' /* 선택상품 제외 */	
+			AND 
+				NOT EXISTS
+				(
+					SELECT 1
+					FROM
+						T_PRD_REV TPR
+					WHERE
+						TPR.PRD_REV_REG_ID = #{MEM_MST_MEM_ID}				
+					AND
+						TPR.PRD_REV_DEL_YN = 'N'
+					AND
+						TPR.PRD_ORD_PRD_IDX = TOP.ORD_PRD_IDX
+				)
+			<![CDATA[
+			AND
+				TOM.ORD_MST_ORD_DT > TO_CHAR(ADD_MONTHS(SYSDATE, -3),'YYYYMMDD') || '000000'
+			]]>
+		)
+		WHERE SWAP_IGNORE_SUB_OPTION_CNT = SEND_END_SUB_OPTION_CNT 
+	</select>
+	
+	<!-- 프론트 > MY LAND > 쇼핑활동 > 상품후기 > 작성 가능한 상품후기 목록 -->
+	<select id="selectMyWritableProductCommentList" parameterType="HashMap" resultType="HashMap">
+		/* PcMyProductComment.selectMyWritableProductCommentList */		
+		SELECT
+			S1.*
+		FROM
+		(
+			SELECT
+				ROWNUM AS RNUM,
+				S2.*
+			FROM
+			(
+				SELECT
+					T1.*
+				FROM
+				(
+					SELECT 
+						TOM.ORD_MST_CD,
+						TOM.ORD_MST_ORD_DT,
+						TOM.ORD_MST_ORD_ID,
+						TOP.ORD_PRD_IDX,
+						TOP.ORD_PRD_MST_CD,
+						FN_GET_PRODUCT_NM(TOP.ORD_PRD_MST_CD,25) AS PRD_MST_NM,
+						FN_PRODUCT_IMG(TOP.ORD_PRD_MST_CD, #{THUMBNAIL_SIZE}) PRD_IMG
+						, (
+							  SELECT 
+								COUNT(1) 
+							  FROM T_ORD_PRD 
+							  WHERE ORD_PRD_UP_IDX = TOP.ORD_PRD_IDX
+							  AND ORD_PRD_ORD_STATE NOT IN  /* 교환완료/교환대기중/교환취소는 제외 */
+                              <foreach collection="OST_SWAP_IGNORE_ARR" item="OST_SWAP_IGNORE" open="(" close=")" separator=",">#{OST_SWAP_IGNORE}</foreach>
+							 ) as SWAP_IGNORE_SUB_OPTION_CNT /* 교환관련 상품 제외한 선택옵션 개수 */
+						, (
+							  SELECT 
+								COUNT(1) 
+							  FROM T_ORD_PRD 
+							  WHERE ORD_PRD_UP_IDX = TOP.ORD_PRD_IDX
+							  AND ORD_PRD_ORD_STATE IN (#{OST_SEND_END}, #{OST_FIX}) /* 배송완료/구매확정 */
+							 ) as SEND_END_SUB_OPTION_CNT /* 배송완료/구매확정 선택옵션 개수 */
+					FROM	
+						T_ORD_MST TOM,
+						T_ORD_PRD TOP
+					WHERE
+						TOM.ORD_MST_CD = TOP.ORD_ORD_MST_CD
+					AND
+						TOM.ORD_MST_ORD_ID = #{MEM_MST_MEM_ID}
+					AND
+						TOP.ORD_PRD_ORD_STATE IN (#{OST_SEND_END}, #{OST_FIX})
+					AND
+						TOP.ORD_PRD_SLT_YN = 'N' /* 선택상품 제외 */		
+					AND 
+						NOT EXISTS
+						(
+							SELECT 1
+							FROM
+								T_PRD_REV TPR
+							WHERE
+								TPR.PRD_REV_REG_ID = #{MEM_MST_MEM_ID}
+							AND
+								TPR.PRD_REV_DEL_YN = 'N'
+							AND
+								TPR.PRD_ORD_PRD_IDX = TOP.ORD_PRD_IDX
+						)
+					<![CDATA[
+					AND
+						TOM.ORD_MST_ORD_DT > TO_CHAR(ADD_MONTHS(SYSDATE, -3),'YYYYMMDD') || '000000'
+					]]>
+					ORDER BY TOM.ORD_MST_ORD_DT DESC
+				) T1
+				WHERE SWAP_IGNORE_SUB_OPTION_CNT = SEND_END_SUB_OPTION_CNT
+			) S2
+		) S1
+        <if test="startNum != null and startNum != '' and endNum != null and endNum != ''">
+            WHERE S1.RNUM BETWEEN #{startNum} AND #{endNum}
+        </if>
+	</select>
+	
+	
+	<!-- 프론트 > MY LAND > 쇼핑활동 > 상품후기 > 작성한 상품후기 목록 갯수 -->
+    <select id="selectMyWrittenProductCommentListCount" parameterType="HashMap" resultType="Integer">
+        /* PcMyProductComment.selectMyWrittenProductCommentListCount */
+        SELECT
+       		COUNT(1)
+       	FROM
+       		T_PRD_REV
+       	WHERE
+       		PRD_REV_DEL_YN = 'N'
+       	AND
+       		PRD_REV_REG_ID = #{MEM_MST_MEM_ID}
+    </select>
+    
+    <!-- 프론트 > MY LAND > 쇼핑활동 > 상품후기 > 작성한 상품후기 목록 -->
+    <select id="selectMyWrittenProductCommentList" parameterType="HashMap" resultType="HashMap">
+        /* PcMyProductComment.selectMyWrittenProductCommentList */
+        SELECT
+        	S2.*
+        FROM
+       	(
+       		SELECT
+				ROWNUM AS RNUM,
+				S1.PRD_REV_IDX,
+				S1.PRD_PRD_MST_CD,
+				S1.PRD_REV_TITLE,
+				S1.PRD_REV_CONTENTS,
+				S1.PRD_REV_FNC_STAR,
+				S1.PRD_REV_PRC_STAR,
+				S1.PRD_REV_SCORE_STAR,
+				FN_GET_PRODUCT_REQ(S1.PRD_REV_AVG_STAR) AS PRD_REV_AVG_STAR,
+				FN_GET_PRODUCT_REQ_POINT(S1.PRD_REV_AVG_STAR) AS PRD_REV_AVG_STAR_POINT,
+				S1.PRD_ORD_PRD_IDX,	
+				S1.PRD_REV_REG_DT,
+				S1.PRD_REV_CHN_GBN,
+				S1.PRD_MST_NM,
+				S1.PRD_IMG				
+			FROM
+			(
+				SELECT
+					TPR.PRD_REV_IDX,
+					TPR.PRD_PRD_MST_CD,
+					TPR.PRD_REV_TITLE,
+					TPR.PRD_REV_CONTENTS,
+					TPR.PRD_REV_FNC_STAR,
+					TPR.PRD_REV_PRC_STAR,
+					TPR.PRD_REV_SCORE_STAR,
+					ROUND((TPR.PRD_REV_FNC_STAR + TPR.PRD_REV_PRC_STAR + TPR.PRD_REV_SCORE_STAR)/3,2) AS PRD_REV_AVG_STAR,
+					TPR.PRD_ORD_PRD_IDX,	
+					TPR.PRD_REV_REG_DT,
+					TPR.PRD_REV_CHN_GBN,
+					FN_GET_PRODUCT_NM(TPR.PRD_PRD_MST_CD,30) AS PRD_MST_NM,
+					FN_PRODUCT_IMG(TPR.PRD_PRD_MST_CD, #{THUMBNAIL_SIZE}) PRD_IMG
+				FROM
+					T_PRD_REV TPR
+				WHERE
+					TPR.PRD_REV_DEL_YN = 'N'
+				AND
+					TPR.PRD_REV_REG_ID = #{MEM_MST_MEM_ID}
+				ORDER BY TPR.PRD_REV_REG_DT DESC
+			) S1
+       	)S2
+        <if test="startNum != null and startNum != '' and endNum != null and endNum != ''">
+            WHERE S2.RNUM BETWEEN #{startNum} AND #{endNum}
+        </if>
+    </select>
+    
+    <!-- 프론트 > MY LAND > 쇼핑활동 > 상품후기 > 상품후기 작성 팝업 > 상품관련 간단한 정보 가져오기(상품이미지, 상품명) -->
+    <select id="selectSimpleProductInfo" parameterType="HashMap" resultType="HashMap">
+    	/* PcMyProductComment.selectSimpleProductInfo */
+    	SELECT
+			FN_GET_PRODUCT_NM(TPM.PRD_MST_CD,30) AS PRD_MST_NM,
+			FN_PRODUCT_IMG(TPM.PRD_MST_CD, #{THUMBNAIL_SIZE}) PRD_IMG	
+		FROM
+			T_PRD_MST TPM 
+		WHERE
+			TPM.PRD_MST_CD = #{PRD_PRD_MST_CD}
+    </select>
+    
+    <!-- 프론트 > MY LAND > 쇼핑활동 > 상품후기 > 상품후기 작성 팝업 > 상품후기 상세정보 -->
+    <select id="selectProductCommentInfo" parameterType="HashMap" resultType="HashMap">
+    	/* PcMyProductComment.selectProductCommentInfo */
+    	SELECT
+    		TPR.PRD_REV_IDX,
+    		TPR.PRD_PRD_MST_CD,
+    		TPR.PRD_REV_TITLE,
+    		TPR.PRD_REV_CONTENTS,
+    		TPR.PRD_REV_FNC_STAR,
+    		TPR.PRD_REV_PRC_STAR,
+    		TPR.PRD_REV_SCORE_STAR
+		FROM
+			T_PRD_REV TPR
+		WHERE
+			TPR.PRD_REV_IDX = #{PRD_REV_IDX}
+		AND
+			TPR.PRD_REV_REG_ID = #{MEM_MST_MEM_ID}
+		AND
+			TPR.PRD_REV_DEL_YN = 'N'
+    </select>
+    
+    <!-- 프론트 > MY LAND > 쇼핑활동 > 상품후기 > 상품후기 중복 등록 방지 -->
+    <select id="selectProductCommentCount" parameterType="HashMap" resultType="Integer">
+    	/* PcMyProductComment.selectProductCommentCount */
+    	SELECT
+    		COUNT(0)
+    	FROM
+    		T_PRD_REV
+    	WHERE
+    		PRD_ORD_PRD_IDX = #{PRD_ORD_PRD_IDX}    	
+    </select>
+    
+    <!-- 프론트 > MY LAND > 쇼핑활동 > 상품후기 > 상품후기 작성 등록/수정 팝업 > 등록 -->
+    <insert id="insertProductComment" parameterType="HashMap">
+    	<selectKey keyProperty="PRD_REV_IDX" resultType="Integer" order="BEFORE">
+            SELECT SEQ_PRD_REV_IDX.NEXTVAL AS PRD_REV_IDX FROM DUAL
+        </selectKey>
+    	/* PcMyProductComment.insertProductComment */
+    	INSERT INTO
+    		T_PRD_REV
+    		(
+    			PRD_REV_IDX,
+    			PRD_PRD_MST_CD,
+    			PRD_REV_TITLE,
+    			PRD_REV_CONTENTS,
+    			PRD_REV_FNC_STAR,
+    			PRD_REV_PRC_STAR,
+    			PRD_REV_SCORE_STAR,
+    			PRD_REV_CLR,
+    			PRD_REV_SIZE,
+    			PRD_REV_STAR,
+    			PRD_ORD_PRD_IDX,
+    			PRD_REV_DEL_YN,
+    			PRD_REV_USE_YN,
+    			PRD_REV_BST_YN,
+    			PRD_REV_REG_DT,
+    			PRD_REV_REG_IP,
+    			PRD_REV_REG_ID,
+    			PRD_REV_CHN_GBN
+    		)
+    	VALUES
+    		(
+    			#{PRD_REV_IDX},
+    			#{PRD_PRD_MST_CD},
+    			#{PRD_REV_TITLE},
+    			#{PRD_REV_CONTENTS:CLOB},
+    			#{PRD_REV_FNC_STAR},
+    			#{PRD_REV_PRC_STAR},
+    			#{PRD_REV_SCORE_STAR},
+    			#{PRD_REV_CLR},
+    			#{PRD_REV_SIZE},
+    			#{PRD_REV_STAR},
+    			#{PRD_ORD_PRD_IDX},
+    			'N',
+    			'Y',
+    			'Y',
+    			TO_CHAR(SYSDATE,'YYYYMMDDHH24MISS'),
+    			#{PRD_REV_REG_IP},
+    			#{MEM_MST_MEM_ID},
+    			#{PRD_REV_CHN_GBN}
+    		)
+    </insert>
+    
+    <!-- 프론트 > MY LAND > 쇼핑활동 > 상품후기 > 상품후기 작성 등록/수정 팝업 > 등록 > 포인트 지급 관련 내역 추가 -->
+    <insert id="insertPoint" parameterType="HashMap">
+    	<selectKey keyProperty="PIT_MST_IDX" resultType="Integer" order="BEFORE">
+            SELECT SEQ_PIT_MST_IDX.NEXTVAL AS PIT_MST_IDX FROM DUAL
+        </selectKey>
+    	/* PcMyProductComment.insertPoint */
+    	INSERT INTO
+    		T_PIT_MST
+    		(
+    			PIT_MST_IDX,
+    			PIT_MST_GBN,
+    			PIT_MST_BRK_DWN,
+    			PIT_MST_PIT,
+    			PIT_MST_REG_DT,
+    			PIT_MST_REG_ID
+    		)
+    	VALUES
+    		(
+    			#{PIT_MST_IDX},
+    			#{PIT_MST_GBN},
+    			#{PIT_MST_BRK_DWN},
+    			#{PIT_MST_PIT},
+    			TO_CHAR(SYSDATE,'YYYYMMDDHH24MISS'),
+    			'SYSTEM'
+    		)
+    </insert>
+    
+    <!-- 프론트 > MY LAND > 쇼핑활동 > 상품후기 > 상품후기 작성 등록/수정 팝업 > 등록 > 회원 포인트 관리에 지급 내역 추가 -->
+    <insert id="insertPointMember" parameterType="HashMap">
+    	/* PcMyProductComment.insertPointMember */
+    	INSERT INTO
+    		T_MEM_PIT
+    		(
+    			MEM_PIT_IDX,
+    			PIT_MST_IDX,
+    			MEM_PIT_MEM_ID,
+    			MEM_PIT_GBN,
+    			MEM_PIT_BRK_DWN,
+    			MEM_PIT_PLS,
+    			MEM_PIT_MNS,
+    			MEM_PIT_EXT,
+    			MEM_PIT_TOT_PIT,
+    			MEM_PIT_REG_DT,    			
+    			MEM_PIT_REG_ID
+    		)
+    	VALUES
+    		(
+    			SEQ_MEM_PIT_IDX.NEXTVAL,
+    			#{PIT_MST_IDX},
+    			#{MEM_MST_MEM_ID},
+    			#{PIT_MST_GBN},
+    			#{PIT_MST_BRK_DWN},
+    			NVL(#{PIT_MST_PIT},0),
+    			NVL(#{MEM_PIT_MNS},0),
+    			NVL(#{MEM_PIT_EXT},0),
+    			#{MEM_PIT_TOT_PIT},
+    			TO_CHAR(SYSDATE,'YYYYMMDDHH24MISS'),
+    			'SYSTEM'
+    		)
+    </insert>
+    
+    <!-- 프론트 > MY LAND > 쇼핑활동 > 상품후기 > 상품후기 작성 등록/수정 팝업 > 수정 -->
+    <update id="updateProductComment" parameterType="HashMap">
+    	/* PcMyProductComment.updateProductComment */
+    	UPDATE
+            T_PRD_REV 
+        SET
+        	PRD_REV_FNC_STAR = #{PRD_REV_FNC_STAR},
+        	PRD_REV_PRC_STAR = #{PRD_REV_PRC_STAR},
+        	PRD_REV_SCORE_STAR = #{PRD_REV_SCORE_STAR},
+        	
+        	PRD_REV_CLR = #{PRD_REV_CLR}, 
+        	PRD_REV_SIZE = #{PRD_REV_SIZE},
+        	PRD_REV_STAR = #{PRD_REV_STAR},
+        	
+        	
+        	PRD_REV_TITLE = #{PRD_REV_TITLE},
+        	PRD_REV_CONTENTS = #{PRD_REV_CONTENTS},        	
+            PRD_REV_UPD_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+            PRD_REV_UPD_ID = #{MEM_MST_MEM_ID},            
+    		PRD_REV_UPD_IP = #{PRD_REV_UPD_IP},
+    		PRD_REV_CHN_GBN = #{PRD_REV_CHN_GBN}    		
+        WHERE
+            PRD_REV_IDX = #{PRD_REV_IDX}
+    </update>
+    
+    <!-- 등록되어 있는 금칙어 -->
+    <select id="selectBanWord" parameterType="HashMap" resultType="String">
+    	/* PcMyProductComment.selectBanWord */
+    	SELECT 
+    		BAN_TXT_LONG_TXT
+    	FROM
+    		T_BAN_TXT
+    </select>
+    
+    <!-- 주문번호 가져오기 -->
+    <select id="selectOrdMstCd" parameterType="HashMap" resultType="String">
+    	/* PcMyProductComment.selectOrdMstCd */
+    	SELECT 
+    		ORD_ORD_MST_CD as ORD_MST_CD
+    	FROM
+    		T_ORD_PRD 
+    	WHERE 
+    		ORD_PRD_IDX = #{PRD_ORD_PRD_IDX}
+    </select>
+    
+    <!-- 본인 주문이 맞는지 체크 -->
+    <select id="selectOrderCount" parameterType="HashMap" resultType="Integer">
+    	/* PcMyProductComment.selectOrderCount */
+    	SELECT
+    		COUNT(0)
+    	FROM
+    		T_ORD_MST TOM,
+    		T_ORD_PRD TOP
+    	WHERE
+    		TOM.ORD_MST_CD = TOP.ORD_ORD_MST_CD
+    	AND
+    		TOP.ORD_PRD_IDX = #{PRD_ORD_PRD_IDX}
+    	AND
+    		TOM.ORD_MST_ORD_ID = #{MEM_MST_MEM_ID}
+    </select>
+</mapper>

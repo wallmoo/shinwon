@@ -1,0 +1,568 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="PcMyInfo">
+	
+	<!-- 비밀번호 인코딩 -->
+	<select id="pwdEncoding" parameterType="HashMap" resultType="String">
+    	/* PcMyInfo.pwdEncoding */
+    	SELECT #{MEM_MST_PW} FROM DUAL
+    </select>   
+     
+    <select id="selectMemberGrade" parameterType="HashMap" resultType="HashMap">
+     	/* API.selectMemberGrade */
+        SELECT 
+                 MEM_MST_MEM_ID
+               , MEM_GRD_NM
+               , ORD_PRD_ORD_PRC
+        FROM 
+        (
+               SELECT
+					  TMA.MEM_MST_MEM_ID
+					, TMG.MEM_GRD_NM
+					, NVL((SELECT sum(ORD_PRD_ORD_PRC) AS  ORD_PRD_ORD_PRC
+			    FROM T_ORD_PRD
+			    WHERE ORD_ORD_MST_CD IN (
+										     SELECT ORD_MST_CD FROM T_ORD_MST
+										     WHERE ORD_MST_ORD_ID =TMA.MEM_MST_MEM_ID   
+			                            )
+				   -- AND  ORD_PRD_ORD_STATE  NOT IN (402,403) 
+				    ),0) AS ORD_PRD_ORD_PRC
+		FROM
+			   T_MEM_MST TMA
+			 , T_MEM_GRD TMG	
+		WHERE 	TMA.MEM_MST_MEM_GRD = TMG.MEM_GRD_CD
+		)		
+		WHERE 1=1
+		<if test="MEM_MST_MEM_ID != null and MEM_MST_MEM_ID != ''">
+           AND MEM_MST_MEM_ID = #{MEM_MST_MEM_ID}
+        </if>
+    
+    </select>
+    
+	<!-- 프론트 > 마이페이지 > 회원정보수정 > 비밀번호 체크 -->
+	<select id="selectCheckPwCount" parameterType="HashMap" resultType="Integer">
+		/* PcMyInfo.selectCheckPwCount */
+		SELECT
+			COUNT(0)
+		FROM
+			T_MEM_VIEW
+		WHERE
+			MEM_MST_MEM_ID = #{MEM_MST_MEM_ID}
+		AND
+			MEM_MST_PW = #{MEM_MST_PW}
+		AND
+			MEM_MST_LEV_YN = 'N'
+	</select>    
+	
+	<!-- 프론트 > 마이페이지 > 회원정보수정 > 회원상세정보 조회(일반회원,간편회원) -->
+	<select id="selectMemberInfo" parameterType="HashMap" resultType="HashMap">
+		/* PcMyInfo.selectMemberInfo */
+		SELECT
+        	TMV.MEM_MST_MEM_ID,
+        	TMV.MEM_MST_MEM_NM,
+        	TMV.MEM_MST_PW, 
+			TMV.MEM_MST_MAIL,
+			TMV.MEM_MST_MEM_GBN,
+			TMV.MEM_MST_REG_DT,
+			TMV.MEM_MST_JBN_ADR1,
+			TMV.MEM_MST_JBN_ADR2,
+			TMV.MEM_MST_TEL1,
+			TMV.MEM_MST_TEL2,
+			TMV.MEM_MST_TEL3,
+			TMV.MEM_MST_HP1,
+			TMV.MEM_MST_HP2,
+			TMV.MEM_MST_HP3,
+			TMV.MEM_MST_ZIP_CDE5,
+			TMV.MEM_MST_ZIP_CDE6,
+			TMV.MEM_MST_DRO_ADR1,
+			TMV.MEM_MST_DRO_ADR2,
+			AGR.SMS_YN,
+			AGR.TM_YN,
+			AGR.DM_YN,
+			AGR.EMAIL_YN,
+			AGR.AD_YN,
+			AGR.KAKAO_YN,
+			AGR.S_ELEC_YN,
+			AGR.LG_YN,
+			TMV.MEM_MST_NCK_NM,
+			TMV.MEM_MST_PRF_IMG,
+			TMI.MEM_IPN_BIR, 
+			TMI.MEM_IPN_SEX,
+			TMI.MEM_IPN_SEX AS MEM_MST_SEX
+        FROM
+        	T_MEM_VIEW TMV    
+        	,
+        	(
+        		SELECT
+        			MEM_AGR_MEM_ID
+					, DECODE(SMS_YN, 0, 'Y', 'N') AS SMS_YN
+					, DECODE(TM_YN, 0, 'Y', 'N') AS TM_YN
+					, DECODE(DM_YN, 0, 'Y', 'N') AS DM_YN
+					, DECODE(EMAIL_YN, 0, 'Y', 'N') AS EMAIL_YN
+					, DECODE(AD_YN, 0, 'Y', 'N') AS AD_YN
+					, DECODE(KAKAO_YN, 0, 'Y', 'N') AS KAKAO_YN
+					, DECODE(S_ELEC_YN, 0, 'Y', 'N') AS S_ELEC_YN
+					, DECODE(LG_YN, 0, 'Y', 'N') AS LG_YN
+				FROM
+				(
+					SELECT 
+						MEM_AGR_MEM_ID
+						, DECODE(MEM_AGR_TRM_YN, 'Y', 0, 1) AS TRM_YN_CNT
+						, DECODE(MEM_AGR_TRM_CD, 0001, 'SMS_YN', 0002, 'TM_YN', 0003, 'DM_YN', 0004, 'EMAIL_YN', 0005, 'AD_YN', 0006, 'KAKAO_YN', 0007, 'S_ELEC_YN', 0008, 'LG_YN') AS YN
+					FROM T_MEM_AGR
+					WHERE
+        				MEM_AGR_MEM_ID = #{MEM_MST_MEM_ID}     
+				)
+				PIVOT 
+				(
+					SUM(TRM_YN_CNT)
+					FOR YN IN ('SMS_YN' SMS_YN,'TM_YN' TM_YN, 'DM_YN' DM_YN, 'EMAIL_YN' EMAIL_YN, 'AD_YN' AD_YN, 'KAKAO_YN' KAKAO_YN, 'S_ELEC_YN' S_ELEC_YN, 'LG_YN' LG_YN)
+				) 
+        	) AGR  
+        	,
+        	T_MEM_IPN TMI
+        WHERE
+        	TMV.MEM_MST_MEM_ID = AGR.MEM_AGR_MEM_ID(+)
+        	AND TMV.MEM_MST_MEM_ID = TMI.MEM_MST_MEM_ID 
+        	AND TMV.MEM_MST_MEM_ID = #{MEM_MST_MEM_ID}   
+	</select>
+	
+	<!-- 프론트 > 마이페이지 > 회원정보수정 > 수정 -->
+	<update id="updateMyInfo" parameterType="HashMap">
+		/* PcMyInfo.updateMyInfo */
+		UPDATE
+			T_MEM_MST
+		SET
+			MEM_MST_HP1 = #{MEM_MST_HP1},
+			MEM_MST_HP2 = #{MEM_MST_HP2},
+			MEM_MST_HP3 = #{MEM_MST_HP3},
+            <if test="MEM_MST_PW != null and MEM_MST_PW != ''">
+            MEM_MST_PW = #{MEM_MST_PW},
+            </if>
+            <if test="MEM_MST_MAIL != null and MEM_MST_MAIL != ''">
+            MEM_MST_MAIL = #{MEM_MST_MAIL},
+            </if>
+            MEM_MST_ZIP_CDE5 = #{MEM_MST_ZIP_CDE5},
+			MEM_MST_DRO_ADR1 = #{MEM_MST_DRO_ADR1},
+			MEM_MST_JBN_ADR1 = #{MEM_MST_JBN_ADR1},
+			MEM_MST_DRO_ADR2 = #{MEM_MST_DRO_ADR2},     
+			MEM_MST_UPD_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+			MEM_MST_UPD_ID = #{MEM_MST_MEM_ID},
+			MEM_MST_UPD_IP = #{MEM_MST_UPD_IP},
+			MEM_MST_TMP_PW_YN = 'N',
+			MEM_MST_TMP_PW_DT = '' 
+			<if test="MEM_MST_NCK_NM != null and MEM_MST_NCK_NM != ''">
+				,MEM_MST_NCK_NM = #{MEM_MST_NCK_NM}
+			</if>
+			<if test="MEM_MST_STY_JOB != null and MEM_MST_STY_JOB != ''">
+				,MEM_MST_STY_JOB = #{MEM_MST_STY_JOB}
+			</if>
+			<if test="MEM_MST_STY_HEIGHT != null and MEM_MST_STY_HEIGHT != ''">
+				,MEM_MST_STY_HEIGHT = #{MEM_MST_STY_HEIGHT}
+			</if>
+			<if test="MEM_MST_STY_WEIGHT != null and MEM_MST_STY_WEIGHT != ''">
+				,MEM_MST_STY_WEIGHT = #{MEM_MST_STY_WEIGHT}
+			</if>
+			<if test="MEM_MST_PRF_IMG != null and MEM_MST_PRF_IMG != ''">
+				,MEM_MST_PRF_IMG = #{MEM_MST_PRF_IMG}
+			</if>
+			<if test="MEM_MST_ERP_ID != null and MEM_MST_ERP_ID != ''">
+				,MEM_MST_ERP_ID = #{MEM_MST_ERP_ID}
+			</if>
+			<if test="MEM_MST_VST_LAT != null and MEM_MST_VST_LAT != ''">
+				,MEM_MST_VST_LAT = #{MEM_MST_VST_LAT}
+			</if>
+			WHERE
+				MEM_MST_MEM_ID = #{MEM_MST_MEM_ID}
+	</update>
+	
+	<!-- 프론트 > 마이페이지 > 회원정보수정 > 약관동의 목록 -->
+	<select id="selectMemberAgreeList" parameterType="HashMap" resultType="HashMap">
+    	/* PcMyInfo.selectMemberAgreeList */
+    	SELECT   
+			MEM_AGR_TRM_CD,
+			MEM_AGR_TRM_YN
+		FROM
+			T_MEM_AGR TMA
+		WHERE
+			MEM_AGR_MEM_ID = #{MEM_MST_MEM_ID}
+			AND MEM_AGR_TRM_CD IN ('0001','0002','0003','0004','0005','0006') /* 0001 : SMS_YN , 0002 : TM_YN , 0003 : DM_YN , 0004 : EMAIL_YN */
+		ORDER BY MEM_AGR_TRM_CD 
+    </select>
+	
+	<!-- 프론트 > 마이페이지 > 회원정보수정 > 약관동의 수정 -->
+	<update id="updateTermsAgree" parameterType="HashMap">
+		/* PcMyInfo.updateTermsAgree */
+		UPDATE 
+    		T_MEM_AGR
+    	SET
+    		MEM_AGR_TRM_YN = NVL(#{MEM_AGR_TRM_YN},'N'),
+    		MEM_AGR_UPD_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+    		MEM_AGR_UPD_ID = #{MEM_MST_MEM_ID},
+    		MEM_AGR_UPD_IP = #{MEM_MST_UPD_IP}
+    	WHERE
+    		MEM_AGR_MEM_ID = #{MEM_MST_MEM_ID}
+    	AND
+    		MEM_AGR_TRM_CD = #{MEM_AGR_TRM_CD}
+	</update>
+	
+	<!-- 프론트 > 마이페이지 > 회원정보수정 > 간편회원 > 이메일 중복체크 및 이메일 인증번호 발송 -->
+	<select id="selectCheckCtfEmailCount" parameterType="HashMap" resultType="Integer">
+		/* PcMyInfo.selectCheckCtfEmailCount */
+		SELECT
+			COUNT(0)
+		FROM
+			T_MEM_VIEW
+		WHERE
+			MEM_MST_LEV_YN = 'N'
+		AND
+			MEM_MST_MEM_GBN = #{MEM_MST_MEM_GBN}
+		AND
+			MEM_MST_MAIL = #{MEM_CTF_MAIL}
+	</select>
+	
+	<!-- 프론트 > 마이페이지 > 회원정보수정 > 간편회원 > 인증번호 저장 -->
+	<insert id="insertCertNo" parameterType="HashMap">
+		/* PcMyInfo.insertCertNo */
+		MERGE INTO T_MEM_CTF
+			USING DUAL
+				ON (MEM_CTF_MAIL = #{MEM_CTF_MAIL})
+		WHEN MATCHED THEN
+			UPDATE
+			SET MEM_CTF_NO = #{MEM_CTF_NO}, MEM_CTF_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS') 
+			WHERE MEM_CTF_MAIL = #{MEM_CTF_MAIL}
+		WHEN NOT MATCHED THEN
+			INSERT 
+				(
+					MEM_CTF_MAIL,
+					MEM_CTF_NO,
+					MEM_CTF_DT
+				)
+			VALUES
+				(
+					#{MEM_CTF_MAIL},
+					#{MEM_CTF_NO},
+					TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS')
+				)
+	</insert>
+	
+	<!-- 프론트 > 마이페이지 > 회원정보수정 > 인증번호 발송된 간편회원 > 이메일 변경 성공 > 인증번호 받은 이메일 삭제 -->
+	<delete id="deleteCtfEmail" parameterType="HashMap">
+		/* PcMyInfo.deleteCtfEmail */
+		DELETE FROM T_MEM_CTF WHERE MEM_CTF_MAIL = #{MEM_CTF_MAIL}
+	</delete>
+	
+	<!-- 프론트 > 마이페이지 > 회원정보수정 > 인증번호 발송된 간편회원 > 유효시간 체크 -->
+	<select id="selectCheckCtfDtCount" parameterType="HashMap" resultType="Integer">
+		/* PcMyInfo.selectCheckCtfDtCount */
+		SELECT
+			COUNT(0)
+		FROM	
+			T_MEM_CTF
+		WHERE
+			MEM_CTF_MAIL = #{MEM_CTF_MAIL}
+		AND
+			<![CDATA[
+			MEM_CTF_DT BETWEEN TO_CHAR(TO_DATE(TO_CHAR(SYSDATE,'YYYYMMDDHH24MISS'),'YYYYMMDDHH24MISS') - 4/24,'YYYYMMDDHH24MISS') AND TO_CHAR(SYSDATE,'YYYYMMDDHH24MISS')
+			]]> 
+	</select>
+	
+	<!-- 프론트 > 마이페이지 > 회원정보수정 > 인증번호 발송된 간편회원 > 인증번호 체크 -->
+	<select id="selectCheckCtfNoCount" parameterType="HashMap" resultType="Integer">
+		/* PcMyInfo.selectCheckCtfNoCount */
+		SELECT 
+			COUNT(0)
+		FROM
+			T_MEM_CTF
+		WHERE
+			MEM_CTF_NO = #{MEM_CTF_NO}
+		AND	
+			MEM_CTF_MAIL = #{MEM_CTF_MAIL}
+	</select>
+	
+	<!-- 프론트 > 마이페이지 > 회원정보수정 > 인증완료된 간편회원 > 이메일 update -->
+	<update id="updateMemEmail" parameterType="HashMap">
+		/* PcMyInfo.updateMemEmail */
+		UPDATE 
+			T_MEM_MST
+		SET
+			MEM_MST_MAIL =  #{MEM_CTF_MAIL},
+			MEM_MST_UPD_DT = TO_CHAR(SYSDATE,'YYYYMMDDHH24MISS'),
+			MEM_MST_UPD_IP = #{MEM_MST_UPD_IP},
+			MEM_MST_UPD_ID = #{MEM_MST_MEM_ID}
+		WHERE
+			MEM_MST_MEM_ID = #{MEM_MST_MEM_ID}
+		AND
+			MEM_MST_MEM_GBN = #{MEM_MST_MEM_GBN}
+		AND
+			MEM_MST_LEV_YN = 'N'			
+	</update>
+	
+	<!-- 프론트 > 마이페이지 > 회원정보수정 > 회원상세정보 조회(기업회원) -->
+	<select id="selectCompMemberInfo" parameterType="HashMap" resultType="HashMap">
+		/* PcMyInfo.selectCompMemberInfo */
+		SELECT
+        	TMV.MEM_MST_MEM_ID,
+        	TMV.MEM_MST_MEM_NM,
+        	TMV.MEM_MST_PW,
+        	TMV.MEM_MST_TEL1,
+			TMV.MEM_MST_TEL2,
+			MEM_MST_TEL3,
+			TMV.MEM_MST_HP1,
+			TMV.MEM_MST_HP2,
+			MEM_MST_HP3,
+        	MEM_MST_MAIL,
+			TMV.MEM_MST_MEM_GBN,
+			TMV.MEM_MST_MEM_GRD,
+			TMV.MEM_MST_REG_DT,
+			TMC.MEM_CPR_MEM_ID,
+			TMC.MEM_CPR_NM,  
+			TMC.MEM_CPR_CEO_NM,
+			TMC.MEM_CPR_NO1,
+			TMC.MEM_CPR_NO2,
+			TMC.MEM_CPR_NO3,
+			TMC.MEM_CPR_TYPE,
+			TMC.MEM_CPR_STUS,
+			TMC.MEM_CPR_TEL1,
+			TMC.MEM_CPR_TEL2,
+			MEM_CPR_TEL3,
+			TMC.MEM_CPR_FAX1,
+			TMC.MEM_CPR_FAX2,
+			MEM_CPR_FAX3,
+			TMC.MEM_CPR_ZIP_CDE6,
+			TMC.MEM_CPR_JBN_ADR1,
+			TMC.MEM_CPR_JBN_ADR2,
+			TMC.MEM_CPR_ZIP_CDE5,
+			TMC.MEM_CPR_DRO_ADR1,
+			TMC.MEM_CPR_DRO_ADR2,
+			SMS_YN,
+			TM_YN,
+			DM_YN,
+			EMAIL_YN,
+			AD_YN,
+			KAKAO_YN,
+			S_ELEC_YN,
+			LG_YN
+		FROM
+			T_MEM_VIEW TMV 
+			, T_MEM_CPR TMC
+			,
+        	(
+        		SELECT
+        			MEM_AGR_MEM_ID
+					, DECODE(SMS_YN, 0, 'Y', 'N') AS SMS_YN
+					, DECODE(TM_YN, 0, 'Y', 'N') AS TM_YN
+					, DECODE(DM_YN, 0, 'Y', 'N') AS DM_YN
+					, DECODE(EMAIL_YN, 0, 'Y', 'N') AS EMAIL_YN
+					, DECODE(AD_YN, 0, 'Y', 'N') AS AD_YN
+					, DECODE(KAKAO_YN, 0, 'Y', 'N') AS KAKAO_YN
+					, DECODE(S_ELEC_YN, 0, 'Y', 'N') AS S_ELEC_YN
+					, DECODE(LG_YN, 0, 'Y', 'N') AS LG_YN
+				FROM
+				(
+					SELECT 
+						MEM_AGR_MEM_ID
+						, DECODE(MEM_AGR_TRM_YN, 'Y', 0, 1) AS TRM_YN_CNT
+						, DECODE(MEM_AGR_TRM_CD, 0001, 'SMS_YN', 0002, 'TM_YN', 0003, 'DM_YN', 0004, 'EMAIL_YN', 0005, 'AD_YN', 0006, 'KAKAO_YN', 0007, 'S_ELEC_YN', 0008, 'LG_YN') AS YN
+					FROM T_MEM_AGR
+					WHERE
+        				MEM_AGR_MEM_ID = #{MEM_MST_MEM_ID}    
+				)
+				PIVOT 
+				(
+					SUM(TRM_YN_CNT)
+					FOR YN IN ('SMS_YN' SMS_YN,'TM_YN' TM_YN, 'DM_YN' DM_YN, 'EMAIL_YN' EMAIL_YN, 'AD_YN' AD_YN, 'KAKAO_YN' KAKAO_YN, 'S_ELEC_YN' S_ELEC_YN, 'LG_YN' LG_YN)
+				) 
+        	) AGR 
+		WHERE
+			TMV.MEM_MST_MEM_ID = TMC.MEM_CPR_MEM_ID
+		AND	
+			TMV.MEM_MST_MEM_ID = AGR.MEM_AGR_MEM_ID
+		AND
+			TMV.MEM_MST_MEM_ID = #{MEM_MST_MEM_ID}
+	</select>
+	
+	<!-- 프론트 > 마이페이지 > 회원정보수정 > 기업회원 > 수정 -->
+	<update id="updateMyCompInfo" parameterType="HashMap">
+		/* PcMyInfo.updateMyCompInfo */
+		UPDATE 	
+			T_MEM_CPR
+		SET			
+			MEM_CPR_CEO_NM = #{MEM_CPR_CEO_NM},
+			MEM_CPR_TYPE = #{MEM_CPR_TYPE},
+			MEM_CPR_STUS = #{MEM_CPR_STUS},
+			MEM_CPR_TEL1 = #{MEM_CPR_TEL1},
+			MEM_CPR_TEL2 = #{MEM_CPR_TEL2},
+			MEM_CPR_TEL3 = #{MEM_CPR_TEL3},
+			MEM_CPR_FAX1 = #{MEM_CPR_FAX1},
+			MEM_CPR_FAX2 = #{MEM_CPR_FAX2},
+			MEM_CPR_FAX3 = #{MEM_CPR_FAX3},
+			MEM_CPR_ZIP_CDE5 = #{MEM_MST_ZIP_CDE5},
+			MEM_CPR_JBN_ADR1 = #{MEM_MST_JBN_ADR1},
+			MEM_CPR_JBN_ADR2 = #{MEM_MST_ADR2},
+			MEM_CPR_DRO_ADR1 = #{MEM_MST_DRO_ADR1},
+			MEM_CPR_DRO_ADR2 = #{MEM_MST_ADR2}
+		WHERE
+			MEM_CPR_MEM_ID = #{MEM_MST_MEM_ID}
+	</update>
+	
+	<!-- 프론트 > 마이페이지 > 회원탈퇴 > 현재 주문 있는지 체크 -->
+	<select id="selectCheckOrderCount" parameterType="HashMap" resultType="Integer">
+		/* PcMyInfo.selectCheckOrderCount */
+		SELECT
+			COUNT(1)
+		FROM T_ORD_MST TOM, T_ORD_PRD TOP
+		WHERE TOM.ORD_MST_CD = TOP.ORD_ORD_MST_CD
+		AND ORD_MST_ORD_ID = #{MEM_MST_MEM_ID}
+		AND ORD_PRD_ORD_STATE NOT IN (  #{OST_SEND_END}
+    									, #{OST_FIX}
+    									, #{OST_SWAP_END}
+    									, #{OST_SWAP_READY_CANCEL}
+    									, #{OST_CANCEL_BEFORE_DEPOSIT}
+    									, #{OST_CANCEL_END}
+    									, #{OST_BACK_END}
+    									, #{OST_REFUND_END}
+    									) /* 배송완료,구매확정, 교환완료, 교환취소, 주문취소, 취소완료, 반품완료, 환불완료 제외*/
+	</select>
+	
+	<!-- 프론트 > 마이페이지 > 회원탈퇴 > 통합회원 IPIN 정보 삭제 -->
+	<delete id="deleteMyIpinInfo" parameterType="HashMap">
+		/* PcMyInfo.deleteMyIpinInfo */
+		DELETE FROM T_MEM_IPN WHERE MEM_MST_MEM_ID = #{MEM_MST_MEM_ID}
+	</delete>
+	
+	<!-- 프론트 > 마이페이지 > 회원탈퇴 > 통합회원 약관동의 정보 삭제 -->
+	<delete id="deleteMyAgreement" parameterType="HashMap">
+		/* PcMyInfo.deleteMyAgreement */
+		DELETE FROM T_MEM_AGR WHERE MEM_AGR_MEM_ID = #{MEM_MST_MEM_ID}
+	</delete>
+	
+	<!-- 프론트 > 마이페이지 > 회원탈퇴 > 통합회원 약관동의 정보 삭제 -->
+	<update id="updateMyAgreement" parameterType="HashMap">
+		/* PcMyInfo.deleteMyAgreement */
+		UPDATE T_MEM_AGR
+		SET MEM_AGR_TRM_YN = 'N'
+		WHERE MEM_AGR_MEM_ID = #{MEM_MST_MEM_ID}
+	</update>
+	
+	<!-- 프론트 > 마이페이지 > 회원탈퇴 > 기업회원 정보 삭제 -->
+	<update id="deleteMyCompInfo" parameterType="HashMap">
+		/* PcMyInfo.deleteMyCompInfo */
+		UPDATE 
+    		T_MEM_CPR
+    	SET
+    		MEM_CPR_NM          = '',          
+			MEM_CPR_CEO_NM      = '',            
+			MEM_CPR_NO1         = '',            
+			MEM_CPR_NO2         = '',            
+			MEM_CPR_NO3         = '',            
+			MEM_CPR_TYPE        = '',           
+			MEM_CPR_STUS        = '',           
+			MEM_CPR_DPM         = '',           
+			MEM_CPR_PST         = '',           
+			MEM_CPR_TEL1        = '',           
+			MEM_CPR_TEL2        = '',           
+			MEM_CPR_TEL3        = '',           
+			MEM_CPR_FAX1        = '',           
+			MEM_CPR_FAX2        = '',           
+			MEM_CPR_FAX3        = '',           
+			MEM_CPR_ZIP_CDE6    = '',           
+			MEM_CPR_JBN_ADR1    = '',           
+			MEM_CPR_JBN_ADR2    = '',           
+			MEM_CPR_ZIP_CDE5    = '',           
+			MEM_CPR_DRO_ADR1    = '',           
+			MEM_CPR_DRO_ADR2    = ''
+		WHERE
+			MEM_CPR_MEM_ID = #{MEM_MST_MEM_ID}
+	</update>
+	
+    <!-- 프론트 > 마이페이지 > 회원탈퇴(정보삭제) -->
+    <update id="deleteMyInfo" parameterType="HashMap">
+        /* PcMyInfo.deleteMyInfo */
+        UPDATE
+            T_MEM_MST
+        SET
+            MEM_MST_PW       = '',      
+            MEM_MST_MAIL     = '',       
+            MEM_MST_MEM_GB   = '',       
+            MEM_MST_MEM_GBN  = '',
+            MEM_MST_MEM_GRD  = '',       
+            MEM_MST_ZIP_CDE6 = '',       
+            MEM_MST_JBN_ADR1 = '',       
+            MEM_MST_JBN_ADR2 = '',       
+            MEM_MST_ZIP_CDE5 = '',       
+            MEM_MST_DRO_ADR1 = '',       
+            MEM_MST_DRO_ADR2 = '',       
+            MEM_MST_TEL1     = '',       
+            MEM_MST_TEL2     = '',       
+            MEM_MST_TEL3     = '',   
+            MEM_MST_HP1      = '',       
+            MEM_MST_HP2      = '',       
+            MEM_MST_HP3      = '',       
+            MEM_MST_STATUS   = '',       
+            MEM_MST_LEV_DT   = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),      
+            MEM_MST_LEV_YN   = 'Y',      
+            MEM_MST_LEV_RSN_CD = #{MEM_MST_LEV_RSN_CD},   
+            MEM_MST_LEV_RSN  = NVL(#{MEM_MST_LEV_RSN},''),       
+            MEM_MST_NOTE     = '',       
+            MEM_MST_BIR_DT   = '',       
+            MEM_MST_VST_CNT  = '',       
+            MEM_MST_VST_LAT  = '',  
+            MEM_MST_SEX      = '',    
+            MEM_MST_TMP_PW_YN = '',
+            MEM_MST_TMP_PW_DT = '',
+            MEM_MST_DCT_YN   = '',
+            MEM_MST_REG_DT   = '',     
+            MEM_MST_REG_IP   = '',     
+            MEM_MST_REG_ID   = '',     
+            MEM_MST_UPD_DT   = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),   
+            MEM_MST_UPD_IP   = #{MEM_MST_UPD_IP},    
+            MEM_MST_UPD_ID   = #{MEM_MST_MEM_ID},  
+            MEM_MST_TKN_ID   = '',
+            MEM_MST_DVS      = '',
+            MEM_MST_PSH_YN   = '',
+            MEM_MST_NCK_NM	= '',
+			MEM_MST_STY_JOB	= '',
+			MEM_MST_STY_HEIGHT	= '',
+			MEM_MST_STY_WEIGHT	= '',
+			MEM_MST_PRF_IMG	= ''
+        WHERE  
+            MEM_MST_MEM_ID = #{MEM_MST_MEM_ID}
+    </update>
+    
+	<!-- 회원탈퇴 > 간략한 회원정보 가져오기 -->
+	<select id="selectMemInfo" parameterType="HashMap" resultType="HashMap">
+		/* PcMyInfo.selectMemInfo */
+		SELECT
+			MEM_MST_MEM_GBN,			
+			DECODE(MEM_MST_MEM_GBN,#{MEMBER_TYPE_PRI},'02',#{MEMBER_TYPE_COMP},'22',#{MEMBER_TYPE_SIMPLE},'12') AS P8E1URCD4
+			, (SELECT MEM_IPN_DI FROM T_MEM_IPN WHERE MEM_MST_MEM_ID = #{MEM_MST_MEM_ID}) AS MEM_IPN_DI
+			, (SELECT MEM_IPN_CI FROM T_MEM_IPN WHERE MEM_MST_MEM_ID = #{MEM_MST_MEM_ID}) AS MEM_IPN_CI
+		FROM
+			T_MEM_VIEW
+		WHERE
+			MEM_MST_MEM_ID = #{MEM_MST_MEM_ID}		
+	</select>
+	
+	<!-- 모바일 > 회원정보수정 > 비밀번호 변경 -->
+	<update id="updateMyPwd" parameterType="HashMap">
+		/* PcMyInfo.updateMyPwd */
+		UPDATE
+			T_MEM_MST
+		SET
+			MEM_MST_PW = #{MEM_MST_PW},
+			MEM_MST_UPD_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+			MEM_MST_UPD_ID = #{MEM_MST_MEM_ID},
+			MEM_MST_UPD_IP = #{MEM_MST_UPD_IP},
+			MEM_MST_TMP_PW_YN = 'N',
+			MEM_MST_TMP_PW_DT = ''
+		WHERE
+			MEM_MST_MEM_ID = #{MEM_MST_MEM_ID}
+	</update>
+	<delete id="deleteSns" parameterType="HashMap">
+		/* PcMyInfo.deleteSns */
+		DELETE FROM T_MEM_SNS WHERE MEM_MST_MEM_ID = #{MEM_MST_MEM_ID}
+	</delete>
+	
+</mapper>

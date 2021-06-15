@@ -1,0 +1,296 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="GnbDisplay">
+
+    <!-- GNB 전시 계층형 리스트 조회 -->
+    <select id="selectGnbDisplayList" parameterType="hashMap" resultType="hashMap">
+        /* GnbDisplay.selectGnbDisplayList */
+        SELECT 
+            DSP_GNB_IDX
+            , DSP_GNB_NM
+            , DSP_GNB_UP_IDX
+            , DSP_GNB_LEVEL
+            , DSP_GNB_DSP_YN
+        FROM 
+            T_DSP_GNB
+        WHERE DSP_GNB_DEL_YN != 'Y'
+        <if test="!useYn.equals('all'.toString())">
+            AND DSP_GNB_USE_YN = 'Y'
+        </if>              
+        START WITH DSP_GNB_UP_IDX = -1 
+        CONNECT BY PRIOR DSP_GNB_IDX = DSP_GNB_UP_IDX
+        ORDER SIBLINGS BY DSP_GNB_SORT ASC
+    </select>
+
+    <!-- 하위 GNB 전시 리스트 조회 -->
+    <select id="selectSubGnbDisplayList" parameterType="hashMap" resultType="hashMap">
+        /* GnbDisplay.selectSubGnbDisplayList */
+        SELECT
+            DSP_GNB_IDX
+            , DSP_GNB_NM
+            , DSP_GNB_USE_YN
+            , DSP_GNB_DSP_YN
+        FROM
+            T_DSP_GNB
+        WHERE
+            DSP_GNB_UP_IDX = #{DSP_GNB_IDX}
+        AND
+            DSP_GNB_DEL_YN != 'Y'
+            <if test="!useYn.equals('all'.toString())">
+                AND DSP_GNB_USE_YN = 'Y'
+            </if>
+            <if test="DSP_GNB_ENV != null and DSP_GNB_ENV != ''">
+                AND DSP_GNB_ENV = #{DSP_GNB_ENV}
+            </if>   
+            <if test="searchDspGnbVdrYn != null and searchDspGnbVdrYn != ''">
+                <if test="searchDspGnbVdrYn != '' and searchDspGnbVdrYn.equals('Y'.toString())">
+                    AND DSP_GNB_DSP_YN = 'Y'
+                </if>
+            </if>
+        ORDER BY DSP_GNB_SORT ASC
+    </select>
+
+    <!-- GNB 전시 상세 정보 조회 -->
+    <select id="selectGnbDisplayInfo" parameterType="hashMap" resultType="hashMap">
+        /* GnbDisplay.selectGnbDisplayInfo */
+        SELECT 
+             DSP_GNB_IDX
+             , (SELECT DSP_GNB_NM FROM T_DSP_GNB WHERE DSP_GNB_IDX = A.DSP_GNB_TOP_IDX) DSP_GNB_TOP_NM
+             , (SELECT DSP_GNB_NM FROM T_DSP_GNB WHERE DSP_GNB_TOP_IDX != -1 AND DSP_GNB_IDX = A.DSP_GNB_UP_IDX)  DSP_GNB_UP_NM  
+             , SUBSTR(SYS_CONNECT_BY_PATH(DSP_GNB_NM, '>'),2) AS DSP_GNB_LVL_NM                        
+             , DSP_GNB_NM
+             , DSP_GNB_LEVEL
+             , DSP_GNB_UP_IDX
+             , DSP_GNB_TOP_IDX
+             , DSP_GNB_SORT
+             , DSP_GNB_USE_YN
+             , DSP_GNB_REG_DT
+             , DSP_GNB_REG_IP
+             , DSP_GNB_REG_ID
+             , DSP_GNB_UPD_DT
+             , DSP_GNB_UPD_IP
+             , DSP_GNB_UPD_ID
+             , (SELECT COUNT(DSP_GNB_IDX) FROM T_DSP_GNB WHERE DSP_GNB_UP_IDX = #{DSP_GNB_IDX} AND DSP_GNB_DEL_YN != 'Y') AS CHILD_CNT
+             , DSP_GNB_ENV
+             , DSP_GNB_DSP_YN
+         FROM 
+             T_DSP_GNB A
+         WHERE 
+             DSP_GNB_IDX = #{DSP_GNB_IDX}
+         AND 
+             DSP_GNB_DEL_YN != 'Y'
+         START WITH DSP_GNB_UP_IDX = -1
+         CONNECT BY PRIOR DSP_GNB_IDX = DSP_GNB_UP_IDX
+    </select>
+
+    <!-- GNB 전시 입력 -->
+    <insert id="insertGnbDisplay" parameterType="hashmap" >
+        <selectKey keyProperty="SEQ_DSP_GNB_IDX" resultType="integer" order="BEFORE"> 
+            SELECT SEQ_DSP_GNB_IDX.NEXTVAL FROM DUAL 
+        </selectKey> 
+        <![CDATA[
+        /* GnbDisplay.insertGnbDisplay */
+        INSERT INTO T_DSP_GNB (
+            DSP_GNB_IDX
+            , DSP_GNB_NM
+            , DSP_GNB_LEVEL
+            , DSP_GNB_UP_IDX
+            , DSP_GNB_TOP_IDX
+            , DSP_GNB_SORT
+            , DSP_GNB_USE_YN
+            , DSP_GNB_REG_DT
+            , DSP_GNB_REG_IP
+            , DSP_GNB_REG_ID
+            , DSP_GNB_UPD_DT
+            , DSP_GNB_UPD_IP
+            , DSP_GNB_UPD_ID
+            , DSP_GNB_ENV
+            , DSP_GNB_BRAND_CD
+            , DSP_GNB_DEL_YN
+            , DSP_GNB_DSP_YN
+        )VALUES (
+            #{SEQ_DSP_GNB_IDX}
+            , #{CHILD_CODENAME}
+            , #{DSP_GNB_LEVEL}+1
+            , #{DSP_GNB_IDX}
+            , #{DSP_GNB_TOP_IDX}
+            , (SELECT NVL((SELECT MAX(NVL(DSP_GNB_SORT, 0))+1 FROM T_DSP_GNB WHERE DSP_GNB_UP_IDX = #{DSP_GNB_IDX}), 1) AS C_SORT FROM DUAL)
+            , NVL(#{DSP_GNB_USE_YN},'Y')
+            , TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS')
+            , #{DSP_GNB_REG_IP}
+            , #{DSP_GNB_REG_ID}
+            , TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS')
+            , #{DSP_GNB_REG_IP}
+            , #{DSP_GNB_REG_ID}
+            , #{DSP_GNB_ENV}
+            , #{DSP_GNB_BRAND_CD}
+            , 'N'
+            , 'Y'
+        )
+        ]]>
+    </insert>
+    
+    <!-- GNB 전시 수정 -->
+    <update id="updateGnbDisplay" parameterType="hashmap" >
+        <![CDATA[
+        /* GnbDisplay.updateGnbDisplay */
+        UPDATE 
+            T_DSP_GNB
+        SET
+            DSP_GNB_NM = #{DSP_GNB_NM},
+            DSP_GNB_DSP_YN = NVL(#{DSP_GNB_DSP_YN},'Y'),
+            DSP_GNB_UPD_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+            DSP_GNB_UPD_IP = #{DSP_GNB_UPD_IP},
+            DSP_GNB_UPD_ID = #{DSP_GNB_UPD_ID}
+        WHERE 
+            DSP_GNB_IDX = #{DSP_GNB_IDX}
+        ]]>
+    </update>
+    
+    <!-- GNB 전시 하위 프론트 노출여부  -->
+    <update id="updateGnbChildProduct" parameterType="hashmap" >
+        <![CDATA[
+        /* GnbDisplay.updateGnbChildProduct */
+        UPDATE 
+            T_DSP_GNB
+        SET
+            DSP_GNB_DSP_YN = #{DSP_GNB_DSP_YN}
+        WHERE  
+            DSP_GNB_TOP_IDX = #{DSP_GNB_IDX}
+        ]]>
+    </update>
+    
+    <!-- GNB 전시 하위 정렬 수정 -->
+    <update id="updateGnbDisplaySort" parameterType="hashmap" >
+        <![CDATA[
+        /* GnbDisplay.updateGnbDisplaySort */
+        UPDATE 
+            T_DSP_GNB
+        SET
+            DSP_GNB_SORT = #{DSP_GNB_SORT},
+            DSP_GNB_UPD_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+            DSP_GNB_UPD_IP = #{DSP_GNB_UPD_IP},
+            DSP_GNB_UPD_ID = #{DSP_GNB_UPD_ID}
+        WHERE  
+            DSP_GNB_IDX = #{DSP_GNB_IDX}
+        ]]>
+    </update>
+    
+    <!-- GNB 전시 삭제 -->
+    <update id="deleteGnbDisplay" parameterType="hashmap" >
+        <![CDATA[
+        /* GnbDisplay.deleteGnbDisplay */
+        UPDATE 
+            T_DSP_GNB
+        SET
+            DSP_GNB_USE_YN = 'N',
+            DSP_GNB_DEL_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+            DSP_GNB_DEL_IP = #{DSP_GNB_UPD_IP},
+            DSP_GNB_DEL_ID = #{DSP_GNB_UPD_ID},
+            DSP_GNB_DEL_YN = 'Y'
+        WHERE 
+            DSP_GNB_DEL_YN != 'Y'
+        AND
+           ( DSP_GNB_IDX = #{DSP_GNB_IDX} OR DSP_GNB_UP_IDX = #{DSP_GNB_IDX} )
+        ]]>
+    </update>
+    
+    <!-- 카테고리 스펙 등록 -->
+    <insert id="insertGnbSpec" parameterType="hashmap" >
+        <selectKey keyProperty="SEQ_DSP_SPC_IDX" resultType="integer" order="BEFORE"> 
+            SELECT SEQ_DSP_SPC_IDX.NEXTVAL FROM DUAL 
+        </selectKey> 
+        <![CDATA[
+        /* GnbDisplay.insertGnbSpec */
+        INSERT INTO T_DSP_SPC (
+            DSP_SPC_IDX
+            , DSP_PRD_CTG_IDX
+            , DSP_PRD_SPC_IDX
+            , DSP_PRD_DEL_YN
+            , DSP_SPC_REG_ID
+            , DSP_SPC_REG_DT
+            , DSP_SPC_REG_IP
+        )VALUES (
+            #{SEQ_DSP_SPC_IDX}
+            , #{DSP_GNB_IDX}
+            , #{DSP_PRD_SPC_IDX}
+            , 'N'
+            , #{DSP_GNB_REG_IP}
+            , TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS')
+            , #{DSP_GNB_REG_ID}
+        )
+        ]]>
+    </insert>
+    
+    <!-- 하위 GNB 전시 리스트 조회 -->
+    <select id="selectSpecGnbList" parameterType="hashMap" resultType="hashMap">
+        /* GnbDisplay.selectSpecGnbList */
+        SELECT TA.DSP_SPC_IDX
+       , TA.DSP_PRD_CTG_IDX
+       , TA.DSP_PRD_SPC_IDX
+       , TA.DSP_PRD_DEL_YN
+       , (
+            SELECT 
+                      SUBSTR(SYS_CONNECT_BY_PATH(SPC_MST_NM, '>'),2) AS DSP_GNB_LVL_NM                        
+                 FROM 
+                     T_SPC_MST A
+                 WHERE 
+                     SPC_MST_DEL_YN != 'Y'
+                 AND SPC_MST_IDX = TA.DSP_PRD_SPC_IDX
+                 START WITH A.SPC_MST_UP_IDX = -1
+                 CONNECT BY PRIOR A.SPC_MST_IDX = A.SPC_MST_UP_IDX
+            ) AS DSP_GNB_LVL_NM
+        FROM T_DSP_SPC TA
+        WHERE
+            TA.DSP_PRD_CTG_IDX = #{DSP_GNB_IDX}
+        AND TA.DSP_PRD_DEL_YN = 'N'
+    </select>
+    
+    <!-- 카테고리 스펙 삭제 -->
+    <update id="deleteGnbSpec" parameterType="hashmap" >
+        <![CDATA[
+        /* GnbDisplay.deleteGnbSpec */
+        UPDATE 
+            T_DSP_SPC
+        SET
+            DSP_SPC_DEL_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+            DSP_SPC_DEL_IP = #{DSP_GNB_UPD_IP},
+            DSP_SPC_DEL_ID = #{DSP_GNB_UPD_ID},
+            DSP_PRD_DEL_YN = 'Y'
+        WHERE 
+           DSP_SPC_IDX = #{DSP_SPC_IDX}
+        ]]>
+    </update>
+    
+    <!-- 스펙 등록 여부 -->
+    <select id="selectGnbSpecCount" parameterType="HashMap" resultType="Integer">
+        /* GnbDisplay.selectGnbSpecCount */
+        SELECT 
+             NVL(COUNT(DSP_SPC_IDX),0)
+         FROM 
+             T_DSP_SPC
+         WHERE 
+             DSP_PRD_CTG_IDX = #{DSP_GNB_IDX}
+         AND
+             DSP_PRD_SPC_IDX = #{DSP_PRD_SPC_IDX}
+         AND 
+             DSP_PRD_DEL_YN != 'Y'
+    </select>
+    
+    <!-- 카테고리 스펙 삭제 -->
+    <update id="deleteGnbSpecAll" parameterType="hashmap" >
+        <![CDATA[
+        /* GnbDisplay.deleteGnbSpecAll */
+        UPDATE 
+            T_DSP_SPC
+        SET
+            DSP_SPC_DEL_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+            DSP_SPC_DEL_IP = #{DSP_GNB_UPD_IP},
+            DSP_SPC_DEL_ID = #{DSP_GNB_UPD_ID},
+            DSP_PRD_DEL_YN = 'Y'
+        WHERE 
+           DSP_PRD_CTG_IDX = #{DSP_GNB_IDX}
+        ]]>
+    </update>
+</mapper>

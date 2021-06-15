@@ -1,0 +1,231 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="Branch">
+    <!-- 관리자 > 오프라인직영점관리 > 매장관리 조건절 -->
+    <sql id="branchWhere">      
+        <if test="SHP_MST_AREA != null and SHP_MST_AREA != ''">
+            AND SHP_MST_AREA = #{SHP_MST_AREA}
+        </if>
+
+        <if test="SHP_MST_AREA_SUB != null and SHP_MST_AREA_SUB != ''">
+            AND SHP_MST_NM||' '||SHP_MST_JBN_ADR1||' '||SHP_MST_JBN_ADR2||' '||SHP_MST_DRO_ADR1||' '||SHP_MST_DRO_ADR2 LIKE '%'||#{SHP_MST_AREA_SUB}||'%'
+        </if>
+
+        <if test="SEARCH_WORD != null and SEARCH_WORD != ''">
+            AND SHP_MST_PST||' '||SHP_MST_TEL||' '||SHP_MST_MNG_HP||' '||SHP_MST_MNG_NM||' '||SHP_MST_ENG_NM||' '||SHP_MST_NM||' '||SHP_MST_JBN_ADR1||' '||SHP_MST_JBN_ADR2||' '||SHP_MST_DRO_ADR1||' '||SHP_MST_DRO_ADR2||' '||SHP_MST_MAS_TRS LIKE '%'||#SEARCH_WORD#||'%'
+        </if>
+    </sql>
+    
+    <!-- 인포사이트 > 지점안내 목록 카운트-->
+    <select id="selectBranchListCount" parameterType="HashMap" resultType="Integer">
+        /* Branch.selectStoreListCount */
+        SELECT
+            COUNT(SHP_MST_IDX)
+        FROM
+            T_SHP_MST
+        WHERE
+            SHP_MST_USE_YN = 'Y'
+        AND SHP_MST_TYPE IN ('1981','1980','1982','1985')           
+            <include refid="branchWhere"/>
+    </select>
+    
+    <!-- 인포사이트 > 지점안내 목록 -->
+    <select id="selectBranchList" parameterType="HashMap" resultType="HashMap">
+        /* Branch.selectStoreList */
+        SELECT
+            S2.*,
+            (SELECT CMN_COM_NM FROM T_CMM_COM WHERE CMN_COM_IDX = S2.SHP_MST_TYPE) AS SHP_MST_TYPE_NM,
+            (SELECT CMN_COM_NM FROM T_CMM_COM WHERE CMN_COM_IDX = S2.SHP_MST_AREA) AS SHP_MST_AREA_NM 
+        FROM
+            (   SELECT
+                    ROWNUM AS RNUM,
+                    S1.* 
+                FROM
+                    (   SELECT
+                            SHP_MST_IDX,
+                            SHP_MST_NM,
+                            SHP_MST_MNG_NM,
+                            SHP_MST_DRO_ADR1||' '||SHP_MST_DRO_ADR2 AS SHP_MST_ADDR,
+                            SHP_MST_TEL,
+                            SHP_MST_FAX,
+                            SHP_MST_USE_YN,
+                            SHP_MST_TYPE,
+                            SHP_MST_AREA,
+                            SHP_MST_O2O_YN
+                        FROM
+                            T_SHP_MST 
+                        WHERE
+                            SHP_MST_USE_YN = 'Y'
+                            <include refid="branchWhere"/>
+                            AND SHP_MST_TYPE IN ('1981','1980','1982','1985')
+                       ORDER BY SHP_MST_NM
+                    )
+                    S1 
+            )
+            S2
+        WHERE
+            S2.RNUM BETWEEN #{startNum} AND #{endNum}
+    </select>
+    
+    <!-- 인포사이트 > 지점안내 목록 -->
+    <select id="selectBranchAreaNm" parameterType="String" resultType="String">
+        /* Branch.selectBranchAreaNm */
+        SELECT CMN_COM_NM 
+        FROM T_CMM_COM WHERE CMN_COM_IDX = #{SHP_MST_AREA}
+    </select>
+    
+    <!-- 관리자 > 오프라인직영점 관리 > 보도자료 상세정보  -->
+        <select id="selectBranchInfo" parameterType="HashMap" resultType="HashMap">
+        /* Store.selectBranchInfo */
+        SELECT  SHP_MST_IDX,
+                SHP_MST_ERP_CD,
+                SHP_MST_NM,
+                SHP_MST_ENG_NM,
+                SHP_MST_TYPE,
+                SHP_MST_AREA,
+                SHP_MST_MNG_NM ,
+                SHP_MST_MNG_HP,
+                SHP_MST_MNG_MAIL,
+                SHP_MST_ZIP_CDE5,
+                SHP_MST_JBN_ADR1,
+                SHP_MST_JBN_ADR2,
+                SHP_MST_DRO_ADR1,
+                SHP_MST_DRO_ADR2,
+                SHP_MST_LTTD,
+                SHP_MST_LGTD,
+                SHP_MST_PST,
+                SHP_MST_TEL,
+                SHP_MST_FAX,
+                SHP_MST_PRK,
+                SHP_MST_URL,
+                SHP_MST_MAS_TRS,
+                SHP_MST_MAP_TXT,
+                SHP_MST_WEK_DAY_GBN,
+                SHP_MST_WEK_DAY_ST_HH,
+                SHP_MST_WEK_DAY_ST_MM,
+                SHP_MST_WEK_DAY_ED_HH,
+                SHP_MST_WEK_DAY_ED_MM,
+                SHP_MST_WEK_DAY_TXT,
+                SHP_MST_WEK_END_GBN,
+                SHP_MST_WEK_END_ST_HH,
+                SHP_MST_WEK_END_ST_MM,
+                SHP_MST_WEK_END_ED_HH,
+                SHP_MST_WEK_END_ED_MM,
+                SHP_MST_WEK_END_TXT,
+                SHP_MST_O2O_ST_HH,
+                SHP_MST_O2O_ST_MM,
+                SHP_MST_O2O_ED_HH,
+                SHP_MST_O2O_ED_MM,
+                SHP_MST_IMG1_TXT,
+                SHP_MST_IMG2_TXT,
+                SHP_MST_IMG3_TXT,
+                SHP_MST_IMG4_TXT,
+                SHP_MST_IMG5_TXT,
+                SHP_MST_IMG6_TXT,
+                SHP_MST_IMG7_TXT,
+                SHP_MST_IMG8_TXT,
+                SHP_MST_IMG9_TXT,
+                SHP_MST_IMG10_TXT,
+                SHP_MST_BRC,
+                SHP_MST_HED_OFC,
+                SHP_MST_O2O_YN,
+                SHP_MST_USE_YN,
+                SHP_MST_REG_DT,
+                SHP_MST_REG_IP,
+                SHP_MST_REG_ID,
+                SHP_MST_UPD_DT,
+                SHP_MST_UPD_IP,
+                SHP_MST_UPD_ID,
+                (
+                SELECT
+                    ADM_MST_NM
+                FROM
+                    T_ADM_MST
+                WHERE
+                    ADM_MST_ID = SHP_MST_REG_ID
+                )
+                AS ADM_MST_NM,
+                 (
+                SELECT
+                    ADM_MST_NM
+                FROM
+                    T_ADM_MST
+                WHERE
+                    ADM_MST_ID = SHP_MST_UPD_ID
+                )
+                AS ADM_MST_NM_UPD,
+                (SELECT CMN_COM_NM FROM T_CMM_COM WHERE CMN_COM_IDX = SHP_MST_TYPE) AS SHP_MST_TYPE_NM
+        FROM
+            T_SHP_MST
+        WHERE
+            SHP_MST_IDX = #{SHP_MST_IDX}
+    </select>
+    
+    <!-- 인포사이트 > 조회수 수정 -->
+    <update id="updatePressReadCount" parameterType="HashMap">
+        /* Branch.updatePressReadCount */
+        UPDATE
+            T_PRS_RLS 
+        SET
+            PRS_RLS_READ_CNT = NVL(PRS_RLS_READ_CNT,0)+1
+        WHERE
+            PRS_RLS_IDX = #{PRS_RLS_IDX}
+    </update>
+    
+     <!-- 첨부파일 목록  -->
+    <select id="selectCommonFileList" parameterType="HashMap" resultType="HashMap">
+        /* Branch.selectCommonFileList */
+        SELECT
+            CMM_FLE_IDX,
+            CMM_FLE_TB_NM,
+            CMM_FLE_TB_PK,
+            CMM_FLE_TB_TYPE,
+            CMM_FLE_SYS_PATH,
+            CMM_FLE_ATT_PATH,
+            CMM_FLE_ORG_NM,
+            CMM_FLE_SYS_NM,
+            CMM_FLE_ATT_SIZE,
+            CMM_FLE_ATT_EXT,
+            CMM_FLE_DW_CNT,
+            CMM_FLE_SORT,
+            CMM_FLE_USE_YN,
+            CMM_FLE_REG_DT,
+            CMM_FLE_REG_ID,
+            CMN_FLE_ALT_TXT,
+            CMM_FLE_SYS_PATH || CMM_FLE_ATT_PATH || CMM_FLE_SYS_NM AS CMM_FLE_SAVE_PATH
+        FROM
+            T_CMM_FLE
+        WHERE
+            CMM_FLE_TB_NM = #{CMM_FLE_TB_NM}
+            AND CMM_FLE_TB_PK = #{CMM_FLE_TB_PK}
+            AND CMM_FLE_USE_YN = 'Y'
+    </select>
+    
+    <!-- 공통코드 하위 코드 조회 -->
+    <select id="selectCodeList" parameterType="String" resultType="HashMap">
+        /* Branch.selectCodeList */
+        SELECT
+            CMN_COM_IDX,
+            CMN_COM_NM,
+            CMN_COM_LEVEL,
+            CMN_COM_UP_IDX,
+            CMN_COM_TOP_IDX,
+            CMN_COM_ETC1,
+            CMN_COM_ETC2,
+            CMN_COM_ETC3,
+            CMN_COM_SORT,
+            CMN_COM_USE_YN,
+            CMN_COM_REG_DT,
+            CMN_COM_REG_IP,
+            CMN_COM_REG_ID,
+            CMN_COM_UPD_DT,
+            CMN_COM_UPD_IP,
+            CMN_COM_UPD_ID 
+        FROM
+            T_CMM_COM
+        WHERE
+            CMN_COM_UP_IDX = #{CODE}
+            AND CMN_COM_USE_YN = 'Y'
+        ORDER BY CMN_COM_LEVEL, CMN_COM_SORT ASC
+    </select>
+</mapper>

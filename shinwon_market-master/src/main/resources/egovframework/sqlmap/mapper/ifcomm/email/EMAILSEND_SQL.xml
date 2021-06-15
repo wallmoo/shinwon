@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="EMAILSEND">
+	<!-- 관리자 > 업체정산 > 1:1 문의 조건절 -->
+	<sql id="insertEmailCommon">
+		/* EMAILSEND.insertEmailSendForm */		
+		INSERT INTO T_CMM_MAIL_SND
+			( 
+			MAIL_IDX,
+			MAIL_REV_EMAIL, 
+			MAIL_REV_NAME, 
+			MAIL_SUBJECT, 
+			MAIL_MAPPING1, 
+			MAIL_ISLONG_YN, 
+			MAIL_MAPPING, 
+			MAIL_MAPPING2, 
+			MAIL_MAPPING3, 
+			MAIL_MAPPING4, 
+			MAIL_MAPPING5, 
+			MAIL_MAPPING6, 
+			MAIL_MAPPING7, 
+			MAIL_MAPPING8, 
+			MAIL_MAPPING9, 
+			MAIL_MAPPING10,  
+			MAIL_KIND,
+			MAIL_RETN_EMAIL
+		)
+		VALUES
+		(
+			#{MAIL_IDX},
+			#{MAIL_REV_EMAIL}, 
+			#{MAIL_REV_NAME}, 
+			#{MAIL_SUBJECT}, 
+			#{MAIL_MAPPING1}, 
+			#{MAIL_ISLONG_YN}, 
+			#{MAIL_MAPPING}, 
+			#{MAIL_MAPPING2}, 
+			#{MAIL_MAPPING3}, 
+			#{MAIL_MAPPING4}, 
+			#{MAIL_MAPPING5}, 
+			#{MAIL_MAPPING6}, 
+			#{MAIL_MAPPING7}, 
+			#{MAIL_MAPPING8}, 
+			#{MAIL_MAPPING9}, 
+			#{MAIL_MAPPING10}, 
+			#{MAIL_KIND},
+			#{MAIL_RETN_EMAIL} 
+		)
+	</sql>
+
+	<!-- EMAIL 전송 (실시간 트리거 테이블 ) -->
+	<insert id="insertEmailSend" parameterType="hashmap">
+		<selectKey keyProperty="MAIL_IDX" resultType="Integer" order="BEFORE">
+            SELECT MAIL_IDX.NEXTVAL AS MAIL_IDX FROM DUAL
+        </selectKey>
+		<include refid="insertEmailCommon"></include>
+	</insert>
+	<!--  -->
+	<!-- EMAIL 전송 (이벤트 발송 테이블 ) -->
+	<insert id="insertEmailSendForm" parameterType="hashmap">
+		<selectKey keyProperty="MAIL_IDX" resultType="Integer" order="BEFORE">
+            SELECT MAIL_IDX.NEXTVAL AS MAIL_IDX FROM DUAL
+        </selectKey>
+		<include refid="insertEmailCommon"></include>
+	</insert>
+	
+	<!-- EMAIL 전송 (이벤트 발송 테이블 ) -->
+	<insert id="insertEmailSendList" parameterType="hashmap">
+		<selectKey keyProperty="MAIL_IDX" resultType="Integer" order="BEFORE">
+            SELECT MAIL_IDX.NEXTVAL AS MAIL_IDX FROM DUAL
+        </selectKey>
+		<include refid="insertEmailCommon"></include>
+	</insert>
+
+	<!-- 발송된 테이블 Y처리 -->
+	<update id="updateEmailSendForm" parameterType="HashMap">
+	 	/* EMAILSEND.updateEmailSendForm */
+			UPDATE T_CMM_MAIL_SND
+			SET 
+				LIST_ENDFLAG = 'Y' 
+			WHERE MAIL_IDX = #{MAIL_IDX}
+	</update>			
+
+</mapper>

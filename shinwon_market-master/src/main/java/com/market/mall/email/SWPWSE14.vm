@@ -1,0 +1,291 @@
+
+<!DOCTYPE html>
+<!--[if lt IE 7 ]><html class="ie ie6" lang="ko"><![endif]-->
+<!--[if IE 7 ]><html class="ie ie7" lang="ko"><![endif]-->
+<!--[if IE 8 ]><html class="ie ie8" lang="ko"><![endif]-->
+<!--[if IE 9 ]><html class="ie ie9" lang="ko"><![endif]-->
+<!--[if (gte IE 10)|!(IE)]><!--><html lang="ko"><!--<![endif]-->
+<head>
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="" content="">
+<title>신원몰 | 메일링</title>
+<style>
+	html, body, div, p, span, ul, li, table, tr, thead, tbody, tfoot, th, td, img, a, strong{margin:0; padding:0;}
+	body{font-family:'맑은 고딕', 'Malgun Gothic', '돋움', Dotum, sans-serif; color:#696969; font-size:15px; line-height:1.3; letter-spacing:-.5px;}
+	img{vertical-align:middle; border:0;}
+	table{width:100%; border-collapse:collapse; border-spacing:0; border:0;}
+	th{text-align:left; font-weight:400;}
+	th, td{vertical-align:middle;}
+	ul, li{list-style:none;}
+</style>
+</head>
+
+<body>
+	<!-- 메일일 html -->
+	<div style="width:750px; margin:0 auto;">
+		<!-- header -->
+		<table width="100%" cellpadding="0" cellspacing="0" border="0">
+			<tbody>
+				<tr>
+					<td height="116" style="background-color:#fff; vertical-align:middle; text-align:center;">
+						<a href="#" target="_blank">
+							<img src="https://cdn.showindow.co.kr/nas/cdn/PW/images/common/logo.png" alt="SHINWON MALL">
+						</a>
+					</td>
+				</tr>
+			</tbody>
+		</table>
+		<!-- //header -->
+
+		<!-- content -->
+		<div style="padding:0 20px;">
+			<table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:60px;">
+				<tbody>
+					<tr>
+						<td height="250" style="background-color:#f5f6f8; text-align:center;">
+							<p style="margin-bottom:24px; font-family:'맑은 고딕', 'Malgun Gothic'; font-size:34px; color:#000; font-weight:700; line-height:1.3; letter-spacing:-.5px;">환불완료안내</p>
+							<p style="font-family:'맑은 고딕', 'Malgun Gothic'; font-size:18px; color:#666; line-height:1.3; letter-spacing:-.5px;">
+								<span style="color:#000; font-weight:700;">홍길동(hongkildong)님</span> <span style="color:#fa105d;font-weight:700;">20151126284866</span> 주문 건에 대한 환불이 완료되었습니다.
+							</p>
+							<p style="margin-top:15px;font-family:'맑은 고딕', 'Malgun Gothic'; font-size:15px; color:#666; line-height:1.3; letter-spacing:-.5px;">상세내역은 <span style="display:inline-block;border-bottom:1px solid #666;padding:0 0 5px;,margin:0 5px;">마이페이지 > 취소/교환/반품 조회</span> 에서 확인 가능합니다.
+							</p>
+						</td>
+					</tr>
+				</tbody>
+			</table>
+
+			<div style="margin-bottom:15px; font-family:'맑은 고딕', 'Malgun Gothic'; font-size:26px; color:#000; font-weight:700; line-height:1.3; letter-spacing:-.5px;">환불상품 정보</div>
+			<div style="margin-bottom:55px; border-top:2px solid #1a1a1a;">
+				<table width="100%" cellpadding="0" cellspacing="0" border="0">
+					<thead>
+						<tr>
+							<td width="350" height="70" style="padding:0 20px; font-family:'맑은 고딕', 'Malgun Gothic'; font-size:13px; color:#111; font-weight:700; line-height:1.3; letter-spacing:-.5px; background-color:#f5f6f8; text-align:center;box-sizing:border-box;">상품정보</td>
+							<td width="100" hgeight="70" style="padding:0 5px; font-family:'맑은 고딕', 'Malgun Gothic'; font-size:13px; color:#111; font-weight:700; line-height:1.3; letter-spacing:-.5px; background-color:#f5f6f8; border-left:1px solid #ddd; text-align:center;box-sizing:border-box;">상품금액</td>
+							<td width="90" hgeight="70" style="padding:0 5px; font-family:'맑은 고딕', 'Malgun Gothic'; font-size:13px; color:#111; font-weight:700; line-height:1.3; letter-spacing:-.5px; background-color:#f5f6f8; border-left:1px solid #ddd ;text-align:center;box-sizing:border-box;">배송비</td>
+							<td width="85" hgeight="70" style="padding:0 5px; font-family:'맑은 고딕', 'Malgun Gothic'; font-size:13px; color:#111; font-weight:700; line-height:1.3; letter-spacing:-.5px; background-color:#f5f6f8; border-left:1px solid #ddd ;text-align:center;box-sizing:border-box;">판매자명</td>
+							<td width="85" hgeight="70" style="padding:0 5px; font-family:'맑은 고딕', 'Malgun Gothic'; font-size:13px; color:#111; font-weight:700; line-height:1.3; letter-spacing:-.5px; background-color:#f5f6f8; border-left:1px solid #ddd ;text-align:center;box-sizing:border-box;">진행상태</td>
+						</tr>
+					</thead>
+					<tbody>
+						<tr>
+							<td style="padding:20px 20px; font-family:'맑은 고딕', 'Malgun Gothic'; font-size:15px; color:#333; line-height:1.3; letter-spacing:-.5px; border-bottom:1px solid #ddd; text-align:left;">
+								<div style="overflow:hidden;">
+									<div style="float:left;"><img src="https://cdn.showindow.co.kr/nas/cdn/PW/images/@temp/img_temp_product_thumb.jpg" alt="" style="pdading:0;margin:0;"></div>
+									<div style="display:block;margin-left:60px;">
+										<p style="font-family:'맑은 고딕', 'Malgun Gothic'; font-size:13px; color:#666; line-height:1.3; letter-spacing:-.5px; ">[신원] VIKI</p>
+										<p style="margin-top:6px;font-family:'맑은 고딕', 'Malgun Gothic'; font-size:13px; color:#666; line-height:1.3; letter-spacing:-.5px; ">플리츠 배색 니트 스커트(TYSCI297)</p>
+										<p style="margin-top:6px;font-family:'맑은 고딕', 'Malgun Gothic'; font-size:13px; color:#666; line-height:1.3; letter-spacing:-.5px; ">색상: 블랙 / 사이즈: 90 / 1개</p>
+									</div>
+								</div>
+							</td>
+							<td style="padding:20px 10px; font-family:'맑은 고딕', 'Malgun Gothic'; font-size:15px; color:#999; line-height:1.3; letter-spacing:-.5px; border-bottom:1px solid #ddd; border-left:1px solid #ddd; text-align:center;">
+								<p style="font-family:'맑은 고딕', 'Malgun Gothic'; font-size:13px; color:#999; line-height:1.3; letter-spacing:-.5px;text-decoration:line-through; ">100,000 원</p>
+								<p style="margin-top:6px;font-family:'맑은 고딕', 'Malgun Gothic'; font-size:13px; color:#666; line-height:1.3; letter-spacing:-.5px; ">95,000 원</p>
+							</td>
+							<td style="padding:20px 10px; font-family:'맑은 고딕', 'Malgun Gothic'; font-size:13px; color:#666; line-height:1.3; letter-spacing:-.5px; border-bottom:1px solid #ddd; border-left:1px solid #ddd; text-align:center;">무료<br>배송</td>
+							<td style="padding:20px 10px; font-family:'맑은 고딕', 'Malgun Gothic'; font-size:13px; color:#666; line-height:1.3; letter-spacing:-.5px; border-bottom:1px solid #ddd; border-left:1px solid #ddd; text-align:center;">신원</td>
+							<td style="padding:20px 10px; font-family:'맑은 고딕', 'Malgun Gothic'; font-size:13px; color:#666; line-height:1.3; letter-spacing:-.5px; border-bottom:1px solid #ddd; border-left:1px solid #ddd; text-align:center;">반품완료</td>
+						</tr>
+						<tr>
+							<td style="padding:20px 20px; font-family:'맑은 고딕', 'Malgun Gothic'; font-size:15px; color:#333; line-height:1.3; letter-spacing:-.5px; border-bottom:1px solid #ddd; text-align:left;">
+								<div style="overflow:hidden;">
+									<div style="float:left;"><img src="https://cdn.showindow.co.kr/nas/cdn/PW/images/@temp/img_temp_product_thumb.jpg" alt="" style="pdading:0;margin:0;"></div>
+									<div style="display:block;margin-left:60px;">
+										<p style="font-family:'맑은 고딕', 'Malgun Gothic'; font-size:13px; color:#666; line-height:1.3; letter-spacing:-.5px; ">[신원] VIKI</p>
+										<p style="margin-top:6px;font-family:'맑은 고딕', 'Malgun Gothic'; font-size:13px; color:#666; line-height:1.3; letter-spacing:-.5px; ">플리츠 배색 니트 스커트(TYSCI297)</p>
+										<p style="margin-top:6px;font-family:'맑은 고딕', 'Malgun Gothic'; font-size:13px; color:#666; line-height:1.3; letter-spacing:-.5px; ">색상: 블랙 / 사이즈: 90 / 1개</p>
+									</div>
+								</div>
+							</td>
+							<td style="padding:20px 10px; font-family:'맑은 고딕', 'Malgun Gothic'; font-size:15px; color:#999; line-height:1.3; letter-spacing:-.5px; border-bottom:1px solid #ddd; border-left:1px solid #ddd; text-align:center;">
+								<p style="font-family:'맑은 고딕', 'Malgun Gothic'; font-size:13px; color:#999; line-height:1.3; letter-spacing:-.5px;text-decoration:line-through; ">100,000 원</p>
+								<p style="margin-top:6px;font-family:'맑은 고딕', 'Malgun Gothic'; font-size:13px; color:#666; line-height:1.3; letter-spacing:-.5px; ">95,000 원</p>
+							</td>
+							<td rowspan="2" style="padding:20px 10px; font-family:'맑은 고딕', 'Malgun Gothic'; font-size:13px; color:#666; line-height:1.3; letter-spacing:-.5px; border-bottom:1px solid #ddd; border-left:1px solid #ddd; text-align:center;">2,500 원</td>
+							<td rowspan="2" style="padding:20px 10px; font-family:'맑은 고딕', 'Malgun Gothic'; font-size:13px; color:#666; line-height:1.3; letter-spacing:-.5px; border-bottom:1px solid #ddd; border-left:1px solid #ddd; text-align:center;">row</td>
+							<td style="padding:20px 10px; font-family:'맑은 고딕', 'Malgun Gothic'; font-size:13px; color:#666; line-height:1.3; letter-spacing:-.5px; border-bottom:1px solid #ddd; border-left:1px solid #ddd; text-align:center;">반품완료</td>
+						</tr>
+						<tr>
+							<td style="padding:20px 20px; font-family:'맑은 고딕', 'Malgun Gothic'; font-size:15px; color:#333; line-height:1.3; letter-spacing:-.5px; border-bottom:1px solid #ddd; text-align:left;">
+								<div style="overflow:hidden;">
+									<div style="float:left;"><img src="https://cdn.showindow.co.kr/nas/cdn/PW/images/@temp/img_temp_product_thumb.jpg" alt="" style="pdading:0;margin:0;"></div>
+									<div style="display:block;margin-left:60px;">
+										<p style="font-family:'맑은 고딕', 'Malgun Gothic'; font-size:13px; color:#666; line-height:1.3; letter-spacing:-.5px; ">[신원] VIKI</p>
+										<p style="margin-top:6px;font-family:'맑은 고딕', 'Malgun Gothic'; font-size:13px; color:#666; line-height:1.3; letter-spacing:-.5px; ">플리츠 배색 니트 스커트(TYSCI297)</p>
+										<p style="margin-top:6px;font-family:'맑은 고딕', 'Malgun Gothic'; font-size:13px; color:#666; line-height:1.3; letter-spacing:-.5px; ">색상: 블랙 / 사이즈: 90 / 1개</p>
+									</div>
+								</div>
+							</td>
+							<td style="padding:20px 10px; font-family:'맑은 고딕', 'Malgun Gothic'; font-size:15px; color:#999; line-height:1.3; letter-spacing:-.5px; border-bottom:1px solid #ddd; border-left:1px solid #ddd; text-align:center;">
+								<p style="font-family:'맑은 고딕', 'Malgun Gothic'; font-size:13px; color:#999; line-height:1.3; letter-spacing:-.5px;text-decoration:line-through; ">100,000 원</p>
+								<p style="margin-top:6px;font-family:'맑은 고딕', 'Malgun Gothic'; font-size:13px; color:#666; line-height:1.3; letter-spacing:-.5px; ">95,000 원</p>
+							</td>
+							<td style="padding:20px 10px; font-family:'맑은 고딕', 'Malgun Gothic'; font-size:13px; color:#666; line-height:1.3; letter-spacing:-.5px; border-bottom:1px solid #ddd; border-left:1px solid #ddd; text-align:center;">반품완료</td>
+						</tr>
+					</tbody>
+				</table>
+			</div>
+
+			<div style="margin-bottom:15px; font-family:'맑은 고딕', 'Malgun Gothic'; font-size:26px; color:#000; font-weight:700; line-height:1.3; letter-spacing:-.5px;">환불정보</div>
+			<div style="margin-bottom:55px;border-top:2px solid #1a1a1a;">
+				<table width="100%" cellpadding="0" cellspacing="0" border="0">
+					<thead>
+						<tr>
+							<td width="175" height="120" style="padding:0 20px; background-color:#f5f6f8; text-align:center;box-sizing:border-box;">
+								<p style="margin-bottom:7px;font-family:'맑은 고딕', 'Malgun Gothic'; font-size:13px; color:#666; font-weight:700; line-height:1.3; letter-spacing:-.5px; ">취소 주문금액</p>
+								<p style="font-family:'맑은 고딕', 'Malgun Gothic'; font-size:15px; color:#111; font-weight:700; line-height:1.3; letter-spacing:-.5px; ">102,500 원</p>
+							</td>
+							<td width="175" height="120" style="background-color:#f5f6f8; text-align:center;border-left:1px solid #ddd;box-sizing:border-box;">
+								<div style="position:relative;padding:0 20px;">
+									<span style="position:absolute;top:50%;left:-20px;margin-top:-20px;width:40px;height:40px;"><img src="https://cdn.showindow.co.kr/nas/cdn/PW/images/mailing/ico_minus.png" alt="-" style="width:40px;height:40px;"></span>
+									<p style="margin-bottom:7px;font-family:'맑은 고딕', 'Malgun Gothic'; font-size:13px; color:#666; font-weight:700; line-height:1.3; letter-spacing:-.5px; ">차감금액</p>
+									<p style="font-family:'맑은 고딕', 'Malgun Gothic'; font-size:15px; color:#111; font-weight:700; line-height:1.3; letter-spacing:-.5px; ">22,500 원</p>
+								</div>
+							</td>
+							<td width="175" height="120" style="background-color:#f5f6f8; text-align:center;border-left:1px solid #ddd;box-sizing:border-box;">
+								<div style="position:relative;padding:0 20px;">
+									<span style="position:absolute;top:50%;left:-20px;margin-top:-20px;width:40px;height:40px;"><img src="https://cdn.showindow.co.kr/nas/cdn/PW/images/mailing/ico_equal.png" alt="=" style="width:40px;height:40px;"></span>
+									<p style="margin-bottom:5px;font-family:'맑은 고딕', 'Malgun Gothic'; font-size:13px; color:#6d24fb; font-weight:700; line-height:1.3; letter-spacing:-.5px; ">환불금액</p>
+									<p style="font-family:'맑은 고딕', 'Malgun Gothic'; font-size:20px; color:#6d24fb; font-weight:700; line-height:1.1; letter-spacing:-.5px; ">63,000 <span style="display:inline-block;margin-top:3px;vertical-align:top;font-weight:normal;font-family:'맑은 고딕', 'Malgun Gothic'; font-size:15px;">원</span></p>
+								</div>
+							</td>
+							<td width="185" height="120" style="background-color:#f5f6f8; text-align:center;border-left:1px solid #ddd;box-sizing:border-box;">
+								<div style="position:relative;padding:0 20px;">
+									<span style="position:absolute;top:50%;left:-20px;margin-top:-20px;width:40px;height:40px;"><img src="https://cdn.showindow.co.kr/nas/cdn/PW/images/mailing/ico_plus.png" alt="+" style="width:40px;height:40px;"></span>
+									<p style="margin-bottom:5px;font-family:'맑은 고딕', 'Malgun Gothic'; font-size:13px; color:#6d24fb; font-weight:700; line-height:1.3; letter-spacing:-.5px; ">환불포인트</p>
+									<p style="font-family:'맑은 고딕', 'Malgun Gothic'; font-size:20px; color:#6d24fb; font-weight:700; line-height:1.1; letter-spacing:-.5px; ">17,000 <span style="display:inline-block;margin-top:3px;vertical-align:top;font-weight:normal;font-family:'맑은 고딕', 'Malgun Gothic'; font-size:15px;">P</span></p>
+								</div>
+							</td>
+						</tr>
+					</thead>
+					<tbody>
+						<tr>
+							<td style="padding:20px 19px 40px; font-family:'맑은 고딕', 'Malgun Gothic'; font-size:15px; color:#999; line-height:1.3; letter-spacing:-.5px; border-bottom:1px solid #ddd;  text-align:left;box-sizing:border-box;vertical-align:top;">
+								<ul style="padding:0;margin:0;">
+									<li style="position:relative;margin-top:5px;padding-left:8px;">
+										<span style="position:absolute;top:8px;left:0;width:4px;height:1px;background:#494949;"></span>
+										<strong style="display:block;font-family:'맑은 고딕', 'Malgun Gothic'; font-size:13px; color:#333; line-height:1.3; letter-spacing:-.5px;">취소 상품금액</strong>
+										<span style="display:block;margin-top:4px;font-family:'맑은 고딕', 'Malgun Gothic'; font-size:13px; color:#666; line-height:1.3; letter-spacing:-.5px;">97,500 원</span>
+									</li>
+									<li style="position:relative;margin-top:5px;padding-left:8px;">
+										<span style="position:absolute;top:8px;left:0;width:4px;height:1px;background:#494949;"></span>
+										<strong style="display:block;font-family:'맑은 고딕', 'Malgun Gothic'; font-size:13px; color:#333; line-height:1.3; letter-spacing:-.5px;">취소 배송비</strong>
+										<span style="display:block;margin-top:4px;font-family:'맑은 고딕', 'Malgun Gothic'; font-size:13px; color:#666; line-height:1.3; letter-spacing:-.5px;">2,500 원</span>
+									</li>
+									<li style="position:relative;margin-top:5px;padding-left:8px;">
+										<span style="position:absolute;top:8px;left:0;width:4px;height:1px;background:#494949;"></span>
+										<strong style="display:block;font-family:'맑은 고딕', 'Malgun Gothic'; font-size:13px; color:#333; line-height:1.3; letter-spacing:-.5px;">취소 도서산간 배송비</strong>
+										<span style="display:block;margin-top:4px;font-family:'맑은 고딕', 'Malgun Gothic'; font-size:13px; color:#666; line-height:1.3; letter-spacing:-.5px;">2,500 원</span>
+									</li>
+								</ul>
+							</td>
+							<td style="padding:20px 19px 40px; font-family:'맑은 고딕', 'Malgun Gothic'; font-size:15px; color:#999; line-height:1.3; letter-spacing:-.5px; border-left:1px solid #ddd;border-bottom:1px solid #ddd;  text-align:left;box-sizing:border-box;vertical-align:top;">
+								<ul style="padding:0;margin:0;">
+									<li style="position:relative;margin-top:5px;padding-left:8px;">
+										<span style="position:absolute;top:8px;left:0;width:4px;height:1px;background:#494949;"></span>
+										<strong style="display:block;font-family:'맑은 고딕', 'Malgun Gothic'; font-size:13px; color:#333; line-height:1.3; letter-spacing:-.5px;">즉시할인</strong>
+										<span style="display:block;margin-top:4px;font-family:'맑은 고딕', 'Malgun Gothic'; font-size:13px; color:#666; line-height:1.3; letter-spacing:-.5px;">13,000 원</span>
+									</li>
+									<li style="position:relative;margin-top:5px;padding-left:8px;">
+										<span style="position:absolute;top:8px;left:0;width:4px;height:1px;background:#494949;"></span>
+										<strong style="display:block;font-family:'맑은 고딕', 'Malgun Gothic'; font-size:13px; color:#333; line-height:1.3; letter-spacing:-.5px;">제휴사할인</strong>
+										<span style="display:block;margin-top:4px;font-family:'맑은 고딕', 'Malgun Gothic'; font-size:13px; color:#666; line-height:1.3; letter-spacing:-.5px;">2,500 원</span>
+									</li>
+									<li style="position:relative;margin-top:5px;padding-left:8px;">
+										<span style="position:absolute;top:8px;left:0;width:4px;height:1px;background:#494949;"></span>
+										<strong style="display:block;font-family:'맑은 고딕', 'Malgun Gothic'; font-size:13px; color:#333; line-height:1.3; letter-spacing:-.5px;">상품할인쿠폰</strong>
+										<span style="display:block;margin-top:4px;font-family:'맑은 고딕', 'Malgun Gothic'; font-size:13px; color:#666; line-height:1.3; letter-spacing:-.5px;">2,500 원</span>
+									</li>
+									<li style="position:relative;margin-top:5px;padding-left:8px;">
+										<span style="position:absolute;top:8px;left:0;width:4px;height:1px;background:#494949;"></span>
+										<strong style="display:block;font-family:'맑은 고딕', 'Malgun Gothic'; font-size:13px; color:#333; line-height:1.3; letter-spacing:-.5px;">배송비쿠폰</strong>
+										<span style="display:block;margin-top:4px;font-family:'맑은 고딕', 'Malgun Gothic'; font-size:13px; color:#666; line-height:1.3; letter-spacing:-.5px;">2,500 원</span>
+									</li>
+									<li style="position:relative;margin-top:5px;padding-left:8px;">
+										<span style="position:absolute;top:8px;left:0;width:4px;height:1px;background:#494949;"></span>
+										<strong style="display:block;font-family:'맑은 고딕', 'Malgun Gothic'; font-size:13px; color:#333; line-height:1.3; letter-spacing:-.5px;">프로모션 할인</strong>
+										<span style="display:block;margin-top:4px;font-family:'맑은 고딕', 'Malgun Gothic'; font-size:13px; color:#666; line-height:1.3; letter-spacing:-.5px;">2,500 원</span>
+									</li>
+								</ul>
+							</td>
+							<td style="padding:20px 19px 40px; font-family:'맑은 고딕', 'Malgun Gothic'; font-size:15px; color:#999; line-height:1.3; letter-spacing:-.5px; border-left:1px solid #ddd;border-bottom:1px solid #ddd;  text-align:left;box-sizing:border-box;vertical-align:top;">
+								<ul style="padding:0;margin:0;">
+									<li style="position:relative;margin-top:5px;padding-left:8px;">
+										<span style="position:absolute;top:8px;left:0;width:4px;height:1px;background:#494949;"></span>
+										<strong style="display:block;font-family:'맑은 고딕', 'Malgun Gothic'; font-size:13px; color:#333; line-height:1.3; letter-spacing:-.5px;">신용카드</strong>
+										<span style="display:block;margin-top:4px;font-family:'맑은 고딕', 'Malgun Gothic'; font-size:13px; color:#666; line-height:1.3; letter-spacing:-.5px;">63,000 원</span>
+									</li>
+								</ul>
+							</td>
+							<td style="padding:20px 19px 40px; font-family:'맑은 고딕', 'Malgun Gothic'; font-size:15px; color:#999; line-height:1.3; letter-spacing:-.5px; border-left:1px solid #ddd;border-bottom:1px solid #ddd;  text-align:left;box-sizing:border-box;vertical-align:top;">
+								<ul style="padding:0;margin:0;">
+									<li style="position:relative;margin-top:5px;padding-left:8px;">
+										<span style="position:absolute;top:8px;left:0;width:4px;height:1px;background:#494949;"></span>
+										<strong style="display:block;font-family:'맑은 고딕', 'Malgun Gothic'; font-size:13px; color:#333; line-height:1.3; letter-spacing:-.5px;">통합포인트</strong>
+										<span style="display:block;margin-top:4px;font-family:'맑은 고딕', 'Malgun Gothic'; font-size:13px; color:#666; line-height:1.3; letter-spacing:-.5px;">2,000 P</span>
+									</li>
+									<li style="position:relative;margin-top:5px;padding-left:8px;">
+										<span style="position:absolute;top:8px;left:0;width:4px;height:1px;background:#494949;"></span>
+										<strong style="display:block;font-family:'맑은 고딕', 'Malgun Gothic'; font-size:13px; color:#333; line-height:1.3; letter-spacing:-.5px;">E포인트</strong>
+										<span style="display:block;margin-top:4px;font-family:'맑은 고딕', 'Malgun Gothic'; font-size:13px; color:#666; line-height:1.3; letter-spacing:-.5px;">10,000 P</span>
+									</li>
+									<li style="position:relative;margin-top:5px;padding-left:8px;">
+										<span style="position:absolute;top:8px;left:0;width:4px;height:1px;background:#494949;"></span>
+										<strong style="display:block;font-family:'맑은 고딕', 'Malgun Gothic'; font-size:13px; color:#333; line-height:1.3; letter-spacing:-.5px;">임직원포인트</strong>
+										<span style="display:block;margin-top:4px;font-family:'맑은 고딕', 'Malgun Gothic'; font-size:13px; color:#666; line-height:1.3; letter-spacing:-.5px;">5,000 P</span>
+									</li>
+								</ul>
+							</td>
+						</tr>
+					</tbody>
+				</table>
+			</div>
+
+			<div style="text-align:center; margin-bottom:90px;">
+				<a href="#" target="_blank" style="display:inline-block;">
+					<img src="https://cdn.showindow.co.kr/nas/cdn/PW/images/mailing/btn_shinwon_white.jpg" alt="신원몰 바로가기">
+				</a>
+				<a href="#" target="_blank" style="display:inline-block;margin-left:10px;">
+					<img src="https://cdn.showindow.co.kr/nas/cdn/PW/images/mailing/btn_mypage.jpg" alt="마이페이지 바로가기">
+				</a>
+			</div>
+
+			<table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:60px;">
+				<tbody>
+					<tr>
+						<td style="padding:0 0 5px 10px; font-family:'맑은 고딕', 'Malgun Gothic'; font-size:18px; color:#000; font-weight:700; line-height:1.3; letter-spacing:-.5px;">알려드립니다!</td>
+					</tr>
+					<tr>
+						<td style="padding:5px 0 0 10px; font-family:'맑은 고딕', 'Malgun Gothic'; font-size:13px; color:#666; line-height:1.8; letter-spacing:-.5px;">본 메일은 정보통신망 이용촉진 및 정보보호 등에 관한 법률 시행규칙에 의거하여 [www.shinwonmall.com]에 회원가입시 또는 그 이후 메일 수신을 동의하셨기에 발송 한 발신전용 메일입니다.</td>
+					</tr>
+				</tbody>
+			</table>
+		</div>
+		<!-- //content -->
+
+		<!-- footer -->
+		<div style="padding:0 20px; background-color:#000;">
+			<table width="100%" cellpadding="0" cellspacing="0" border="0">
+				<tbody>
+					<tr>
+						<td style="padding:39px 0 40px 8px; width:116px; vertical-align:top;">
+							<img src="https://cdn.showindow.co.kr/nas/cdn/PW/images/mailing/img_f_logo.jpg" alt="SHINWON MALL">
+						</td>
+						<td style="padding:39px 0 40px; font-family:'맑은 고딕', 'Malgun Gothic'; font-size:13px; color:#fff; line-height:1.8; letter-spacing:-.6px; vertical-align:top;">
+							<p>(주)신원 대표자(성명) : 박정주 사업장 소재지 : 서울 마포구 독막로 328(도화동) 대표번호 : 1661-2585<br>사업자 등록번호 안내 : 105-81-11908 개인정보관리책임자 : 송대섭 통신판매업 신고 : 2016-서울마포-0401<br>COPYRIGHT © 2020 (주) 신원. ALL RIGHTS RESERVED.</p>
+							<div style="margin-top:10px;">
+								<a href="http://www.ftc.go.kr/bizCommPop.do?wrkr_no=1058111908&amp;apv_perm_no=" target="_blank"><img src="https://cdn.showindow.co.kr/nas/cdn/PW/images/mailing/btn_license.jpg" alt="사업자정보확인"></a>
+								<a href="http://pgweb.uplus.co.kr/ms/escrow/s_escrowYn.do?mertid=shinwon1" target="_blank"><img src="https://cdn.showindow.co.kr/nas/cdn/PW/images/mailing/btn_escro.jpg" alt="에스크로 서비스 가입확인 "></a>
+							</div>
+						</td>
+					</tr>
+				</tbody>
+			</table>
+		</div>
+		<!-- //footer -->
+
+	</div>
+	<!-- //메일링 html -->
+</body>
+</html>

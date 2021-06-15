@@ -1,0 +1,175 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="Ad">
+    <!-- 팝업관리 검색 조건 -->
+    <sql id="adWhere">
+        <where>
+            <if test="searchAdMstViewEnv != null and searchAdMstViewEnv != ''">
+                AND AD_MST_VIEW_ENV = #{searchAdMstViewEnv}
+            </if>
+
+            <if test="searchAdMstTitle != null and searchAdMstTitle != ''">
+                AND AD_MST_TITLE LIKE '%'||#{searchAdMstTitle}||'%'
+            </if>
+
+            <if test="searchStartDate != null and searchStartDate != '' and searchEndDate != null and searchEndDate != ''">
+                <![CDATA[
+                    AND AD_MST_ST_DT <= REPLACE(#{searchEndDate},'-', '') AND REPLACE(#{searchStartDate},'-', '') <= AD_MST_ED_DT
+                ]]>
+            </if>
+
+            <if test="searchAdMstDplYn != null and searchAdMstDplYn != ''">
+                AND AD_MST_DPL_YN = #{searchAdMstDplYn}
+            </if>
+        </where>
+    </sql>
+    
+    <!-- 팝업관리 리스트 갯수 -->
+    <select id="selectAdCount" parameterType="hashMap" resultType="integer">
+        /* Ad.selectAdCount */
+        SELECT
+            COUNT(0)
+        FROM
+            T_AD_MST
+        <include refid="adWhere"/>
+    </select> 
+    
+    <!-- 팝업관리 리스트 조회 -->
+    <select id="selectAdList" parameterType="hashMap" resultType="hashMap">
+        /* Ad.selectAdList */
+        SELECT
+            S2.*            
+        FROM
+            (   SELECT
+                    ROWNUM AS RNUM,
+                    S1.* 
+                FROM
+                    (   SELECT
+                               AD_MST_IDX,
+                               AD_MST_TITLE,
+                               AD_MST_WCH,
+                               (SELECT CMN_COM_NM FROM T_CMM_COM WHERE CMN_COM_IDX =  AD_MST_WCH) AS AD_MST_WCH_NM,
+                               AD_MST_VIEW_ENV,
+                               AD_MST_ST_DT,
+                               AD_MST_ED_DT,
+                               AD_MST_CPC,
+                               AD_MST_CPM,
+                               AD_MST_DPL_YN,
+                               AD_MST_REG_DT
+                        FROM
+                            T_AD_MST                            
+                        <include refid="adWhere"/>
+                        ORDER BY AD_MST_REG_DT DESC 
+                    )
+                    S1 
+            )
+            S2 
+        WHERE
+            S2.RNUM BETWEEN #{startNum} AND #{endNum}
+    </select>
+
+ 
+    <select id="selectAdInfo" parameterType="hashMap" resultType="hashMap">
+        <![CDATA[
+        /* Ad.selectAdInfo */
+        SELECT
+            AD_MST_IDX, 
+            AD_MST_TITLE, 
+            AD_MST_ST_DT, 
+            AD_MST_ST_HH, 
+            AD_MST_ST_MM, 
+            AD_MST_ED_DT, 
+            AD_MST_ED_HH, 
+            AD_MST_ED_MM,
+            AD_MST_DPL_YN,
+            AD_MST_WCH,
+            AD_MST_LNK_GBN,
+            AD_MST_LNK_URL,
+            AD_MST_IMG_TXT,
+            AD_MST_CPC,
+            AD_MST_CPM,
+            AD_MST_REG_DT, 
+            AD_MST_REG_IP, 
+            AD_MST_REG_ID
+        FROM
+            T_AD_MST
+        WHERE
+            AD_MST_IDX = #{AD_MST_IDX}
+        ]]>
+    </select>
+
+    <!-- 팝업관리 등록 -->
+    <insert id="insertAd" parameterType="hashMap">
+    <selectKey keyProperty="AD_MST_IDX" resultType="Integer" order="BEFORE">
+        SELECT SEQ_AD_MST_IDX.NEXTVAL AS AD_MST_IDX  FROM DUAL
+    </selectKey>
+        <![CDATA[
+        /* Ad.insertAd */
+        INSERT INTO T_AD_MST (
+            AD_MST_IDX
+            , AD_MST_TITLE
+            , AD_MST_ST_DT
+            , AD_MST_ST_HH
+            , AD_MST_ST_MM
+            , AD_MST_ED_DT
+            , AD_MST_ED_HH
+            , AD_MST_ED_MM
+            , AD_MST_VIEW_ENV
+            , AD_MST_DPL_YN
+            , AD_MST_WCH
+            , AD_MST_LNK_GBN
+            , AD_MST_LNK_URL
+            , AD_MST_IMG_TXT
+            , AD_MST_REG_DT
+            , AD_MST_REG_IP
+            , AD_MST_REG_ID
+        )VALUES (
+            #{AD_MST_IDX}
+            , #{AD_MST_TITLE}
+            , REPLACE(#{AD_MST_ST_DT},'-','')
+            , #{AD_MST_ST_HH}
+            , #{AD_MST_ST_MM}
+            , REPLACE(#{AD_MST_ED_DT},'-','')
+            , #{AD_MST_ED_HH}
+            , #{AD_MST_ED_MM}
+            , #{AD_MST_VIEW_ENV}
+            , #{AD_MST_DPL_YN}
+            , #{AD_MST_WCH}
+            , #{AD_MST_LNK_GBN}
+            , #{AD_MST_LNK_URL}
+            , #{AD_MST_IMG_TXT}
+            , TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS')
+            , #{AD_MST_REG_IP}
+            , #{AD_MST_REG_ID}
+        ) 
+        ]]>
+    </insert>
+   
+    <!-- 팝업관리 수정 -->
+    <update id="updateAd" parameterType="hashMap">
+        <![CDATA[
+        /* Ad.updateAd */
+        UPDATE 
+            T_AD_MST
+        SET
+            AD_MST_TITLE = #{AD_MST_TITLE}
+            , AD_MST_ST_DT = REPLACE(#{AD_MST_ST_DT},'-','')
+            , AD_MST_ED_DT = REPLACE(#{AD_MST_ED_DT},'-','')
+            , AD_MST_ST_HH = #{AD_MST_ST_HH}
+            , AD_MST_ST_MM = #{AD_MST_ST_MM}
+            , AD_MST_ED_HH = #{AD_MST_ED_HH}
+            , AD_MST_ED_MM = #{AD_MST_ED_MM}
+            , AD_MST_DPL_YN = #{AD_MST_DPL_YN}
+            , AD_MST_WCH = #{AD_MST_WCH}
+            , AD_MST_LNK_GBN = #{AD_MST_LNK_GBN}
+            , AD_MST_LNK_URL = #{AD_MST_LNK_URL}
+            , AD_MST_IMG_TXT = #{AD_MST_IMG_TXT}
+            , AD_MST_UPD_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS')
+            , AD_MST_UPD_IP = #{AD_MST_UPD_IP}
+            , AD_MST_UPD_ID = #{AD_MST_UPD_ID}
+        WHERE
+            AD_MST_IDX = #{AD_MST_IDX}
+        ]]>
+    </update>
+</mapper>

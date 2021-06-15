@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="BatchEMAILSEND">
+
+    <!-- EMAIL 전송 (실시간 트리거 테이블 ) -->
+    <insert id="insertEmailSend" parameterType="hashmap">
+        <selectKey keyProperty="SEQ" resultType="integer" order="BEFORE">
+            SELECT ETLANDMAIL.EV_MAIL_SEND_SEQ.NEXTVAL FROM DUAL
+        </selectKey>                    
+            /* EMAILSEND.insertEmailSend */     
+            INSERT INTO ETLANDMAIL.EV_MAIL_SEND
+            ( 
+                SEQ                 /* 발송순번 */
+                ,EON_EVENT_ID       /* EON  등록된 EVENT  ID */
+                ,REV_EMAIL          /* 수신자 이메일 */
+                ,REV_NAME           /* 수신자 이름 */
+                ,SUBJECT            /* 제목 */
+                <if test="MAPPING1 != null and MAPPING1 != ''">
+                ,MAPPING1           /* 개인화 내용1 */
+                </if>
+                <if test="MAPPING != null and MAPPING != ''">
+                ,ISLONGMAP          /* 개인화 CLOB  사용여부 */
+                </if>
+                <if test="MAPPING != null and MAPPING != ''">
+                ,MAPPING            /* 개인화 내용 CLOB */
+                </if>
+            )
+            VALUES
+            (
+                #{SEQ}                                        /* 발송순번 */                 
+                ,#{EON_EVENT_ID}                              /* EON  등록된 EVENT  ID */   
+                ,#{REV_EMAIL}                                 /* 수신자 이메일 */              
+                ,#{REV_NAME}                                  /* 수신자 이름 */               
+                ,#{SUBJECT}                                   /* 제목 */
+                <if test="MAPPING1 != null and MAPPING1 != ''">                                   
+                ,#{MAPPING1}                                  /* 개인화 내용1 */
+                </if>
+                <if test="MAPPING != null and MAPPING != ''">             
+                ,'Y'                                         /* 개인화 CLOB  사용여부 */
+                </if>
+                <if test="MAPPING != null and MAPPING != ''">             
+                ,#{MAPPING}                                   /* 개인화 내용 CLOB */
+                </if>                
+            )
+    </insert>
+    
+    <!-- EMAIL 전송 (이벤트 발송 테이블 ) -->
+    <insert id="insertEmailSendForm" parameterType="hashmap">
+        <selectKey keyProperty="SEQ" resultType="integer" order="BEFORE">
+            SELECT MAX(NVL(SEQ,0)) +1 FROM ETLANDMAIL.EV_SEND_FORM
+        </selectKey>    
+            /* EMAILSEND.insertEmailSendForm */     
+            INSERT INTO ETLANDMAIL.EV_SEND_FORM
+            ( 
+                 SEQ          /* 순번 */
+                ,MAIL_KIND    /* 메일종류 */
+                ,REGDATE      /* 발송요청시간 */
+                ,SUBJECT      /* 메일제목 */
+                ,SEND_EMAIL   /* 발신자이메일 */
+                ,SEND_NAME    /* 발신자이름 */
+                ,RETURN_EMAIL /* 리턴 이메일 */
+            )
+            VALUES
+            (
+                #{SEQ}                /* 순번 */
+                ,#{EON_EVENT_ID}      /* 메일종류 */
+                ,SYSDATE             /* 발송요청시간 */
+                ,#{SUBJECT}           /* 메일제목 */
+                ,#{SEND_EMAIL}        /* 발신자이메일 */
+                ,#{SEND_NAME}         /* 발신자이름 */
+                ,#{RETURN_EMAIL}      /* 리턴 이메일 */
+            )
+    </insert>
+    
+    <!-- EMAIL 전송 (이벤트 발송 테이블 ) -->
+    <insert id="insertEmailSendList" parameterType="hashmap">
+            /* EMAILSEND.insertEmailSendList */
+            INSERT INTO ETLANDMAIL.EV_SEND_LIST
+            (
+                 SEQ             /* 순번 */
+                ,LIST_SEQ        /* 리스트 순번 */
+                ,EMAIL           /* 수신자 이메일 */
+                ,NAME            /* 수신자 이름 */
+                ,MAPPING1        /* 개인화 내용1 */
+                ,MAPPING2        /* 개인화 내용2 */
+                ,MAPPING3        /* 개인화 내용3 */
+                ,MAPPING4        /* 개인화 내용4 */
+                ,MAPPING5        /* 개인화 내용5 */
+                ,MAPPING6        /* 개인화 내용6 */
+                ,MAPPING7        /* 개인화 내용7 */
+                ,MAPPING8        /* 개인화 내용8 */
+                ,MAPPING9        /* 개인화 내용9 */                              
+                ,MAPPING10       /* 개인화 내용10 */         
+            )
+            VALUES
+            (
+                #{SEQ}            /* 순번 */
+                ,(SELECT MAX(NVL(LIST_SEQ,0)) +1 FROM ETLANDMAIL.EV_SEND_LIST)  /* 리스트 순번 */
+                ,#{REV_EMAIL}     /* 수신자 이메일 */
+                ,#{REV_NAME}      /* 수신자 이름 */
+                ,#{MAPPING1}      /* 개인화 내용1 */
+                ,#{MAPPING2}      /* 개인화 내용2 */
+                ,#{MAPPING3}      /* 개인화 내용3 */
+                ,#{MAPPING4}      /* 개인화 내용4 */
+                ,#{MAPPING5}      /* 개인화 내용5 */
+                ,#{MAPPING6}      /* 개인화 내용6 */
+                ,#{MAPPING7}      /* 개인화 내용7 */
+                ,#{MAPPING8}      /* 개인화 내용8 */
+                ,#{MAPPING9}      /* 개인화 내용9 */                              
+                ,#{MAPPING10}     /* 개인화 내용10 */     
+            )
+    </insert>
+
+    <!-- 발송된 테이블 Y처리 -->
+    <update id="updateEmailSendForm" parameterType="HashMap">
+        /* EMAILSEND.updateEmailSendForm */
+            UPDATE ETLANDMAIL.EV_SEND_FORM
+            SET 
+                LIST_ENDFLAG = 'Y' 
+            WHERE SEQ = #{SEQ}
+    </update>           
+
+</mapper>

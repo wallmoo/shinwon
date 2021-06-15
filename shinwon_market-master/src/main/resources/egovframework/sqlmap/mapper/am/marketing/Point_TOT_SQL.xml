@@ -1,0 +1,328 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="Point">
+    <!-- 관리자 > 마케팅 관리 > 통합포인트 관리 조건절 -->
+    <sql id="pointListWhere">
+        <if test="searchPointStDt != null and searchPointStDt != '' and searchPointEdDt != null and searchPointEdDt !=''">
+            <![CDATA[
+                AND PIT.PIT_MST_REG_DT BETWEEN REPLACE(#{searchPointStDt}, '-', '')||'000000' AND REPLACE(#{searchPointEdDt}, '-', '')||'235959'
+            ]]>
+        </if>
+        <if test="searchPitMstRegId != null and searchPitMstRegId != ''">
+            AND PIT.PIT_MST_REG_ID LIKE '%'||#{searchPitMstRegId}||'%'
+        </if>
+        <if test="searchPitMstRegNm != null and searchPitMstRegNm != ''">
+            AND PIT.PIT_MST_REG_ID in (SELECT ADM_MST_ID FROM T_ADM_MST WHERE ADM_MST_NM LIKE '%'||#{searchPitMstRegNm}||'%')        
+        </if>
+        <if test="searchPitMstMemo != null and searchPitMstMemo !=''">
+            AND PIT.PIT_MST_MEMO LIKE '%'||#{searchPitMstMemo}||'%'
+        </if>
+        <if test="searchPitMstGbn != null and searchPitMstGbn != ''">
+            AND PIT.PIT_MST_GBN = #{searchPitMstGbn}
+        </if>
+        <if test="searchPitMstBrkDwn != null and searchPitMstBrkDwn != ''">
+            AND PIT.PIT_MST_BRK_DWN = #{searchPitMstBrkDwn}
+        </if>
+    </sql>
+    
+    <sql id="pointDetailtWhere">
+        <if test="searchPointStDt != null and searchPointStDt != '' and searchPointEdDt != null and searchPointEdDt != ''">
+            <![CDATA[
+                AND MP.MEM_PIT_REG_DT BETWEEN REPLACE(#{searchPointStDt}, '-', '')||'000000' AND REPLACE(#{searchPointEdDt}, '-', '')||'235959'
+            ]]>
+        </if>
+        <if test="searchMemPitMemId != null and searchMemPitMemId != ''">
+            AND MP.MEM_PIT_MEM_ID LIKE '%'||#{searchMemPitMemId}||'%'
+        </if>
+        <if test="searchMemMstMemNm != null and searchMemMstMemNm != ''">
+            AND MEM.MEM_MST_MEM_NM  LIKE '%'||#{searchMemMstMemNm}||'%'
+        </if>
+        <if test="searchPitMstMemo != null and searchPitMstMemo != ''">
+            AND PIT.PIT_MST_MEMO LIKE '%'||#{searchPitMstMemo}||'%'
+        </if>
+        <if test="searchMemPitGbn != null and searchMemPitGbn != ''">
+            AND MP.MEM_PIT_GBN = #{searchMemPitGbn}
+        </if>
+        <if test="searchMemPitBrkDwn != null and searchMemPitBrkDwn != ''">
+            AND MP.MEM_PIT_BRK_DWN = #{searchMemPitBrkDwn}
+        </if>
+    </sql>
+    
+    <!-- 관리자 > 마케팅 관리 > 통합포인트 관리 목록 갯수 -->
+    <select id="selectPointListCount" parameterType="HashMap" resultType="Integer">
+        /*Point_TOT.selectPointListCount*/
+        SELECT
+            COUNT(PIT.PIT_MST_IDX)
+        FROM
+            T_PIT_MST_TOT PIT 
+        WHERE
+            1=1
+            <include refid="pointListWhere"/>
+    </select>
+    
+     <!-- 관리자 > 마케팅 관리 > 통합포인트 관리 목록 갯수 -->
+    <select id="selectPointDetailCount" parameterType="HashMap" resultType="Integer">
+        /*Point_TOT.selectPointDetailCount*/
+        SELECT
+            COUNT(MP.MEM_PIT_IDX)
+        FROM T_MEM_PIT_TOT MP, T_MEM_VIEW MEM
+        <if test="searchPitMstMemo != null and searchPitMstMemo != ''">
+        , T_PIT_MST_TOT PIT
+        </if>
+        WHERE MP.MEM_PIT_MEM_ID = MEM.MEM_MST_MEM_ID
+        <if test="searchPitMstMemo != null and searchPitMstMemo != ''">
+        AND MP.PIT_MST_IDX = PIT.PIT_MST_IDX
+        </if>
+        <include refid="pointDetailtWhere"/>
+    </select>
+    
+    <!-- 관리자 > 마케팅 관리 > 통합포인트 관리 회원 통합포인트 합 갯수 -->
+    <select id="selectPointMemberSum" parameterType="HashMap" resultType="Integer">
+        /*Point_TOT.selectPointMemberSum*/
+    	SELECT SUM(TOTAL) AS TOT
+        FROM(
+        SELECT SUM(NVL(MEM_PIT_PLS,0)) - (SUM(NVL(MEM_PIT_MNS,0)) + SUM(NVL(MEM_PIT_EXT,0))) AS TOTAL
+        FROM T_MEM_PIT_TOT
+        WHERE MEM_PIT_MEM_ID = #{MEM_PIT_MEM_ID}
+        UNION
+ 		SELECT 0 AS TOTAL FROM DUAL)
+    </select>
+    
+    <!-- 관리자 > 마케팅 관리 > 통합포인트 관리 목록 -->
+    <!--<select id="selectPointList" parameterType="HashMap" resultType="HashMap">-->
+    <select id="selectPointDetail" parameterType="HashMap" resultType="HashMap">
+        /* Point_TOT.selectPointList */
+        SELECT
+            S2.* 
+        FROM
+            (   SELECT
+                    ROWNUM AS RNUM,
+                    S1.* 
+                FROM
+                    (   SELECT
+                            PIT.PIT_MST_IDX, /*통합포인트 IDX*/
+                            PIT.PIT_MST_GBN, /*통합포인트구분(적립:P, 차감:M)*/
+                            CASE PIT.PIT_MST_GBN WHEN 'P' THEN '적립' WHEN 'M' THEN '차감' WHEN 'D' THEN '소멸' END PIT_MST_GBN_NM, /*통합포인트구분 이름*/
+                            (SELECT CMN_COM_NM FROM T_CMM_COM WHERE CMN_COM_IDX =  PIT_MST_BRK_DWN) AS PIT_MST_BRK_DWN_NM, /*통합포인트내역 이름*/
+                            PIT.PIT_MST_MEMO, /*관리자메모*/
+                            PIT.PIT_MST_PIT, /*E-통합포인트*/                           
+                            (SELECT COUNT(*) FROM T_MEM_PIT_TOT WHERE PIT_MST_IDX = PIT.PIT_MST_IDX) as PIT_MST_PIT_CNT, /*대상 인원수 산정*/
+                            (SELECT SUM(MEM_PIT_PLS + MEM_PIT_MNS) FROM T_MEM_PIT_TOT WHERE PIT_MST_IDX = PIT.PIT_MST_IDX) AS PIT_MST_PIT_TOTAL, /*E-통합포인트 총합*/      
+                            DECODE(PIT.PIT_MST_REG_ID,'SYSTEM','시스템',(SELECT ADM_MST_NM FROM T_ADM_MST WHERE ADM_MST_ID = PIT.PIT_MST_REG_ID)) AS PIT_MST_REG_NM, /*통합포인트등록자 이름*/
+                            PIT.PIT_MST_REG_ID,
+                            PIT.PIT_MST_REG_DT, /*통합포인트 등록 일.시.분.초.까지*/
+                            TO_CHAR(TO_DATE(PIT.PIT_MST_REG_DT,'yyyymmddhh24miss'),'yyyy/mm/dd hh24:mi:ss') AS PIT_MST_REG_DT_EXCEL
+                        FROM
+                            T_PIT_MST_TOT PIT 
+                        WHERE
+                            1=1
+                            <include refid="pointListWhere"/> 
+                        ORDER BY PIT.PIT_MST_IDX DESC 
+                    )
+                    S1 
+            )
+            S2 
+        WHERE
+            S2.RNUM BETWEEN #{startNum} AND #{endNum}
+    </select>
+    
+    <!-- 관리자 > 마케팅 관리 > 통합포인트 관리 목록 -->
+    <!-- <select id="selectPointDetail" parameterType="HashMap" resultType="HashMap"> -->
+    <select id="selectPointList" parameterType="HashMap" resultType="HashMap">
+        /* Point_TOT.selectPointDetail */
+        SELECT
+            S2.* 
+        FROM
+            (   SELECT
+                    ROWNUM AS RNUM,
+                    S1.* 
+                FROM
+                    (   SELECT
+                            MP.MEM_PIT_IDX, 
+						    MP.MEM_PIT_MEM_ID,
+						    MEM.MEM_MST_MEM_NM,
+						    MEM.MEM_MST_MEM_NM||'('||MP.MEM_PIT_MEM_ID||')' AS MEM_EXCEL,
+						    MP.MEM_PIT_GBN,
+						    CASE MP.MEM_PIT_GBN WHEN 'P' THEN '적립' WHEN 'M' THEN '차감' WHEN 'D' THEN '소멸' END MEM_PIT_GBN_NM,
+						    (SELECT CMN_COM_NM FROM T_CMM_COM WHERE CMN_COM_IDX =  MEM_PIT_BRK_DWN) AS MEM_PIT_BRK_DWN_NM,
+						    MP.MEM_PIT_PLS,
+						    MP.MEM_PIT_MNS,
+						    MP.MEM_PIT_EXT,
+						    MP.MEM_PIT_TOT_PIT,
+					 	/*	DECODE(MP.MEM_PIT_REG_ID,'SYSTEM','시스템',(SELECT ADM_MST_NM FROM T_ADM_MST WHERE ADM_MST_ID=MP.MEM_PIT_REG_ID))||'('||MP.MEM_PIT_REG_ID||')' AS REG_EXCEL, */
+						    MP.MEM_PIT_REG_DT,
+						    TO_CHAR(TO_DATE(MP.MEM_PIT_REG_DT,'yyyymmddhh24miss'),'yyyy/mm/dd hh24:mi:ss') AS MEM_PIT_REG_DT_EXCEL
+                       FROM T_MEM_PIT_TOT MP, T_MEM_VIEW MEM
+                            <if test="searchPitMstMemo != null and searchPitMstMemo != ''">
+					        , T_PIT_MST_TOT PIT
+					        </if>
+					        WHERE MP.MEM_PIT_MEM_ID = MEM.MEM_MST_MEM_ID
+					        <if test="searchPitMstMemo != null and searchPitMstMemo != ''">
+					        AND MP.PIT_MST_IDX = PIT.PIT_MST_IDX
+                            </if>
+				            <include refid="pointDetailtWhere"/>
+                       ORDER BY MEM_PIT_IDX DESC
+                    )
+                    S1 
+            )
+            S2 
+        WHERE
+            S2.RNUM BETWEEN #{startNum} AND #{endNum}
+    </select>
+    <select id="selectPointMember" parameterType="HashMap" resultType="HashMap">
+        /* Point_TOT.selectPointMember */
+        SELECT MEM_MST_MEM_ID, MEM_MST_MEM_NM 
+ 		FROM T_MEM_VIEW
+ 		WHERE MEM_MST_MEM_ID = #{MEM_MST_MEM_ID}
+    </select>
+   
+   <select id="selectPointPopup" parameterType="HashMap" resultType="HashMap">
+        /* Point_TOT.selectPointPopup */
+        SELECT A.PIT_MST_GBN, 
+			   (SELECT CMN_COM_NM FROM T_CMM_COM WHERE CMN_COM_IDX =  A.PIT_MST_BRK_DWN) AS MEM_PIT_BRK_DWN_NM, 
+			   A.PIT_MST_MEMO, 
+			   A.PIT_MST_PIT, 
+			   B.MEM_PIT_MEM_ID, 
+			   V.MEM_MST_MEM_NM
+		FROM T_PIT_MST_TOT A, T_MEM_PIT_TOT B, T_MEM_VIEW V
+		WHERE A.PIT_MST_IDX = #{PIT_MST_IDX}
+		AND A.PIT_MST_IDX = B.PIT_MST_IDX
+		AND B.MEM_PIT_MEM_ID = V.MEM_MST_MEM_ID
+   </select>
+    
+    <!-- 관리자 > 마케팅 관리 > 통합포인트 적립차감등록 -->
+    <insert id="insertPoint" parameterType="HashMap">
+        <selectKey keyProperty="PIT_MST_IDX" resultType="Integer" order="BEFORE">
+            SELECT SEQ_PIT_MST_IDX.NEXTVAL AS PIT_MST_IDX FROM DUAL
+        </selectKey>
+        /* Point_TOT.insertPoint */
+        INSERT INTO
+            T_PIT_MST_TOT
+            (
+                PIT_MST_IDX,
+                PIT_MST_GBN,
+                PIT_MST_BRK_DWN,               
+                PIT_MST_MEMO,
+                PIT_MST_PIT,
+                PIT_MST_REG_DT,
+                PIT_MST_REG_IP,
+                PIT_MST_REG_ID
+            )
+        VALUES
+            (
+                #{PIT_MST_IDX},
+                #{PIT_MST_GBN},
+                #{PIT_MST_BRK_DWN},
+                #{PIT_MST_MEMO},
+                #{PIT_MST_PIT},
+                TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+                #{PIT_MST_REG_IP},
+                #{PIT_MST_REG_ID}
+            )
+    </insert>
+    
+    <!-- 관리자 > 마케팅 관리 > 통합포인트회원별 적립차감등록 -->
+    <insert id="insertPointMember" parameterType="HashMap">
+        <selectKey keyProperty="MEM_PIT_IDX" resultType="Integer" order="BEFORE">
+            SELECT SEQ_MEM_PIT_IDX.NEXTVAL AS MEM_PIT_IDX FROM DUAL
+        </selectKey>
+        /* Point_TOT.insertPointMember */
+        INSERT INTO
+            T_MEM_PIT_TOT
+            (
+                MEM_PIT_IDX,
+                PIT_MST_IDX,
+                MEM_PIT_MEM_ID,
+                MEM_PIT_GBN,               
+                MEM_PIT_BRK_DWN,
+                MEM_PIT_PLS,
+                MEM_PIT_MNS,
+                MEM_PIT_EXT,
+                MEM_PIT_TOT_PIT,
+                MEM_PIT_REG_DT,
+                MEM_PIT_REG_IP,
+                MEM_PIT_REG_ID
+                <if test="EVT_MST_IDX != null and EVT_MST_IDX != ''">
+                , EVT_MST_IDX
+                </if>
+            )
+        VALUES
+            (
+                #{MEM_PIT_IDX},
+                #{PIT_MST_IDX},
+                #{MEM_PIT_MEM_ID},
+                #{MEM_PIT_GBN},
+                #{MEM_PIT_BRK_DWN},
+                NVL(#{MEM_PIT_PLS},0),
+                NVL(#{MEM_PIT_MNS},0),
+                NVL(#{MEM_PIT_EXT},0),
+                NVL(#{MEM_PIT_TOT_PIT},0),
+                TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+                #{MEM_PIT_REG_IP},
+                #{MEM_PIT_REG_ID}
+                <if test="EVT_MST_IDX != null and EVT_MST_IDX != ''">
+                , #{EVT_MST_IDX}
+                </if>
+            )
+    </insert>
+ 	<!-- 관리자 > 마케팅 관리 > 회원통합포인트 관리 목록 -->
+    <select id="selectMemberPoint" parameterType="HashMap" resultType="HashMap">
+    	/* Point_TOT.selectMemberPoint */
+        SELECT
+            S2.* 
+        FROM
+            (   SELECT
+                    ROWNUM AS RNUM,
+                    S1.* 
+                FROM
+                    (
+	                    SELECT MEM_PIT_GBN, 
+							   (SELECT CMN_COM_NM FROM T_CMM_COM WHERE CMN_COM_IDX =  MEM_PIT_BRK_DWN) AS MEM_PIT_BRK_DWN_NM,
+							   MEM_PIT_REG_DT,
+							   PIT_MST_MEMO,
+							   MEM_PIT_PLS,
+							   MEM_PIT_MNS,
+							   MEM_PIT_EXT,
+							   MEM_PIT_TOT_PIT,
+							   MEM_PIT_REG_ID,
+							   (SELECT ADM_MST_NM FROM T_ADM_MST WHERE ADM_MST_ID = MEM_PIT_REG_ID) AS MEM_PIT_REG_NM
+						FROM T_MEM_PIT_TOT MP, T_PIT_MST_TOT PIT
+						WHERE MP.MEM_PIT_MEM_ID = #{MEM_MST_MEM_ID}
+						AND MP.PIT_MST_IDX = PIT.PIT_MST_IDX
+						<include refid="pointDetailtWhere"/>
+						ORDER BY MEM_PIT_IDX DESC
+                    )
+                    S1 
+            )
+            S2 
+        WHERE
+            S2.RNUM BETWEEN #{startNum} AND #{endNum}
+    
+    </select>
+    <!-- 관리자 > 마케팅 관리 > 통합포인트 관리 목록 갯수 -->
+    <select id="selectMemberPointCount" parameterType="HashMap" resultType="Integer">
+        /*Point_TOT.selectMemberPointCount*/
+        SELECT
+            COUNT(*)
+        FROM T_MEM_PIT_TOT MP, T_PIT_MST_TOT PIT
+		WHERE MP.MEM_PIT_MEM_ID = #{MEM_MST_MEM_ID}
+			AND MP.PIT_MST_IDX = PIT.PIT_MST_IDX
+            <include refid="pointDetailtWhere"/>
+    </select>
+    
+    <!-- 관리자 > 마케팅 관리 > 회원통합포인트 관리 목록 -->
+    <select id="selectMemberPointSum" parameterType="HashMap" resultType="HashMap">
+    	/* Point_TOT.selectMemberPointSum */
+    	SELECT PLS_SUM, 
+			   MNS_SUM, 
+			   (SELECT MEM_PIT_TOT_PIT FROM T_MEM_PIT_TOT P WHERE P.MEM_PIT_MEM_ID = A.MEM_PIT_MEM_ID AND P.MEM_PIT_IDX = A.MEM_PIT_IDX) AS CUR_POINT
+		FROM (
+			SELECT SUM(MEM_PIT_PLS) PLS_SUM, SUM(MEM_PIT_MNS + MEM_PIT_EXT) MNS_SUM , MAX(MP.MEM_PIT_IDX) MEM_PIT_IDX, MEM_PIT_MEM_ID
+			FROM T_MEM_PIT_TOT MP
+			WHERE MP.MEM_PIT_MEM_ID = #{MEM_MST_MEM_ID}
+			GROUP BY MP.MEM_PIT_MEM_ID
+		) A
+   	</select>
+ 
+</mapper>

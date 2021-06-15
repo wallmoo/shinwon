@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="Layout">
+    
+    <select id="selectMenuList" parameterType="HashMap" resultType="HashMap">
+    	/* Layout.selectMenuList */
+        SELECT 
+            ROWNUM AS RNUM,
+            STR_LAY_IDX, 
+			STR_LAY_NM, 
+			STR_LAY_SRT,
+			STR_LAY_USE_YN
+        FROM 
+            T_STR_LAY 
+        ORDER BY STR_LAY_SRT ASC
+    </select>
+    
+    <delete id="deleteMenuList" >
+    	/* Layout.deleteMenuList */
+    	DELETE FROM T_STR_LAY
+    </delete>
+    
+    <insert id="insertMenuList" parameterType="HashMap" >
+    	/* Layout.insertMenuList */
+    	INSERT ALL 
+    	<foreach collection="menuList" item="menu" separator=" ">
+    		INTO
+    			T_STR_LAY (
+    				STR_LAY_IDX,
+    				STR_LAY_NM, 
+					STR_LAY_SRT,
+					STR_LAY_USE_YN
+    			)
+    			VALUES (
+    				FN_GET_NEXT_SEQ('SEQ_STR_LAY_IDX'),
+    				#{menu.STR_LAY_NM}, 
+					#{menu.STR_LAY_SRT},
+					#{menu.STR_LAY_USE_YN}
+    			)
+    	</foreach>
+    	SELECT * FROM DUAL
+    </insert>
+    <update id="updateMenuList" parameterType="HashMap" >
+    	/* Layout.updateMenuList */
+		<foreach  item="menu" collection="menuList"  index="index"  separator=";" open="DECLARE BEGIN" close="; END;" >
+				 UPDATE T_STR_LAY SET
+				        STR_LAY_NM     = #{menu.STR_LAY_NM},   
+					    STR_LAY_SRT    = #{menu.STR_LAY_SRT}, 
+					    STR_LAY_USE_YN = #{menu.STR_LAY_USE_YN}
+                  WHERE STR_LAY_IDX    = #{menu.STR_LAY_IDX}
+		</foreach>    	
+    </update>      
+</mapper>

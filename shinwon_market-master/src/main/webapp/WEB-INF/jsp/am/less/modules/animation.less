@@ -1,0 +1,26 @@
+/* animation : collapse ========================================================================== */
+.toggle,
+.collapse {
+    display: none;
+
+    &.in, 
+    &.active {
+        .block();
+    }
+}
+.collapsing {
+    .pos-relative();
+    height: 0;
+    overflow: hidden;
+    .transition(height .35s ease);
+}
+
+/* animation : fade ========================================================================== */
+.fade {
+    .opacity(0);
+    .transition(opacity .15s linear);
+
+    &.in, &.active {
+        .opacity(1);
+    }
+}

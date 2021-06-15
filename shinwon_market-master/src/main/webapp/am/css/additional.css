@@ -1,0 +1,15 @@
+@charset "utf-8";
+.dtree-holder .col-dtree {
+	width: 30%;
+}
+.dtree-holder .col-contents {
+	width: 70%;
+}
+
+body.popup {
+	background: #fff;
+}
+
+select.select.small2 {
+  width: 80px;
+}

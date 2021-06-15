@@ -1,0 +1,214 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="CommonCodeManager">
+
+    <sql id="CommonCodeManagerWhere">
+        <if test="CMN_COM_LEVEL != null and CMN_COM_LEVEL != ''">
+            AND CMN_COM_LEVEL = #{CMN_COM_LEVEL}
+        </if>
+        <if test="CMN_COM_UP_IDX != null and CMN_COM_UP_IDX != ''">
+            AND CMN_COM_UP_IDX = #{CMN_COM_UP_IDX}
+        </if>
+        <if test="CMN_COM_TOP_IDX != null and CMN_COM_TOP_IDX != ''">
+            AND CMN_COM_TOP_IDX = #{CMN_COM_TOP_IDX}
+        </if>
+        <if test="searchWord != null and searchWord != ''">
+            <choose>
+                <when test="searchType != null and searchType.equals('S_ALL'.toString())">
+                    AND ( CMN_COM_NM LIKE '%' || #{searchWord} || '%' OR CMN_COM_ETC1 LIKE '%' || #{searchWord} || '%' OR CMN_COM_ETC2 LIKE '%' || #{searchWord} || '%' OR CMN_COM_ETC3 LIKE '%' || #{searchWord} || '%' )    
+                </when>
+                <when test="searchType != null and searchType.equals('S_NM'.toString())">
+                    AND CMN_COM_NM LIKE '%' || #{searchWord} || '%'   
+                </when>
+                <when test="searchType != null and searchType.equals('S_ECT1'.toString())">
+                    AND CMN_COM_ETC1 LIKE '%' || #{searchWord} || '%'    
+                </when>
+                <when test="searchType != null and searchType.equals('S_ECT2'.toString())">
+                    AND CMN_COM_ETC2 LIKE '%' || #{searchWord} || '%'
+                </when>
+                <when test="searchType != null and searchType.equals('S_ECT3'.toString())">
+                    AND CMN_COM_ETC3 LIKE '%' || #{searchWord} || '%'
+                </when>
+            </choose>
+        </if>
+        <if test="searchCmnComUseYn != null and searchCmnComUseYn != ''">
+            AND CMN_COM_USE_YN = #{searchCmnComUseYn}
+        </if>
+    </sql>
+    
+    <!-- 관리자 > 사이트 관리 > 공통코드 목록 갯수 -->
+    <select id="selectCommonCodeManagerListCount" parameterType="HashMap" resultType="Integer">
+        /* CommonCodeManager.selectCommonCodeManagerListCount */
+        SELECT
+            COUNT(CMN_COM_IDX)
+         FROM
+            T_CMM_COM 
+        WHERE
+            1=1
+            <include refid="CommonCodeManagerWhere"/>
+    </select>
+    
+    <!-- 관리자 > 사이트 관리 > 공통코드 목록 -->
+    <select id="selectCommonCodeManagerList" parameterType="HashMap" resultType="HashMap">
+        /* CommonCodeManager.selectCommonCodeManagerList */
+        SELECT
+            S2.* 
+        FROM
+            (   SELECT
+                    ROWNUM AS RNUM,
+                    S1.* 
+                FROM
+                    (   SELECT
+                            CMN_COM_IDX,
+                            CMN_COM_NM,
+                            CMN_COM_LEVEL,
+                            CMN_COM_UP_IDX,
+                            CMN_COM_TOP_IDX,
+                            CMN_COM_ETC1,
+                            CMN_COM_ETC2,
+                            CMN_COM_ETC3,
+                            CMN_COM_SORT,
+                            CMN_COM_USE_YN,
+                            CMN_COM_REG_DT,
+                            CMN_COM_REG_IP,
+                            CMN_COM_REG_ID,
+                            CMN_COM_UPD_DT,
+                            CMN_COM_UPD_IP,
+                            CMN_COM_UPD_ID 
+                        FROM
+                            T_CMM_COM
+                        WHERE
+                            1=1
+                            <include refid="CommonCodeManagerWhere"/>
+                        START WITH CMN_COM_TOP_IDX = 0 
+                        CONNECT BY PRIOR CMN_COM_IDX = CMN_COM_UP_IDX 
+                        ORDER SIBLINGS BY CMN_COM_LEVEL, CMN_COM_SORT ASC 
+                    )
+                    S1 
+            )
+            S2 
+            <if test="startNum != null and startNum != '' and endNum != null and endNum != ''">
+                WHERE
+                    S2.RNUM BETWEEN #{startNum} AND #{endNum}
+            </if>
+    </select>
+    
+    <!-- 관리자 > 사이트 관리 > 공통코드 상세보기 -->
+    <select id="selectCommonCodeManagerInfo" parameterType="HashMap" resultType="HashMap">
+        /* CommonCodeManager.selectCommonCodeManagerInfo */
+        SELECT
+            (   SELECT
+                    CMN_COM_NM 
+                FROM
+                    T_CMM_COM 
+                WHERE
+                    CMN_COM_IDX = CMN.CMN_COM_TOP_IDX 
+            )
+            AS CMN_COM_TOP_NM,
+            (   SELECT
+                    CMN_COM_NM 
+                FROM
+                    T_CMM_COM 
+                WHERE
+                    CMN_COM_IDX = CMN.CMN_COM_UP_IDX 
+            )
+            AS CMN_COM_UP_NM,
+            CMN.CMN_COM_IDX,
+            CMN.CMN_COM_NM,
+            CMN.CMN_COM_LEVEL,
+            CMN.CMN_COM_UP_IDX,
+            CMN.CMN_COM_TOP_IDX,
+            CMN.CMN_COM_ETC1,
+            CMN.CMN_COM_ETC2,
+            CMN.CMN_COM_ETC3,
+            CMN.CMN_COM_SORT,
+            CMN.CMN_COM_USE_YN,
+            CMN.CMN_COM_REG_DT,
+            CMN.CMN_COM_REG_IP,
+            CMN.CMN_COM_REG_ID,
+            CMN.CMN_COM_UPD_DT,
+            CMN.CMN_COM_UPD_IP,
+            CMN.CMN_COM_UPD_ID 
+        FROM
+            T_CMM_COM CMN 
+        WHERE
+            CMN_COM_IDX = #{CMN_COM_IDX}            
+    </select>
+    
+    <!-- 관리자 > 사이트 관리 > 공통코드 등록 -->
+    <insert id="insertCommonCodeManager" parameterType="HashMap">
+        /* CommonCodeManager.insertCommonCodeManager */
+        INSERT INTO
+            T_CMM_COM
+            (
+                CMN_COM_IDX,
+                CMN_COM_NM,
+                CMN_COM_LEVEL,
+                CMN_COM_UP_IDX,
+                CMN_COM_TOP_IDX,
+                CMN_COM_ETC1,
+                CMN_COM_ETC2,
+                CMN_COM_ETC3,
+                CMN_COM_SORT,
+                CMN_COM_USE_YN,
+                CMN_COM_REG_DT,
+                CMN_COM_REG_IP,
+                CMN_COM_REG_ID
+            )
+        VALUES
+            (
+                SEQ_CMM_COM_IDX.NEXTVAL,
+                #{CMN_COM_NM},
+                NVL(#{CMN_COM_LEVEL}, 0),
+                NVL(#{CMN_COM_UP_IDX}, 0),
+                NVL(#{CMN_COM_TOP_IDX}, 0),
+                #{CMN_COM_ETC1},
+                #{CMN_COM_ETC2},
+                #{CMN_COM_ETC3},
+                (   SELECT
+                        NVL(MAX(CMN_COM_SORT), 0) + 1 
+                    FROM
+                        T_CMM_COM 
+                    WHERE
+                        CMN_COM_UP_IDX = NVL(#{CMN_COM_UP_IDX}, 0) 
+                ),
+                NVL(#{CMN_COM_USE_YN}, 'N'),
+                TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+                #{CMN_COM_REG_IP},
+                #{CMN_COM_REG_ID}
+            )
+    </insert>
+    
+    <!-- 관리자 > 사이트 관리 > 공통코드 수정 -->
+    <update id="updateCommonCodeManager" parameterType="HashMap">
+        /* CommonCodeManager.updateCommonCodeManager */
+        UPDATE
+            T_CMM_COM 
+        SET
+            CMN_COM_NM = #{CMN_COM_NM},
+            CMN_COM_ETC1 = #{CMN_COM_ETC1},
+            CMN_COM_ETC2 = #{CMN_COM_ETC2},
+            CMN_COM_ETC3 = #{CMN_COM_ETC3},
+            CMN_COM_USE_YN = NVL(#{CMN_COM_USE_YN}, 'N'),
+            CMN_COM_UPD_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+            CMN_COM_UPD_IP = #{CMN_COM_UPD_IP},
+            CMN_COM_UPD_ID = #{CMN_COM_UPD_ID} 
+        WHERE
+            CMN_COM_IDX = #{CMN_COM_IDX}
+    </update>
+    
+    <!-- 관리자 > 사이트 관리 > 공통코드 순서 정렬 -->
+    <update id="updateCommonCodeManagerSortArray" parameterType="HashMap">
+        /* CommonCodeManager.updateCommonCodeManagerSortArray */
+        UPDATE
+            T_CMM_COM
+        SET
+            CMN_COM_SORT = #{CMN_COM_SORT},
+            CMN_COM_UPD_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+            CMN_COM_UPD_IP = #{CMN_COM_UPD_IP},
+            CMN_COM_UPD_ID = #{CMN_COM_UPD_ID}
+        WHERE
+            CMN_COM_IDX = #{CMN_COM_IDX}
+    </update>
+</mapper>

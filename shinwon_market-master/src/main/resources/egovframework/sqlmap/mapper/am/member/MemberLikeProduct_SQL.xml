@@ -1,0 +1,210 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="MeberLikeProduct">
+	<select id="selectInfoMemberLikeProductListCount" parameterType="HashMap" resultType="Integer">
+	/* MeberLikeProduct.selectInfoMemberLikeProductListCount */
+    	  SELECT	COUNT(0)
+			FROM
+				T_LIK_HIS TLH
+			INNER JOIN T_PRD_MST TPM ON
+				TLH.CNT_MST_ID = TPM.PRD_MST_CD
+			WHERE
+				TLH.CNT_MST_TYPE = 'TYPE_PRODUCT'
+				AND TPM.PRD_MST_DEL_YN = 'Y'
+				AND MEM_MST_ID = #{MEM_MST_MEM_ID}
+				<if test="searchInfoStartDate != null and searchInfoStartDate != ''">
+		             <![CDATA[ AND TO_DATE(#{LIK_HIS_REG_DT},'YYYYMMDDHH24MISS') <= SYSDATE ]]> 
+		        </if>
+		        <if test="searchInfoEndDate != null and searchInfoEndDate != ''">
+		             <![CDATA[ AND TO_DATE(#{LIK_HIS_REG_DT},'YYYYMMDDHH24MISS') >= SYSDATE ]]> 
+		        </if>
+				<if test="PRD_MST_CD != null and PRD_MST_CD != ''">
+				AND PRD_MST_CD = #{PRD_MST_CD}
+				</if>
+				<if test="PRD_MST_NAME != null and PRD_MST_NAME != ''">
+				AND PRD_MST_NAME = #{PRD_MST_NM}
+				</if>
+    </select>
+
+	<select id="selectInfoMemberLikeProductList" parameterType="HashMap" resultType="HashMap">
+		/* MeberLikeProduct.selectInfoMemberLikeProductList */
+    	SELECT	ROWNUM,
+				CNT_MST_ID,
+				MEM_MST_ID,
+				LIK_HIS_REG_DT,
+				LIK_HIS_REG_IP,
+				CNT_MST_TYPE,
+				PRD_MST_NM,
+				PRD_MST_PRC
+			FROM
+				T_LIK_HIS TLH
+			INNER JOIN T_PRD_MST TPM ON
+				TLH.CNT_MST_ID = TPM.PRD_MST_CD
+			WHERE
+				TLH.CNT_MST_TYPE = 'TYPE_PRODUCT'
+				AND TPM.PRD_MST_DEL_YN = 'Y'
+				AND MEM_MST_ID = #{MEM_MST_MEM_ID}
+				<if test="startNum != null and startNum != '' and endNum != null and endNum != ''">
+				AND ROWNUM BETWEEN #{startNum} AND #{endNum}
+				</if>
+				<if test="searchInfoStartDate != null and searchInfoStartDate != ''">
+		             <![CDATA[ AND TO_DATE(#{LIK_HIS_REG_DT},'YYYYMMDDHH24MISS') <= SYSDATE ]]> 
+		        </if>
+		        <if test="searchInfoEndDate != null and searchInfoEndDate != ''">
+		             <![CDATA[ AND TO_DATE(#{LIK_HIS_REG_DT},'YYYYMMDDHH24MISS') >= SYSDATE ]]> 
+		        </if>
+				<if test="PRD_MST_CD != null and PRD_MST_CD != ''">
+				AND PRD_MST_CD = #{PRD_MST_CD}
+				</if>
+				<if test="PRD_MST_NAME != null and PRD_MST_NAME != ''">
+				AND PRD_MST_NAME = #{PRD_MST_NM}
+				</if>
+    </select>
+    <select id="selectInfoMemberLikeProductInfo" parameterType="HashMap" resultType="HashMap">
+    	/* MeberLikeProduct.selectInfoMemberLikeProductInfo */
+    	SELECT	CNT_MST_ID,
+				MEM_MST_ID,
+				LIK_HIS_REG_DT,
+				LIK_HIS_REG_IP,
+				CNT_MST_TYPE,
+				PRD_MST_CD,
+				PRD_MST_VDR_YN,
+				PRD_MST_VDR_IDX,
+				PRD_MST_TYPE,
+				PRD_MST_BUY_TP,
+				PRD_MST_NM,
+				PRD_MST_NM_SUB,
+				PRD_MST_LNG_DIV_YN,
+				PRD_MST_LNG_DIV_MNT1,
+				PRD_MST_MD_ID,
+				PRD_MST_DLV_FEE,
+				PRD_MST_CPS_YN,
+				PRD_MST_CPS_MDL,
+				PRD_MST_CPN_YN,
+				PRD_MST_SEL_CNT,
+				PRD_MST_PC_CPN_UNT,
+				PRD_MST_PC_CPN_PRC,
+				PRD_MST_MB_CPN_UNT,
+				PRD_MST_MB_CPN_PRC,
+				PRD_MST_ADD_MIL,
+				PRD_MST_SRC_YN,
+				PRD_MST_O2O_YN,
+				PRD_MST_DLV_BND,
+				PRD_MST_IVB_YN,
+				PRD_MST_DLV_DSN_YN,
+				PRD_MST_DLV_DT,
+				PRD_MST_PRC,
+				PRD_MST_SCH_PRC,
+				PRD_MST_CPR_PRC1,
+				PRD_MST_CPR_PRC2,
+				PRD_MST_PKG_PRC,
+				PRD_MST_CNL_PC_YN,
+				PRD_MST_CNL_MB_YN,
+				PRD_MST_SEL_STATE,
+				PRD_MST_DPL_STATE,
+				PRD_MST_APV_STATE,
+				PRD_MST_PC_DTL_DSC,
+				PRD_MST_MB_DTL_DSC,
+				PRD_MST_NFI_IDX,
+				PRD_MST_BRD_IDX,
+				PRD_MST_MRK_IDX,
+				PRD_MST_NFI_INF1,
+				PRD_MST_NFI_INF2,
+				PRD_MST_NFI_INF3,
+				PRD_MST_NFI_INF4,
+				PRD_MST_NFI_INF5,
+				PRD_MST_NFI_INF6,
+				PRD_MST_NFI_INF7,
+				PRD_MST_NFI_INF8,
+				PRD_MST_NFI_INF9,
+				PRD_MST_NFI_INF10,
+				PRD_MST_NFI_INF11,
+				PRD_MST_NFI_INF12,
+				PRD_MST_NFI_INF13,
+				PRD_MST_NFI_INF14,
+				PRD_MST_MTA_TAG1 ,
+				PRD_MST_MTA_TAG2 ,
+				PRD_MST_MTA_TAG3,
+				PRD_MST_MEMO,
+				PRD_MST_RED_CNT,
+				PRD_MST_ICN_YN1,
+				PRD_MST_ICN_ST_DT1,
+				PRD_MST_ICN_ED_DT1,
+				PRD_MST_ICN_YN2,
+				PRD_MST_ICN_ST_DT2,
+				PRD_MST_ICN_ED_DT2,
+				PRD_MST_ICN_YN3,
+				PRD_MST_ICN_ST_DT3,
+				PRD_MST_ICN_ED_DT3,
+				PRD_MST_ICN_YN4,
+				PRD_MST_ICN_ST_DT4,
+				PRD_MST_ICN_ED_DT4,
+				PRD_MST_ICN_YN5,
+				PRD_MST_ICN_ST_DT5,
+				PRD_MST_ICN_ED_DT5,
+				PRD_MST_ICN_YN6,
+				PRD_MST_ICN_ST_DT6,
+				PRD_MST_ICN_ED_DT6,
+				PRD_MST_ICN_YN7,
+				PRD_MST_ICN_ST_DT7,
+				PRD_MST_ICN_ED_DT7,
+				PRD_MST_ICN_YN8,
+				PRD_MST_ICN_ST_DT8,
+				PRD_MST_ICN_ED_DT8,
+				PRD_MST_ICN_YN9,
+				PRD_MST_ICN_ST_DT9,
+				PRD_MST_ICN_ED_DT9,
+				PRD_MST_ICN_YN10,
+				PRD_MST_ICN_ST_DT10,
+				PRD_MST_ICN_ED_DT10,
+				PRD_MST_DEL_YN,
+				PRD_MST_REG_DT,
+				PRD_MST_REG_IP,
+				PRD_MST_REG_ID,
+				PRD_MST_UPD_DT,
+				PRD_MST_UPD_IP,
+				PRD_MST_UPD_ID,
+				PRD_MST_BUY_PRC,
+				PRD_MST_ORD_CNT,
+				PRD_MST_LNG_DIV_MNT2,
+				PRD_MST_OFF_CNT,
+				PRD_MST_OFF_ALL_CNT,
+				PRD_MST_CRD_YN,
+				PRD_MST_CPN_OWN,
+				PRD_MST_ERP_CD,
+				PRD_MST_ERP_DSP_PRC,
+				PRD_MST_URL,
+				PRD_MST_LIVE_ON_YN,
+				PRD_MST_NAVER_USE_YN,
+				PRD_MST_DAUM_USE_YN,
+				PRD_MST_EMP_USE_YN,
+				PRD_MST_PRT_USE_YN,
+				PRD_MST_PCK_USE_YN,
+				PRD_MST_SEX,
+				PRD_MST_YEAR,
+				PRD_MST_SEASON,
+				PRD_MST_REF_IMG_URL,
+				PRD_MST_DTL_IMG1_URL,
+				PRD_MST_DTL_IMG2_URL,
+				PRD_MST_SALE_RATE,
+				PRD_MST_UNT,
+				PRD_MST_BRD_MRG_YN,
+				PRD_MST_FEE,
+				PRD_MST_FEE_ST_DT,
+				PRD_MST_FEE_ED_DT,
+				PRD_MST_RLT_CD1,
+				PRD_MST_RLT_CD2,
+				PRD_MST_RLT_CD3,
+				PRD_MST_IMG_DPL,
+				PRD_MST_ERP_TAG_NO
+			FROM
+				T_LIK_HIS TLH
+			INNER JOIN T_PRD_MST TPM ON
+				TLH.CNT_MST_ID = TPM.PRD_MST_CD
+			WHERE
+				TLH.CNT_MST_TYPE = 'TYPE_PRODUCT'
+				AND TPM.PRD_MST_DEL_YN = 'Y'
+				AND MEM_MST_ID = #{MEM_MST_MEM_ID}
+    </select>
+</mapper>

@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="ko" dir="ltr">
+    <head>
+        <meta charset="utf-8">
+        <title></title>
+		<link href="http://bo.marketplanta.epasscni.com:8080/am/css/font-awesome.css" rel="stylesheet">
+		<link rel="stylesheet" href="http://bo.marketplanta.epasscni.com:8080/am/css/import.css">
+        <link rel="stylesheet" href="style.css">
+		<script src="http://bo.marketplanta.epasscni.com:8080/am/js/vendor/modernizr-2.6.2-respond-1.1.0.min.js"></script>
+		<script src="http://bo.marketplanta.epasscni.com:8080/am/js/vendor/jquery-1.11.2.min.js"></script>
+    </head>
+    <body class="page-popup">
+
+        <div class="modal"><!-- modal -->
+
+            <div class="modal-wrapper"><!-- modal-wrapper -->
+
+                <div class="modal-inner"><!-- modal-inner -->
+
+                <h2 class="title"><span>태그설정</span></h2>
+
+                    <!-- 탭부분 -->
+                    <p>
+                       <span><i class="require"><em>필수입력</em></i></span> 표시된 항목은 필수 입력 사항입니다.
+                    </p>
+                    <form id="frmProductPlanPopup" name="frmProductPlanPopup" method="post">
+    						<input type="hidden" id="searchPrdMstCd" name="searchPrdMstCd" />
+    				</form>
+                    <form name="frm" id="frm" enctype="multipart/form-data">
+                    <div class="section-form"><!-- section-form-a -->
+                        <input type="hidden" name="PLN_PRD_CTG_TOP_NM" id="PLN_PRD_CTG_TOP_NM" value="" />
+
+    			  		<table cellspacing="0" class="table-row table-a"><!-- table -->
+    	                    <colgroup>
+    	                        <col style="width: 15%;" />
+    	                        <col style="width: auto;" />
+    	                    </colgroup>
+    	                    <tbody>
+                                <tr>
+    	                    		<th><label class="label"><span>태그그룹<i class="require"><em>필수입력</em></i></span></label></th>
+    	                    		<td>
+                                        <select class="select">
+                                            <option value="">2020 S/S VIKI 상의</option>
+                                        </select>
+    	                    		</td>
+    	                        </tr>
+                                <tr>
+    	                    		<th><label class="label"><span>태그 그룹 설명</span></label></th>
+    	                    		<td>
+                                        태그 그룹을 선택해 주세요.
+    	                    		</td>
+    	                        </tr>
+                                <tr>
+                                   <th><span>등록태그<i class="require"><em>필수입력</em></i> <br />(0)</span></th>
+                                   <td>
+                                       태그 그룹을 선택해 주세요.
+                                        <ul class="tag_list">
+                                            <li>#오버핏<button type="button" class="btn_del">X</button></li>
+                                            <li>#신상품<button type="button" class="btn_del">X</button></li>
+                                            <li>#빈티지<button type="button" class="btn_del">X</button></li>
+                                            <li>#거울셀카<button type="button" class="btn_del">X</button></li>
+                                            <li>#streetstyle<button type="button" class="btn_del">X</button></li>
+                                            <li>#루즈핏<button type="button" class="btn_del">X</button></li>
+                                            <li>#고상한<button type="button" class="btn_del">X</button></li>
+                                            <li>#신상품1<button type="button" class="btn_del">X</button></li>
+                                            <li>#가을신상<button type="button" class="btn_del">X</button></li>
+                                            <li>#데일리룩<button type="button" class="btn_del">X</button></li>
+                                            <li>#ootd<button type="button" class="btn_del">X</button></li>
+                                            <li>#비오는날<button type="button" class="btn_del">X</button></li>
+                                            <li>#상큼한<button type="button" class="btn_del">X</button></li>
+                                            <li>#가을여행<button type="button" class="btn_del">X</button></li>
+                                            <li>#오버핏1<button type="button" class="btn_del">X</button></li>
+                                            <li>#신상품2<button type="button" class="btn_del">X</button></li>
+                                            <li>#빈티지1<button type="button" class="btn_del">X</button></li>
+                                            <li>#거울셀카1<button type="button" class="btn_del">X</button></li>
+                                            <li>#streetstyle1<button type="button" class="btn_del">X</button></li>
+                                            <li>#루즈핏1<button type="button" class="btn_del">X</button></li>
+                                            <li>#고상한1<button type="button" class="btn_del">X</button></li>
+                                            <li>#신상품3<button type="button" class="btn_del">X</button></li>
+                                            <li>#가을신상<button type="button" class="btn_del">X</button></li>
+                                            <li>#데일리룩1<button type="button" class="btn_del">X</button></li>
+                                            <li>#ootd<button type="button" class="btn_del">X</button></li>
+                                            <li>#비오는날1<button type="button" class="btn_del">X</button></li>
+                                            <li>#상큼한<button type="button" class="btn_del">X</button></li>
+                                            <li>#가을여행<button type="button" class="btn_del">X</button></li>
+                                        </ul>
+                                   </td>
+                               </tr>
+    	                    </tbody>
+                    	</table><!-- // table -->
+                    </div>
+                    </form>
+
+                    <div class="section-button-popup text-center"><!-- section button -->
+                        <a href="#none" id="closePopup" class="button button-b"><span>취소</span></a>
+                    	<a href="#none" id="" class="button button-b primary"><span>선택</span></a>
+					</div>
+
+                </div><!-- //modal-inner -->
+
+            </div><!-- //modal-wrapper -->
+
+        </div><!-- //modal -->
+
+
+		<footer><!-- footer -->
+			<%@ include file="/WEB-INF/jsp/am/include/footer.jsp" %>
+		</footer><!-- // footer -->
+
+
+	<script src="http://bo.marketplanta.epasscni.com:8080/am/js/plugins.js" /></script>
+	<script src="http://bo.marketplanta.epasscni.com:8080/am/js/ui.js"></script>
+	<script src="http://bo.marketplanta.epasscni.com:8080/am/js/common.js"></script>
+	<script type="text/javascript">
+	$(document).ready(function () {
+
+
+
+	});
+
+	</script>
+	</body>
+	</html>
