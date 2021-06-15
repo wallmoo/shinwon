@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="BatchCancelOrder">
+    
+    <!-- 입금기한 지난 가상계좌 결제대기 주문 리스트 -->
+    <select id="selectCancelOrder" parameterType="HashMap" resultType="HashMap">
+        /* BatchCancelOrder.selectCancelOrder   */
+        
+        SELECT
+            ORD_MST_CD
+        FROM (
+            SELECT
+                OM.ORD_MST_CD,
+                COUNT(*) AS TOT_CNT,
+                SUM(DECODE(ORD_PRD_ORD_STATE,#{ORD_PRD_ORD_STATE},1,0)) as PAY_READY_CNT
+            FROM 
+                T_ORD_MST OM, T_ORD_PRD OP, T_PAY_MST PM
+            WHERE OM.ORD_MST_CD = OP.ORD_ORD_MST_CD
+            AND OM.ORD_MST_CD = PM.PAY_MST_OID
+            
+            AND OM.ORD_MST_PAY_TYPE IN
+            <foreach collection="ORD_MST_PAY_TYPE" item="TYPE" open="(" close=")" separator=",">
+                #{TYPE}
+            </foreach>
+            AND PM.PAY_MST_KICC_EXPIRE_DATE <![CDATA[<]]> TO_CHAR(SYSDATE,'YYYYMMDDHH24MISS')
+            GROUP BY
+                OM.ORD_MST_CD
+            )
+        WHERE
+            TOT_CNT = PAY_READY_CNT
+        ORDER BY
+            ORD_MST_CD
+        
+    </select>
+    
+</mapper>

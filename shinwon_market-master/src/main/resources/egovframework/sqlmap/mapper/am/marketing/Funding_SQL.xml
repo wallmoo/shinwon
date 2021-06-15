@@ -1,0 +1,206 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="Funding">
+
+    <!-- 팝업관리 검색 조건 -->
+    <sql id="FundingWhere">
+        <if test="searchPrdMstCd != null and searchPrdMstCd != ''">
+            AND FND.PRD_MST_CD LIKE '%' || #{searchPrdMstCd} || '%'
+        </if>
+        <if test="searchPrdMstNm != null and searchPrdMstNm != ''">
+            <![CDATA[
+               AND PRD.PRD_MST_NM LIKE '%'||#{searchPrdMstNm}||'%'
+            ]]>
+        </if>
+        <if test="searchStartDate != null and searchStartDate != '' and searchEndDate != null and searchEndDate != ''">
+            <![CDATA[
+                AND FND.FND_MST_ST_DT <= REPLACE(#{searchEndDate},'-', '')
+                AND REPLACE(#{searchStartDate},'-', '') <= FND.FND_MST_ST_DT
+            ]]>
+        </if>
+        <if test="searchFndMstUseYn != null and searchFndMstUseYn != ''">
+            <![CDATA[
+                AND FND_MST_USE_YN = #{searchFndMstUseYn}
+            ]]>
+        </if>
+        <if test="searchFndMstStatus != null and searchFndMstStatus != ''">
+            <choose>
+                <when test="searchFndMstStatus.equals('ing'.toString())">
+                    <![CDATA[
+                        AND TO_CHAR(SYSDATE, 'YYYYMMDD') BETWEEN FND.FND_MST_ST_DT AND FND.FND_MST_ED_DT
+                    ]]>    
+                </when>
+                <when test="searchFndMstStatus.equals('end'.toString())">
+                    <![CDATA[
+                        AND FND.FND_MST_ED_DT < TO_CHAR(SYSDATE, 'YYYYMMDD')
+                    ]]>
+                </when>
+                <when test="searchFndMstStatus.equals('N'.toString())">
+                    <![CDATA[
+                        AND FND.FND_MST_DSP_YN = 'Y'
+                    ]]>
+                </when>
+            </choose>
+        </if>
+    </sql>
+    
+    <!-- 팝업관리 리스트 갯수 -->
+    <select id="selectFundingCount" parameterType="hashMap" resultType="integer">
+        /* Funding.selectFundingCount */
+        SELECT
+            COUNT(0)
+        FROM
+            T_FND_MST FND, T_PRD_MST PRD    
+        WHERE FND.PRD_MST_CD = PRD.PRD_MST_CD
+        <include refid="FundingWhere"/>
+    </select> 
+    
+    <!-- 팝업관리 리스트 조회 -->
+    <select id="selectFundingList" parameterType="hashMap" resultType="hashMap">
+        /* Funding.selectFundingList */
+        SELECT
+            S2.*            
+        FROM
+            (   SELECT
+                    ROWNUM AS RNUM,
+                    S1.*,
+                    FN_PRODUCT_IMG(S1.PRD_MST_CD, #{THUMBNAIL_SIZE}) AS PRD_IMAGE 
+                FROM
+                    (   SELECT
+                               FND.FND_MST_IDX,
+                               FND.PRD_MST_CD,
+                               FND.FND_MST_NM,
+                               PRD.PRD_MST_NM,
+                               PRD.PRD_MST_PRC,
+                               PRD.PRD_MST_SEL_CNT,
+                               FND.FND_MST_ST_DT,
+                               FND.FND_MST_ED_DT,
+                               FND.FND_MST_USE_YN,
+                               FND.FND_MST_REG_DT
+                        FROM
+                            T_FND_MST FND, T_PRD_MST PRD
+                        WHERE
+                            FND.PRD_MST_CD = PRD.PRD_MST_CD
+                            <include refid="FundingWhere"/>
+                        ORDER BY FND_MST_REG_DT DESC 
+                    )
+                    S1 
+            )
+            S2 
+        WHERE
+            S2.RNUM BETWEEN #{startNum} AND #{endNum}
+    </select>
+
+ 
+    <select id="selectFundingInfo" parameterType="hashMap" resultType="hashMap">
+        <![CDATA[
+        /* Funding.selectFundingInfo */
+        SELECT
+            FND.FND_MST_IDX, 
+            FND.PRD_MST_CD,
+            FND.FND_MST_NM, 
+            FND.FND_MST_DSC,
+            FND.FND_MST_ST_DT, 
+            FND.FND_MST_ED_DT, 
+            FND.FND_MST_USE_YN,
+            FND.FND_MST_DSP_YN,
+            FND.FND_MST_REG_DT, 
+            FND.FND_MST_REG_IP, 
+            FND.FND_MST_REG_ID,
+            (SELECT ADM_MST_NM FROM T_ADM_MST WHERE ADM_MST_ID = FND.FND_MST_REG_ID) FND_MST_REG_NM,
+            PRD.PRD_MST_NM,
+            PRD.PRD_MST_PRC,
+            PRD.PRD_MST_SEL_CNT,
+            NVL(FND.FND_MST_UPD_DT,FND.FND_MST_REG_DT) FND_MST_UPD_DT,
+            (SELECT ADM_MST_NM FROM T_ADM_MST WHERE ADM_MST_ID = NVL(FND.FND_MST_UPD_ID,FND.FND_MST_REG_ID)) FND_MST_UPD_NM,
+            NVL(FND.FND_MST_UPD_ID,FND.FND_MST_REG_ID) FND_MST_UPD_ID,
+            CASE WHEN PRD_MST_PC_CPN_UNT = 'R' THEN
+				PRD_MST_PRC - (PRD_MST_PRC * (NVL(PRD_MST_PC_CPN_PRC,0) / 100 ))
+				ELSE PRD_MST_PRC - NVL(PRD_MST_PC_CPN_PRC,0)
+			END	AS PRD_MST_ORD_PRC,
+			0 AS ERP_MST_SELL_PRC
+        FROM
+            T_FND_MST FND, T_PRD_MST PRD
+        WHERE
+        	FND.PRD_MST_CD = PRD.PRD_MST_CD
+        	AND FND_MST_IDX = #{FND_MST_IDX}
+        ]]>
+    </select>
+
+    <!-- 팝업관리 등록 -->
+    <insert id="insertFunding" parameterType="hashMap">
+    <selectKey keyProperty="FND_MST_IDX" resultType="Integer" order="BEFORE">
+        SELECT SEQ_FND_MST_IDX.NEXTVAL AS FND_MST_IDX  FROM DUAL
+    </selectKey>
+        <![CDATA[
+        /* Funding.insertFunding */
+        INSERT INTO T_FND_MST (
+            FND_MST_IDX
+            , PRD_MST_CD
+            , FND_MST_NM
+            , FND_MST_DSC
+            , FND_MST_AIM
+            , FND_MST_LMT
+            , FND_MST_ST_DT
+            , FND_MST_ED_DT
+            , FND_MST_USE_YN
+            , FND_MST_DSP_YN
+            , FND_MST_REG_DT
+            , FND_MST_REG_IP
+            , FND_MST_REG_ID
+        )VALUES (
+            #{FND_MST_IDX}
+            , #{PRD_MST_CD}
+            , #{FND_MST_NM}
+            , #{FND_MST_DSC}
+            , #{FND_MST_AIM}
+            , #{FND_MST_LMT}
+            , REPLACE(#{FND_MST_ST_DT},'-','')
+            , REPLACE(#{FND_MST_ED_DT},'-','')
+            , #{FND_MST_USE_YN}
+            , #{FND_MST_DSP_YN}
+            , TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS')
+            , #{FND_MST_REG_IP}
+            , #{FND_MST_REG_ID}
+        )
+        ]]>
+    </insert>
+   
+    <!-- 팝업관리 수정 -->
+    <update id="updateFunding" parameterType="hashMap">
+        <![CDATA[
+        /* Funding.updateFunding */
+        UPDATE 
+            T_FND_MST
+        SET
+            FND_MST_NM = #{FND_MST_NM}
+            , FND_MST_CTS = #{FND_MST_CTS}
+            , PRD_MST_CD = #{PRD_MST_CD}
+            , FND_MST_ST_DT = REPLACE(#{FND_MST_ST_DT},'-','')
+            , FND_MST_ED_DT = REPLACE(#{FND_MST_ED_DT},'-','')
+            , FND_MST_USE_YN = #{FND_MST_USE_YN}
+            , FND_MST_UPD_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS')
+            , FND_MST_UPD_IP = #{FND_MST_UPD_IP}
+            , FND_MST_UPD_ID = #{FND_MST_UPD_ID}
+        WHERE
+            FND_MST_IDX = #{FND_MST_IDX}
+        ]]>
+    </update>
+    
+    <!-- 관리자 > 프로모션 관리 > 펀딩 수정 -->
+    <update id="updateFundingList" parameterType="HashMap">
+        /* Kinger.updateFundingList */
+        <foreach collection="selectedFndMstList" item="item" index="index" open="DECLARE BEGIN" close="; END;" separator=";">
+			UPDATE
+	            T_FND_MST 
+	        SET
+	            FND_MST_USE_YN = NVL(#{item.FND_MST_USE_YN}, 'Y'),
+	            FND_MST_UPD_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+	            FND_MST_UPD_IP = #{FND_MST_UPD_IP},
+	            FND_MST_UPD_ID = #{FND_MST_UPD_ID}
+	        WHERE
+	            FND_MST_IDX = #{item.FND_MST_IDX}        
+        </foreach>
+    </update>
+</mapper>

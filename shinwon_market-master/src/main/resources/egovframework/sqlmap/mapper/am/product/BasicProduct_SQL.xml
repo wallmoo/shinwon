@@ -1,0 +1,2641 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="BasicProduct">
+	<sql id="searchPopupWhere">
+		<if test="arrSearchPrdMstCd != null and arrSearchPrdMstCd != ''">
+            AND PM.PRD_MST_CD IN
+            <foreach collection="arrSearchPrdMstCd" item="prdMstCd" separator="," open="(" close=")">
+		        #{prdMstCd}
+		    </foreach>
+        </if>
+        <if test="searchPrdMstNm != null and searchPrdMstNm != ''">
+            AND UPPER(PM.PRD_MST_NM) LIKE '%'||UPPER(#{searchPrdMstNm})||'%'
+        </if>
+        <if test="searchPrdMstVdrYn != null and searchPrdMstVdrYn != ''">
+            AND PM.PRD_MST_VDR_YN = #{searchPrdMstVdrYn}
+        </if>
+        <if test="searchPrdMstVdrIdx != null and searchPrdMstVdrIdx != ''">
+            AND PM.PRD_MST_VDR_IDX = #{searchPrdMstVdrIdx}
+        </if>
+        
+        <if test="searchPrdMstSellState != null and searchPrdMstSellState != ''">
+            AND PM.PRD_MST_SEL_STATE = #{searchPrdMstSellState}
+        </if>
+        <if test="searchPrdMstDplState != null and searchPrdMstDplState != ''">
+            AND PM.PRD_MST_DPL_STATE = #{searchPrdMstDplState}
+        </if>
+        <if test="searchPrdMstBrand != null and searchPrdMstBrand != ''">
+            AND PM.PRD_MST_BRD_IDX = #{searchPrdMstBrand}
+        </if>
+        
+        <if test="searchPrdMstBrandNm != null and searchPrdMstBrandNm != ''">
+            AND EXISTS(
+                        SELECT TBM.BND_MST_BRAND_NM
+                        FROM T_BND_MST TBM, T_VDR_MST TVM
+                        WHERE
+                            TBM.VDR_MST_IDX = PM.PRD_MST_VDR_IDX
+                            AND UPPER(TBM.BND_MST_BRAND_NM) LIKE '%'||UPPER(#{searchPrdMstBrandNm})||'%'
+                      )
+        </if>
+        
+        <if test="searchPrdMstApvState != null and searchPrdMstApvState != ''">
+            AND PM.PRD_MST_APV_STATE = #{searchPrdMstApvState}
+        </if>
+        <if test="searchPrdMstSeason != null and searchPrdMstSeason != ''">
+            AND PM.PRD_MST_SEASON = #{searchPrdMstSeason}
+        </if>
+        
+        <if test="searchStartDate != null and searchStartDate != '' and searchEndDate != null and searchEndDate != ''">
+            AND PM.PRD_MST_REG_DT BETWEEN REPLACE(#{searchStartDate},'-', '')||'000000' AND REPLACE(#{searchEndDate},'-', '')||'235959'
+        </if>
+        <if test="searchPrdMstChannelType != null and searchPrdMstChannelType != ''">
+            <choose>
+                <when test="searchPrdMstChannelType.equals('P'.toString())">
+                    AND PM.PRD_MST_CNL_PC_YN = 'Y'
+                </when>
+                <when test="searchPrdMstChannelType.equals('M'.toString())">
+                    AND PM.PRD_MST_CNL_MB_YN = 'Y'
+                </when>
+            </choose>
+        </if>
+        <if test="searchPrdMstType != null and searchPrdMstType != ''">
+            AND PM.PRD_MST_TYPE = #{searchPrdMstType}
+        </if>
+        <if test="searchCategoryYn != null and searchCategoryYn != ''">
+            <if test="searchCategoryYn.equals('Y'.toString())">
+                AND PM.PRD_MST_CD IN ( 
+                                          SELECT DSP_PRD_MST_CD
+                                          FROM T_DSP_CTG, WT1
+                                          WHERE
+                                            T_DSP_CTG.DSP_PRD_CTG_IDX = WT1.PRD_CTG_IDX
+                                      )
+            </if>
+        </if>
+        <if test="searchPrdMstVdrYn != null and searchPrdMstVdrYn.equals('Y'.toString())">
+            AND NOT EXISTS(
+                                SELECT PRD_MST_CD
+                                FROM T_PRD_MST PM2
+                                WHERE PM.PRD_MST_CD = PM2.PRD_MST_CD
+                                AND PM2.PRD_MST_VDR_YN = 'Y'
+                                AND PM2.PRD_MST_VDR_IDX > 0
+                                AND PM2.PRD_MST_APV_STATE = 'D'
+                                AND PM2.PRD_MST_DEL_YN  <![CDATA[ <> ]]>  'Y'      
+                            )
+        </if>        
+        <if test="searchVdrApvApvState != null and searchVdrApvApvState != ''">
+            
+                AND EXISTS(
+                                SELECT PRD_MST_CD
+                                FROM T_VDR_APV VAV
+                                WHERE PM.PRD_MST_CD = VAV.PRD_MST_CD
+                                AND VAV.VDR_APV_APV_STATE = #{searchVdrApvApvState}
+                          )
+            
+        </if>
+    <if test="searchPrdMstVdrNm != null and searchPrdMstVdrNm != ''">
+            AND EXISTS(
+                            SELECT TVM.VDR_MST_NM 
+                            FROM T_VDR_MST TVM 
+                            WHERE PM.PRD_MST_VDR_IDX = TVM.VDR_MST_IDX 
+                            AND UPPER(TVM.VDR_MST_NM) LIKE '%'||UPPER(#{searchPrdMstVdrNm})||'%'
+                      )
+        </if>
+	</sql>
+    <!-- 상품 검색 조건 -->
+    <sql id="productWhere">
+        <if test="searchPrdMstCd != null and searchPrdMstCd != ''">
+            AND PM.PRD_MST_CD LIKE '%'||UPPER(#{searchPrdMstCd})||'%'
+        </if>
+        
+		<if test="arrSearchPrdMstCd != null and arrSearchPrdMstCd != ''">
+            AND PM.PRD_MST_CD IN
+            <foreach collection="arrSearchPrdMstCd" item="prdMstCd" separator="," open="(" close=")">
+		        Trim( UPPER( #{prdMstCd} ) )
+		    </foreach>
+        </if>        
+        
+        <if test="searchPrdMstNm != null and searchPrdMstNm != ''">
+            AND UPPER(PM.PRD_MST_NM) LIKE '%'||UPPER(#{searchPrdMstNm})||'%'
+        </if>
+        <if test="searchPrdMstVdrYn != null and searchPrdMstVdrYn != ''">
+            AND PM.PRD_MST_VDR_YN = #{searchPrdMstVdrYn}
+        </if>
+        <if test="searchPrdMstVdrIdx != null and searchPrdMstVdrIdx != ''">
+            AND PM.PRD_MST_VDR_IDX = #{searchPrdMstVdrIdx}
+        </if>
+        
+        <if test="searchPrdMstSellState != null and searchPrdMstSellState != ''">
+            AND PM.PRD_MST_SEL_STATE = #{searchPrdMstSellState}
+        </if>
+        <if test="searchPrdMstDplState != null and searchPrdMstDplState != ''">
+            AND PM.PRD_MST_DPL_STATE = #{searchPrdMstDplState}
+        </if>
+        <if test="searchPrdMstBrand != null and searchPrdMstBrand != ''">
+            AND PM.PRD_MST_BRD_IDX = #{searchPrdMstBrand}
+        </if>
+        
+        <if test="searchPrdMstBrandNm != null and searchPrdMstBrandNm != ''">
+            AND EXISTS(
+                        SELECT TBM.BND_MST_BRAND_NM
+                        FROM T_BND_MST TBM, T_VDR_MST TVM
+                        WHERE
+                            TBM.VDR_MST_IDX = PM.PRD_MST_VDR_IDX
+                            AND UPPER(TBM.BND_MST_BRAND_NM) LIKE '%'||UPPER(#{searchPrdMstBrandNm})||'%'
+                      )
+        </if>
+        
+        <if test="searchPrdMstApvState != null and searchPrdMstApvState != ''">
+            AND PM.PRD_MST_APV_STATE = #{searchPrdMstApvState}
+        </if>
+        <if test="searchPrdMstSeason != null and searchPrdMstSeason != ''">
+            AND PM.PRD_MST_SEASON = #{searchPrdMstSeason}
+        </if>
+        
+        <if test="searchStartDate != null and searchStartDate != '' and searchEndDate != null and searchEndDate != ''">
+            AND PM.PRD_MST_REG_DT BETWEEN REPLACE(#{searchStartDate},'-', '')||'000000' AND REPLACE(#{searchEndDate},'-', '')||'235959'
+        </if>
+        <if test="searchPrdMstChannelType != null and searchPrdMstChannelType != ''">
+            <choose>
+                <when test="searchPrdMstChannelType.equals('P'.toString())">
+                    AND PM.PRD_MST_CNL_PC_YN = 'Y'
+                </when>
+                <when test="searchPrdMstChannelType.equals('M'.toString())">
+                    AND PM.PRD_MST_CNL_MB_YN = 'Y'
+                </when>
+            </choose>
+        </if>
+        <if test="searchPrdMstType != null and searchPrdMstType != ''">
+            AND PM.PRD_MST_TYPE = #{searchPrdMstType}
+        </if>
+        <if test="searchCategoryYn != null and searchCategoryYn != ''">
+            <if test="searchCategoryYn.equals('Y'.toString())">
+                AND PM.PRD_MST_CD IN ( 
+                                          SELECT DSP_PRD_MST_CD
+                                          FROM T_DSP_CTG, WT1
+                                          WHERE
+                                            T_DSP_CTG.DSP_PRD_CTG_IDX = WT1.PRD_CTG_IDX
+                                      )
+            </if>
+        </if>
+                
+        <if test="searchVdrApvApvState != null and searchVdrApvApvState != ''">
+            <if test="searchPrdMstVdrYn.equals('Y'.toString())">
+                AND EXISTS(
+                                SELECT PRD_MST_CD
+                                FROM T_VDR_APV VAV
+                                WHERE PM.PRD_MST_CD = VAV.PRD_MST_CD
+                                AND VAV.VDR_APV_APV_STATE = #{searchVdrApvApvState}
+                          )
+            </if>
+        </if>
+    <if test="searchPrdMstVdrNm != null and searchPrdMstVdrNm != ''">
+            AND EXISTS(
+                            SELECT TVM.VDR_MST_NM 
+                            FROM T_VDR_MST TVM 
+                            WHERE PM.PRD_MST_VDR_IDX = TVM.VDR_MST_IDX 
+                            AND UPPER(TVM.VDR_MST_NM) LIKE '%'||UPPER(#{searchPrdMstVdrNm})||'%'
+                      )
+        </if>
+    </sql>
+    
+    <!-- 상품 카테고리 검색 조건 -->
+    <sql id="productCategoryWhere">
+        <where>
+            AND PC.PRD_CTG_ENV = 'P'
+        </where>
+        <if test="searchPrdCtgIdx != null and searchPrdCtgIdx !=''">
+            START WITH PC.PRD_CTG_IDX = #{searchPrdCtgIdx}
+            CONNECT BY PRIOR PC.PRD_CTG_IDX = PC.PRD_CTG_UP_IDX
+        </if>
+    </sql>
+       
+    <!-- 상품 리스트 갯수 -->
+    <select id="selectBasicProductCount" parameterType="hashMap" resultType="integer">
+        /* BasicProduct.selectBasicProductCount */
+        WITH WT1 AS(
+            SELECT PC.PRD_CTG_IDX, PC.PRD_CTG_NM, PC.PRD_CTG_TOP_IDX, PC.PRD_CTG_ENV
+            FROM T_PRD_CTG PC
+            <include refid="productCategoryWhere"/>
+        )
+        SELECT
+            COUNT(0)
+        FROM
+             T_PRD_MST PM
+        WHERE
+            PM.PRD_MST_DEL_YN <![CDATA[ <> ]]> 'Y'
+            <include refid="productWhere"/>
+    </select> 
+    
+    <!-- 입점업체 수정요청 수 -->
+    <select id="selectBasicProductVdrCount" parameterType="hashMap" resultType="integer">
+        /* BasicProduct.selectBasicProductVdrCount */
+        SELECT 
+            COUNT(0)
+        FROM T_VDR_APV
+        WHERE
+            VDR_MST_IDX = #{VDR_MST_IDX}
+        AND
+            PRD_MST_CD = #{PRD_MST_CD}
+        AND
+            VDR_APV_APV_STATE = 'D'
+    </select> 
+ 
+    <select id="selectSearchPopupBasicProductCount" parameterType="hashMap" resultType="integer">
+        /* BasicProduct.selectSearchPopupBasicProductCount */
+        WITH WT1 AS(
+            SELECT PC.PRD_CTG_IDX, PC.PRD_CTG_NM, PC.PRD_CTG_TOP_IDX, PC.PRD_CTG_ENV
+            FROM T_PRD_CTG PC
+            <include refid="productCategoryWhere"/>
+        )
+        SELECT
+            COUNT(0)
+        FROM
+             T_PRD_MST PM
+        WHERE
+            PM.PRD_MST_DEL_YN <![CDATA[ <> ]]> 'Y'
+            <include refid="searchPopupWhere"/>
+    </select>
+ 
+    <select id="selectSearchPopupBasicProductList" parameterType="hashMap" resultType="hashMap">
+        /* BasicProduct.selectSearchPopupBasicProductList */
+        
+        WITH WT1 AS (SELECT PC.PRD_CTG_IDX,  
+                                   PC.PRD_CTG_NM,
+                                   PC.PRD_CTG_TOP_IDX,
+                                   PC.PRD_CTG_ENV
+                         FROM T_PRD_CTG PC
+                     <include refid="productCategoryWhere"/>
+                     )
+        SELECT  RNUM,
+                PRD_MST_CD,
+                PRD_MST_ERP_CD,
+                FN_PRODUCT_IMG(PRD_MST_CD, #{THUMBNAIL_SIZE}) AS PRD_IMAGE,
+                FN_PRODUCT_IMG_ALT(PRD_MST_CD, #{THUMBNAIL_SIZE}) PRD_IMAGE_ALT,
+                PRD_MST_NM,
+                PRD_MST_TYPE,
+                CASE PRD_MST_TYPE
+                    WHEN 'G' THEN '일반상품'
+                    WHEN 'B' THEN '묶음상품'
+                    WHEN 'S' THEN '세트상품'
+                ELSE '' END AS PRD_MST_TYPE_NM, /*상품유형*/
+                PRD_MST_CNL_PC_YN,
+                PRD_MST_CNL_MB_YN,
+                PRD_MST_SEL_CNT,
+                PRD_MST_PC_CPN_UNT,
+                PRD_MST_PC_CPN_PRC,
+                PRD_MST_MB_CPN_UNT,
+                PRD_MST_MB_CPN_PRC,
+                PRD_MST_DPL_STATE,
+                PRD_MST_SEL_STATE,
+                PRD_MST_APV_STATE,
+				CASE PRD_MST_APV_STATE
+                    WHEN 'A' THEN '승인'
+                    WHEN 'D' THEN '대기'
+                    WHEN 'C' THEN '거절'
+                ELSE
+                    '상태값 없음'
+                END AS PRD_MST_APV_STATE_NM , /* 승인여부_STR */
+                PRD_MST_REG_DT,
+                PRD_MST_UPD_DT,
+                PRD_MST_PRC,
+                PRD_MST_SALE_RATE,
+                (SELECT FN_PRODUCT_DETAIL_PRICE(PRD_MST_CD, #{USER_ENV_TYPE}, #{MEM_MST_ID},'N',null) FROM DUAL) AS PRD_NOW_DST_PRICE, /*판매가 */
+                PRD_MST_DLV_FEE,
+                (SELECT DSP_PRD_CTG_IDX FROM T_DSP_CTG WHERE DSP_PRD_MST_CD = PRD_MST_CD AND ROWNUM = 1) AS DSP_PRD_CTG_IDX, /* 카테고리 IDX */
+                CASE PRD_MST_NAVER_USE_YN
+                    WHEN 'Y' THEN 'YES'
+                ELSE 
+                    'NO' END AS NAVER_USE,
+                CASE PRD_MST_DAUM_USE_YN
+                	WHEN 'Y' THEN 'YES'
+                ELSE
+                	'NO' END AS DAUM_USE,
+                CASE PRD_MST_UNT WHEN 'R' THEN '정율(%)'
+                    WHEN 'S' THEN '정액'
+                ELSE '' END AS PRD_MST_UNT_NM,
+				CASE PRD_MST_EMP_USE_YN WHEN 'Y' THEN 'YES'
+                    WHEN 'N' THEN 'NO'
+                ELSE '' END AS PRD_MST_EMP_USE_NM,
+                CASE PRD_MST_PRT_USE_YN WHEN 'Y' THEN 'YES'
+                    WHEN 'N' THEN 'NO'
+                ELSE '' END AS PRD_MST_PRT_USE_NM,
+                (SELECT VDR_MST_NM FROM T_VDR_MST VDT WHERE VDT.VDR_MST_IDX = PRD_MST_VDR_IDX) AS PRD_MST_VDR_NM,
+                (SELECT TBM.BND_MST_BRAND_NM FROM T_BND_MST TBM WHERE TBM.VDR_MST_IDX = PRD_MST_VDR_IDX ) AS BND_MST_BRAND_NM,
+                PRD_MST_VDR_YN ,
+                PRD_MST_VDR_IDX
+      FROM (
+                SELECT  ROWNUM RNUM,
+                        PRD_MST_CD,
+                        PRD_MST_ERP_CD,
+                        PRD_MST_NM,
+                        PRD_MST_TYPE,
+                        PRD_MST_CNL_PC_YN,
+                        PRD_MST_CNL_MB_YN,
+                        PRD_MST_SEL_CNT,
+                        PRD_MST_PC_CPN_UNT,
+                        PRD_MST_PC_CPN_PRC,
+                        PRD_MST_MB_CPN_UNT,
+                        PRD_MST_MB_CPN_PRC,
+                        PRD_MST_SEL_STATE,
+                        PRD_MST_DPL_STATE,
+                        PRD_MST_APV_STATE, 
+                        PRD_MST_REG_DT,
+                        PRD_MST_UPD_DT,
+                        PRD_MST_PRC,
+                        PRD_MST_DLV_FEE,
+                        PRD_MST_NAVER_USE_YN,
+                        PRD_MST_DAUM_USE_YN,
+                        PRD_MST_UNT,
+                        PRD_MST_EMP_USE_YN,
+                        PRD_MST_PRT_USE_YN,
+                        PRD_MST_SALE_RATE,
+                        PRD_MST_VDR_YN ,
+                        PRD_MST_VDR_IDX
+              FROM (  
+                            SELECT  
+                                    PM.PRD_MST_CD,  /* 온라인 상품코드 */
+                                    PRD_MST_ERP_CD, /* ERP 상품품번*/
+                                    PM.PRD_MST_NM, /* 상품명 */
+                                    PM.PRD_MST_TYPE,
+                                    PM.PRD_MST_CNL_PC_YN, /* 쇼핑 채널 PC여부 */
+                                    PM.PRD_MST_CNL_MB_YN, /* 쇼핑 채널 MOBILE여부 */
+                                    PM.PRD_MST_SEL_CNT, /* 판매가능 수량 */
+                                    PM.PRD_MST_PC_CPN_UNT,
+                                    PM.PRD_MST_PC_CPN_PRC,
+                                    PM.PRD_MST_MB_CPN_UNT,
+                                    PM.PRD_MST_MB_CPN_PRC,
+                                    PM.PRD_MST_SEL_STATE, /* 판매상태 */
+                                    PM.PRD_MST_DPL_STATE, /* 진열여부 */
+                                    PM.PRD_MST_APV_STATE, /* 승인여부 */
+                                    TO_CHAR(TO_DATE(SUBSTR(PM.PRD_MST_REG_DT,1,8),'YYYYMMDD'),'YYYY-MM-DD') AS PRD_MST_REG_DT,/* 최초 등록일 */
+                                    TO_CHAR(TO_DATE(SUBSTR(PM.PRD_MST_UPD_DT,1,8),'YYYYMMDD'),'YYYY-MM-DD') AS PRD_MST_UPD_DT,/* 최초 수정일 */
+                                    PM.PRD_MST_PRC, /* 상품가격 */
+                                    PM.PRD_MST_DLV_FEE, /* 배송비 */
+                                    PM.PRD_MST_NAVER_USE_YN,
+                                    PM.PRD_MST_DAUM_USE_YN,
+                                    PM.PRD_MST_UNT,
+                                    PM.PRD_MST_SALE_RATE,
+                                    PM.PRD_MST_EMP_USE_YN,
+                                    PM.PRD_MST_PRT_USE_YN,
+                                    PM.PRD_MST_VDR_YN ,
+                                    PM.PRD_MST_VDR_IDX
+                               FROM T_PRD_MST PM
+                             WHERE
+                                PM.PRD_MST_DEL_YN <![CDATA[ <> ]]> 'Y'
+                                 <include refid="searchPopupWhere"/>
+                           ORDER BY PRD_MST_REG_DT DESC, PM.PRD_MST_CD ASC
+                           ) IV1
+               ) IV2
+        <if test="excelDown == null or !excelDown.equals('Y'.toString())">
+            WHERE RNUM BETWEEN #{startNum} AND #{endNum}
+        </if>
+        ORDER BY RNUM
+    </select>
+ 	
+    <!-- 상품 리스트 조회 2015.04.09 jesong -->
+    <select id="selectBasicProductList" parameterType="hashMap" resultType="hashMap">
+        /* BasicProduct.selectBasicProductList */
+        
+        WITH WT1 AS (SELECT PC.PRD_CTG_IDX,  
+                                   PC.PRD_CTG_NM,
+                                   PC.PRD_CTG_TOP_IDX,
+                                   PC.PRD_CTG_ENV
+                         FROM T_PRD_CTG PC
+                     <include refid="productCategoryWhere"/>
+                     )
+        SELECT  RNUM,
+                PRD_MST_CD,
+                PRD_MST_ERP_CD,
+                FN_PRODUCT_IMG(PRD_MST_CD, #{THUMBNAIL_SIZE}) AS PRD_IMAGE,
+                FN_PRODUCT_IMG_ALT(PRD_MST_CD, #{THUMBNAIL_SIZE}) PRD_IMAGE_ALT,
+                PRD_MST_NM,
+                PRD_MST_TYPE,
+                CASE PRD_MST_TYPE
+                    WHEN 'G' THEN '일반상품'
+                    WHEN 'B' THEN '묶음상품'
+                    WHEN 'S' THEN '세트상품'
+                ELSE '' END AS PRD_MST_TYPE_NM, /*상품유형*/
+                PRD_MST_CNL_PC_YN,
+                PRD_MST_CNL_MB_YN,
+                PRD_MST_SEL_CNT,
+                PRD_MST_PC_CPN_UNT,
+                PRD_MST_PC_CPN_PRC,
+                PRD_MST_MB_CPN_UNT,
+                PRD_MST_MB_CPN_PRC,
+                PRD_MST_DPL_STATE,
+                PRD_MST_SEL_STATE,
+                PRD_MST_APV_STATE,
+				CASE PRD_MST_APV_STATE
+                    WHEN 'A' THEN '승인'
+                    WHEN 'D' THEN '대기'
+                    WHEN 'C' THEN '거절'
+                ELSE
+                    '상태값 없음'
+                END AS PRD_MST_APV_STATE_NM , /* 승인여부_STR */
+                PRD_MST_REG_DT,
+                PRD_MST_UPD_DT,
+                PRD_MST_PRC,
+                PRD_MST_SALE_RATE,
+                (SELECT FN_PRODUCT_DETAIL_PRICE(PRD_MST_CD, #{USER_ENV_TYPE}, #{MEM_MST_ID},'N',null) FROM DUAL) AS PRD_NOW_DST_PRICE, /*판매가 */
+                PRD_MST_DLV_FEE,
+                (SELECT DSP_PRD_CTG_IDX FROM T_DSP_CTG WHERE DSP_PRD_MST_CD = PRD_MST_CD AND ROWNUM = 1) AS DSP_PRD_CTG_IDX, /* 카테고리 IDX */
+                CASE PRD_MST_NAVER_USE_YN
+                    WHEN 'Y' THEN 'YES'
+                ELSE 
+                    'NO' END AS NAVER_USE,
+                CASE PRD_MST_DAUM_USE_YN
+                	WHEN 'Y' THEN 'YES'
+                ELSE
+                	'NO' END AS DAUM_USE,
+                CASE PRD_MST_UNT WHEN 'R' THEN '정율(%)'
+                    WHEN 'S' THEN '정액'
+                ELSE '' END AS PRD_MST_UNT_NM,
+				CASE PRD_MST_EMP_USE_YN WHEN 'Y' THEN 'YES'
+                    WHEN 'N' THEN 'NO'
+                ELSE '' END AS PRD_MST_EMP_USE_NM,
+                CASE PRD_MST_PRT_USE_YN WHEN 'Y' THEN 'YES'
+                    WHEN 'N' THEN 'NO'
+                ELSE '' END AS PRD_MST_PRT_USE_NM,
+                (SELECT VDR_MST_NM FROM T_VDR_MST VDT WHERE VDT.VDR_MST_IDX = PRD_MST_VDR_IDX) AS PRD_MST_VDR_NM,
+                (SELECT TBM.BND_MST_BRAND_NM FROM T_BND_MST TBM WHERE TBM.VDR_MST_IDX = PRD_MST_VDR_IDX ) AS BND_MST_BRAND_NM,
+                (SELECT TBM.BND_MST_BRAND_TYPE FROM T_BND_MST TBM WHERE TBM.VDR_MST_IDX = PRD_MST_VDR_IDX ) AS BND_MST_BRAND_TYPE,
+                PRD_MST_VDR_YN ,
+                PRD_MST_VDR_IDX
+      FROM (
+                SELECT  ROWNUM RNUM,
+                        PRD_MST_CD,
+                        PRD_MST_ERP_CD,
+                        PRD_MST_NM,
+                        PRD_MST_TYPE,
+                        PRD_MST_CNL_PC_YN,
+                        PRD_MST_CNL_MB_YN,
+                        PRD_MST_SEL_CNT,
+                        PRD_MST_PC_CPN_UNT,
+                        PRD_MST_PC_CPN_PRC,
+                        PRD_MST_MB_CPN_UNT,
+                        PRD_MST_MB_CPN_PRC,
+                        PRD_MST_SEL_STATE,
+                        PRD_MST_DPL_STATE,
+                        PRD_MST_APV_STATE, 
+                        PRD_MST_REG_DT,
+                        PRD_MST_UPD_DT,
+                        PRD_MST_PRC,
+                        PRD_MST_DLV_FEE,
+                        PRD_MST_NAVER_USE_YN,
+                        PRD_MST_DAUM_USE_YN,
+                        PRD_MST_UNT,
+                        PRD_MST_EMP_USE_YN,
+                        PRD_MST_PRT_USE_YN,
+                        PRD_MST_SALE_RATE,
+                        PRD_MST_VDR_YN ,
+                        PRD_MST_VDR_IDX
+              FROM (  
+                            SELECT  
+                                    PM.PRD_MST_CD,  /* 온라인 상품코드 */
+                                    PRD_MST_ERP_CD, /* ERP 상품품번*/
+                                    PM.PRD_MST_NM, /* 상품명 */
+                                    PM.PRD_MST_TYPE,
+                                    PM.PRD_MST_CNL_PC_YN, /* 쇼핑 채널 PC여부 */
+                                    PM.PRD_MST_CNL_MB_YN, /* 쇼핑 채널 MOBILE여부 */
+                                    PM.PRD_MST_SEL_CNT, /* 판매가능 수량 */
+                                    PM.PRD_MST_PC_CPN_UNT,
+                                    PM.PRD_MST_PC_CPN_PRC,
+                                    PM.PRD_MST_MB_CPN_UNT,
+                                    PM.PRD_MST_MB_CPN_PRC,
+                                    PM.PRD_MST_SEL_STATE, /* 판매상태 */
+                                    PM.PRD_MST_DPL_STATE, /* 진열여부 */
+                                    PM.PRD_MST_APV_STATE, /* 승인여부 */
+                                    TO_CHAR(TO_DATE(SUBSTR(PM.PRD_MST_REG_DT,1,8),'YYYYMMDD'),'YYYY-MM-DD') AS PRD_MST_REG_DT,/* 최초 등록일 */
+                                    TO_CHAR(TO_DATE(SUBSTR(PM.PRD_MST_UPD_DT,1,8),'YYYYMMDD'),'YYYY-MM-DD') AS PRD_MST_UPD_DT,/* 최초 수정일 */
+                                    PM.PRD_MST_PRC, /* 상품가격 */
+                                    PM.PRD_MST_DLV_FEE, /* 배송비 */
+                                    PM.PRD_MST_NAVER_USE_YN,
+                                    PM.PRD_MST_DAUM_USE_YN,
+                                    PM.PRD_MST_UNT,
+                                    PM.PRD_MST_SALE_RATE,
+                                    PM.PRD_MST_EMP_USE_YN,
+                                    PM.PRD_MST_PRT_USE_YN,
+                                    PM.PRD_MST_VDR_YN ,
+                                    PM.PRD_MST_VDR_IDX
+                               FROM T_PRD_MST PM
+                             WHERE
+                                PM.PRD_MST_DEL_YN <![CDATA[ <> ]]> 'Y'
+                                 <include refid="productWhere"/>
+                           ORDER BY PRD_MST_REG_DT DESC, PM.PRD_MST_CD ASC
+                           ) IV1
+               ) IV2
+        <if test="excelDown == null or !excelDown.equals('Y'.toString())">
+            WHERE RNUM BETWEEN #{startNum} AND #{endNum}
+        </if>
+        ORDER BY RNUM
+    </select>
+    
+    
+
+    <select id="selectBasicProductListExcel" parameterType="hashMap" resultType="hashMap">
+        /* BasicProduct.selectBasicProductList */
+        
+        WITH WT1 AS (SELECT PC.PRD_CTG_IDX,  
+                                   PC.PRD_CTG_NM,
+                                   PC.PRD_CTG_TOP_IDX,
+                                   PC.PRD_CTG_ENV
+                         FROM T_PRD_CTG PC
+                     <include refid="productCategoryWhere"/>
+                     )
+        SELECT  RNUM,
+                PRD_MST_CD,
+                PRD_MST_ERP_CD,
+                FN_PRODUCT_IMG(PRD_MST_CD, #{THUMBNAIL_SIZE}) AS PRD_IMAGE,
+                FN_PRODUCT_IMG_ALT(PRD_MST_CD, #{THUMBNAIL_SIZE}) PRD_IMAGE_ALT,
+                PRD_MST_NM,
+                PRD_MST_TYPE,
+                CASE PRD_MST_TYPE
+                    WHEN 'G' THEN '일반상품'
+                    WHEN 'B' THEN '묶음상품'
+                    WHEN 'S' THEN '세트상품'
+                ELSE '' END AS PRD_MST_TYPE_NM, /*상품유형*/
+                PRD_MST_CNL_PC_YN,
+                PRD_MST_CNL_MB_YN,
+                PRD_MST_SEL_CNT,
+                PRD_MST_PC_CPN_UNT,
+                PRD_MST_PC_CPN_PRC,
+                PRD_MST_MB_CPN_UNT,
+                PRD_MST_MB_CPN_PRC,
+                PRD_MST_DPL_STATE,
+                PRD_MST_SEL_STATE,
+                PRD_MST_APV_STATE,
+				CASE PRD_MST_APV_STATE
+                    WHEN 'A' THEN '승인'
+                    WHEN 'D' THEN '대기'
+                    WHEN 'C' THEN '거절'
+                ELSE
+                    '상태값 없음'
+                END AS PRD_MST_APV_STATE_NM , /* 승인여부_STR */
+                PRD_MST_REG_DT,
+                PRD_MST_UPD_DT,
+                PRD_MST_PRC,
+                PRD_MST_SALE_RATE,
+                (SELECT FN_PRODUCT_DETAIL_PRICE(PRD_MST_CD, #{USER_ENV_TYPE}, #{MEM_MST_ID},'N',null) FROM DUAL) AS PRD_NOW_DST_PRICE, /*판매가 */
+                PRD_MST_DLV_FEE,
+                (SELECT DSP_PRD_CTG_IDX FROM T_DSP_CTG WHERE DSP_PRD_MST_CD = PRD_MST_CD AND ROWNUM = 1) AS DSP_PRD_CTG_IDX, /* 카테고리 IDX */
+                CASE PRD_MST_NAVER_USE_YN
+                    WHEN 'Y' THEN 'YES'
+                ELSE 
+                    'NO' END AS NAVER_USE,
+                CASE PRD_MST_DAUM_USE_YN
+                	WHEN 'Y' THEN 'YES'
+                ELSE
+                	'NO' END AS DAUM_USE,
+                CASE PRD_MST_UNT WHEN 'R' THEN '정율(%)'
+                    WHEN 'S' THEN '정액'
+                ELSE '' END AS PRD_MST_UNT_NM,
+				CASE PRD_MST_EMP_USE_YN WHEN 'Y' THEN 'YES'
+                    WHEN 'N' THEN 'NO'
+                ELSE '' END AS PRD_MST_EMP_USE_NM,
+                CASE PRD_MST_PRT_USE_YN WHEN 'Y' THEN 'YES'
+                    WHEN 'N' THEN 'NO'
+                ELSE '' END AS PRD_MST_PRT_USE_NM,
+                (SELECT VDR_MST_NM FROM T_VDR_MST VDT WHERE VDT.VDR_MST_IDX = PRD_MST_VDR_IDX) AS PRD_MST_VDR_NM,
+                (SELECT TBM.BND_MST_BRAND_NM FROM T_BND_MST TBM WHERE TBM.VDR_MST_IDX = PRD_MST_VDR_IDX ) AS BND_MST_BRAND_NM,
+                (SELECT TBM.BND_MST_BRAND_TYPE FROM T_BND_MST TBM WHERE TBM.VDR_MST_IDX = PRD_MST_VDR_IDX ) AS BND_MST_BRAND_TYPE,
+                PRD_MST_VDR_YN ,
+                PRD_MST_VDR_IDX ,
+                ( SELECT LISTAGG ( FN_CATEGORY_PATH(DSP_PRD_CTG_IDX) ,' , ' ) WITHIN GROUP ( ORDER BY FN_CATEGORY_PATH(DSP_PRD_CTG_IDX) ASC ) AS CATEGORY_NAMES FROM T_DSP_CTG TDC WHERE TDC.DSP_PRD_MST_CD = PRD_MST_CD AND TDC.DSP_CTG_USE_YN = 'Y'  ) AS CATEGORY_NAMES
+      FROM (
+                SELECT  ROWNUM RNUM,
+                        PRD_MST_CD,
+                        PRD_MST_ERP_CD,
+                        PRD_MST_NM,
+                        PRD_MST_TYPE,
+                        PRD_MST_CNL_PC_YN,
+                        PRD_MST_CNL_MB_YN,
+                        PRD_MST_SEL_CNT,
+                        PRD_MST_PC_CPN_UNT,
+                        PRD_MST_PC_CPN_PRC,
+                        PRD_MST_MB_CPN_UNT,
+                        PRD_MST_MB_CPN_PRC,
+                        PRD_MST_SEL_STATE,
+                        PRD_MST_DPL_STATE,
+                        PRD_MST_APV_STATE, 
+                        PRD_MST_REG_DT,
+                        PRD_MST_UPD_DT,
+                        PRD_MST_PRC,
+                        PRD_MST_DLV_FEE,
+                        PRD_MST_NAVER_USE_YN,
+                        PRD_MST_DAUM_USE_YN,
+                        PRD_MST_UNT,
+                        PRD_MST_EMP_USE_YN,
+                        PRD_MST_PRT_USE_YN,
+                        PRD_MST_SALE_RATE,
+                        PRD_MST_VDR_YN ,
+                        PRD_MST_VDR_IDX
+              FROM (  
+                            SELECT  
+                                    PM.PRD_MST_CD,  /* 온라인 상품코드 */
+                                    PRD_MST_ERP_CD, /* ERP 상품품번*/
+                                    PM.PRD_MST_NM, /* 상품명 */
+                                    PM.PRD_MST_TYPE,
+                                    PM.PRD_MST_CNL_PC_YN, /* 쇼핑 채널 PC여부 */
+                                    PM.PRD_MST_CNL_MB_YN, /* 쇼핑 채널 MOBILE여부 */
+                                    PM.PRD_MST_SEL_CNT, /* 판매가능 수량 */
+                                    PM.PRD_MST_PC_CPN_UNT,
+                                    PM.PRD_MST_PC_CPN_PRC,
+                                    PM.PRD_MST_MB_CPN_UNT,
+                                    PM.PRD_MST_MB_CPN_PRC,
+                                    PM.PRD_MST_SEL_STATE, /* 판매상태 */
+                                    PM.PRD_MST_DPL_STATE, /* 진열여부 */
+                                    PM.PRD_MST_APV_STATE, /* 승인여부 */
+                                    TO_CHAR(TO_DATE(SUBSTR(PM.PRD_MST_REG_DT,1,8),'YYYYMMDD'),'YYYY-MM-DD') AS PRD_MST_REG_DT,/* 최초 등록일 */
+                                    TO_CHAR(TO_DATE(SUBSTR(PM.PRD_MST_UPD_DT,1,8),'YYYYMMDD'),'YYYY-MM-DD') AS PRD_MST_UPD_DT,/* 최초 수정일 */
+                                    PM.PRD_MST_PRC, /* 상품가격 */
+                                    PM.PRD_MST_DLV_FEE, /* 배송비 */
+                                    PM.PRD_MST_NAVER_USE_YN,
+                                    PM.PRD_MST_DAUM_USE_YN,
+                                    PM.PRD_MST_UNT,
+                                    PM.PRD_MST_SALE_RATE,
+                                    PM.PRD_MST_EMP_USE_YN,
+                                    PM.PRD_MST_PRT_USE_YN,
+                                    PM.PRD_MST_VDR_YN ,
+                                    PM.PRD_MST_VDR_IDX
+                               FROM T_PRD_MST PM
+                             WHERE
+                                PM.PRD_MST_DEL_YN <![CDATA[ <> ]]> 'Y'
+                                 <include refid="productWhere"/>
+                           ORDER BY PRD_MST_REG_DT DESC, PM.PRD_MST_CD ASC
+                           ) IV1
+               ) IV2
+        <if test="excelDown == null or !excelDown.equals('Y'.toString())">
+            WHERE RNUM BETWEEN #{startNum} AND #{endNum}
+        </if>
+        ORDER BY RNUM
+    </select>    
+    
+    <!-- 상품 상세 조회 -->
+    <resultMap type="java.util.HashMap" id="resultProduct">
+        <result column="PRD_MST_CD"     property="PRD_MST_CD"/>
+        <result column="PRD_MST_VDR_YN"     property="PRD_MST_VDR_YN"/>
+        <result column="PRD_MST_VDR_IDX"    property="PRD_MST_VDR_IDX"/>
+        <result column="PRD_MST_TYPE"       property="PRD_MST_TYPE"/>
+        <result column="PRD_MST_BUY_TP"     property="PRD_MST_BUY_TP"/>
+        <result column="PRD_MST_NM"     property="PRD_MST_NM"/>
+        <result column="PRD_MST_NM_SUB"     property="PRD_MST_NM_SUB"/>
+        <result column="PRD_MST_LNG_DIV_YN" property="PRD_MST_LNG_DIV_YN"/>
+        <result column="PRD_MST_LNG_DIV_MNT1"   property="PRD_MST_LNG_DIV_MNT1"/>
+        <result column="PRD_MST_LNG_DIV_MNT2"   property="PRD_MST_LNG_DIV_MNT2"/>
+        <result column="PRD_MST_MD_ID"      property="PRD_MST_MD_ID"/>
+        <result column="PRD_MST_DLV_FEE"    property="PRD_MST_DLV_FEE"/>
+        <result column="PRD_MST_CPS_YN"     property="PRD_MST_CPS_YN"/>
+        <result column="PRD_MST_CPS_MDL"    property="PRD_MST_CPS_MDL"/>
+        <result column="PRD_MST_CPN_YN"     property="PRD_MST_CPN_YN"/>
+        <result column="PRD_MST_SEL_CNT"    property="PRD_MST_SEL_CNT"/>
+        <result column="PRD_MST_PC_CPN_UNT" property="PRD_MST_PC_CPN_UNT"/>
+        <result column="PRD_MST_PC_CPN_PRC" property="PRD_MST_PC_CPN_PRC"/>
+        <result column="PRD_MST_MB_CPN_UNT" property="PRD_MST_MB_CPN_UNT"/>
+        <result column="PRD_MST_MB_CPN_PRC" property="PRD_MST_MB_CPN_PRC"/>
+        <result column="PRD_MST_ADD_MIL"    property="PRD_MST_ADD_MIL"/>
+        <result column="PRD_MST_SRC_YN"     property="PRD_MST_SRC_YN"/>
+        <result column="PRD_MST_O2O_YN"     property="PRD_MST_O2O_YN"/>
+        <result column="PRD_MST_DLV_BND"    property="PRD_MST_DLV_BND"/>
+        <result column="PRD_MST_IVB_YN"     property="PRD_MST_IVB_YN"/>
+        <result column="PRD_MST_DLV_DSN_YN" property="PRD_MST_DLV_DSN_YN"/>
+        <result column="PRD_MST_DLV_DT"     property="PRD_MST_DLV_DT"/>
+        <result column="PRD_MST_PRC"        property="PRD_MST_PRC"/>
+        <result column="PRD_MST_SCH_PRC"    property="PRD_MST_SCH_PRC"/>
+        <result column="PRD_MST_CPR_PRC1"   property="PRD_MST_CPR_PRC1"/>
+        <result column="PRD_MST_CPR_PRC2"   property="PRD_MST_CPR_PRC2"/>
+        <result column="PRD_MST_PKG_PRC"    property="PRD_MST_PKG_PRC"/>
+        <result column="PRD_MST_CNL_PC_YN"  property="PRD_MST_CNL_PC_YN"/>
+        <result column="PRD_MST_CNL_MB_YN"  property="PRD_MST_CNL_MB_YN"/>
+        <result column="PRD_MST_SEL_STATE"  property="PRD_MST_SEL_STATE"/>
+        <result column="PRD_MST_DPL_STATE"  property="PRD_MST_DPL_STATE"/>
+        <result column="PRD_MST_APV_STATE"  property="PRD_MST_APV_STATE"/>
+        <result column="PRD_MST_APV_STATE_NM"   property="PRD_MST_APV_STATE_NM"/>
+        <result column="PRD_MST_PC_DTL_DSC" property="PRD_MST_PC_DTL_DSC" jdbcType="CLOB" javaType="java.lang.String"/>
+        <result column="PRD_MST_MB_DTL_DSC" property="PRD_MST_MB_DTL_DSC" jdbcType="CLOB" javaType="java.lang.String"/>
+        <result column="PRD_MST_NFI_IDX"    property="PRD_MST_NFI_IDX"/>
+        <result column="PRD_MST_BRD_IDX"    property="PRD_MST_BRD_IDX"/>
+        <result column="PRD_MST_MRK_IDX"    property="PRD_MST_MRK_IDX"/>
+        <result column="PRD_MST_NFI_INF1"   property="PRD_MST_NFI_INF1"/>
+        <result column="PRD_MST_NFI_INF2"   property="PRD_MST_NFI_INF2"/>
+        <result column="PRD_MST_NFI_INF3"   property="PRD_MST_NFI_INF3"/>
+        <result column="PRD_MST_NFI_INF4"   property="PRD_MST_NFI_INF4"/>
+        <result column="PRD_MST_NFI_INF5"   property="PRD_MST_NFI_INF5"/>
+        <result column="PRD_MST_NFI_INF6"   property="PRD_MST_NFI_INF6"/>
+        <result column="PRD_MST_NFI_INF7"   property="PRD_MST_NFI_INF7"/>
+        <result column="PRD_MST_NFI_INF8"   property="PRD_MST_NFI_INF8"/>
+        <result column="PRD_MST_NFI_INF9"   property="PRD_MST_NFI_INF9"/>
+        <result column="PRD_MST_NFI_INF10"  property="PRD_MST_NFI_INF10"/>
+        <result column="PRD_MST_NFI_INF11"  property="PRD_MST_NFI_INF11"/>
+        <result column="PRD_MST_NFI_INF12"  property="PRD_MST_NFI_INF12"/>
+        <result column="PRD_MST_NFI_INF13"  property="PRD_MST_NFI_INF13"/>
+        <result column="PRD_MST_NFI_INF14"  property="PRD_MST_NFI_INF14"/>
+        <result column="PRD_MST_MTA_TAG1"   property="PRD_MST_MTA_TAG1"/>
+        <result column="PRD_MST_MTA_TAG2"   property="PRD_MST_MTA_TAG2"/>
+        <result column="PRD_MST_MTA_TAG3"   property="PRD_MST_MTA_TAG3"/>
+        <result column="PRD_MST_MEMO"       property="PRD_MST_MEMO"/>
+        <result column="PRD_MST_RED_CNT"    property="PRD_MST_RED_CNT"/>
+        <result column="PRD_MST_ICN_YN1"    property="PRD_MST_ICN_YN1"/>
+        <result column="PRD_MST_ICN_ST_DT1" property="PRD_MST_ICN_ST_DT1"/>
+        <result column="PRD_MST_ICN_ED_DT1" property="PRD_MST_ICN_ED_DT1"/>
+        <result column="PRD_MST_ICN_YN2"    property="PRD_MST_ICN_YN2"/>
+        <result column="PRD_MST_ICN_ST_DT2" property="PRD_MST_ICN_ST_DT2"/>
+        <result column="PRD_MST_ICN_ED_DT2" property="PRD_MST_ICN_ED_DT2"/>
+        <result column="PRD_MST_ICN_YN3"    property="PRD_MST_ICN_YN3"/>
+        <result column="PRD_MST_ICN_ST_DT3" property="PRD_MST_ICN_ST_DT3"/>
+        <result column="PRD_MST_ICN_ED_DT3" property="PRD_MST_ICN_ED_DT3"/>
+        <result column="PRD_MST_ICN_YN4"    property="PRD_MST_ICN_YN4"/>
+        <result column="PRD_MST_ICN_ST_DT4" property="PRD_MST_ICN_ST_DT4"/>
+        <result column="PRD_MST_ICN_ED_DT4" property="PRD_MST_ICN_ED_DT4"/>
+        <result column="PRD_MST_ICN_YN5"    property="PRD_MST_ICN_YN5"/>
+        <result column="PRD_MST_ICN_ST_DT5" property="PRD_MST_ICN_ST_DT5"/>
+        <result column="PRD_MST_ICN_ED_DT5" property="PRD_MST_ICN_ED_DT5"/>
+        <result column="PRD_MST_DEL_YN"     property="PRD_MST_DEL_YN"/>
+        <result column="PRD_MST_REG_DT"     property="PRD_MST_REG_DT"/>
+        <result column="PRD_MST_REG_IP"     property="PRD_MST_REG_IP"/>
+        <result column="PRD_MST_REG_ID"     property="PRD_MST_REG_ID"/>
+        <result column="PRD_MST_UPD_DT"     property="PRD_MST_UPD_DT"/>
+        <result column="PRD_MST_UPD_IP"     property="PRD_MST_UPD_IP"/>
+        <result column="PRD_MST_UPD_ID"     property="PRD_MST_UPD_ID"/>
+        <result column="PRD_MST_REG_NM"     property="PRD_MST_REG_NM"/>
+        <result column="PRD_MST_UPD_NM"     property="PRD_MST_UPD_NM"/>
+        <result column="PRD_MST_SEL_STATE_NM"       property="PRD_MST_SEL_STATE_NM"/>
+        <result column="PRD_MST_NFI_NM"     property="PRD_MST_NFI_NM"/>
+        <result column="PRD_MST_BRAND_NM"       property="PRD_MST_BRAND_NM"/>
+        <result column="PRD_MST_MRK_NM"     property="PRD_MST_MRK_NM"/>
+        <result column="PRD_MST_BRD_SERV"       property="PRD_MST_BRD_SERV"/>
+        <result column="PRD_CPN_PC_DST_PRICE"       property="PRD_CPN_PC_DST_PRICE"/>
+        <result column="PRD_CPN_ML_DST_PRICE"       property="PRD_CPN_ML_DST_PRICE"/>
+        <result column="PRD_BRD_PC_CPN_CNT"     property="PRD_BRD_PC_CPN_CNT"/>
+        <result column="PRD_BRD_ML_CPN_CNT"     property="PRD_BRD_ML_CPN_CNT"/>
+        <result column="PRD_MST_BUY_PRC"        property="PRD_MST_BUY_PRC"/>
+        <result column="PRD_MST_CRD_YN"     property="PRD_MST_CRD_YN"/>
+        <result column="PRD_MST_CPN_OWN"        property="PRD_MST_CPN_OWN"/>
+    </resultMap>
+
+    <!-- 상품 상세 내역  --> 
+    <select id="selectBasicProductInfo" parameterType="hashMap" resultMap="resultProduct">
+        /* BasicProduct.selectBasicProductInfo */
+        SELECT
+            PM.PRD_MST_CD ,
+            PM.PRD_MST_ERP_CD,
+            PM.PRD_MST_VDR_YN ,
+            PM.PRD_MST_VDR_IDX ,
+            (SELECT TVM.VDR_MST_NM FROM T_VDR_MST TVM WHERE PM.PRD_MST_VDR_IDX=TVM.VDR_MST_IDX ) AS VDR_MST_NM,
+            (SELECT TBM.BND_MST_BRAND_NM FROM T_BND_MST TBM WHERE PM.PRD_MST_VDR_IDX=TBM.VDR_MST_IDX ) AS BND_MST_BRAND_NM,
+            PM.PRD_MST_TYPE ,
+            PM.PRD_MST_NM ,
+            PM.PRD_MST_NM_SUB ,
+            PM.PRD_MST_DLV_FEE ,
+            PM.PRD_MST_CPN_YN,
+            PM.PRD_MST_SEL_CNT ,
+            PM.PRD_MST_PC_CPN_UNT,
+            PM.PRD_MST_PC_CPN_PRC,
+            PM.PRD_MST_MB_CPN_UNT,
+            PM.PRD_MST_MB_CPN_PRC,
+            PM.PRD_MST_O2O_YN ,
+            PM.PRD_MST_PRC ,
+            PM.PRD_MST_CNL_PC_YN ,
+            PM.PRD_MST_CNL_MB_YN ,
+            PM.PRD_MST_SEL_STATE ,
+            PM.PRD_MST_DPL_STATE ,
+            PM.PRD_MST_APV_STATE ,
+             CASE PM.PRD_MST_APV_STATE
+                WHEN 'A' THEN '승인'
+                WHEN 'D' THEN '대기'
+                WHEN 'C' THEN '거절'
+            ELSE
+                '상태값 없음'
+            END  AS PRD_MST_APV_STATE_NM ,
+            PM.PRD_MST_PC_DTL_DSC ,
+            PM.PRD_MST_MB_DTL_DSC ,
+            PM.PRD_MST_NFI_IDX ,
+            PM.PRD_MST_BRD_IDX ,
+            PM.PRD_MST_MRK_IDX ,
+            (SELECT MRK_MST_BRAND_NM FROM T_MRK_MST WHERE MRK_MST_IDX = PM.PRD_MST_MRK_IDX) AS MRK_MST_BRAND_NM,
+            PM.PRD_MST_NFI_INF1 ,
+            PM.PRD_MST_NFI_INF2 ,
+            PM.PRD_MST_NFI_INF3 ,
+            PM.PRD_MST_NFI_INF4 ,
+            PM.PRD_MST_NFI_INF5 ,
+            PM.PRD_MST_NFI_INF6 ,
+            PM.PRD_MST_NFI_INF7 ,
+            PM.PRD_MST_NFI_INF8 ,
+            PM.PRD_MST_NFI_INF9 ,
+            PM.PRD_MST_NFI_INF10 ,
+            PM.PRD_MST_NFI_INF11 ,
+            PM.PRD_MST_NFI_INF12 ,
+            PM.PRD_MST_NFI_INF13 ,
+            PM.PRD_MST_NFI_INF14 ,
+            PM.PRD_MST_MTA_TAG1 ,
+            PM.PRD_MST_MTA_TAG2 ,
+            PM.PRD_MST_MTA_TAG3 ,
+            PM.PRD_MST_MEMO ,
+            PM.PRD_MST_RED_CNT ,
+            PM.PRD_MST_ICN_YN1 ,
+            PM.PRD_MST_ICN_ST_DT1 ,
+            PM.PRD_MST_ICN_ED_DT1 ,
+            PM.PRD_MST_ICN_YN2 ,
+            PM.PRD_MST_ICN_ST_DT2 ,
+            PM.PRD_MST_ICN_ED_DT2 ,
+            PM.PRD_MST_ICN_YN3 ,
+            PM.PRD_MST_ICN_ST_DT3 ,
+            PM.PRD_MST_ICN_ED_DT3 ,
+            PM.PRD_MST_ICN_YN4 ,
+            PM.PRD_MST_ICN_ST_DT4 ,
+            PM.PRD_MST_ICN_ED_DT4 ,
+            PM.PRD_MST_ICN_YN5 ,
+            PM.PRD_MST_ICN_ST_DT5 ,
+            PM.PRD_MST_ICN_ED_DT5 ,
+            PM.PRD_MST_DEL_YN ,
+            TO_CHAR(TO_DATE(SUBSTR(PM.PRD_MST_REG_DT,1,8),'YYYYMMDD'),'YYYY-MM-DD') AS PRD_MST_REG_DT, /* 최초 등록일 */
+            PM.PRD_MST_REG_IP ,
+            PM.PRD_MST_REG_ID ,
+            PM.PRD_MST_UPD_DT ,
+            PM.PRD_MST_UPD_IP ,
+            PM.PRD_MST_UPD_ID    
+            , (
+                SELECT
+                    ADM_MST_NM
+                FROM
+                    T_ADM_MST
+                WHERE
+                    ADM_MST_ID = PM.PRD_MST_REG_ID
+            ) AS PRD_MST_REG_NM
+            , (
+                SELECT
+                    ADM_MST_NM
+                FROM
+                    T_ADM_MST
+                WHERE
+                    ADM_MST_ID = PM.PRD_MST_UPD_ID
+            ) AS PRD_MST_UPD_NM
+            , 
+                CASE PM.PRD_MST_SEL_STATE 
+                    WHEN 'I' THEN '판매중'
+                    WHEN 'O' THEN '일시품절'
+                    WHEN 'T' THEN '품절상품'
+                ELSE '미판매' END AS PRD_MST_SEL_STATE_NM
+            , (SELECT PRD_NFI_NM FROM T_PRD_NFI WHERE PRD_NFI_IDX = PM.PRD_MST_NFI_IDX ) AS PRD_MST_NFI_NM
+            , NVL(PM.PRD_MST_BUY_PRC,0) AS PRD_MST_BUY_PRC
+            , PM.PRD_MST_CRD_YN
+            , PM.PRD_MST_CPN_OWN
+            , PM.PRD_MST_URL
+            , PM.PRD_MST_LIVE_ON_YN
+            , PM.PRD_MST_NAVER_USE_YN
+            , PM.PRD_MST_DAUM_USE_YN
+            , PM.PRD_MST_EMP_USE_YN
+            , PM.PRD_MST_PRT_USE_YN
+            , PM.PRD_MST_PCK_USE_YN
+            , (SELECT TCC.CMN_COM_NM FROM T_CMM_COM TCC WHERE PM.PRD_MST_SEX = TCC.CMN_COM_IDX) AS PRD_MST_SEX
+            , PM.PRD_MST_YEAR
+            , PM.PRD_MST_SEASON
+            , PM.PRD_MST_SALE_RATE
+            , PM.PRD_MST_REF_IMG_URL
+            , PM.PRD_MST_DTL_IMG1_URL
+            , PM.PRD_MST_DTL_IMG2_URL
+            , PM.PRD_MST_UNT
+            , PM.PRD_MST_BRD_MRG_YN
+            , PM.PRD_MST_FEE
+            , PM.PRD_MST_FEE_ST_DT
+            , PM.PRD_MST_FEE_ED_DT
+            , PM.PRD_MST_RLT_CD1
+            , PM.PRD_MST_RLT_CD2
+            , PM.PRD_MST_RLT_CD3
+			,(select PRD_MST_NM from T_PRD_MST where PRD_MST_CD = PM.PRD_MST_RLT_CD1) as PRD_MST_RLT_NM1
+			,(select PRD_MST_NM from T_PRD_MST where PRD_MST_CD = PM.PRD_MST_RLT_CD2) as PRD_MST_RLT_NM2
+			,(select PRD_MST_NM from T_PRD_MST where PRD_MST_CD = PM.PRD_MST_RLT_CD3) as PRD_MST_RLT_NM3
+        FROM
+            T_PRD_MST PM  
+        WHERE
+            PM.PRD_MST_CD = #{PRD_MST_CD}    
+    </select>
+     
+    <!-- 온라인 상품 상세 옵션 정보 조회 -->
+    <select id="selectBasicOnlineProductOptionList" parameterType="hashMap" resultType="hashMap">
+        /* BasicProduct.selectBasicOnlineProductOptionList */
+        SELECT 
+                PRP.PRD_OPT_IDX,
+                PRP.PRD_MST_CD, 
+                PRP.PRD_OPT_NM, 
+                PRP.PRD_OPT_EST_YN, 
+                PRP.PRD_OPT_CNT_YN,
+                (SELECT COUNT(*) FROM T_OPT_DTL WHERE PRD_OPT_IDX = PRP. PRD_OPT_IDX) AS DTL_CNT
+        FROM T_PRD_OPT PRP
+        WHERE PRP.PRD_MST_CD = #{PRD_MST_CD}
+        ORDER BY PRP.PRD_OPT_IDX
+    </select>
+    
+    <!-- 온라인 상품 상세 옵션 상세 정보 조회 -->
+    <select id="selectBasicOnlineProductOptionDetailList" parameterType="hashMap" resultType="hashMap">
+        /* BasicProduct.selectBasicOnlineProductOptionDetailList */
+        SELECT 
+                OPD.OPT_DTL_IDX,
+                OPD.PRD_OPT_IDX, 
+                OPD.OPT_DTL_NM, 
+                OPD.OPT_DTL_ADD_PRC,
+                OPD.OPT_DTL_STK_CNT,
+                OPD.OPT_DTL_ST_DT,
+                OPD.OPT_DTL_ED_DT,
+                OPD.OPT_DTL_USE_YN
+        FROM T_OPT_DTL OPD 
+        INNER JOIN T_PRD_OPT PRP ON OPD.PRD_OPT_IDX = PRP.PRD_OPT_IDX
+        AND PRP.PRD_MST_CD = #{PRD_MST_CD}
+     ORDER BY OPD.PRD_OPT_IDX , OPD.OPT_DTL_IDX ASC
+    </select>
+    
+    
+    <!-- 상품상세 브랜드 조회 -->
+    <select id="selectBasicProductBrandList" parameterType="hashMap" resultType="hashMap">
+        /* BasicProduct.selectBasicProductBrandList */
+        SELECT      
+            BND_MST_IDX,
+            BND_MST_BRAND_NM,
+            BND_MST_SERV
+        FROM T_BND_MST
+        WHERE
+            BND_MST_USE_YN = 'Y'
+    </select>
+    
+    <!-- 입점업체 조회 -->
+    <select id="selectVendorList" parameterType="hashMap" resultType="hashMap">
+        /* BasicProduct.selectVendorList */
+        SELECT 
+            VDR_MST_IDX,
+            VDR_MST_NM
+        FROM
+            T_VDR_MST
+        WHERE
+            VDR_MST_IDX <![CDATA[ <> ]]> -1
+        ORDER BY VDR_MST_REG_DT DESC
+    </select>
+    
+    <!-- 상품상세 제조사 조회 -->
+    <select id="selectBasicProductMakerList" parameterType="hashMap" resultType="hashMap">
+        /* BasicProduct.selectBasicProductMakerList */
+        SELECT
+            MRK_MST_IDX,
+            MRK_MST_BRAND_NM
+        FROM
+            T_MRK_MST
+        WHERE
+            MRK_MST_USE_YN = 'Y'
+    </select>
+    
+    <!-- 상품 마스터 키 검색 ERP 제품코드 + SEQ 8자리 -->
+    <select id="selectBasicProductMasterCd" parameterType="hashMap" resultType="String">
+        /* BasicProduct.selectBasicProductMasterCd */
+        SELECT #{SET_PRD_MST_CD} || LPAD(SEQ_PRD_MST_CD.NEXTVAL ,7,'0')
+          FROM DUAL
+    </select> 
+    
+    <!-- 상품 마스터 입력 (직영몰관리자) -->
+    <insert id="insertProductMaster" parameterType="hashmap" >
+        /* BasicProduct.insertProductMaster */
+        INSERT INTO T_PRD_MST (
+                                PRD_MST_CD ,
+                                PRD_MST_VDR_YN ,
+                                PRD_MST_VDR_IDX ,
+                                PRD_MST_TYPE ,
+                                PRD_MST_BUY_TP ,
+                                PRD_MST_NM ,
+                                PRD_MST_NM_SUB ,
+                                PRD_MST_LNG_DIV_YN ,
+                                PRD_MST_LNG_DIV_MNT1 ,
+                                PRD_MST_LNG_DIV_MNT2 ,
+                                PRD_MST_MD_ID ,
+                                PRD_MST_DLV_FEE ,
+                                PRD_MST_CPS_YN ,
+                                PRD_MST_CPS_MDL ,
+                                PRD_MST_CPN_YN ,
+                                PRD_MST_SEL_CNT ,
+                                PRD_MST_PC_CPN_UNT ,
+                                <if test="PRD_MST_SALE_RATE != null and PRD_MST_SALE_RATE != ''">
+                                    PRD_MST_PC_CPN_PRC ,   
+                                </if>
+                                PRD_MST_MB_CPN_UNT ,
+                                <if test="PRD_MST_SALE_RATE != null and PRD_MST_SALE_RATE != ''">
+                                    PRD_MST_MB_CPN_PRC ,
+                                </if>
+                                <if test="PRD_MST_ADD_MIL != null and PRD_MST_ADD_MIL != ''">
+                                    PRD_MST_ADD_MIL ,
+                                </if>
+                                PRD_MST_SRC_YN ,
+                                PRD_MST_O2O_YN ,
+                                PRD_MST_DLV_BND ,
+                                PRD_MST_IVB_YN ,
+                                PRD_MST_DLV_DSN_YN ,
+                                <if test="PRD_MST_DLV_DSN_YN != null and PRD_MST_DLV_DSN_YN.equals('Y'.toString())">
+                                    PRD_MST_DLV_DT ,
+                                </if>
+                                PRD_MST_PRC ,
+                                PRD_MST_SCH_PRC ,
+                                PRD_MST_CPR_PRC1 ,
+                                PRD_MST_CPR_PRC2 ,
+                                <if test="PRD_MST_PKG_PRC != null and PRD_MST_PKG_PRC != ''">
+                                    PRD_MST_PKG_PRC ,
+                                </if>
+                                PRD_MST_CNL_PC_YN ,
+                                PRD_MST_CNL_MB_YN ,
+                                PRD_MST_SEL_STATE ,
+                                PRD_MST_DPL_STATE ,
+                                PRD_MST_APV_STATE ,
+                                PRD_MST_PC_DTL_DSC ,
+                                PRD_MST_MB_DTL_DSC ,
+                                <if test="PRD_MST_NFI_IDX != null and PRD_MST_NFI_IDX != ''">
+                                    PRD_MST_NFI_IDX ,
+                                </if>
+                                <if test="PRD_MST_BRD_IDX != null and PRD_MST_BRD_IDX != ''">
+                                    PRD_MST_BRD_IDX ,    
+                                </if>
+                                <if test="PRD_MST_MRK_IDX != null and PRD_MST_MRK_IDX != ''">
+                                    PRD_MST_MRK_IDX ,
+                                </if>
+                                PRD_MST_NFI_INF1 ,
+                                PRD_MST_NFI_INF2 ,
+                                PRD_MST_NFI_INF3 ,
+                                PRD_MST_NFI_INF4 ,
+                                PRD_MST_NFI_INF5 ,
+                                PRD_MST_NFI_INF6 ,
+                                PRD_MST_NFI_INF7 ,
+                                PRD_MST_NFI_INF8 ,
+                                PRD_MST_NFI_INF9 ,
+                                PRD_MST_NFI_INF10 ,
+                                PRD_MST_NFI_INF11 ,
+                                PRD_MST_NFI_INF12 ,
+                                PRD_MST_NFI_INF13 ,
+                                PRD_MST_NFI_INF14 ,
+                                PRD_MST_MTA_TAG1 ,
+                                PRD_MST_MTA_TAG2 ,
+                                PRD_MST_MTA_TAG3 ,
+                                PRD_MST_MEMO ,
+                                PRD_MST_RED_CNT ,
+                                PRD_MST_ICN_YN1 ,
+                                PRD_MST_ICN_ST_DT1 ,
+                                PRD_MST_ICN_ED_DT1 ,
+                                PRD_MST_ICN_YN2 ,
+                                PRD_MST_ICN_ST_DT2 ,
+                                PRD_MST_ICN_ED_DT2 ,
+                                PRD_MST_ICN_YN3 ,
+                                PRD_MST_ICN_ST_DT3 ,
+                                PRD_MST_ICN_ED_DT3 ,
+                                PRD_MST_ICN_YN4 ,
+                                PRD_MST_ICN_ST_DT4 ,
+                                PRD_MST_ICN_ED_DT4 ,
+                                PRD_MST_ICN_YN5 ,
+                                PRD_MST_ICN_ST_DT5 ,
+                                PRD_MST_ICN_ED_DT5 ,
+                                PRD_MST_DEL_YN ,
+                                PRD_MST_REG_DT ,
+                                PRD_MST_REG_IP ,
+                                PRD_MST_REG_ID ,
+                                PRD_MST_BUY_PRC ,
+                                PRD_MST_CRD_YN ,
+                                PRD_MST_CPN_OWN ,
+                                <if test="PRD_MST_URL != null and PRD_MST_URL != ''">
+                                    PRD_MST_URL ,
+                                </if>
+                                PRD_MST_LIVE_ON_YN,
+                                PRD_MST_NAVER_USE_YN,
+                                PRD_MST_DAUM_USE_YN,
+                                PRD_MST_EMP_USE_YN,
+                                PRD_MST_PRT_USE_YN,
+                                PRD_MST_PCK_USE_YN,
+                                PRD_MST_SEX,
+                                PRD_MST_YEAR,
+                                PRD_MST_SEASON,
+                                PRD_MST_SALE_RATE,
+                                PRD_MST_UNT,
+                                PRD_MST_BRD_MRG_YN,
+                                PRD_MST_FEE,
+                                PRD_MST_FEE_ST_DT,
+                                PRD_MST_FEE_ED_DT,
+                                PRD_MST_RLT_CD1, 
+                                PRD_MST_RLT_CD2,
+                                PRD_MST_RLT_CD3,
+                                PRD_MST_IMG_DPL,
+                                PRD_MST_ERP_CD,
+                                PRD_MST_ERP_TAG_NO
+                                
+                               ) 
+        VALUES(
+                #{PRD_MST_CD} ,
+                #{PRD_MST_VDR_YN} ,
+                #{PRD_MST_VDR_IDX},
+                #{PRD_MST_TYPE} ,
+                #{PRD_MST_BUY_TP} ,
+                #{PRD_MST_NM} ,
+                #{PRD_MST_NM_SUB} ,
+                #{PRD_MST_LNG_DIV_YN} ,
+                NVL(#{PRD_MST_LNG_DIV_MNT1},0) ,
+                NVL(#{PRD_MST_LNG_DIV_MNT2},0) ,
+                #{PRD_MST_MD_ID} ,
+                #{PRD_MST_DLV_FEE} ,
+                #{PRD_MST_CPS_YN} ,
+                #{PRD_MST_CPS_MDL} ,
+                #{PRD_MST_CPN_YN} ,
+                #{PRD_MST_SEL_CNT} ,
+                #{PRD_MST_UNT} , /* PRD_MST_PC_CPN_UNT 동일값설정 */
+                <if test="PRD_MST_SALE_RATE != null and PRD_MST_SALE_RATE != ''">
+                    #{PRD_MST_SALE_RATE} ,  /* PRD_MST_PC_CPN_PRC 동일값설정 */
+                </if>
+                #{PRD_MST_UNT} , /* PRD_MST_PC_CPN_UNT 동일값설정 */
+                <if test="PRD_MST_SALE_RATE != null and PRD_MST_SALE_RATE != ''">
+                    #{PRD_MST_SALE_RATE} , /* PRD_MST_MB_CPN_PRC 동일값설정 */
+                </if>
+                <if test="PRD_MST_ADD_MIL != null and PRD_MST_ADD_MIL != ''">
+                    #{PRD_MST_ADD_MIL} ,
+                </if>
+                #{PRD_MST_SRC_YN} ,
+                #{PRD_MST_O2O_YN} ,
+                #{PRD_MST_DLV_BND} ,
+                #{PRD_MST_IVB_YN} ,
+                #{PRD_MST_DLV_DSN_YN} ,
+                <if test="PRD_MST_DLV_DSN_YN != null and PRD_MST_DLV_DSN_YN.equals('Y'.toString())">
+                    #{PRD_MST_DLV_DT} ,    
+                </if>
+                #{PRD_MST_PRC} ,
+                #{PRD_MST_SCH_PRC} ,
+                #{PRD_MST_CPR_PRC1} ,
+                #{PRD_MST_CPR_PRC2} ,
+                <if test="PRD_MST_PKG_PRC != null and PRD_MST_PKG_PRC != ''">
+                    #{PRD_MST_PKG_PRC} ,
+                </if>
+                #{PRD_MST_CNL_PC_YN} ,
+                #{PRD_MST_CNL_MB_YN} ,
+                #{PRD_MST_SEL_STATE} ,
+                #{PRD_MST_DPL_STATE} ,
+                #{PRD_MST_APV_STATE} ,
+                #{PRD_MST_DETAIL_DESC} ,
+                #{PRD_MST_DETAIL_DESC2} ,
+                <if test="PRD_MST_NFI_IDX != null and PRD_MST_NFI_IDX != ''">
+                    #{PRD_MST_NFI_IDX} ,
+                </if>
+                <if test="PRD_MST_BRD_IDX != null and PRD_MST_BRD_IDX != ''">
+                    #{PRD_MST_BRD_IDX} ,
+                </if>
+                <if test="PRD_MST_MRK_IDX != null and PRD_MST_MRK_IDX != ''">
+                    #{PRD_MST_MRK_IDX} ,
+                </if>
+                #{PRD_MST_NFI_INF1} ,
+                #{PRD_MST_NFI_INF2} ,
+                #{PRD_MST_NFI_INF3} ,
+                #{PRD_MST_NFI_INF4} ,
+                #{PRD_MST_NFI_INF5} ,
+                #{PRD_MST_NFI_INF6} ,
+                #{PRD_MST_NFI_INF7} ,
+                #{PRD_MST_NFI_INF8} ,
+                #{PRD_MST_NFI_INF9} ,
+                #{PRD_MST_NFI_INF10} ,
+                #{PRD_MST_NFI_INF11} ,
+                #{PRD_MST_NFI_INF12} ,
+                #{PRD_MST_NFI_INF13} ,
+                #{PRD_MST_NFI_INF14} ,
+                #{PRD_MST_MTA_TAG1} ,
+                #{PRD_MST_MTA_TAG2} ,
+                #{PRD_MST_MTA_TAG3} ,
+                #{PRD_MST_MEMO} ,
+                0,
+                #{PRD_MST_ICN_YN1} ,
+                REPLACE(#{PRD_MST_ICN_ST_DT1},'-', '') ,
+                REPLACE(#{PRD_MST_ICN_ED_DT1},'-', '') ,
+                #{PRD_MST_ICN_YN2} ,
+                REPLACE(#{PRD_MST_ICN_ST_DT2},'-', '') ,
+                REPLACE(#{PRD_MST_ICN_ED_DT2},'-', '') ,
+                #{PRD_MST_ICN_YN3} ,
+                REPLACE(#{PRD_MST_ICN_ST_DT3},'-', '') ,
+                REPLACE(#{PRD_MST_ICN_ED_DT3},'-', '') ,
+                #{PRD_MST_ICN_YN4} ,
+                REPLACE(#{PRD_MST_ICN_ST_DT4},'-', '') ,
+                REPLACE(#{PRD_MST_ICN_ED_DT4},'-', '') ,
+                #{PRD_MST_ICN_YN5} ,
+                REPLACE(#{PRD_MST_ICN_ST_DT5},'-', '') ,
+                REPLACE(#{PRD_MST_ICN_ED_DT5},'-', '') ,
+                'N' ,
+                TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS') ,
+                #{PRD_MST_REG_IP} ,
+                #{PRD_MST_REG_ID} ,
+                NVL(#{PRD_MST_BUY_PRC},0)  ,
+                #{PRD_MST_CRD_YN} ,
+                #{PRD_MST_CPN_OWN},
+                <if test="PRD_MST_URL != null and PRD_MST_URL != ''">
+                    #{PRD_MST_URL} ,
+                </if>
+                #{PRD_MST_LIVE_ON_YN},
+                #{PRD_MST_NAVER_USE_YN},
+                #{PRD_MST_DAUM_USE_YN},
+                #{PRD_MST_EMP_USE_YN},
+                #{PRD_MST_PRT_USE_YN},
+                #{PRD_MST_PCK_USE_YN},
+                #{PRD_MST_SEX},
+                #{PRD_MST_YEAR},
+                #{PRD_MST_SEASON},
+                #{PRD_MST_SALE_RATE},
+                #{PRD_MST_UNT},                
+                #{PRD_MST_BRD_MRG_YN},
+                #{PRD_MST_FEE},
+                REPLACE(#{PRD_MST_FEE_ST_DT},'-',''),
+                REPLACE(#{PRD_MST_FEE_ED_DT},'-',''),
+                #{PRD_MST_RLT_CD1}, 
+                #{PRD_MST_RLT_CD2},
+                #{PRD_MST_RLT_CD3},
+                #{PRD_MST_IMG_DPL},
+                #{PRD_MST_ERP_CD},
+                #{PRD_MST_ERP_TAG_NO}
+            )
+    </insert>
+    
+    <!-- 입점업체 상품 수정 요청 등록 -->
+    <insert id="insertProductVdr" parameterType="hashmap" >
+        INSERT INTO T_VDR_APV
+        (
+            VDR_APV_IDX,
+            PRD_MST_CD,
+            VDR_MST_IDX,
+            PRD_MST_PRC,
+            PRD_MST_SEL_STATE,
+            PRD_MST_SEL_CNT,
+            PRD_MST_PC_CPN_UNT,
+			PRD_MST_PC_CPN_PRC,    
+            PRD_MST_MB_CPN_UNT,
+			PRD_MST_MB_CPN_PRC,
+            VDR_APV_REG_DT,
+            VDR_APV_REG_IP,
+            VDR_APV_APV_STATE,
+            VDR_APV_CPN_OWN ,
+            PRD_MST_SALE_RATE ,
+            PRD_MST_UNT
+        )
+        VALUES
+        (
+            SEQ_VDR_APV_IDX.NEXTVAL,
+            #{PRD_MST_CD},
+            #{VDR_MST_IDX},
+            #{PRD_MST_PRC},
+            #{PRD_MST_SEL_STATE},
+            #{PRD_MST_SEL_CNT},
+            #{PRD_MST_UNT},
+			#{PRD_MST_SALE_RATE},
+            #{PRD_MST_UNT},
+            #{PRD_MST_SALE_RATE},
+            TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+            #{VDR_APV_REG_IP},
+            'D',
+            #{VDR_APV_CPN_OWN} ,
+            #{PRD_MST_SALE_RATE} ,
+            #{PRD_MST_UNT}
+        )
+    </insert>
+        
+    <!-- 상품 마스터 수정  -->
+    <update id="updateProductMaster" parameterType="hashmap" >
+        /* BasicProduct.updateProductMaster */
+        UPDATE 
+            T_PRD_MST
+        SET
+            PRD_MST_NM = #{PRD_MST_NM}
+            , PRD_MST_NM_SUB = #{PRD_MST_NM_SUB}
+            , PRD_MST_LNG_DIV_YN = #{PRD_MST_LNG_DIV_YN}
+            , PRD_MST_LNG_DIV_MNT1 = NVL(#{PRD_MST_LNG_DIV_MNT1},0)
+            , PRD_MST_LNG_DIV_MNT2 = NVL(#{PRD_MST_LNG_DIV_MNT2},0)
+            , PRD_MST_MD_ID = #{PRD_MST_MD_ID}
+            , PRD_MST_DLV_FEE = #{PRD_MST_DLV_FEE}
+            , PRD_MST_CPS_YN = #{PRD_MST_CPS_YN}
+            , PRD_MST_CPS_MDL = #{PRD_MST_CPS_MDL}
+            , PRD_MST_CPN_YN = #{PRD_MST_CPN_YN}
+            , PRD_MST_SEL_CNT = #{PRD_MST_SEL_CNT}
+            , PRD_MST_PC_CPN_UNT = #{PRD_MST_PC_CPN_UNT}
+            , PRD_MST_PC_CPN_PRC = #{PRD_MST_PC_CPN_PRC}
+            , PRD_MST_MB_CPN_UNT = #{PRD_MST_MB_CPN_UNT}
+            , PRD_MST_MB_CPN_PRC = #{PRD_MST_MB_CPN_PRC}
+            <if test="PRD_MST_ADD_MIL != null and PRD_MST_ADD_MIL != ''">
+                , PRD_MST_ADD_MIL = #{PRD_MST_ADD_MIL}
+            </if>
+            , PRD_MST_SRC_YN = #{PRD_MST_SRC_YN}
+            , PRD_MST_O2O_YN = #{PRD_MST_O2O_YN}
+            , PRD_MST_DLV_BND = #{PRD_MST_DLV_BND}
+            , PRD_MST_IVB_YN = #{PRD_MST_IVB_YN}
+            , PRD_MST_DLV_DSN_YN = #{PRD_MST_DLV_DSN_YN}
+            <if test="PRD_MST_DLV_DSN_YN != null and PRD_MST_DLV_DSN_YN.equals('Y'.toString())">
+                , PRD_MST_DLV_DT = #{PRD_MST_DLV_DT}    
+            </if>
+            , PRD_MST_PRC = #{PRD_MST_PRC}
+            , PRD_MST_SCH_PRC = #{PRD_MST_SCH_PRC}
+            , PRD_MST_CPR_PRC1 = #{PRD_MST_CPR_PRC1}
+            , PRD_MST_CPR_PRC2 = #{PRD_MST_CPR_PRC2}
+            <if test="PRD_MST_PKG_PRC != null and PRD_MST_PKG_PRC != ''">
+                , PRD_MST_PKG_PRC = #{PRD_MST_PKG_PRC}
+            </if>
+            , PRD_MST_CNL_PC_YN = NVL(#{PRD_MST_CNL_PC_YN},'N')          /* 쇼핑채널 PC*/
+            , PRD_MST_CNL_MB_YN = NVL(#{PRD_MST_CNL_MB_YN},'N')  /* 쇼핑채널 MOBILE*/
+            , PRD_MST_DPL_STATE = #{PRD_MST_DPL_STATE}
+            , PRD_MST_SEL_STATE = #{PRD_MST_SEL_STATE}
+            , PRD_MST_APV_STATE = #{PRD_MST_APV_STATE}
+            , PRD_MST_ICN_YN1 = #{PRD_MST_ICN_YN1}
+            , PRD_MST_ICN_ST_DT1 = REPLACE(#{PRD_MST_ICN_ST_DT1},'-', '')
+            , PRD_MST_ICN_ED_DT1 = REPLACE(#{PRD_MST_ICN_ED_DT1},'-', '')
+            , PRD_MST_ICN_YN2 = #{PRD_MST_ICN_YN2}
+            , PRD_MST_ICN_ST_DT2 = REPLACE(#{PRD_MST_ICN_ST_DT2},'-', '')
+            , PRD_MST_ICN_ED_DT2 = REPLACE(#{PRD_MST_ICN_ED_DT2},'-', '')
+            , PRD_MST_ICN_YN3 = #{PRD_MST_ICN_YN3}
+            , PRD_MST_ICN_ST_DT3 = REPLACE(#{PRD_MST_ICN_ST_DT3},'-', '')
+            , PRD_MST_ICN_ED_DT3 = REPLACE(#{PRD_MST_ICN_ED_DT3},'-', '')
+            , PRD_MST_ICN_YN4 = #{PRD_MST_ICN_YN4}
+            , PRD_MST_ICN_ST_DT4 = REPLACE(#{PRD_MST_ICN_ST_DT4},'-', '')
+            , PRD_MST_ICN_ED_DT4 = REPLACE(#{PRD_MST_ICN_ED_DT4},'-', '')
+            , PRD_MST_ICN_YN5 = #{PRD_MST_ICN_YN5}
+            , PRD_MST_ICN_ST_DT5 = REPLACE(#{PRD_MST_ICN_ST_DT5},'-', '')
+            , PRD_MST_ICN_ED_DT5 = REPLACE(#{PRD_MST_ICN_ED_DT5},'-', '')
+            , PRD_MST_PC_DTL_DSC = #{PRD_MST_DETAIL_DESC}         /* 상품_상세설명 */
+            , PRD_MST_MB_DTL_DSC = #{PRD_MST_DETAIL_DESC2}         /* 상품_상세설명 */
+            <if test="PRD_MST_NFI_IDX != null and PRD_MST_NFI_IDX != ''">
+                , PRD_MST_NFI_IDX = #{PRD_MST_NFI_IDX}    
+            </if>
+            <if test="PRD_MST_BRD_IDX != null and PRD_MST_BRD_IDX != ''">
+                , PRD_MST_BRD_IDX = #{PRD_MST_BRD_IDX}    
+            </if>
+            <if test="PRD_MST_MRK_IDX != null and PRD_MST_MRK_IDX != ''">
+                , PRD_MST_MRK_IDX = #{PRD_MST_MRK_IDX}    
+            </if>
+            , PRD_MST_NFI_INF1 = #{PRD_MST_NFI_INF1}
+            , PRD_MST_NFI_INF2 = #{PRD_MST_NFI_INF2}
+            , PRD_MST_NFI_INF3 = #{PRD_MST_NFI_INF3}
+            , PRD_MST_NFI_INF4 = #{PRD_MST_NFI_INF4}
+            , PRD_MST_NFI_INF5 = #{PRD_MST_NFI_INF5}
+            , PRD_MST_NFI_INF6 = #{PRD_MST_NFI_INF6}
+            , PRD_MST_NFI_INF7 = #{PRD_MST_NFI_INF7}
+            , PRD_MST_NFI_INF8 = #{PRD_MST_NFI_INF8}
+            , PRD_MST_NFI_INF9 = #{PRD_MST_NFI_INF9}
+            , PRD_MST_NFI_INF10 = #{PRD_MST_NFI_INF10}
+            , PRD_MST_NFI_INF11 = #{PRD_MST_NFI_INF11}
+            , PRD_MST_NFI_INF12 = #{PRD_MST_NFI_INF12}
+            , PRD_MST_NFI_INF13 = #{PRD_MST_NFI_INF13}
+            , PRD_MST_NFI_INF14 = #{PRD_MST_NFI_INF14}
+            , PRD_MST_MTA_TAG1 = #{PRD_MST_MTA_TAG1}
+            , PRD_MST_MTA_TAG2 = #{PRD_MST_MTA_TAG2}
+            , PRD_MST_MTA_TAG3 = #{PRD_MST_MTA_TAG3}
+            , PRD_MST_MEMO = #{PRD_MST_MEMO}
+            , PRD_MST_UPD_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS')
+            , PRD_MST_UPD_ID = #{PRD_MST_UPD_ID}
+            , PRD_MST_UPD_IP = #{PRD_MST_UPD_IP}
+            , PRD_MST_CRD_YN = #{PRD_MST_CRD_YN}
+            , PRD_MST_CPN_OWN = #{PRD_MST_CPN_OWN}
+            , PRD_MST_URL = #{PRD_MST_URL}
+            , PRD_MST_LIVE_ON_YN = #{PRD_MST_LIVE_ON_YN}
+            , PRD_MST_NAVER_USE_YN = #{PRD_MST_NAVER_USE_YN}
+            , PRD_MST_DAUM_USE_YN = #{PRD_MST_DAUM_USE_YN}
+            , PRD_MST_EMP_USE_YN = #{PRD_MST_EMP_USE_YN}
+            , PRD_MST_PRT_USE_YN = #{PRD_MST_PRT_USE_YN}
+            , PRD_MST_PCK_USE_YN = #{PRD_MST_PCK_USE_YN}
+            , PRD_MST_SEX = #{PRD_MST_SEX}
+            , PRD_MST_SALE_RATE = #{PRD_MST_SALE_RATE}
+            , PRD_MST_REF_IMG_URL = #{PRD_MST_REF_IMG_URL}
+            , PRD_MST_DTL_IMG1_URL = #{PRD_MST_DTL_IMG1_URL}
+            , PRD_MST_DTL_IMG2_URL = #{PRD_MST_DTL_IMG2_URL}
+            , PRD_MST_UNT = #{PRD_MST_UNT}
+            , PRD_MST_BRD_MRG_YN = #{PRD_MST_BRD_MRG_YN}
+            , PRD_MST_FEE = #{PRD_MST_FEE}
+            , PRD_MST_FEE_ST_DT = REPLACE(#{PRD_MST_FEE_ST_DT},'-', '')
+            , PRD_MST_FEE_ED_DT = REPLACE(#{PRD_MST_FEE_ED_DT},'-', '')
+            , PRD_MST_RLT_CD1 = #{PRD_MST_RLT_CD1}
+            , PRD_MST_RLT_CD2 = #{PRD_MST_RLT_CD2}
+            , PRD_MST_RLT_CD3 = #{PRD_MST_RLT_CD3}
+            , PRD_MST_IMG_DPL = #{PRD_MST_IMG_DPL}
+            , PRD_MST_YEAR = #{PRD_MST_YEAR}
+            , PRD_MST_SEASON = #{PRD_MST_SEASON} 
+        WHERE
+            PRD_MST_CD = #{PRD_MST_CD}
+    </update>
+    
+    <!-- 상품 status 다중 수정  -->
+    <update id="updateProductStatus" parameterType="hashmap" >
+        /* BasicProduct.updateProductStatus */
+        UPDATE 
+            T_PRD_MST
+        SET
+            PRD_MST_NM = #{PRD_MST_NM}
+            , PRD_MST_SEL_CNT = #{PRD_MST_SEL_CNT}
+            , PRD_MST_DPL_STATE = #{PRD_MST_DPL_STATE}
+            , PRD_MST_EMP_USE_YN = #{PRD_MST_EMP_USE_YN}
+            , PRD_MST_PRT_USE_YN = #{PRD_MST_PRT_USE_YN}
+            , PRD_MST_NAVER_USE_YN = #{PRD_MST_NAVER_USE_YN}
+            , PRD_MST_DAUM_USE_YN = #{PRD_MST_DAUM_USE_YN}
+            , PRD_MST_UPD_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS')
+            , PRD_MST_UPD_ID = #{PRD_MST_UPD_ID}
+            , PRD_MST_UPD_IP = #{PRD_MST_UPD_IP}
+        WHERE
+            PRD_MST_CD = #{PRD_MST_CD}
+    </update>
+
+    <!-- 상품 다중 진열 상태 수정  -->
+    <update id="updateProductDisplayStatus" parameterType="hashmap" >
+        /* BasicProduct.updateProductDisplayStatus */
+        UPDATE 
+            T_PRD_MST
+        SET
+           PRD_MST_DPL_STATE = #{PRD_MST_DPL_STATE}
+           , PRD_MST_UPD_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS')
+           , PRD_MST_UPD_ID = #{PRD_MST_UPD_ID}
+           , PRD_MST_UPD_IP = #{PRD_MST_UPD_IP}
+        WHERE
+            PRD_MST_CD = #{PRD_MST_CD}
+    </update>
+    
+    <!-- 상품 다중 임직원 할인여부 수정  -->
+    <update id="updateProductEmployeeStatus" parameterType="hashmap" >
+        /* BasicProduct.updateProductEmployeeStatus */
+        UPDATE 
+            T_PRD_MST
+        SET
+           PRD_MST_EMP_USE_YN = #{PRD_MST_EMP_USE_YN}
+           , PRD_MST_UPD_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS')
+           , PRD_MST_UPD_ID = #{PRD_MST_UPD_ID}
+           , PRD_MST_UPD_IP = #{PRD_MST_UPD_IP}
+        WHERE
+            PRD_MST_CD = #{PRD_MST_CD}
+    </update>
+    
+    <!-- 상품 다중 제휴사 할인여부 수정  -->
+    <update id="updateProductPartnerStatus" parameterType="hashmap" >
+        /* BasicProduct.updateProductPartnerStatus */
+        UPDATE 
+            T_PRD_MST
+        SET
+           PRD_MST_PRT_USE_YN = #{PRD_MST_PRT_USE_YN}
+           , PRD_MST_UPD_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS')
+           , PRD_MST_UPD_ID = #{PRD_MST_UPD_ID}
+           , PRD_MST_UPD_IP = #{PRD_MST_UPD_IP}
+        WHERE
+            PRD_MST_CD = #{PRD_MST_CD}
+    </update>
+    
+    <!-- 상품 다중 네이버 연동여부 수정  -->
+    <update id="updateProductNaverStatus" parameterType="hashmap" >
+        /* BasicProduct.updateProductNaverStatus */
+        UPDATE 
+            T_PRD_MST
+        SET
+           PRD_MST_NAVER_USE_YN = #{PRD_MST_NAVER_USE_YN}
+           , PRD_MST_UPD_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS')
+           , PRD_MST_UPD_ID = #{PRD_MST_UPD_ID}
+           , PRD_MST_UPD_IP = #{PRD_MST_UPD_IP}
+        WHERE
+            PRD_MST_CD = #{PRD_MST_CD}
+    </update>
+    
+    <!-- 상품 다중 다음 연동여부 수정  -->
+    <update id="updateProductDaumStatus" parameterType="hashmap" >
+        /* BasicProduct.updateProductDaumStatus */
+        UPDATE 
+            T_PRD_MST
+        SET
+           PRD_MST_DAUM_USE_YN = #{PRD_MST_DAUM_USE_YN}
+           , PRD_MST_UPD_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS')
+           , PRD_MST_UPD_ID = #{PRD_MST_UPD_ID}
+           , PRD_MST_UPD_IP = #{PRD_MST_UPD_IP}
+        WHERE
+            PRD_MST_CD = #{PRD_MST_CD}
+    </update>
+    
+    <!-- 상품 다중 수정  -->
+    <update id="updateProductListMaster" parameterType="hashmap" >
+        /* BasicProduct.updateProductListMaster */
+        UPDATE 
+            T_PRD_MST
+        SET
+            PRD_MST_NM = #{PRD_MST_NM}
+            , PRD_MST_PRC = #{PRD_MST_PRC}
+            , PRD_MST_DLV_FEE = #{PRD_MST_DLV_FEE}
+            , PRD_MST_DPL_STATE = #{PRD_MST_DPL_STATE}
+            , PRD_MST_SEL_STATE = #{PRD_MST_SEL_STATE}
+            , PRD_MST_APV_STATE = #{PRD_MST_APV_STATE}
+            , PRD_MST_SEL_CNT = #{PRD_MST_SEL_CNT}
+            , PRD_MST_PC_CPN_UNT = #{PRD_MST_UNT}
+            , PRD_MST_PC_CPN_PRC = #{PRD_MST_SALE_RATE}
+            , PRD_MST_MB_CPN_UNT = #{PRD_MST_UNT}
+            , PRD_MST_MB_CPN_PRC = #{PRD_MST_SALE_RATE}
+            , PRD_MST_UNT = #{PRD_MST_UNT}
+            , PRD_MST_SALE_RATE = #{PRD_MST_SALE_RATE}
+            <if test="PRD_MST_NAVER_USE_YN != null and PRD_MST_NAVER_USE_YN !=''">
+            	, PRD_MST_NAVER_USE_YN = #{PRD_MST_NAVER_USE_YN}
+            </if>
+            <if test="PRD_MST_DAUM_USE_YN != null and PRD_MST_DAUM_USE_YN !=''">
+            	, PRD_MST_DAUM_USE_YN = #{PRD_MST_DAUM_USE_YN}
+            </if>
+            <if test="PRD_MST_EMP_USE_YN != null and PRD_MST_EMP_USE_YN !=''">
+            	, PRD_MST_EMP_USE_YN = #{PRD_MST_EMP_USE_YN}
+            </if>
+            <if test="PRD_MST_PRT_USE_YN != null and PRD_MST_PRT_USE_YN !=''">
+            	, PRD_MST_PRT_USE_YN = #{PRD_MST_PRT_USE_YN}
+            </if>
+            , PRD_MST_UPD_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS')
+            , PRD_MST_UPD_ID = #{PRD_MST_UPD_ID}
+            , PRD_MST_UPD_IP = #{PRD_MST_UPD_IP}
+        WHERE
+            PRD_MST_CD = #{PRD_MST_CD}
+    </update>
+    
+    <!-- 입점업체 상품 승인처리  -->
+    <update id="updateBasicProductApv" parameterType="hashmap" >
+        /* BasicProduct.updateBasicProductApv */
+        UPDATE 
+            T_PRD_MST
+        SET
+            PRD_MST_APV_STATE = 'A'
+            , PRD_MST_UPD_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS')
+            , PRD_MST_UPD_ID = #{PRD_MST_UPD_ID}
+            , PRD_MST_UPD_IP = #{PRD_MST_UPD_IP}
+        WHERE
+            PRD_MST_CD = #{PRD_MST_CD}
+    </update>
+    
+    <!-- 입점업체 상품 보류사유 등록  -->
+    <insert id="insertBasicProductHold" parameterType="hashmap" >
+        /* BasicProduct.insertBasicProductHold */
+        INSERT INTO T_VDR_HLD 
+       (
+            VDR_HLD_IDX,
+            VDR_MST_IDX,
+            CMN_COM_IDX,
+            VDR_HLD_DESC,
+            VDR_HLD_REG_DT,
+            VDR_HLD_REG_IP,
+            VDR_HLD_REG_ID,
+            PRD_MST_CD
+        ) VALUES (
+            SEQ_VDR_HLD_IDX.NEXTVAL,
+            #{VDR_MST_IDX},
+            #{CMN_COM_IDX},
+            #{VDR_HLD_DESC},
+            TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+            #{VDR_HLD_REG_IP},
+            #{VDR_HLD_REG_ID},
+            #{PRD_MST_CD}
+        )
+    </insert>
+    
+    <!-- 입점업체 상품 보류처리  -->
+    <update id="updateBasicProductApvRejection" parameterType="hashmap" >
+        /* BasicProduct.updateBasicProductApvRejection */
+        UPDATE 
+            T_PRD_MST
+        SET
+            PRD_MST_APV_STATE = #{VDR_HLD_APV_STATE}
+            , PRD_MST_UPD_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS')
+            , PRD_MST_UPD_ID = #{PRD_MST_UPD_ID}
+            , PRD_MST_UPD_IP = #{PRD_MST_UPD_IP}
+        WHERE
+            PRD_MST_CD = #{PRD_MST_CD}
+    </update>
+    
+    <!-- 상품 옵션 등록 -->
+    <insert id="insertBasicProductOption" parameterType="hashmap" >
+        <![CDATA[
+        /* BasicProduct.insertBasicProductOption */
+        INSERT INTO T_PRD_OPT (
+            PRD_OPT_IDX, PRD_OPT_NM, PRD_MST_CD, PRD_OPT_STOCK_CNT, PRD_OPT_ORDER_CNT
+        ) VALUES (
+            SEQ_PRD_OPT_IDX.NEXTVAL, #{PRD_OPT_NM}, #{PRD_MST_CD}, #{PRD_OPT_STOCK_CNT}, #{PRD_OPT_ORDER_CNT}
+        )
+        ]]>
+    </insert>    
+    
+    <!-- 상품 전시 카테고리 등록 -->
+    <insert id="insertDisplayCategory" parameterType="hashmap" >
+        <![CDATA[
+        /* BasicProduct.insertDisplayCategory */
+        INSERT INTO T_DSP_CTG (
+            DSP_CTG_IDX
+            , DSP_PRD_CTG_IDX
+            , DSP_PRD_MST_CD
+            , DSP_CTG_REG_DT
+            , DSP_CTG_REG_IP
+            , DSP_CTG_REG_ID
+            , DSP_CTG_USE_YN
+        ) VALUES (
+            SEQ_DSP_CTG_IDX.NEXTVAL
+            , #{PRD_CTG_IDX}
+            , #{PRD_MST_CD}
+            , TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS')
+            , #{DSP_CTG_REG_IP}
+            , #{DSP_CTG_REG_ID}
+            , 'Y'
+        )
+        ]]>
+    </insert>
+    
+    <!-- 상품 전시 카테고리 삭제 -->
+    <delete id="deleteDisplayCategory" parameterType="hashmap" >
+        <![CDATA[
+        /* BasicProduct.deleteDisplayCategory */
+        DELETE FROM T_DSP_CTG WHERE DSP_PRD_MST_CD = #{PRD_MST_CD}
+        ]]>
+    </delete>
+    
+    <!-- 상품 전시 카테고리 다건 삭제 -->
+    <delete id="deleteDisplayCategoryGroup" parameterType="hashmap" >
+        /* BasicProduct.deleteDisplayCategoryGroup */
+        DELETE FROM T_DSP_CTG WHERE DSP_PRD_MST_CD IN
+        <foreach collection="arrPRD_MST_CD" item="productCode" open="(" close=")" separator=",">
+            #{productCode.PRD_MST_CD}
+        </foreach>
+    </delete>
+    
+    <!-- 상품 스펙 삭제 -->
+    <delete id="deleteDisplaySpec" parameterType="hashmap" >
+        <![CDATA[
+        /* BasicProduct.deleteDisplaySpec */
+        DELETE FROM T_DSP_CTG WHERE DSP_PRD_MST_CD = #{PRD_MST_CD}
+        ]]>
+    </delete>
+
+    <!-- 상품 카테고리 리스트 조회 -->
+    <select id="selectBasicProductCategoryList" parameterType="hashMap" resultType="hashMap">
+        /* BasicProduct.selectBasicProductCategoryList */
+        SELECT 
+            DSP_PRD_CTG_IDX,
+            DSP_CTG_IDX,
+            PRD_CTG_ENV,
+            FN_CATEGORY_PATH(DSP_PRD_CTG_IDX) PRD_CTG_PATH
+        FROM 
+         T_DSP_CTG, T_PRD_CTG
+        WHERE 
+         T_DSP_CTG.DSP_PRD_CTG_IDX = T_PRD_CTG.PRD_CTG_IDX
+         AND DSP_PRD_MST_CD = #{PRD_MST_CD}
+        <if test="PRD_CTG_ENV != null and PRD_CTG_ENV != ''">
+            AND T_PRD_CTG.PRD_CTG_ENV = #{PRD_CTG_ENV}
+        </if>
+        ORDER BY T_DSP_CTG.DSP_CTG_IDX
+    </select>
+    
+    <!-- 상품 이미지 등록 -->
+    <insert id="insertProductImage" parameterType="hashMap" >
+        /* BasicProduct.insertProductImage */
+        INSERT INTO T_PRD_IMG (
+            PRD_PRD_MST_CD, PRD_IMG_IDX, PRD_IMG_SORT, PRD_IMG_ATT_PATH, PRD_IMG_SYS_NM, 
+            PRD_IMG_ATT_SIZE, PRD_IMG_URL_PATH, PRD_IMG_ORG_NM, PRD_IMG_REG_DT, PRD_IMG_ALT_TEXT
+        )VALUES (
+            #{PRD_MST_CD}, #{PRD_IMG_IDX}, #{PRD_IMG_SORT}, #{PRD_IMG_ATT_PATH}, #{PRD_IMG_SYS_NM}, 
+            #{PRD_IMG_ATT_SIZE}, #{PRD_IMG_URL_PATH}, #{PRD_IMG_ORG_NM}, TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'), #{PRD_IMG_ALT_TEXT}
+            
+        )
+    </insert>
+    
+    <!-- 상품 이미지 삭제 -->
+    <insert id="deleteProductImage" parameterType="hashMap" >
+        /* BasicProduct.deleteProductImage */
+        DELETE FROM 
+         T_PRD_IMG 
+        WHERE 
+            PRD_PRD_MST_CD = #{PRD_MST_CD}
+    </insert>
+    
+    <!-- 상품 이미지 리스트 조회 -->
+    <select id="selectProductImageList" parameterType="hashMap" resultType="hashMap">
+        /* BasicProduct.selectProductImageList */
+        SELECT
+            PRD_IMG_IDX, 
+            PRD_IMG_SORT,
+            PRD_IMG_ATT_PATH, 
+            PRD_IMG_SYS_NM, 
+            PRD_IMG_ATT_SIZE, 
+            PRD_IMG_URL_PATH, 
+            PRD_IMG_ORG_NM,
+            PRD_IMG_ALT_TEXT
+        FROM 
+         T_PRD_IMG
+        WHERE 
+            PRD_PRD_MST_CD = #{PRD_MST_CD}
+        ORDER BY PRD_IMG_SORT ASC, PRD_IMG_IDX ASC      
+    </select>  
+    
+    <!-- 엑셀 업로드 상품마스터 수정 -->
+    <update id="updateProductInfoByExcel" parameterType="hashmap" >
+        <![CDATA[
+        /* BasicProduct.updateProductInfoByExcel */
+        UPDATE 
+            T_PRD_MST
+        SET
+            PRD_MST_UPD_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS')
+            , PRD_MST_UPD_ID = #{PRD_MST_UPD_ID}
+            , PRD_MST_UPD_IP = #{PRD_MST_UPD_IP}
+            ]]>
+            <if test="PRD_MST_CHANNEL_TYPE != null and PRD_MST_CHANNEL_TYPE != ''">
+                , PRD_MST_CHANNEL_TYPE = #{PRD_MST_CHANNEL_TYPE}       /* 쇼핑채널 */
+            </if>
+            <if test="PRD_MST_SEL_STATE != null and PRD_MST_SEL_STATE != ''">
+                , PRD_MST_SEL_STATE = #{PRD_MST_SEL_STATE}
+            </if>
+            <if test="PRD_MST_DETAIL_DESC != null and PRD_MST_DETAIL_DESC != ''">
+                , PRD_MST_DETAIL_DESC = #{PRD_MST_DETAIL_DESC}         /* 상품_상세설명 */  
+            </if>
+            <if test="PRD_MST_DETAIL_TXT != null and PRD_MST_DETAIL_TXT != ''">
+                , PRD_MST_DETAIL_TXT = #{PRD_MST_DETAIL_TXT}             /* 상품_대체텍스트 */
+            </if>
+            <if test="PRD_MST_DETAIL_IMG_YN != null and PRD_MST_DETAIL_IMG_YN != ''">
+                , PRD_MST_DETAIL_IMG_YN = #{PRD_MST_DETAIL_IMG_YN}   /* 상품이미지 설명노출 여부 */
+            </if>
+            <![CDATA[    
+        WHERE
+            PRD_MST_CD = #{PRD_MST_CD}
+        ]]>
+    </update>
+    
+    <!-- 상품 개수(일괄 업로드용) -->             
+    <select id="selectProductCountByPrdMstCd" parameterType="hashMap" resultType="integer">
+        SELECT COUNT(1) FROM T_PRD_MST WHERE PRD_MST_CD = #{PRD_MST_CD}
+    </select>
+    
+
+    <!-- 관리자 > 상품관리 > MD회원리스트 -->
+    <select id="selectBasicMdList" parameterType="hashMap" resultType="hashMap">
+       /* BasicProduct.selectBasicMdList */  
+        SELECT
+            ADM_MST_ID,
+            ADM_MST_NM
+        FROM
+            T_ADM_MST AM
+        WHERE
+            AM.AUT_MST_IDX = #{AUT_MST_IDX}
+    </select> 
+    
+    <!-- 옵션 마스터 등록 -->
+    <insert id="insertProductOptionMaster" parameterType="hashmap" >
+        <selectKey keyProperty="PRD_OPT_IDX" resultType="int" order="BEFORE">
+            SELECT SEQ_PRD_OPT_IDX.NEXTVAL AS PRD_OPT_IDX FROM DUAL
+        </selectKey>
+        /* BasicProduct.insertProductOptionMaster */
+        INSERT INTO T_PRD_OPT (
+            PRD_OPT_IDX, PRD_MST_CD, PRD_OPT_NM, PRD_OPT_EST_YN, PRD_OPT_CNT_YN, PRD_OPT_USE_YN
+        )VALUES (
+            #{PRD_OPT_IDX}, #{PRD_MST_CD}, #{PRD_OPT_NM}, #{PRD_OPT_EST_YN}, #{PRD_OPT_CNT_YN}, #{PRD_OPT_USE_YN}
+        )
+    </insert>
+    
+    <!-- 색상,사이즈 옵션 등록 -->
+    <insert id="insertProductMustOption" parameterType="hashmap" >
+        /* BasicProduct.insertProductMustOption */
+        INSERT INTO T_PRD_CMM_OPT (
+            CMN_COM_IDX, 
+            PRD_MST_CD, 
+            OPT_STK_CNT, 
+            PRD_CMM_TYPE, 
+            UP_COM_OPT_IDX,
+            CMM_OPT_NM, 
+            CMM_OPT_USE_YN, 
+            CMM_OPT_HW
+        )VALUES (
+            #{CMN_COM_IDX}, 
+            #{PRD_MST_CD},
+            #{OPT_STK_CNT},
+            #{PRD_CMM_TYPE},
+            #{UP_COM_OPT_IDX}, 
+            #{CMM_OPT_NM}, 
+            #{CMM_OPT_USE_YN}, 
+            #{CMM_OPT_HW}
+        )
+    </insert>
+    
+    <!-- 상품 필수 옵션(색상,사이즈) 조회 -->
+    <select id="selectProductMustOptionList" parameterType="hashMap" resultType="hashMap">
+       SELECT COLOR.CMN_COM_IDX
+		   , COLOR.UP_COM_OPT_IDX
+		   , COLOR.CMM_OPT_USE_YN
+		   , COLOR.PRD_CMM_TYPE 
+		   , COLOR.PRD_MST_CD
+		   , TO_CHAR(CMM_COLOR.CMN_COM_IDX) AS COLOR_IDX
+		   , TO_CHAR(CMM_COLOR.CMN_COM_ETC2) AS COLOR_VALUE
+		   , TO_CHAR(CMM_COLOR.CMN_COM_NM) AS COLOR_CODE
+		   , NULL AS SIZE_NM
+		   , NULL AS SIZE_IDX
+		   , COLOR.OPT_STK_CNT 
+		   , COLOR.CMM_OPT_HW
+		  FROM T_PRD_CMM_OPT COLOR INNER JOIN T_CMM_COM CMM_COLOR ON COLOR.CMN_COM_IDX = CMM_COLOR.CMN_COM_IDX 
+		  WHERE COLOR.PRD_CMM_TYPE ='C'
+		  AND COLOR.PRD_MST_CD = #{PRD_MST_CD}
+		UNION ALL
+		SELECT SZE.CMN_COM_IDX
+		   , SZE.UP_COM_OPT_IDX
+		   , SZE.CMM_OPT_USE_YN
+		   , SZE.PRD_CMM_TYPE
+		   , SZE.PRD_MST_CD
+		   , NULL AS COLOR_IDX 
+		   , NULL AS COLOR_VALUE
+		   , NULL AS COLOR_CODE
+		   , TO_CHAR(CMM_SIZE.CMN_COM_IDX) AS SIZE_IDX
+		   , TO_CHAR(CMM_SIZE.CMN_COM_NM) AS SIZE_NM
+		   , SZE.OPT_STK_CNT 
+		   , SZE.CMM_OPT_HW 
+		  FROM T_PRD_CMM_OPT SZE INNER JOIN T_CMM_COM CMM_SIZE ON SZE.CMM_OPT_NM = CMM_SIZE.CMN_COM_IDX 
+		  WHERE SZE.PRD_CMM_TYPE ='S' 
+		  AND SZE.PRD_MST_CD = #{PRD_MST_CD}
+    </select>
+    
+    <!-- 상품 추가 옵션 조회 -->
+    <select id="selectProductAddOptionList" parameterType="hashMap" resultType="hashMap">
+       /* BasicProduct.selectProductAddOptionList */
+       SELECT
+            PRD_OPT_IDX
+            , PRD_OPT_NM
+            , PRD_OPT_USE_YN
+        FROM 
+            T_PRD_OPT
+        WHERE PRD_MST_CD = #{PRD_MST_CD}  
+        ORDER BY PRD_OPT_NM
+    </select>    
+    
+    <!-- 상품 필수옵션  삭제 -->
+    <delete id="deleteProductALLOption" parameterType="hashmap" >
+        /* BasicProduct.deleteProductALLOption */
+        DELETE FROM T_PRD_CMM_OPT WHERE PRD_MST_CD = #{PRD_MST_CD}
+    </delete>
+    
+    <!-- 상품 추가 옵션  삭제 -->
+    <delete id="deleteProductAddOption" parameterType="hashmap" >
+        /* BasicProduct.deleteProductAddOption */
+        DELETE FROM T_PRD_OPT WHERE PRD_MST_CD = #{PRD_MST_CD}
+    </delete>
+    
+    <!-- 옵션 상세 등록 -->
+    <insert id="insertProductOptionDetail" parameterType="hashmap" >
+        /* BasicProduct.insertProductOptionDetail */
+        INSERT INTO T_OPT_DTL (
+            OPT_DTL_IDX
+            , PRD_OPT_IDX
+            , OPT_DTL_NM
+            , OPT_DTL_ADD_PRC
+            , OPT_DTL_STK_CNT
+            , OPT_DTL_ST_DT
+            , OPT_DTL_ED_DT
+            , OPT_DTL_USE_YN
+        )VALUES (
+            SEQ_OPT_DTL_IDX.NEXTVAL
+            , #{PRD_OPT_IDX}
+            , #{OPT_DTL_NM}
+            , NVL(#{OPT_DTL_ADD_PRC},0)
+            , NVL(#{OPT_DTL_STK_CNT},0)
+            , NVL(#{OPT_DTL_ST_DT},TO_CHAR(SYSDATE, 'YYYYMMDD'))
+            , NVL(#{OPT_DTL_ED_DT},'99991231')
+            , #{OPT_DTL_USE_YN}
+        )
+    </insert>
+    
+    <!-- 옵션 마스터 수정 -->
+    <update id="updateProductOptionMaster" parameterType="hashmap">
+        /* BasicProduct.updateProductOptionMaster */
+        UPDATE T_PRD_OPT
+        SET PRD_OPT_NM = #{PRD_OPT_NM}
+        , PRD_OPT_EST_YN = #{PRD_OPT_EST_YN}
+        , PRD_OPT_CNT_YN = #{PRD_OPT_CNT_YN}
+        WHERE PRD_OPT_IDX = #{PRD_OPT_IDX}
+        AND PRD_MST_CD = #{PRD_MST_CD}
+        
+    </update>
+    
+    <!-- 옵션 상세 수정 -->
+    <update id="updateProductOptionDetail" parameterType="hashmap">
+        /* BasicProduct.updateProductOptionDetail */
+        UPDATE T_OPT_DTL
+        SET OPT_DTL_NM = #{OPT_DTL_NM}
+        , OPT_DTL_ADD_PRC = NVL(#{OPT_DTL_ADD_PRC},0)
+        , OPT_DTL_STK_CNT = NVL(#{OPT_DTL_STK_CNT},0)
+        , OPT_DTL_ST_DT = NVL(#{OPT_DTL_ST_DT},TO_CHAR(SYSDATE, 'YYYYMMDD'))
+        , OPT_DTL_ED_DT = NVL(#{OPT_DTL_ED_DT},'99991231')
+        , OPT_DTL_USE_YN = #{OPT_DTL_USE_YN}
+        WHERE OPT_DTL_IDX = #{OPT_DTL_IDX}
+        AND PRD_OPT_IDX = #{PRD_OPT_IDX}
+    </update>
+    
+    <!-- 옵션 마스터 삭제 -->
+    <delete id="deleteProductOptionMaster" parameterType="hashmap" >
+        <![CDATA[
+        /* BasicProduct.deleteProductOptionMaster */
+        DELETE FROM T_PRD_OPT WHERE PRD_OPT_IDX = #{PRD_OPT_IDX} AND PRD_MST_CD = #{PRD_MST_CD}
+        ]]>
+    </delete>
+    
+    <!-- 옵션 상세 마스터키로 삭제 -->
+    <delete id="deleteProductOptionDetailMasterKey" parameterType="hashmap" >
+        <![CDATA[
+        /* BasicProduct.deleteProductOptionDetailMasterKey */
+        DELETE FROM T_OPT_DTL WHERE PRD_OPT_IDX = #{PRD_OPT_IDX}
+        ]]>
+    </delete>
+    
+    <!-- 옵션 상세 삭제 -->
+    <delete id="deleteProductOptionDetail" parameterType="hashmap" >
+        <![CDATA[
+        /* BasicProduct.deleteProductOptionDetail */
+        DELETE FROM T_OPT_DTL WHERE OPT_DTL_IDX = #{OPT_DTL_IDX}
+        ]]>
+    </delete>
+    
+    <!-- 상품 스펙 등록 -->
+    <insert id="insertDisplaySpec" parameterType="hashmap" >
+        <![CDATA[
+        /* BasicProduct.insertDisplaySpec */
+        INSERT INTO T_PRD_SPC (
+            PRD_SPC_IDX, SPC_MST_IDX, PRD_MST_CD
+        ) VALUES (
+            SEQ_PRD_SPC_IDX.NEXTVAL, #{SPC_MST_IDX}, #{PRD_MST_CD}
+        )
+        ]]>
+    </insert>
+    
+    <!-- 상품 스펙 삭제 -->
+    <delete id="deleteDisplaySpecAll" parameterType="hashmap" >
+        <![CDATA[
+        /* BasicProduct.deleteDisplaySpec */
+        DELETE FROM T_PRD_SPC WHERE PRD_MST_CD = #{PRD_MST_CD}
+        ]]>
+    </delete>
+    
+    <!-- 상품 카테고리 리스트 조회 -->
+    <select id="selectBasicProductSpecList" parameterType="hashMap" resultType="hashMap">
+        /* BasicProduct.selectBasicProductSpecList */
+        SELECT 
+            T_PRD_SPC.PRD_SPC_IDX,
+            T_PRD_SPC.SPC_MST_IDX,
+            T_SPC_MST.SPC_MST_ENV,
+            FN_SPEC_PATH(T_PRD_SPC.SPC_MST_IDX) SPC_MST_PATH
+        FROM 
+         T_PRD_SPC, T_SPC_MST
+        WHERE 
+         T_PRD_SPC.SPC_MST_IDX = T_SPC_MST.SPC_MST_IDX
+        <if test="PRD_MST_CD != null and PRD_MST_CD !=''">
+            AND T_PRD_SPC.PRD_MST_CD = #{PRD_MST_CD}
+        </if>
+        <if test="SPC_MST_ENV != null and SPC_MST_ENV != ''">
+            AND T_SPC_MST.SPC_MST_ENV = #{SPC_MST_ENV}
+        </if>
+        ORDER BY T_PRD_SPC.SPC_MST_IDX
+    </select>
+    
+    <!-- 상품 다중 삭제  -->
+    <update id="deleteProductMaster" parameterType="hashmap" >
+        /* BasicProduct.deleteProductMaster */
+        UPDATE 
+            T_PRD_MST
+        SET
+            PRD_MST_DEL_YN = 'Y'
+            , PRD_MST_UPD_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS')
+            , PRD_MST_UPD_ID = #{PRD_MST_UPD_ID}
+            , PRD_MST_UPD_IP = #{PRD_MST_UPD_IP}
+        WHERE
+            PRD_MST_CD = #{PRD_MST_CD}
+    </update>
+    
+    <!-- 상품 관련 콘텐츠 삭제 -->
+    <delete id="deleteDisplayEmagazine" parameterType="hashmap" >
+        <![CDATA[
+        /* BasicProduct.deleteDisplayEmagazine */
+        DELETE FROM T_PRD_MGZ WHERE PRD_MST_CD = #{PRD_MST_CD}
+        ]]>
+    </delete>
+    
+    <!-- 상품 관련콘텐츠 등록 -->
+    <insert id="insertDisplayEmagazine" parameterType="hashmap" >
+        <![CDATA[
+        /* BasicProduct.insertDisplayEmagazine */
+        INSERT INTO T_PRD_MGZ (
+            PRD_MGZ_IDX, PRD_MST_CD, MGZ_MST_IDX
+        ) VALUES (
+            SEQ_PRD_MGZ_IDX.NEXTVAL, #{PRD_MST_CD} , #{MGZ_MST_IDX}
+        )
+        ]]>
+    </insert>
+    
+    <!-- 상품상세 관련콘텐츠 조회 -->
+    <select id="selectBasicProductEmagazineList" parameterType="hashMap" resultType="hashMap">
+        /* BasicProduct.selectBasicProductEmagazineList */
+        SELECT
+            MGZ.MGZ_MST_IDX,
+            (SELECT CMN_COM_NM FROM T_CMM_COM WHERE CMN_COM_IDX =  MGZ.MGZ_MST_CTG) AS MGZ_MST_CTG,
+            MGZ.MGZ_MST_TITLE
+        FROM
+            T_PRD_MGZ PMZ
+            INNER JOIN T_MGZ_MST MGZ ON MGZ.MGZ_MST_IDX = PMZ.MGZ_MST_IDX
+        WHERE
+            PMZ.PRD_MST_CD = #{PRD_MST_CD}
+    </select>
+    
+    <!-- 상품 검색채널 마스터 등록 -->
+    <insert id="insertChannelMaster" parameterType="hashmap" >
+        <selectKey keyProperty="PRD_CHN_IDX" resultType="int" order="BEFORE"> 
+            SELECT SEQ_PRD_CHN_IDX.NEXTVAL FROM DUAL 
+        </selectKey> 
+        <![CDATA[
+        /* BasicProduct.insertChannelMaster */
+        INSERT INTO T_PRD_CHN (
+            PRD_CHN_IDX, PRD_MST_CD, PRD_CHN_DPT2, PRD_CHN_ECH_PRC
+        ) VALUES (
+            #{PRD_CHN_IDX}, #{PRD_MST_CD}, #{PRD_CHN_DPT2}, #{PRD_CHN_ECH_PRC}
+        )
+        ]]>
+    </insert>
+    
+    <!-- 상품 검색채널 상세 등록 -->
+    <insert id="insertChannelDetail" parameterType="hashmap" >
+        <![CDATA[
+        /* BasicProduct.insertChannelDetail */
+        INSERT INTO T_PRD_CHN_DTL (
+            PRD_CHN_DTL_IDX, PRD_CHN_IDX, CHN_DTL_CD, PRD_CHN_PRC
+        ) VALUES (
+            SEQ_PRD_CHN_DTL_IDX.NEXTVAL, #{PRD_CHN_IDX}, #{CHN_DTL_CD}, #{PRD_CHN_PRC}
+        )
+        ]]>
+    </insert>
+    
+    <!-- 채널 마스터 정보 -->
+    <select id="selectbasicChnMstList" parameterType="hashMap" resultType="hashMap">
+        /* BasicProduct.selectbasicChnMstList */
+        SELECT 
+            CMT.CHN_MST_IDX
+            , CMT.CHN_MST_NM
+            , CMT.CHN_MST_LEVEL
+            , CMT.CHN_MST_UP_IDX
+            , PCN.PRD_MST_CD
+            , PCN.PRD_CHN_IDX
+            , PCN.PRD_CHN_DPT2
+            , PCN.PRD_CHN_ECH_PRC
+            , CASE WHEN ( SELECT COUNT(*) FROM T_PRD_CHN_DTL WHERE PRD_CHN_IDX = PCN.PRD_CHN_IDX) > 0 THEN 'Y' ELSE 'N' END AS PRD_CHN_YN
+        FROM T_CHN_MST CMT
+        LEFT OUTER JOIN T_PRD_CHN PCN ON CMT.CHN_MST_IDX = PCN.PRD_CHN_DPT2 AND PCN.PRD_MST_CD = #{PRD_MST_CD}
+        WHERE CMT.CHN_MST_UP_IDX IN
+            <foreach collection="arrCHN_MST_UP_IDX" item="CHN_MST_UP_IDX" open="(" close=")" separator=",">#{CHN_MST_UP_IDX}</foreach>
+        AND CMT.CHN_MST_LEVEL = 3
+        ORDER BY CMT.CHN_MST_IDX ASC
+    </select>
+    
+    <!-- 채널 마스터 정보 -->
+    <select id="selectbasicChnDtlList" parameterType="hashMap" resultType="hashMap">
+        /* BasicProduct.selectbasicChnDtlList */
+        SELECT 
+            CDL.CHN_DTL_CD
+            , CDL.CHN_MST_IDX
+            , CDL.CHN_DTL_NM
+            , PDT.PRD_CHN_IDX
+            , PDT.CHN_DTL_CD AS PRD_CHN_DTL_CD
+            , PDT.PRD_CHN_PRC
+            , CASE WHEN CDL.CHN_DTL_CD = PDT.CHN_DTL_CD THEN 'Y' ELSE 'N' END AS PRD_CHN_DTL_YN
+        FROM T_CHN_DTL CDL
+        INNER JOIN T_CHN_MST CMT 
+            ON CDL.CHN_MST_IDX = CMT.CHN_MST_IDX 
+            AND CHN_MST_UP_IDX IN
+                <foreach collection="arrCHN_MST_UP_IDX" item="CHN_MST_UP_IDX" open="(" close=")" separator=",">#{CHN_MST_UP_IDX}</foreach>
+        LEFT OUTER JOIN (
+                SELECT 
+                PCD.PRD_CHN_DTL_IDX
+                , PCD.PRD_CHN_IDX
+                , PCD.CHN_DTL_CD
+                , PCD.PRD_CHN_PRC
+                FROM T_PRD_CHN_DTL PCD
+                INNER JOIN T_PRD_CHN PCN ON PCD.PRD_CHN_IDX = PCN.PRD_CHN_IDX AND PRD_MST_CD = #{PRD_MST_CD}
+                ORDER BY PCD.PRD_CHN_IDX , PCD.PRD_CHN_DTL_IDX ASC
+                        ) PDT
+            ON CDL.CHN_DTL_CD = PDT.CHN_DTL_CD
+        WHERE CDL.CHN_DTL_USE_YN = 'Y'
+        ORDER BY CDL.CHN_MST_IDX , CDL.CHN_DTL_CD ASC
+    </select>
+    
+    <!-- 제휴채널 정보 -->
+    <select id="selectbasicChnAlliListList" parameterType="hashMap" resultType="hashMap">
+        /* BasicProduct.selectbasicChnAlliListList */
+        SELECT 
+            CHN_MST_IDX
+            , CHN_MST_NM
+            , CHN_MST_LEVEL
+            , CHN_MST_UP_IDX
+        FROM T_CHN_MST 
+        WHERE CHN_MST_UP_IDX = 1
+        AND CHN_MST_LEVEL = 3
+        ORDER BY CHN_MST_IDX ASC
+    </select>
+    
+    <!-- 제휴채널 하위뎁스 정보 -->
+    <select id="selectSubChannelList" parameterType="hashMap" resultType="hashMap">
+        /* BasicProduct.selectSubChannelList */
+        SELECT 
+            CDL.CHN_DTL_CD
+            , CDL.CHN_MST_IDX
+            , CDL.CHN_DTL_NM
+        FROM T_CHN_DTL CDL
+        INNER JOIN T_CHN_MST CMT 
+            ON CDL.CHN_MST_IDX = CMT.CHN_MST_IDX AND CMT.CHN_MST_UP_IDX = 1
+        WHERE CDL.CHN_DTL_USE_YN = 'Y'
+        AND CDL.CHN_MST_IDX = #{CHN_MST_IDX}
+        ORDER BY CDL.CHN_MST_IDX , CDL.CHN_DTL_CD ASC
+    </select>
+    
+    <!-- 상품에 속한 채널 마스터 -->
+    <select id="selectbasicProductChnAlliList" parameterType="hashMap" resultType="hashMap">
+        /* BasicProduct.selectbasicProductChnAlliList */
+        SELECT 
+            PCD.PRD_CHN_DTL_IDX
+            , PCD.PRD_CHN_IDX
+            , PCD.CHN_DTL_CD
+            , PCD.PRD_CHN_PRC
+            , (SELECT CHN_DTL_NM FROM T_CHN_DTL WHERE CHN_DTL_CD = PCD.CHN_DTL_CD) AS CHN_DTL_NM
+            , PCN.PRD_CHN_DPT2
+        FROM T_PRD_CHN_DTL PCD
+        INNER JOIN T_PRD_CHN PCN ON PCN.PRD_CHN_IDX = PCD.PRD_CHN_IDX 
+        WHERE PCN.PRD_MST_CD = #{PRD_MST_CD}
+        AND PCN.PRD_CHN_DPT2 IN (       
+                                SELECT 
+                                    CHN_MST_IDX
+                                FROM T_CHN_MST 
+                                WHERE CHN_MST_UP_IDX = 1
+                                AND CHN_MST_LEVEL = 3
+                            )
+    </select>
+    
+    <!-- 상품 채널 상세 삭제 -->
+    <delete id="deleteChannelDetail" parameterType="hashmap" >
+        <![CDATA[
+        /* BasicProduct.deleteChannelDetail */
+        DELETE FROM T_PRD_CHN_DTL
+        WHERE PRD_CHN_IDX IN (
+                                SELECT PRD_CHN_IDX FROM  T_PRD_CHN WHERE PRD_MST_CD = #{PRD_MST_CD}
+                            )
+        ]]>
+    </delete>
+    
+    <!-- 상품 채널 마스터 삭제 -->
+    <delete id="deleteChannelMaster" parameterType="hashmap" >
+        <![CDATA[
+        /* BasicProduct.deleteChannelMaster */
+        DELETE FROM T_PRD_CHN WHERE PRD_MST_CD = #{PRD_MST_CD}
+        ]]>
+    </delete>
+    
+    <!-- 상품 마스터 수정  -->
+    <update id="updateProductMstVdr" parameterType="hashmap" >
+        /* BasicProduct.updateProductMstVdr */
+        UPDATE 
+            T_PRD_MST
+        SET
+             PRD_MST_SEL_STATE = #{PRD_MST_SEL_STATE}
+        WHERE
+            PRD_MST_CD = #{PRD_MST_CD}
+    </update>
+    
+    <!-- 상품 바인딩 태그 일괄 삭제 -->
+    <delete id="deleteTagBind" parameterType="hashmap" >
+        /* BasicProduct.deleteTagBind */
+        DELETE FROM T_TAG_BND 
+        WHERE 
+            TAG_BND_TYPE = #{TAG_BND_TYPE}
+            AND TAG_BND_ID IN
+            <foreach collection="arrPRD_MST_CD" item="PRD_MST_CD" open="(" close=")" separator=","> 
+                TO_CHAR(#{PRD_MST_CD})
+            </foreach>        
+    </delete>
+    
+    <!-- 상품 바인딩 태그 일괄 수정  -->
+    <insert id="insertTagBatch" parameterType="hashmap" >
+        /* BasicProduct.insertTagBatch */
+        INSERT ALL
+        <foreach collection="tagList" item="tag" separator=" "> 
+            INTO 
+                T_TAG_BND (
+                    TAG_MST_ID
+                    , TAG_BND_ID
+                    , TAG_BND_REP
+                    , TAG_BND_TYPE
+                    , TAG_BND_STATUS
+                    , TAG_BND_REG_DT 
+                
+                ) 
+                VALUES 
+                (
+                    #{tag.TAG_MST_ID}
+                    , #{tag.PRD_MST_CD}
+                    , NVL(#{tag.TAG_BND_REP},'N')
+                    , #{tag.TAG_BND_TYPE}
+                    , NVL(#{tag.TAG_BND_STATUS},'USE')
+                    , TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS')
+                ) 
+        </foreach>
+        SELECT * FROM DUAL
+    </insert>
+    
+    <!-- 묶음상품/세트상품 등록 -->
+    <insert id="insertProductGroup" parameterType="hashmap" >
+        /* BasicProduct.insertProductGroup */
+        INSERT INTO T_PRD_GRP (
+            PRD_MST_CD
+            ,SUB_PRD_MST_CD
+        )VALUES (
+            #{PRD_MST_CD}
+            ,#{SUB_PRD_MST_CD}
+        )
+    </insert>
+    
+    <!-- 묶음상품 상품구성 삭제 -->
+    <delete id="deleteProductGroup" parameterType="hashmap" >
+        /* BasicProduct.deleteProductGroup */
+        DELETE FROM T_PRD_GRP WHERE PRD_MST_CD = #{PRD_MST_CD}
+    </delete>
+    
+    <!-- 묶음상품,세트상품에 바인딩된 상품 조회 -->
+    <select id="selectbasicProductGroup" parameterType="hashMap" resultType="hashMap">
+        /* BasicProduct.selectbasicProductGroup */
+        SELECT
+        	SUB_PRD_MST_CD
+        	, TPM.PRD_MST_NM
+        	, TPM.PRD_MST_SEL_CNT
+            , TPM.PRD_MST_PRC
+        FROM 
+        	T_PRD_MST TPM, 
+        	(SELECT
+                	TPG.SUB_PRD_MST_CD
+                FROM
+                	T_PRD_GRP TPG
+                	, T_PRD_MST TPM
+                WHERE 
+                	TPG.PRD_MST_CD = #{PRD_MST_CD}
+                	AND TPM.PRD_MST_CD = #{PRD_MST_CD}
+             ) SUB_PRD_MST_CD 
+        WHERE TPM.PRD_MST_CD IN SUB_PRD_MST_CD
+    </select>
+    
+	<select id="erpDuplicateCheck" parameterType="hashMap" resultType="integer">
+        /* BasicProduct.erpDuplicateCheck */
+        SELECT
+        	COUNT(PRD_MST_ERP_CD)
+        FROM
+        	T_PRD_MST
+        WHERE 
+        	PRD_MST_ERP_CD = #{PRD_MST_ERP_CD}
+    </select>
+    
+    <resultMap type="java.util.HashMap" id="resultHoldOffDetail">
+        <result column="VDR_HLD_IDX"     property="VDR_HLD_IDX"/>
+        <result column="VDR_HLD_DESC"   property="VDR_HLD_DESC" jdbcType="CLOB" javaType="java.lang.String"/>
+        <result column="VDR_HLD_APV_STATE"     property="VDR_HLD_APV_STATE"/>
+        <result column="VDR_HLD_PRC_YN"     property="VDR_HLD_PRC_YN"/>
+        <result column="VDR_HLD_NM_YN"     property="VDR_HLD_NM_YN"/>
+        <result column="VDR_HLD_CTG_YN"     property="VDR_HLD_CTG_YN"/>
+        <result column="VDR_HLD_CNT_YN"     property="VDR_HLD_CNT_YN"/>
+        <result column="VDR_HLD_NFI_YN"     property="VDR_HLD_NFI_YN"/>
+        <result column="VDR_HLD_ETC_YN"     property="VDR_HLD_ETC_YN"/>
+        <result column="VDR_HLD_REG_DT"     property="VDR_HLD_REG_DT"/>
+    </resultMap>
+    
+    <!-- 관리자 > 상품 관리 > 보류내역보기 팝업 > 보류사유 내용 -->
+    <select id="selectHoldOffDetailList" parameterType="hashMap" resultMap="resultHoldOffDetail">
+       /* BasicProduct.selectHoldOffDetailList */  
+       SELECT S2.*
+         FROM (
+         		SELECT 
+         				ROWNUM RNUM,
+         				S1.*
+         		FROM (
+				        SELECT 
+				            TVH.VDR_HLD_IDX
+				            , TVH.VDR_HLD_DESC
+				            , TVH.VDR_HLD_PRC_YN
+				            , TVH.VDR_HLD_NM_YN
+				            , TVH.VDR_HLD_CTG_YN
+				            , TVH.VDR_HLD_CNT_YN
+				            , TVH.VDR_HLD_NFI_YN
+				            , TVH.VDR_HLD_ETC_YN
+				            , TO_CHAR(TO_DATE(SUBSTR(TVH.VDR_HLD_REG_DT,1,8),'YYYYMMDD'),'YYYY-MM-DD') AS VDR_HLD_REG_DT
+				        FROM T_VDR_HLD TVH, T_PRD_MST TPM
+				        WHERE
+				        	TVH.PRD_MST_CD = #{PRD_MST_CD}
+				        	AND TVH.PRD_MST_CD = TPM.PRD_MST_CD
+				        ORDER BY VDR_HLD_REG_DT DESC
+				        ) S1
+		        )S2
+         WHERE  RNUM BETWEEN #{startNum} AND #{endNum}      
+         ORDER BY RNUM
+    </select>
+    
+    <select id="selectHoldOffDetailListCount" parameterType="hashMap" resultType="integer">
+        /* BasicProduct.selectHoldOffDetailListCount */
+        SELECT
+            COUNT(TVH.VDR_HLD_IDX)
+        FROM
+            T_VDR_HLD TVH, T_PRD_MST TPM
+        WHERE 
+            TVH.PRD_MST_CD = #{PRD_MST_CD}
+        	AND TVH.PRD_MST_CD = TPM.PRD_MST_CD
+    </select>
+    
+    <!-- 입점업체 멀티 상품 변경요청 (비교용)  -->
+    <select id="selectVdrProductOriginInfo" parameterType="hashMap" resultType="hashMap">
+       /* BasicProduct.selectVdrProductOriginInfo */  
+		SELECT
+			TPM.PRD_MST_CD
+			, TPM.PRD_MST_PRC
+			, TPM.PRD_MST_UNT
+			, TPM.PRD_MST_SALE_RATE
+			, TPM.PRD_MST_SEL_CNT
+			, TPM.PRD_MST_SEL_STATE
+		FROM 
+			T_PRD_MST TPM
+		WHERE 
+			TPM.PRD_MST_CD = #{PRD_MST_CD}
+    </select>
+    
+    <!-- 상품 마스터 일괄 입력 -->
+    <insert id="insertProductMasterByFile" parameterType="hashmap" >
+        /* BasicProduct.insertProductMasterByFile */
+        INSERT INTO T_PRD_MST (
+                                PRD_MST_CD ,
+                                PRD_MST_VDR_YN ,
+                                PRD_MST_VDR_IDX ,
+                                PRD_MST_TYPE ,
+                                PRD_MST_BUY_TP ,
+                                PRD_MST_NM ,
+                                PRD_MST_NM_SUB ,
+                                PRD_MST_LNG_DIV_YN ,
+                                PRD_MST_LNG_DIV_MNT1 ,
+                                PRD_MST_LNG_DIV_MNT2 ,
+                                PRD_MST_MD_ID ,
+                                PRD_MST_DLV_FEE ,
+                                PRD_MST_CPS_YN ,
+                                PRD_MST_CPS_MDL ,
+                                PRD_MST_CPN_YN ,
+                                PRD_MST_SEL_CNT ,
+                                PRD_MST_PC_CPN_UNT ,
+                                PRD_MST_PC_CPN_PRC ,   
+                                PRD_MST_MB_CPN_UNT ,
+                                PRD_MST_MB_CPN_PRC ,
+                                PRD_MST_ADD_MIL ,
+                                PRD_MST_SRC_YN ,
+                                PRD_MST_O2O_YN ,
+                                PRD_MST_DLV_BND ,
+                                PRD_MST_IVB_YN ,
+                                PRD_MST_DLV_DSN_YN ,
+                                <if test="PRD_MST_DLV_DSN_YN != null and PRD_MST_DLV_DSN_YN.equals('Y'.toString())">
+                                    PRD_MST_DLV_DT ,
+                                </if>
+                                PRD_MST_PRC ,
+                                PRD_MST_SCH_PRC ,
+                                PRD_MST_CPR_PRC1 ,
+                                PRD_MST_CPR_PRC2 ,
+                                <if test="PRD_MST_PKG_PRC != null and PRD_MST_PKG_PRC != ''">
+                                    PRD_MST_PKG_PRC ,
+                                </if>
+                                PRD_MST_CNL_PC_YN ,
+                                PRD_MST_CNL_MB_YN ,
+                                PRD_MST_SEL_STATE ,
+                                PRD_MST_DPL_STATE ,
+                                PRD_MST_APV_STATE ,
+                                PRD_MST_PC_DTL_DSC ,
+                                PRD_MST_MB_DTL_DSC ,
+                                <if test="PRD_MST_NFI_IDX != null and PRD_MST_NFI_IDX != ''">
+                                    PRD_MST_NFI_IDX ,
+                                </if>
+                                PRD_MST_BRD_IDX ,    
+                                PRD_MST_MRK_IDX ,
+                                PRD_MST_NFI_INF1 ,
+                                PRD_MST_NFI_INF2 ,
+                                PRD_MST_NFI_INF3 ,
+                                PRD_MST_NFI_INF4 ,
+                                PRD_MST_NFI_INF5 ,
+                                PRD_MST_NFI_INF6 ,
+                                PRD_MST_NFI_INF7 ,
+                                PRD_MST_NFI_INF8 ,
+                                PRD_MST_NFI_INF9 ,
+                                PRD_MST_NFI_INF10 ,
+                                PRD_MST_NFI_INF11 ,
+                                PRD_MST_NFI_INF12 ,
+                                PRD_MST_NFI_INF13 ,
+                                PRD_MST_NFI_INF14 ,
+                                PRD_MST_MTA_TAG1 ,
+                                PRD_MST_MTA_TAG2 ,
+                                PRD_MST_MTA_TAG3 ,
+                                PRD_MST_MEMO ,
+                                PRD_MST_RED_CNT ,
+                                PRD_MST_ICN_YN1 ,
+                                PRD_MST_ICN_ST_DT1 ,
+                                PRD_MST_ICN_ED_DT1 ,
+                                PRD_MST_ICN_YN2 ,
+                                PRD_MST_ICN_ST_DT2 ,
+                                PRD_MST_ICN_ED_DT2 ,
+                                PRD_MST_ICN_YN3 ,
+                                PRD_MST_ICN_ST_DT3 ,
+                                PRD_MST_ICN_ED_DT3 ,
+                                PRD_MST_ICN_YN4 ,
+                                PRD_MST_ICN_ST_DT4 ,
+                                PRD_MST_ICN_ED_DT4 ,
+                                PRD_MST_ICN_YN5 ,
+                                PRD_MST_ICN_ST_DT5 ,
+                                PRD_MST_ICN_ED_DT5 ,
+                                PRD_MST_DEL_YN ,
+                                PRD_MST_REG_DT ,
+                                PRD_MST_REG_IP ,
+                                PRD_MST_REG_ID ,
+                                PRD_MST_BUY_PRC ,
+                                PRD_MST_CRD_YN ,
+                                PRD_MST_CPN_OWN ,
+                                <if test="PRD_MST_URL != null and PRD_MST_URL != ''">
+                                    PRD_MST_URL ,
+                                </if>
+                                PRD_MST_LIVE_ON_YN,
+                                PRD_MST_NAVER_USE_YN,
+                                PRD_MST_DAUM_USE_YN,
+                                PRD_MST_EMP_USE_YN,
+                                PRD_MST_PRT_USE_YN,
+                                PRD_MST_PCK_USE_YN,
+                                PRD_MST_SEX,
+                                PRD_MST_YEAR,
+                                PRD_MST_SEASON,
+                                PRD_MST_SALE_RATE,
+                                PRD_MST_REF_IMG_URL,
+                                PRD_MST_DTL_IMG1_URL,
+                                PRD_MST_DTL_IMG2_URL,
+                                PRD_MST_UNT,
+                                PRD_MST_BRD_MRG_YN,
+                                PRD_MST_FEE,
+                                PRD_MST_FEE_ST_DT,
+                                PRD_MST_FEE_ED_DT,
+                                PRD_MST_RLT_CD1, 
+                                PRD_MST_RLT_CD2,
+                                PRD_MST_RLT_CD3,
+                                PRD_MST_IMG_DPL,
+                                PRD_MST_ERP_CD,
+                                PRD_MST_ERP_TAG_NO,
+                                PRD_MST_CUR_CNT,
+                                PRD_MST_LST_CNT
+                               ) 
+        VALUES(
+                #{PRD_MST_CD} ,
+                #{PRD_MST_VDR_YN} ,
+                (SELECT VDR_MST_IDX FROM T_VDR_MST WHERE VDR_MST_NM = #{BRAND_ENAME}),
+                #{PRD_MST_TYPE} ,
+                #{PRD_MST_BUY_TP} ,
+                #{PRD_MST_NM} ,
+                #{PRD_MST_NM_SUB} ,
+                #{PRD_MST_LNG_DIV_YN} ,
+                NVL(#{PRD_MST_LNG_DIV_MNT1},0) ,
+                NVL(#{PRD_MST_LNG_DIV_MNT2},0) ,
+                #{PRD_MST_MD_ID} ,
+                #{PRD_MST_DLV_FEE} ,
+                #{PRD_MST_CPS_YN} ,
+                #{PRD_MST_CPS_MDL} ,
+                #{PRD_MST_CPN_YN} ,
+                #{PRD_MST_SEL_CNT} ,
+                #{PRD_MST_UNT} , /* PRD_MST_PC_CPN_UNT 동일값설정 */
+                #{PRD_MST_PC_CPN_PRC} ,  /* PRD_MST_PC_CPN_PRC 동일값설정 */
+                #{PRD_MST_UNT} , /* PRD_MST_PC_CPN_UNT 동일값설정 */
+                #{PRD_MST_MB_CPN_PRC} , /* PRD_MST_MB_CPN_PRC 동일값설정 */
+                #{PRD_MST_ADD_MIL} ,
+                #{PRD_MST_SRC_YN} ,
+                #{PRD_MST_O2O_YN} ,
+                #{PRD_MST_DLV_BND} ,
+                #{PRD_MST_IVB_YN} ,
+                #{PRD_MST_DLV_DSN_YN} ,
+                <if test="PRD_MST_DLV_DSN_YN != null and PRD_MST_DLV_DSN_YN.equals('Y'.toString())">
+                    #{PRD_MST_DLV_DT} ,    
+                </if>
+                #{PRD_MST_PRC} ,
+                #{PRD_MST_SCH_PRC} ,
+                #{PRD_MST_CPR_PRC1} ,
+                #{PRD_MST_CPR_PRC2} ,
+                <if test="PRD_MST_PKG_PRC != null and PRD_MST_PKG_PRC != ''">
+                    #{PRD_MST_PKG_PRC} ,
+                </if>
+                #{PRD_MST_CNL_PC_YN} ,
+                #{PRD_MST_CNL_MB_YN} ,
+                #{PRD_MST_SEL_STATE} ,
+                #{PRD_MST_DPL_STATE} ,
+                #{PRD_MST_APV_STATE} ,
+                #{PRD_MST_PC_DTL_DSC} ,
+                #{PRD_MST_MB_DTL_DSC} ,
+                <if test="PRD_MST_NFI_IDX != null and PRD_MST_NFI_IDX != ''">
+                    #{PRD_MST_NFI_IDX} ,
+                </if>
+                (SELECT BND_MST_IDX FROM T_BND_MST WHERE BND_MST_BRAND_NM = #{BRAND_ENAME}) ,
+                <if test="PRD_MST_MRK_IDX != null and PRD_MST_MRK_IDX != ''">
+                    #{PRD_MST_MRK_IDX} ,
+                </if>
+                #{PRD_MST_NFI_INF1} ,
+                #{PRD_MST_NFI_INF2} ,
+                #{PRD_MST_NFI_INF3} ,
+                #{PRD_MST_NFI_INF4} ,
+                #{PRD_MST_NFI_INF5} ,
+                #{PRD_MST_NFI_INF6} ,
+                #{PRD_MST_NFI_INF7} ,
+                #{PRD_MST_NFI_INF8} ,
+                #{PRD_MST_NFI_INF9} ,
+                #{PRD_MST_NFI_INF10} ,
+                #{PRD_MST_NFI_INF11} ,
+                #{PRD_MST_NFI_INF12} ,
+                #{PRD_MST_NFI_INF13} ,
+                #{PRD_MST_NFI_INF14} ,
+                #{PRD_MST_MTA_TAG1} ,
+                #{PRD_MST_MTA_TAG2} ,
+                #{PRD_MST_MTA_TAG3} ,
+                #{PRD_MST_MEMO} ,
+                0,
+                #{PRD_MST_ICN_YN1} ,
+                REPLACE(#{PRD_MST_ICN_ST_DT1},'-', '') ,
+                REPLACE(#{PRD_MST_ICN_ED_DT1},'-', '') ,
+                #{PRD_MST_ICN_YN2} ,
+                REPLACE(#{PRD_MST_ICN_ST_DT2},'-', '') ,
+                REPLACE(#{PRD_MST_ICN_ED_DT2},'-', '') ,
+                #{PRD_MST_ICN_YN3} ,
+                REPLACE(#{PRD_MST_ICN_ST_DT3},'-', '') ,
+                REPLACE(#{PRD_MST_ICN_ED_DT3},'-', '') ,
+                #{PRD_MST_ICN_YN4} ,
+                REPLACE(#{PRD_MST_ICN_ST_DT4},'-', '') ,
+                REPLACE(#{PRD_MST_ICN_ED_DT4},'-', '') ,
+                #{PRD_MST_ICN_YN5} ,
+                REPLACE(#{PRD_MST_ICN_ST_DT5},'-', '') ,
+                REPLACE(#{PRD_MST_ICN_ED_DT5},'-', '') ,
+                'N' ,
+                TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS') ,
+                #{PRD_MST_REG_IP} ,
+                #{PRD_MST_REG_ID} ,
+                NVL(#{PRD_MST_BUY_PRC},0)  ,
+                #{PRD_MST_CRD_YN} ,
+                #{PRD_MST_CPN_OWN},
+                <if test="PRD_MST_URL != null and PRD_MST_URL != ''">
+                    #{PRD_MST_URL} ,
+                </if>
+                #{PRD_MST_LIVE_ON_YN},
+                #{PRD_MST_NAVER_USE_YN},
+                #{PRD_MST_DAUM_USE_YN},
+                #{PRD_MST_EMP_USE_YN},
+                #{PRD_MST_PRT_USE_YN},
+                #{PRD_MST_PCK_USE_YN},
+                #{PRD_MST_SEX},
+                #{PRD_MST_YEAR},
+                (SELECT CMN_COM_IDX FROM T_CMM_COM TCC2 WHERE TCC2.CMN_COM_UP_IDX ='3005' AND TCC2.CMN_COM_NM = TRIM((SELECT TRANSLATE (CMN_COM_ETC1 , '0123456789', ' ') COL2 FROM T_CMM_COM TCC WHERE TCC.CMN_COM_NM =#{PRD_MST_SEASON} AND TCC.CMN_COM_UP_IDX ='3169'))),
+                #{PRD_MST_SALE_RATE},
+                #{PRD_MST_REF_IMG_URL},
+                #{PRD_MST_DTL_IMG1_URL},
+                #{PRD_MST_DTL_IMG2_URL},
+                #{PRD_MST_UNT},                
+                #{PRD_MST_BRD_MRG_YN},
+                #{PRD_MST_FEE},
+                REPLACE(#{PRD_MST_FEE_ST_DT},'-',''),
+                REPLACE(#{PRD_MST_FEE_ED_DT},'-',''),
+                #{PRD_MST_RLT_CD1}, 
+                #{PRD_MST_RLT_CD2},
+                #{PRD_MST_RLT_CD3},
+                #{PRD_MST_IMG_DPL},
+                #{PRD_MST_ERP_CD},
+                #{PRD_MST_ERP_TAG_NO}
+                ,0
+                ,0
+            )
+    </insert>
+    <!-- 색상,사이즈 옵션 등록 -->
+    <insert id="insertProductMustOptionColorByFile" parameterType="hashmap" >
+        /* BasicProduct.insertProductMustOptionColorByFile */
+        INSERT INTO T_PRD_CMM_OPT (
+            CMN_COM_IDX, 
+            PRD_MST_CD, 
+            OPT_STK_CNT, 
+            PRD_CMM_TYPE, 
+            UP_COM_OPT_IDX,
+            CMM_OPT_NM, 
+            CMM_OPT_USE_YN
+        )VALUES (
+            (SELECT CMN_COM_IDX FROM T_CMM_COM tcc WHERE tcc.CMN_COM_NM = #{CMN_COM_IDX} AND tcc.CMN_COM_UP_IDX = '950'), 
+            #{PRD_MST_CD},
+            #{OPT_STK_CNT},
+            #{PRD_CMM_TYPE},
+            -1,
+            #{CMM_OPT_NM}, 
+            #{CMM_OPT_USE_YN}
+        )
+    </insert>
+    <insert id="insertProductMustOptionSizeByFile" parameterType="hashmap" >
+        /* BasicProduct.insertProductMustOptionSizeByFile */
+        INSERT INTO T_PRD_CMM_OPT (
+            CMN_COM_IDX, 
+            PRD_MST_CD, 
+            OPT_STK_CNT, 
+            PRD_CMM_TYPE, 
+            UP_COM_OPT_IDX,
+            CMM_OPT_NM, 
+            CMM_OPT_USE_YN
+        )VALUES (
+            NULL, 
+            #{PRD_MST_CD},
+            #{OPT_STK_CNT},
+            #{PRD_CMM_TYPE},
+            (SELECT CMN_COM_IDX FROM T_CMM_COM tcc WHERE tcc.CMN_COM_NM = #{UP_COM_OPT_IDX} AND tcc.CMN_COM_UP_IDX = '950'),
+            (SELECT CMN_COM_IDX FROM T_CMM_COM tcc WHERE TRIM(tcc.CMN_COM_NM) = #{CMM_OPT_NM} AND tcc.CMN_COM_UP_IDX = 2996), 
+            #{CMM_OPT_USE_YN}
+        )
+    </insert>
+    
+    <!-- 상품 엑셀로 수정  -->
+    <update id="updateBasicProductEditList" parameterType="hashmap" >
+		UPDATE 
+            T_PRD_MST
+        SET
+            PRD_MST_NM = #{PRD_MST_NM}
+            , PRD_MST_PRC = #{PRD_MST_PRC}
+            , PRD_MST_DLV_FEE = #{PRD_MST_DLV_FEE}
+        WHERE
+            PRD_MST_CD = #{PRD_MST_CD}    
+    </update>
+</mapper>

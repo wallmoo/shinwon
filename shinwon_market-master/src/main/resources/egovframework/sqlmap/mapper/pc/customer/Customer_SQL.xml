@@ -1,0 +1,212 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="PcCustomer">
+    
+    <!-- 고객센터 메인 FAQ 리스트 --> 
+    <resultMap id="resultFaqBoardList" type="HashMap">
+        <result property="BRD_FAQ_IDX" column="BRD_FAQ_IDX"/>
+        <result property="BRD_CMN_COM_IDX" column="BRD_CMN_COM_IDX"/>
+        <result property="BRD_FAQ_TITLE" column="BRD_FAQ_TITLE"/>
+        <result property="BRD_FAQ_CONTENTS" column="BRD_FAQ_CONTENTS" jdbcType="CLOB" javaType="java.lang.String"/>
+        <result property="BRD_CMN_COM_NM" column="BRD_CMN_COM_NM"/>
+        <result property="BRD_FAQ_REG_DT" column="BRD_FAQ_REG_DT"/>
+        <result property="BRD_CMN_COM_UP_IDX" column="BRD_CMN_COM_UP_IDX"/>
+    </resultMap>
+    <select id="selectFaqBoardList" parameterType="HashMap" resultMap="resultFaqBoardList">
+        /* PcCustomer.selectFaqBoardList */
+        SELECT
+            S2.* ,
+            (   SELECT
+                    CMN_COM_NM 
+                FROM
+                    T_CMM_COM 
+                WHERE
+                    CMN_COM_IDX = S2.BRD_CMN_COM_IDX 
+            )AS BRD_CMN_COM_NM,
+            (   SELECT
+                    CMN_COM_UP_IDX                 
+                FROM
+                    T_CMM_COM 
+                WHERE
+                    CMN_COM_IDX = S2.BRD_CMN_COM_IDX 
+            ) AS BRD_CMN_COM_UP_IDX 
+        FROM
+            (   SELECT
+                    ROWNUM AS RNUM,
+                    S1.* 
+                FROM
+                    (   SELECT
+                            BRD_FAQ_IDX,
+                            BRD_CMN_COM_IDX,
+                            BRD_FAQ_TITLE,
+                            BRD_FAQ_CONTENTS,
+                            BRD_FAQ_REG_DT 
+                        FROM
+                            T_BRD_FAQ 
+                        WHERE
+                            BRD_FAQ_USE_YN = 'Y'
+                            AND BRD_FAQ_OFTEN_YN = 'Y'
+                        ORDER BY BRD_FAQ_REG_DT DESC 
+                    )
+                    S1 
+            )
+            S2 
+        WHERE
+            S2.RNUM BETWEEN 1 AND 5
+    </select>
+    
+    <!-- 고객 센터 메인 공지사항 리스트 -->
+    <select id="selectNoticeEventBoardList" parameterType="HashMap" resultType="hashmap">
+        /* PcCustomer.selectNoticeEventBoardList */
+       <![CDATA[
+        SELECT
+            S2.* 
+        FROM
+            (   SELECT
+                    ROWNUM AS RNUM,
+                    S1.* 
+                FROM
+                    (   SELECT
+                            BRD_NTS_IDX,
+                            BRD_NTS_TITLE,
+                            BRD_NTS_TOP_YN,
+                            BRD_NTS_READ_CNT,
+                            BRD_NTS_USE_YN,
+                            BRD_NTS_REG_DT,
+                            BRD_NTS_REG_IP,
+                            BRD_NTS_REG_ID,
+                            BRD_NTS_UPD_DT,
+                            BRD_NTS_UPD_IP,
+                            BRD_NTS_UPD_ID,
+                            (   SELECT
+                                    CMN_COM_NM 
+                                FROM
+                                    T_CMM_COM 
+                                WHERE
+                                    CMN_COM_IDX = BRD_CMN_COM_IDX 
+                            )AS BRD_CMN_COM_NM 
+                        FROM
+                            T_BRD_NTS 
+                        WHERE BRD_NTS_USE_YN ='Y'
+                        ORDER BY BRD_NTS_REG_DT DESC
+                    )
+                    S1 
+            )
+            S2
+        WHERE S2.RNUM BETWEEN NVL(#{startNum}, 1) AND NVL(#{endNum}, 5)
+         ]]>
+    </select>
+    
+    <!-- 고객 센터 메인 쇼핑가이드 리스트 -->
+    <select id="selectShoppingGuideBoardList" parameterType="HashMap" resultType="hashmap">
+        /* PcCustomer.selectShoppingGuideBoardList */
+       SELECT
+            S2.*
+        FROM
+        (
+            SELECT
+                ROWNUM RNUM,
+                S1.*
+            FROM
+            (
+                SELECT
+                    BRD_SHG_IDX,
+                    BRD_CMN_COM_IDX,
+                    BRD_SHG_TITLE,           
+                    BRD_SHG_USE_YN,
+                    CMN_COM_NM AS BRD_CMN_COM_NM
+                FROM
+                    T_BRD_SHG SHG, T_CMM_COM COM
+                WHERE
+                    SHG.BRD_CMN_COM_IDX = COM.CMN_COM_IDX
+                    AND BRD_CMN_COM_IDX != #{productTechInfoIdx}
+                    AND BRD_SHG_USE_YN = 'Y'    
+                    AND BRD_SHG_BRAND_CD = #{BRAND_CD}       
+                    ORDER BY CMN_COM_SORT 
+            ) S1
+        ) S2
+        WHERE S2.RNUM BETWEEN 1 AND 10
+    </select>
+    
+    <!-- 고객센터 메인 상품가이드 배너 리스트 -->
+    <select id="selectProductGuideBannerList" parameterType="HashMap" resultType="hashmap">
+        /* PcCustomer.selectProductGuideBannerList */
+        SELECT
+            BD.BNR_DTL_TARGET
+            ,BD.BNR_DTL_URL
+            ,CF.CMM_FLE_ATT_PATH
+            ,CF.CMM_FLE_SYS_NM
+            ,CF.CMN_FLE_ALT_TXT
+        FROM
+            T_BNR_MST BM, T_BNR_DTL BD, T_CMM_FLE CF
+        WHERE
+            BM.BNR_MST_IDX = BD.BNR_BNR_MST_IDX
+            AND BD.BNR_DTL_IDX = CF.CMM_FLE_TB_PK
+            AND CF.CMM_FLE_TB_NM =  'T_BNR_DTL'
+            AND CF.CMM_FLE_USE_YN = 'Y'
+            AND BM.BNR_MST_USE_YN = 'Y'
+            AND TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS') BETWEEN SUBSTR(BM.BNR_MST_ST_DT,1,8) || SUBSTR(BM.BNR_MST_ST_DT,9,2) || SUBSTR(BM.BNR_MST_ST_DT,11,2) AND SUBSTR(BM.BNR_MST_ED_DT,1,8) || SUBSTR(BM.BNR_MST_ED_DT,9,2) || SUBSTR(BM.BNR_MST_ED_DT,11,2)
+            AND CMN_COM_IDX IN (SELECT CMN_COM_IDX FROM T_CMM_COM WHERE CMN_COM_UP_IDX = #{CMN_COM_IDX})
+        ORDER BY BM.CMN_COM_IDX ASC
+    </select>
+    
+    <!-- 고객센터 메인  당첨자발표 목록 -->
+    <select id="selectEventWinList" parameterType="HashMap" resultType="HashMap">
+        /* PcCustomer.selectEventWinList */
+        SELECT S2.*          
+          FROM
+            (   SELECT
+                    ROWNUM AS RNUM,
+                    S1.* 
+                FROM
+                    (   SELECT win.EVT_WIN_IDX,
+                               win.EVT_WIN_NM,
+                               win.EVT_WIN_REG_DT,
+                               win.EVT_WIN_REG_ID,
+                               (SELECT ADM_MST_NM FROM T_ADM_MST WHERE ADM_MST_ID = win.EVT_WIN_REG_ID) EVT_WIN_REG_NM,
+                               win.EVT_WIN_USE_YN
+                        FROM T_EVT_MST mst 
+                           , T_EVT_WIN win
+                        WHERE mst.EVT_MST_IDX       = win.EVT_MST_IDX 
+                          AND win.EVT_WIN_USE_YN    = 'Y'
+                          AND mst.EVT_MST_PC_YN     = 'Y'
+                          AND mst.EVT_MST_USE_YN    = 'Y'
+                        ORDER BY win.EVT_WIN_REG_DT DESC 
+                    )
+                    S1 
+            )
+            S2
+        WHERE S2.RNUM BETWEEN NVL(#{startNum}, 1) AND NVL(#{endNum}, 5)
+    </select>
+     <!-- 고객센터 메인  당첨자발표 목록 -->
+    <select id="selectMobileEventWinList" parameterType="HashMap" resultType="HashMap">
+        /* PcCustomer.selectEventWinList */
+        SELECT S2.*          
+          FROM
+            (   SELECT
+                    ROWNUM AS RNUM,
+                    S1.* 
+                FROM
+                    (   SELECT win.EVT_WIN_IDX,
+                               win.EVT_WIN_NM,
+                               win.EVT_WIN_REG_DT,
+                               win.EVT_WIN_REG_ID,
+                               (SELECT ADM_MST_NM FROM T_ADM_MST WHERE ADM_MST_ID = win.EVT_WIN_REG_ID) EVT_WIN_REG_NM,
+                               win.EVT_WIN_USE_YN
+                        FROM T_EVT_MST mst 
+                           , T_EVT_WIN win
+                        WHERE mst.EVT_MST_IDX       = win.EVT_MST_IDX 
+                          AND win.EVT_WIN_USE_YN    = 'Y'
+                          AND mst.EVT_MST_MB_YN     = 'Y'
+                          AND mst.EVT_MST_USE_YN    = 'Y'
+                        ORDER BY win.EVT_WIN_REG_DT DESC 
+                    )
+                    S1 
+            )
+            S2
+        WHERE S2.RNUM BETWEEN NVL(#{startNum}, 1) AND NVL(#{endNum}, 5)
+    </select>
+     
+    
+</mapper>

@@ -1,0 +1,608 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="VendorManager">
+	
+	<!-- 입점업체 조건절 -->
+	<sql id="vendorManagerWhere">
+        <if test="VDR_MST_USE_YN != null and VDR_MST_USE_YN != '' ">
+            AND TVM.VDR_MST_USE_YN = #{VDR_MST_USE_YN}
+        </if>
+        
+        <if test="searchWord != null and searchWord != ''">
+            <choose>
+                <when test="searchType != null and searchType.equals('S_ALL'.toString())">
+                    AND ( TVM.VDR_MST_NM LIKE '%' || #{searchWord} || '%' OR TVM.VDR_MST_BUSI1 || TVM.VDR_MST_BUSI2 || TVM.VDR_MST_BUSI3 LIKE '%' || REPLACE(#{searchWord},'-', '') || '%' OR TVM.VDR_MST_MNG_NM LIKE '%' || #{searchWord} || '%' )
+                </when>
+                <when test="searchType != null and searchType.equals('S_NM'.toString())">
+                    AND TVM.VDR_MST_NM LIKE '%' || #{searchWord} || '%'
+                </when>
+                <when test="searchType != null and searchType.equals('S_NUMBER'.toString())">
+                    AND TVM.VDR_MST_BUSI1 || TVM.VDR_MST_BUSI2 || TVM.VDR_MST_BUSI3 LIKE '%' || REPLACE(#{searchWord},'-', '') || '%' 
+                </when>
+                <when test="searchType != null and searchType.equals('S_MNG_NM'.toString())">
+                    AND TVM.VDR_MST_MNG_NM LIKE '%' || #{searchWord} || '%'
+                </when>
+            </choose>
+        </if>
+        <if test="searchVdrMstUseYn != null and searchVdrMstUseYn != ''">
+            AND TVM.VDR_MST_USE_YN = #{searchVdrMstUseYn}
+        </if>
+        <if test="searchVdrMstNm != null and searchVdrMstNm != ''">
+            AND TVM.VDR_MST_NM LIKE '%' || #{searchVdrMstNm} || '%'
+        </if>
+        <if test="searchVdrMstBusi != null and searchVdrMstBusi != ''">
+            AND TVM.VDR_MST_BUSI1 || TVM.VDR_MST_BUSI2 || TVM.VDR_MST_BUSI3 LIKE '%' || #{searchVdrMstBusi} || '%'
+        </if>
+	</sql>
+	
+	<!-- 입점신청서를 작성한 입점업체 조건절 -->
+	<sql id="vendorReqWhere">
+        <if test="searchVdrReqNm != null and searchVdrReqNm != ''">
+            AND UPPER(VDR_REQ_NM) LIKE '%' || UPPER(#{searchVdrReqNm}) || '%'
+        </if>
+        <if test="searchVdrReqBusi != null and searchVdrReqBusi != ''">
+            AND VDR_REQ_BUSI1 || VDR_REQ_BUSI2 || VDR_REQ_BUSI3 LIKE '%' || #{searchVdrReqBusi} || '%'
+        </if>
+	</sql>
+    
+    <!-- 셀러검색 팝업 조건절 -->
+    <sql id="sellerWhere">
+        <if test="searchSellerNm != null and searchSellerNm != ''">
+            AND BND_MST_SEL_NM LIKE '%' || #{searchSellerNm} || '%'
+        </if>
+        <if test="searchVdrNm != null and searchVdrNm != ''">
+            AND UPPER(VDR_MST_NM) LIKE '%' || UPPER(#{searchVdrNm}) || '%'
+        </if>
+        <if test="searchSellerStDt != null and searchSellerStDt != '' and searchSellerEdDt != null and searchSellerEdDt !='' ">
+            <![CDATA[
+                AND TVM.VDR_MST_REG_DT <= REPLACE(#{searchSellerEdDt}, '-', '')
+                AND TVM.VDR_MST_REG_DT > = REPLACE(#{searchSellerStDt}, '-', '')
+            ]]>
+        </if>
+    </sql>
+	
+	<!-- 관리자 > 시스템관리 > 입점업체관리 목록 갯수 -->
+	<select id="selectVendorManagerListCount" parameterType="HashMap" resultType="Integer">
+		/*VendorManager.selectVendorManagerListCount*/
+		SELECT 
+			COUNT(1)
+		FROM
+			T_VDR_MST TVM
+		WHERE 
+			TVM.VDR_MST_IDX <![CDATA[ <> ]]> -1 /* MarketPlant는 보여주지 않는다. */
+			<include refid="vendorManagerWhere"/>
+	</select>
+	
+	<!-- 관리자 > 시스템관리 > 입점업체관리 목록 -->
+	<select id="selectVendorManagerList" parameterType="HashMap" resultType="HashMap">
+		/*VendorManager.selectVendorManagerList*/
+		SELECT
+			S2.*
+		FROM
+		(
+			SELECT
+				ROWNUM AS RNUM,
+				S1.*
+			FROM
+				(
+					SELECT 
+						TVM.VDR_MST_IDX,
+						TVM.VDR_MST_NM,
+						TVM.VDR_MST_BUSI1,
+						TVM.VDR_MST_BUSI2,
+						TVM.VDR_MST_BUSI3,
+						TVM.VDR_MST_CEO_NM,
+						TVM.VDR_MST_MNG_NM,
+						TVM.VDR_MST_USE_YN,
+						TVM.VDR_MST_REG_DT
+					FROM
+						T_VDR_MST TVM
+					WHERE
+						TVM.VDR_MST_IDX <![CDATA[ <> ]]> -1 /* MarketPlant는 보여주지 않는다. */
+						<include refid="vendorManagerWhere"/>
+					ORDER BY TVM.VDR_MST_REG_DT DESC
+				) S1
+		) S2
+        <if test="startNum != null and startNum != '' and endNum != null and endNum != ''">
+            WHERE 
+                S2.RNUM BETWEEN #{startNum} AND #{endNum}
+        </if>
+	</select>
+    
+	
+	<!-- 관리자 > 시스템관리 > 입점업체관리 등록 -->
+	<insert id="insertVendorManager" parameterType="HashMap">
+		<selectKey resultType="Integer" keyProperty="VDR_MST_IDX" order="BEFORE">
+            SELECT SEQ_VDR_MST_IDX.NEXTVAL AS VDR_MST_IDX FROM DUAL
+        </selectKey>
+		/* VendorManager.insertVendorManager */
+		INSERT INTO
+			T_VDR_MST
+			(
+				VDR_MST_IDX,
+				VDR_MST_NM,
+				VDR_MST_BUSI1,
+				VDR_MST_BUSI2,
+				VDR_MST_BUSI3,
+				VDR_MST_CEO_NM,
+				VDR_MST_BUSI_CDT,
+				VDR_MST_BUSI_TYPE,
+				VDR_MST_POST6,
+				VDR_MST_POST5,
+				VDR_MST_JB_ADDR1,
+				VDR_MST_JB_ADDR2,
+				VDR_MST_DR_ADDR1,
+				VDR_MST_DR_ADDR2,
+				VDR_MST_TEL1,
+				VDR_MST_TEL2,
+				VDR_MST_TEL3,
+				VDR_MST_FAX1,
+				VDR_MST_FAX2,
+				VDR_MST_FAX3,
+				VDR_MST_MAIL,
+				VDR_MST_MD_ID,
+				VDR_MST_USE_YN,
+				VDR_MST_BAL_ACT,
+				VDR_MST_BANK_CD,
+				VDR_MST_ACT_NO,
+				VDR_MST_ACT_HDR,
+				VDR_MST_CTR_ST_DT,
+				VDR_MST_CTR_ED_DT,
+				VDR_MST_CTR_DT,
+				VDR_MST_MNG_NM,
+				VDR_MST_MNG_HP1,
+				VDR_MST_MNG_HP2,
+				VDR_MST_MNG_HP3,
+				VDR_MST_MNG_TEL1,
+				VDR_MST_MNG_TEL2,
+				VDR_MST_MNG_TEL3,
+				VDR_MST_MNG_MAIL,
+				VDR_MST_MNG_TYPE,
+				VDR_MST_DLV_PRICE,
+                VDR_MST_FEE,
+                VDR_MST_CST_CD,
+				VDR_MST_REG_DT,
+				VDR_MST_REG_IP,
+				VDR_MST_REG_ID,
+                VDR_MST_SUB_BUSI,
+                VDR_MST_SUB_BUSI_USE_YN
+			)
+			VALUES
+			(
+				#{VDR_MST_IDX},
+				#{VDR_MST_NM},
+				#{VDR_MST_BUSI1},
+				#{VDR_MST_BUSI2},
+				#{VDR_MST_BUSI3},
+				#{VDR_MST_CEO_NM},
+				#{VDR_MST_BUSI_CDT},
+				#{VDR_MST_BUSI_TYPE},
+				#{VDR_MST_POST6},
+				#{VDR_MST_POST5},
+				#{VDR_MST_JB_ADDR1},
+				#{VDR_MST_JB_ADDR2},
+				#{VDR_MST_DR_ADDR1},
+				#{VDR_MST_DR_ADDR2},
+				#{VDR_MST_TEL1},
+				#{VDR_MST_TEL2},
+				#{VDR_MST_TEL3},
+				#{VDR_MST_FAX1},
+				#{VDR_MST_FAX2},
+				#{VDR_MST_FAX3},
+				#{VDR_MST_MAIL},
+				#{VDR_MST_MD_ID},
+				NVL(#{VDR_MST_USE_YN},'Y'),
+				#{VDR_MST_BAL_ACT},
+				#{VDR_MST_BANK_CD},
+				#{VDR_MST_ACT_NO},        
+				#{VDR_MST_ACT_HDR},   
+				#{VDR_MST_CTR_ST_DT},  
+				#{VDR_MST_CTR_ED_DT},
+				#{VDR_MST_CTR_DT},
+				#{VDR_MST_MNG_NM},
+				#{VDR_MST_MNG_HP1},
+				#{VDR_MST_MNG_HP2},
+				#{VDR_MST_MNG_HP3},
+				#{VDR_MST_MNG_TEL1},
+				#{VDR_MST_MNG_TEL2},
+				#{VDR_MST_MNG_TEL3},
+				#{VDR_MST_MNG_MAIL},
+				#{VDR_MST_MNG_TYPE},
+				#{VDR_MST_DLV_PRICE},
+				#{VDR_MST_FEE},
+				#{VDR_MST_CST_CD},
+				TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+				#{VDR_MST_REG_IP},
+				#{VDR_MST_REG_ID},
+                #{VDR_MST_SUB_BUSI},
+                #{VDR_MST_SUB_BUSI_USE_YN}
+			)
+	</insert>
+	
+	<!-- 관리자 > 시스템관리 > 입점업체 상세정보 -->
+	<select id="selectVendorManagerInfo" parameterType="HashMap" resultType="HashMap">
+		/*VendorManager.selectVendorManagerInfo*/
+		SELECT
+			VDR_MST_IDX,
+			VDR_MST_NM,
+			VDR_MST_CST_CD,
+			VDR_MST_BUSI1,
+			VDR_MST_BUSI2, 
+			VDR_MST_BUSI3,
+			VDR_MST_CEO_NM,
+			VDR_MST_BUSI_CDT,
+			VDR_MST_BUSI_TYPE,
+			VDR_MST_POST5,
+			VDR_MST_JB_ADDR1,
+			VDR_MST_JB_ADDR2,
+			VDR_MST_DR_ADDR1,
+			VDR_MST_DR_ADDR2,
+			VDR_MST_TEL1,
+			VDR_MST_TEL2,
+			VDR_MST_TEL3,
+			VDR_MST_FAX1,
+			VDR_MST_FAX2,
+			VDR_MST_FAX3,
+			VDR_MST_MAIL,
+			VDR_MST_MD_ID,
+			VDR_MST_USE_YN,
+			VDR_MST_BAL_ACT,
+			VDR_MST_BANK_CD,
+			VDR_MST_ACT_NO,
+			VDR_MST_ACT_HDR,
+			VDR_MST_CTR_ST_DT,
+			VDR_MST_CTR_ED_DT,
+			VDR_MST_CTR_DT,
+			VDR_MST_DLV_PRICE,
+			VDR_MST_MNG_NM,
+			VDR_MST_MNG_HP1,
+			VDR_MST_MNG_HP2,
+			VDR_MST_MNG_HP3,
+			VDR_MST_MNG_TEL1,
+			VDR_MST_MNG_TEL2,
+			VDR_MST_MNG_TEL3,
+			VDR_MST_MNG_MAIL,
+			VDR_MST_MNG_TYPE,
+			VDR_MST_FEE,
+            VDR_MST_SUB_BUSI,
+            VDR_MST_SUB_BUSI_USE_YN
+		FROM
+			T_VDR_MST
+		WHERE
+			VDR_MST_IDX = #{VDR_MST_IDX}	
+	</select>
+	
+	<!-- 관리자 > 시스템관리 > 입점업체 수정 -->
+	<update id="updateVendorManager" parameterType="HashMap">
+		/*VendorManager.updateVendorManager*/
+		UPDATE 	
+			T_VDR_MST
+		SET
+			VDR_MST_CEO_NM = #{VDR_MST_CEO_NM},
+			VDR_MST_BUSI_CDT = #{VDR_MST_BUSI_CDT},
+			VDR_MST_BUSI_TYPE = #{VDR_MST_BUSI_TYPE},
+			VDR_MST_POST5 = #{VDR_MST_POST5},
+			VDR_MST_JB_ADDR1 = #{VDR_MST_JB_ADDR1},
+			VDR_MST_JB_ADDR2 = #{VDR_MST_JB_ADDR2},
+			VDR_MST_DR_ADDR1 = #{VDR_MST_DR_ADDR1},
+			VDR_MST_DR_ADDR2 = #{VDR_MST_DR_ADDR2},
+			VDR_MST_TEL1 = #{VDR_MST_TEL1},
+			VDR_MST_TEL2 = #{VDR_MST_TEL2},
+			VDR_MST_TEL3 = #{VDR_MST_TEL3},
+			VDR_MST_FAX1 = #{VDR_MST_FAX1},
+			VDR_MST_FAX2 = #{VDR_MST_FAX2},
+			VDR_MST_FAX3 = #{VDR_MST_FAX3},
+			VDR_MST_MAIL = #{VDR_MST_MAIL},
+			VDR_MST_MD_ID = #{VDR_MST_MD_ID},
+			VDR_MST_USE_YN = NVL(#{VDR_MST_USE_YN},'Y'),
+			VDR_MST_BANK_CD = #{VDR_MST_BANK_CD},
+			VDR_MST_ACT_NO = #{VDR_MST_ACT_NO},
+			VDR_MST_ACT_HDR = #{VDR_MST_ACT_HDR},
+			VDR_MST_CTR_ST_DT = #{VDR_MST_CTR_ST_DT},
+			VDR_MST_CTR_ED_DT = #{VDR_MST_CTR_ED_DT},
+			VDR_MST_CTR_DT = #{VDR_MST_CTR_DT},
+			VDR_MST_DLV_PRICE = #{VDR_MST_DLV_PRICE},
+			VDR_MST_MNG_NM = #{VDR_MST_MNG_NM},
+			VDR_MST_MNG_HP1 = #{VDR_MST_MNG_HP1},
+			VDR_MST_MNG_HP2 = #{VDR_MST_MNG_HP2},
+			VDR_MST_MNG_HP3 = #{VDR_MST_MNG_HP3},
+			VDR_MST_MNG_TEL1 = #{VDR_MST_MNG_TEL1},
+			VDR_MST_MNG_TEL2 = #{VDR_MST_MNG_TEL2},
+			VDR_MST_MNG_TEL3 = #{VDR_MST_MNG_TEL3},
+			VDR_MST_MNG_MAIL = #{VDR_MST_MNG_MAIL},
+			VDR_MST_MNG_TYPE = #{VDR_MST_MNG_TYPE},
+			VDR_MST_UPD_IP = #{VDR_MST_UPD_IP},
+			VDR_MST_UPD_ID = #{VDR_MST_UPD_ID},
+			VDR_MST_UPD_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+            VDR_MST_SUB_BUSI = #{VDR_MST_SUB_BUSI},
+            VDR_MST_SUB_BUSI_USE_YN = #{VDR_MST_SUB_BUSI_USE_YN}
+            
+		WHERE
+			VDR_MST_IDX = #{VDR_MST_IDX}
+	</update>
+	
+	<!-- 관리자 > 시스템관리 > 입점업체 관리 > 입점업체 중복체크 -->
+	<select id="selectVendorManagerNmCheckCount" parameterType="HashMap" resultType="Integer">
+		/* VendorManager.selectVendorManagerNmCheckCount */
+		SELECT
+			COUNT(0)
+		FROM
+			T_VDR_MST
+		WHERE
+			VDR_MST_NM = #{VDR_MST_NM} AND
+            VDR_MST_BUSI1 = #{VDR_MST_BUSI1} AND
+            VDR_MST_BUSI2 = #{VDR_MST_BUSI2} AND
+            VDR_MST_BUSI3 = #{VDR_MST_BUSI3} 
+	</select>
+	
+	<!-- 관리자 > 시스템관리 > 입점업체관리 > 수정 > 수수료 변경 > 등록 -->
+<!-- 	<update id="updateChangeFee" parameterType="HashMap"> -->
+<!-- 		/* VendorManager.updateChangeFee */ -->
+<!-- 		UPDATE -->
+<!-- 			T_VDR_MST -->
+<!-- 		SET -->
+<!-- 			VDR_MST_FEE = #VDR_MST_FEE# -->
+<!-- 		WHERE -->
+<!-- 			VDR_MST_IDX = #PRD_MST_VDR_IDX# -->
+<!-- 	</update> -->  
+	
+	<!-- 수수료 변경으로 인한 해당 입점업체 상품 매입원가 변경 -->
+<!-- 	<update id="updateVendorProductBuyPrice" parameterType="HashMap"> -->
+<!-- 		/* VendorManager.updateVendorProductBuyPrice */ -->
+<!-- 		UPDATE -->
+<!-- 			T_PRD_MST -->
+<!-- 		SET -->
+<!-- 			PRD_MST_BUY_PRC = PRD_MST_PRC- (PRD_MST_PRC*(#VDR_MST_FEE#))/100 -->
+<!-- 		WHERE -->
+<!-- 			PRD_MST_VDR_IDX = #PRD_MST_VDR_IDX# -->
+<!-- 	</update> -->
+
+	<!-- 입점신청을 작성한 입점업체 목록 갯수 -->
+	<select id="selectVendorReqListCount" parameterType="HashMap" resultType="Integer">
+		/* VendorManager.selectVendorReqListCount */
+        SELECT
+        	COUNT(0)
+        FROM
+        	T_VDR_REQ TVR
+        WHERE
+        	TVR.VDR_REQ_GBN = 'Y'
+            AND CONCAT(CONCAT(TVR.VDR_REQ_BUSI1 , TVR.VDR_REQ_BUSI2),TVR.VDR_REQ_BUSI3) 
+	        	NOT IN (
+	                SELECT 
+	                 CONCAT(CONCAT(TVM.VDR_MST_BUSI1, TVM.VDR_MST_BUSI2), TVM.VDR_MST_BUSI3)
+	                FROM 
+	                   T_VDR_MST TVM
+	                WHERE 
+	                   TVM.VDR_MST_USE_YN = 'Y'
+	      		)
+			<include refid="vendorReqWhere"/>
+	</select>
+	
+	<!-- 입점신청을 작성한 입점업체 목록 -->
+	<select id="selectVendorReqList" parameterType="HashMap" resultType="HashMap">
+		/* VendorManager.selectVendorReqList */
+		SELECT
+        	S2.*
+        FROM
+        (
+        	SELECT
+        		ROWNUM AS RNUM,
+        		S1.*
+        	FROM 
+        	(
+        		SELECT 	
+        			TVR.VDR_REQ_IDX
+        			, TVR.VDR_REQ_BUSI1
+        			, TVR.VDR_REQ_BUSI2
+        			, TVR.VDR_REQ_BUSI3
+        			, TVR.VDR_REQ_SUB_BUSI
+        			, TVR.VDR_REQ_NM
+        			, TVR.VDR_REQ_CEO_NM
+        			, TVR.VDR_REQ_ERP_ID
+        			, TVR.VDR_REQ_CST_CD
+        			, TVR.VDR_REQ_BUSI_CDT 
+        			, TVR.VDR_REQ_BUSI_TYPE
+        			, TVR.VDR_REQ_POST5
+        			, TVR.VDR_REQ_DR_ADDR1
+        			, TVR.VDR_REQ_DR_ADDR2
+        			, TVR.VDR_REQ_JB_ADDR1
+        			, TVR.VDR_REQ_JB_ADDR2
+        			, TVR.VDR_REQ_TEL1
+        			, TVR.VDR_REQ_TEL2
+        			, TVR.VDR_REQ_TEL3
+        			, TVR.VDR_REQ_FAX1
+        			, TVR.VDR_REQ_FAX2
+        			, TVR.VDR_REQ_FAX3
+        			, TVR.VDR_REQ_BANK_CD
+        			, TVR.VDR_REQ_ACT_NO
+        			, TVR.VDR_REQ_ACT_HDR
+        			, TVR.VDR_REQ_HP1 /* 담당자 휴대폰1 */
+        			, TVR.VDR_REQ_HP2 /* 담당자 휴대폰2 */
+        			, TVR.VDR_REQ_HP3 /* 담당자 휴대폰3 */
+        			, TVR.VDR_REQ_REF_TEL1 /*담당자 연락처1*/
+        			, TVR.VDR_REQ_REF_TEL2 /*담당자 연락처2*/
+        			, TVR.VDR_REQ_REF_TEL3 /*담당자 연락처3*/
+        			, TVR.VDR_REQ_MNG_NM /* 담당자명 */
+        			, TVR.VDR_REQ_MAIL /* 이메일 */
+              FROM 
+                 T_VDR_REQ TVR
+              WHERE
+				TVR.VDR_REQ_GBN = 'Y'
+                AND CONCAT(CONCAT(TVR.VDR_REQ_BUSI1 , TVR.VDR_REQ_BUSI2),TVR.VDR_REQ_BUSI3) 
+            	NOT IN (
+                    SELECT 
+                     CONCAT(CONCAT(TVM.VDR_MST_BUSI1, TVM.VDR_MST_BUSI2), TVM.VDR_MST_BUSI3)
+                    FROM 
+                       T_VDR_MST TVM
+                    WHERE 
+                       TVM.VDR_MST_USE_YN = 'Y'
+          		)
+				<include refid="vendorReqWhere"/>
+        		ORDER BY TVR.VDR_REQ_REG_DT DESC
+        	) S1
+        ) S2
+        <if test="startNum != null and startNum != '' and endNum != null and endNum != ''">
+            WHERE 
+                S2.RNUM BETWEEN #{startNum} AND #{endNum}
+        </if>
+	</select>
+	
+	<!-- 입점업체정보관리에서 상태여부에 따른 관리자관리에 해당 입점업체에 대한 아이디 사용여부 수정 -->
+	<update id="updateBasicManagerState" parameterType="HashMap">
+		/* VendorManager.updateBasicManagerState */
+		UPDATE 
+			T_ADM_MST
+		SET
+			ADM_MST_STATE = NVL(#{VDR_MST_USE_YN},'Y'),
+			ADM_MST_UPD_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+            ADM_MST_UPD_IP = #{VDR_MST_UPD_IP},
+            ADM_MST_UPD_ID = #{VDR_MST_UPD_ID}
+        WHERE 
+        	ADM_MST_SUB_IDX = #{VDR_MST_IDX}
+	</update>
+    
+    <select id="selectSellerListCount" parameterType="HashMap" resultType="Integer">
+        /* VendorManager.selectSellerListCount */
+        SELECT
+            COUNT(TVM.VDR_MST_IDX)
+        FROM
+            T_VDR_MST TVM,
+            T_BND_MST TBM
+        WHERE
+            TVM.VDR_MST_IDX <![CDATA[ <> ]]> -1 /* MarketPlant는 보여주지 않는다. */
+            AND TVM.VDR_MST_USE_YN = 'Y'
+            AND TBM.VDR_MST_IDX = TVM.VDR_MST_IDX
+            <include refid="sellerWhere"/>
+    </select>
+    
+    <select id="selectSellerList" parameterType="HashMap" resultType="HashMap">
+        /* VendorManager.selectSellerList */
+        SELECT
+            TVM.VDR_MST_IDX,
+            TBM.BND_MST_SEL_NM,
+            TVM.VDR_MST_NM,
+            TVM.VDR_MST_REG_DT,
+            (SELECT COUNT(TPM.PRD_MST_CD) FROM T_PRD_MST TPM WHERE TPM.PRD_MST_VDR_IDX = TVM.VDR_MST_IDX AND TPM.PRD_MST_APV_STATE = 'A' AND TPM.PRD_MST_DEL_YN !='Y') AS PRD_TOTAL,
+            (SELECT COUNT(TCM.CNT_MST_REG_ID) FROM T_CNT_MST TCM WHERE TCM.CNT_MST_TYPE = 'TYPE_SELLER_PICK' AND TCM.VDR_MST_IDX = TVM.VDR_MST_IDX ) AS SELLERPICK_TOTAL,
+            (SELECT COUNT(TLH.CNT_MST_ID) FROM T_PRD_MST TPM JOIN T_LIK_HIS TLH ON TPM.PRD_MST_CD = TLH.CNT_MST_ID WHERE TLH.CNT_MST_TYPE = 'TYPE_PRODUCT' AND TPM.PRD_MST_VDR_IDX = TVM.VDR_MST_IDX) AS PRODUCT_LIKE_COUNT,
+            (SELECT COUNT(TLH.CNT_MST_ID) FROM T_CNT_MST TCM JOIN T_LIK_HIS TLH ON TCM.CNT_MST_IDX = TLH.CNT_MST_ID WHERE TLH.CNT_MST_TYPE = 'TYPE_SELLER_PICK' AND TCM.VDR_MST_IDX = TVM.VDR_MST_IDX) AS SELLERPICK_LIKE_COUNT
+        FROM
+            T_VDR_MST TVM,
+            T_BND_MST TBM
+        WHERE
+            TVM.VDR_MST_IDX <![CDATA[ <> ]]> -1 /* MarketPlant는 보여주지 않는다. */
+            AND TVM.VDR_MST_USE_YN = 'Y'
+            AND TBM.VDR_MST_IDX = TVM.VDR_MST_IDX
+            <include refid="sellerWhere"/>
+        ORDER BY
+            TVM.VDR_MST_REG_DT DESC
+    </select>
+
+    <!-- 입점업체별 총 재고 수량 -->
+    <select id="selectProductStockCntByVendor" parameterType="HashMap" resultType="HashMap">
+        /* VendorManager.selectProductStockCntByVendor */
+		SELECT
+			S1.VDR_MST_IDX
+			,SUM(S1.PRD_STOCK) AS PRD_STOCK_TOTAL 
+		FROM
+		(
+			SELECT 
+				TVM.VDR_MST_IDX
+				, (SELECT SUM(TPCO.OPT_STK_CNT) FROM T_PRD_CMM_OPT TPCO WHERE TPCO.PRD_MST_CD = TPM.PRD_MST_CD) AS PRD_STOCK
+			FROM T_PRD_MST TPM, T_VDR_MST TVM
+			WHERE TVM.VDR_MST_IDX = TPM.PRD_MST_VDR_IDX
+			AND TPM.PRD_MST_SEL_STATE = 'I'
+			AND TPM.PRD_MST_APV_STATE = 'A'
+			ORDER BY TVM.VDR_MST_IDX 
+		) S1
+		GROUP BY S1.VDR_MST_IDX
+		ORDER BY S1.VDR_MST_IDX
+    </select>
+
+    <!-- 입점업체별 한달전~금일 총 상품 판매 수량 -->
+    <select id="selectOrderSellCntByVendor" parameterType="HashMap" resultType="HashMap">
+        /* VendorManager.selectOrderSellCntByVendor */
+		SELECT
+			TPM.PRD_MST_VDR_IDX
+			, SUM(TOP.ORD_PRD_ORD_CNT) AS VDR_ORD_CNT 
+		FROM T_ORD_MST TOM, T_ORD_PRD TOP, T_PRD_MST TPM
+		WHERE 
+			TOP.ORD_ORD_MST_CD = TOM.ORD_MST_CD
+			AND TOP.ORD_PRD_ORD_STATE IN (#{OST_SEND_END}, ${OST_FIX})
+			AND SUBSTR(TOM.ORD_MST_ORD_DT,1,8) <![CDATA[ >= ]]> TO_CHAR(ADD_MONTHS(SYSDATE, -1), 'YYYYMMDD')
+			AND SUBSTR(TOM.ORD_MST_ORD_DT,1,8) <![CDATA[ <= ]]> TO_CHAR(SYSDATE , 'YYYYMMDD')
+			AND TPM.PRD_MST_CD = TOP.ORD_PRD_MST_CD
+		GROUP BY TPM.PRD_MST_VDR_IDX
+		ORDER BY TPM.PRD_MST_VDR_IDX
+    </select>
+    
+    <select id="selectRegistVendorListCount" parameterType="HashMap" resultType="Integer">
+        /* VendorManager.selectRegistVendorListCount */
+        SELECT
+        	COUNT(1)
+        FROM
+        	T_VDR_MST TVM
+        WHERE
+        	TVM.VDR_MST_IDX <![CDATA[ <> ]]> -1 /* MarketPlant는 보여주지 않는다. */
+        	AND TVM.VDR_MST_IDX NOT IN 
+        	(SELECT 
+        		TVM.VDR_MST_IDX
+        	FROM 
+        		T_BND_MST TBM 
+        		,T_VDR_MST TVM
+        	WHERE TBM.VDR_MST_IDX = TVM.VDR_MST_IDX )
+        	<include refid="vendorManagerWhere"/>
+    </select>
+    
+    <select id="selectRegistVendorList" parameterType="HashMap" resultType="HashMap">
+        /* VendorManager.selectRegistVendorList */
+        SELECT
+        	S2.*
+        FROM
+        	(SELECT
+        	    ROWNUM AS RNUM,
+        	    S1.*
+        	FROM
+        		(SELECT
+        			TVM.VDR_MST_IDX,
+        		    TVM.VDR_MST_NM,
+        		    TVM.VDR_MST_BUSI1,
+        		    TVM.VDR_MST_BUSI2,
+        		    TVM.VDR_MST_BUSI3,
+        		    TVM.VDR_MST_CEO_NM,
+        		    TVM.VDR_MST_MNG_NM,
+        		    TVM.VDR_MST_USE_YN,
+        		    TVM.VDR_MST_REG_DT
+        		FROM
+        			T_VDR_MST TVM
+        		WHERE 
+        			TVM.VDR_MST_IDX <![CDATA[ <> ]]> -1 /* MarketPlant는 보여주지 않는다. */
+        			AND TVM.VDR_MST_IDX NOT IN 
+        			(SELECT 
+        				TVM.VDR_MST_IDX
+        			FROM 
+        				T_BND_MST TBM 
+        				,T_VDR_MST TVM
+        			WHERE TBM.VDR_MST_IDX = TVM.VDR_MST_IDX )
+        			<include refid="vendorManagerWhere"/>
+        		ORDER BY TVM.VDR_MST_REG_DT DESC
+        		) S1
+        	) S2
+        	<if test="startNum != null and startNum != '' and endNum != null and endNum != ''">
+        		WHERE 
+        			S2.RNUM BETWEEN #{startNum} AND #{endNum}
+        	</if>
+    </select>
+    
+    
+	<delete id="deleteVendorManager" parameterType="HashMap">
+		/*VendorManager.deleteVendorManager*/
+		DELETE FROM T_VDR_MST
+		 WHERE VDR_MST_IDX IN 
+    	 <foreach collection="VDR_LIST" item="item" index="index" separator="," open="(" close=")">
+		    #{item}
+		 </foreach>		 
+	</delete>    
+    
+</mapper>

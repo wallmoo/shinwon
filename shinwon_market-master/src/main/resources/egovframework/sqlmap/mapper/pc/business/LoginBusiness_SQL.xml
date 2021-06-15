@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="PcLoginBusiness">
+
+	<!-- 비밀번호 암호화  -->
+    <select id="pwdEncoding" parameterType="com.market.mall.model.Business" resultType="String">
+    	/* PcLoginBusiness.pwdEncoding */
+    	SELECT #{VDR_LGN_PW} FROM DUAL
+    </select>   	
+    
+    <!-- 사용자 정보 조회 -->
+    <select id="selectLoginBusinessInfo" parameterType="com.market.mall.model.Business" resultType="java.util.HashMap">
+        /* PcLoginBusiness.selectLoginBusinessInfo */
+        <![CDATA[
+        	SELECT
+        		VDR_LGN_IDX
+        		,VDR_LGN_CEO_NM
+        		,VDR_LGN_NM
+        	FROM
+        		T_VDR_LGN
+        	WHERE 1=1
+        		AND VDR_LGN_BUSI1 = #{VDR_LGN_BUSI1}
+        		AND VDR_LGN_BUSI2 = #{VDR_LGN_BUSI2}
+        		AND VDR_LGN_BUSI3 = #{VDR_LGN_BUSI3}
+        		AND VDR_LGN_PW = #{VDR_LGN_PW}
+        ]]>
+    </select>    
+    
+    <!-- 사용자 정보수정  -->
+    <select id="selectBusinessInfo" parameterType="HashMap" resultType="HashMap">
+        /* PcLoginBusiness.selectBusinessInfo */    
+        <![CDATA[        
+    	SELECT 
+			VDR_LGN_IDX 		/* 계정정보 IDX  */
+			,VDR_LGN_BUSI1 		/* 사업자번호1 */
+			,VDR_LGN_BUSI2 		/* 사업자번호2 */	
+			,VDR_LGN_BUSI3 		/* 사업자번호3 */
+			,VDR_LGN_PW 		/* 회원 비밀번호 */
+			,VDR_LGN_CEO_NM 	/* 대표자명 */
+			,VDR_LGN_MAIL AS VDR_LGN_MAIL  /* 대표자 이메일 */
+			,VDR_LGN_NM 		/* 입점업체명 */
+			,VDR_LGN_POST5 		/* 우편번호 5자리 */
+			,VDR_LGN_JB_ADDR1 	/* 지번 기본주소 */
+			,VDR_LGN_JB_ADDR2 	/* 지번 상세주소 */
+			,VDR_LGN_DR_ADDR1 	/* 도로명 기본주소 */
+			,VDR_LGN_DR_ADDR2 	/* 도로명 상세주소 */
+			,VDR_LGN_TYPE 		/* 사업자구분 */
+			,VDR_LGN_JRD_NO1	/* 법인번호1 */ 
+			,VDR_LGN_JRD_NO2 	/* 법인번호2 */
+			,TO_CHAR(TO_DATE(VDR_LGN_REG_DT,'YYYYMMDDHH24MISS'),'YYYY.MM.DD HH:mi:SS') AS VDR_LGN_REG_DT    /* 최초등록일 */			
+			,VDR_LGN_REG_IP 	/* 최초등록IP */
+			,VDR_LGN_REG_ID     /* 최초등록자 아이디 */
+			,TO_CHAR(TO_DATE(VDR_LGN_UPD_DT,'YYYYMMDDHH24MISS'),'YYYY.MM.DD HH:mi:SS') AS VDR_LGN_UPD_DT    /* 최종등록일 */			
+			,VDR_LGN_UPD_IP	    /* 최종등록IP */
+			,VDR_LGN_UPD_ID	    /* 최종등록IP */
+		FROM 			
+        		T_VDR_LGN
+       	WHERE 1=1
+       		AND VDR_LGN_BUSI1 = #{VDR_LGN_BUSI1}
+       		AND VDR_LGN_BUSI2 = #{VDR_LGN_BUSI2}
+       		AND VDR_LGN_BUSI3 = #{VDR_LGN_BUSI3}    
+        ]]>
+    </select>
+    
+    <!-- 프로트 > 입점신청 > 회원정보수정  -->
+	<update id="updateBusinessInfo" parameterType="HashMap">
+		/* PcLoginBusiness.updateBusinessInfo */
+		UPDATE
+			T_VDR_LGN
+		SET
+			VDR_LGN_PW = #{VDR_LGN_PW}
+			,VDR_LGN_MAIL = #{VDR_LGN_MAIL}
+			,VDR_LGN_CEO_NM = #{VDR_LGN_CEO_NM}
+			,VDR_LGN_NM = #{VDR_LGN_NM}
+			,VDR_LGN_POST5 = #{VDR_LGN_POST5}
+			,VDR_LGN_JB_ADDR1 = #{VDR_LGN_JB_ADDR1}
+			,VDR_LGN_JB_ADDR2 = #{VDR_LGN_JB_ADDR2}
+			,VDR_LGN_DR_ADDR1 = #{VDR_LGN_DR_ADDR1}
+			,VDR_LGN_DR_ADDR2 = #{VDR_LGN_DR_ADDR2}
+			,VDR_LGN_TYPE = #{VDR_LGN_TYPE}
+			,VDR_LGN_JRD_NO1 = #{VDR_LGN_JRD_NO1}
+			,VDR_LGN_JRD_NO2 = #{VDR_LGN_JRD_NO2}
+			,VDR_LGN_UPD_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS')
+			,VDR_LGN_UPD_ID = #{VDR_LGN_UPD_ID}
+			,VDR_LGN_UPD_IP = #{VDR_LGN_UPD_IP}
+		WHERE 1=1
+       		AND VDR_LGN_BUSI1 = #{VDR_LGN_BUSI1}
+       		AND VDR_LGN_BUSI2 = #{VDR_LGN_BUSI2}
+       		AND VDR_LGN_BUSI3 = #{VDR_LGN_BUSI3}
+	</update>    
+	
+	<!-- 프로트 > 입점신청 > 회원탈퇴  -->
+	<delete id="deleteBusinessInfo" parameterType="HashMap">
+		/* PcLoginBusiness.deleteBusinessInfo */
+		DELETE
+			T_VDR_LGN
+		WHERE 1=1
+       		AND VDR_LGN_BUSI1 = #{VDR_LGN_BUSI1}
+       		AND VDR_LGN_BUSI2 = #{VDR_LGN_BUSI2}
+       		AND VDR_LGN_BUSI3 = #{VDR_LGN_BUSI3}
+	</delete>    
+	
+    <!-- 비밀번호 찾기 > 통합회원 회원정보 조회 -->
+    <select id="selectCheckBusinessInfoCount" parameterType="HashMap" resultType="Integer">
+    	/* PcLoginBusiness.selectCheckBusinessInfoCount */
+    	SELECT
+    		COUNT(0)
+    	FROM
+    		T_VDR_LGN
+    	WHERE 1=1
+    		AND VDR_LGN_BUSI1 = #{VDR_LGN_BUSI1}
+    		AND VDR_LGN_BUSI2 = #{VDR_LGN_BUSI2}
+    		AND VDR_LGN_BUSI3 = #{VDR_LGN_BUSI3}
+    		AND VDR_LGN_CEO_NM = trim(#{VDR_LGN_CEO_NM})
+    		AND VDR_LGN_MAIL = #{VDR_LGN_MAIL}
+    </select> 	
+    
+    <!-- 임시 비밀번호로 변경 -->
+    <update id="updateBusinessTempPw" parameterType="HashMap">
+    	/* PcLoginBusiness.updateBusinessTempPw */
+    	UPDATE
+    		T_VDR_LGN
+    	SET 
+    		VDR_LGN_PW = #{VDR_LGN_TEMP_PW}
+    		,VDR_LGN_UPD_IP = #{VDR_LGN_UPD_IP}
+		    ,VDR_LGN_UPD_ID = #{VDR_LGN_UPD_ID}
+		    ,VDR_LGN_UPD_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS')
+		WHERE 1=1
+    		AND VDR_LGN_BUSI1 = #{VDR_LGN_BUSI1}
+    		AND VDR_LGN_BUSI2 = #{VDR_LGN_BUSI2}
+    		AND VDR_LGN_BUSI3 = #{VDR_LGN_BUSI3}
+    		AND VDR_LGN_CEO_NM = #{VDR_LGN_CEO_NM}
+    		AND VDR_LGN_MAIL = #{VDR_LGN_MAIL}
+    </update>    
+</mapper>

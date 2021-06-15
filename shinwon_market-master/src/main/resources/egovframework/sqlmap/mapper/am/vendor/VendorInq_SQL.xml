@@ -1,0 +1,253 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="VendorInq">
+
+    <!-- 관리자 > 고객센터 > 1:1 문의 조건절 -->
+    <sql id="vendorInqWhere">
+        <if test="searchScmInqRegId !=null and searchScmInqRegId !=''">
+             AND SCM_INQ_REG_ID LIKE '%' || #{searchScmInqRegId} || '%'
+        </if>        
+        <if test="searchScmInqRegNm !=null and searchScmInqRegNm !=''">
+            AND SCM_INQ_REG_NM LIKE '%' || #{searchScmInqRegNm} || '%'
+        </if>
+        <if test="searchKeyword !=null and searchKeyword !=''">
+             AND ((SCM_INQ_TITLE LIKE '%' || #{searchKeyword} || '%') OR (SCM_INQ_CONTENTS LIKE '%' || #{searchKeyword} || '%') OR (SCM_INQ_REPLY_CONTENTS LIKE '%' || #{searchKeyword} || '%'))
+        </if>
+        
+        <if test="searchScmCmnComIdx !=null and searchScmCmnComIdx !=''">
+            AND SCM_CMN_COM_IDX = #{searchScmCmnComIdx}
+        </if>
+        <if test="searchStartDate != null and searchStartDate != '' and searchEndDate != null and searchEndDate != ''">
+            AND SCM_INQ_REG_DT BETWEEN REPLACE(#{searchStartDate},'-', '')||'000000' AND REPLACE(#{searchEndDate},'-', '')||'235959'
+        </if>
+        <if test="searchScmInqReplyCd != null and searchScmInqReplyCd !=''">
+            AND SCM_INQ_REPLY_CD = #{searchScmInqReplyCd}
+        </if>
+        <if test="CUST_ID != null and CUST_ID !=''">
+            AND SCM_INQ_REG_ID = #{CUST_ID}
+        </if>
+        <if test="searchVdrMstNm !=null and searchVdrMstNm !=''">
+            AND V.VDR_MST_NM  LIKE '%'||#{searchVdrMstNm}||'%'
+        </if>
+        <if test="searchVdrMstIdx !=null and searchVdrMstIdx !=''"> 
+            AND V.VDR_MST_IDX = #{searchVdrMstIdx}
+        </if>
+         
+    </sql>
+    
+    <!-- 관리자 > 고객센터 > 1:1문의 목록 갯수 -->
+    <select id="selectVendorInqListCount" parameterType="HashMap" resultType="Integer">
+        /* VendorInq.selectVendorInqListCount */
+        SELECT
+            COUNT(SCM_INQ_IDX)
+        FROM
+            T_SCM_INQ   BI, T_VDR_MST V
+		WHERE 1=1
+			<if test="VDR_MST_IDX != null and VDR_MST_IDX !=''">
+           		AND BI.SCM_VDR_MST_IDX = #{VDR_MST_IDX}
+           	</if>
+			AND BI.SCM_VDR_MST_IDX = V.VDR_MST_IDX(+)
+        <include refid="vendorInqWhere"/>
+    </select>
+    
+    <!-- 관리자 > 게시판관리 > 입점업체문의 목록 -->
+    <resultMap id="resultVendorInqList" type="HashMap">
+        <result column="RNUM" property="RNUM" />
+        <result column="SCM_INQ_IDX" property="SCM_INQ_IDX" />
+        <result column="SCM_CMN_COM_IDX" property="SCM_CMN_COM_IDX" />
+        <result column="SCM_INQ_TITLE" property="SCM_INQ_TITLE" />
+        <result column="SCM_INQ_CONTENTS" property="SCM_INQ_CONTENTS" jdbcType="CLOB" javaType="java.lang.String"/>
+        <result column="SCM_INQ_REPLY_CD" property="SCM_INQ_REPLY_CD" />
+        <result column="SCM_INQ_REPLY_CONTENTS" property="SCM_INQ_REPLY_CONTENTS" jdbcType="CLOB" javaType="java.lang.String"/>
+        <result column="SCM_INQ_REG_ID" property="SCM_INQ_REG_ID" />
+        <result column="SCM_INQ_REG_NM" property="SCM_INQ_REG_NM" />
+        <result column="SCM_INQ_REG_IP" property="SCM_INQ_REG_IP" />
+        <result column="SCM_INQ_REG_DT" property="SCM_INQ_REG_DT" />
+        <result column="SCM_INQ_REPLY_ID" property="SCM_INQ_REPLY_ID" />
+        <result column="SCM_INQ_REPLY_NM" property="SCM_INQ_REPLY_NM" />
+        <result column="SCM_INQ_REPLY_DT" property="SCM_INQ_REPLY_DT" />
+        <result column="SCM_INQ_REPLY_IP" property="SCM_INQ_REPLY_IP" />
+        <result column="CMN_COM_NM" property="CMN_COM_NM" />
+        <result column="SCM_VDR_MST_IDX" property="SCM_VDR_MST_IDX"/>
+        <result column="VDR_MST_NM" property="VDR_MST_NM"/>
+    </resultMap>
+    <select id="selectVendorInqList" parameterType="HashMap" resultMap="resultVendorInqList">
+        /* VendorInq.selectVendorInqList */
+        SELECT
+            S2.*,
+            (   SELECT
+                    CMN_COM_NM 
+                FROM
+                    T_CMM_COM 
+                WHERE
+                    CMN_COM_IDX = S2.SCM_CMN_COM_IDX 
+            )
+            AS CMN_COM_NM 
+        FROM
+            (   SELECT
+                    ROWNUM AS RNUM,
+                    S1.* 
+                FROM
+                    (   SELECT
+                            SCM_INQ_IDX,
+                            SCM_CMN_COM_IDX,
+                            SCM_INQ_CONTENTS,
+                            SCM_INQ_REPLY_CD,
+                            SCM_INQ_REPLY_CONTENTS,
+                            SCM_INQ_REG_ID,
+                            SCM_INQ_REG_NM,
+                            SCM_INQ_REG_IP,
+                            SCM_INQ_REG_DT,
+                            SCM_INQ_REPLY_ID,
+                            SCM_INQ_REPLY_NM,
+                            SCM_INQ_REPLY_DT,
+                            SCM_INQ_REPLY_IP,
+                            SCM_INQ_TITLE,
+                            SCM_VDR_MST_IDX,
+                            V.VDR_MST_NM    
+                        FROM
+                            T_SCM_INQ  BI, T_VDR_MST V
+                        WHERE
+                        	1=1
+                        	<if test="VDR_MST_IDX != null and VDR_MST_IDX !=''">
+                        		AND BI.SCM_VDR_MST_IDX = #{VDR_MST_IDX}
+                        	</if>
+                            AND BI.SCM_VDR_MST_IDX = V.VDR_MST_IDX(+)
+                           <include refid="vendorInqWhere"/>
+                        ORDER BY SCM_INQ_REG_DT DESC 
+                    )
+                    S1 
+            )
+            S2 
+        <if test="startNum != null and startNum != '' and endNum != null and endNum != ''">
+            WHERE
+                S2.RNUM BETWEEN #{startNum} AND #{endNum}
+        </if>
+    </select>
+    
+    <!-- 관리자 > 게시판관리 > 입점업체문의 상세정보 -->
+    <resultMap id="resultVendorInqInfo" type="HashMap">
+        <result column="SCM_INQ_IDX" property="SCM_INQ_IDX" />
+        <result column="SCM_CMN_COM_IDX" property="SCM_CMN_COM_IDX" />
+        <result column="SCM_INQ_TITLE" property="SCM_INQ_TITLE" />
+        <result column="SCM_INQ_CONTENTS" property="SCM_INQ_CONTENTS" jdbcType="CLOB" javaType="java.lang.String"/>
+        <result column="SCM_INQ_REPLY_CD" property="SCM_INQ_REPLY_CD" />
+        <result column="SCM_INQ_REPLY_CONTENTS" property="SCM_INQ_REPLY_CONTENTS" jdbcType="CLOB" javaType="java.lang.String"/>
+        <result column="SCM_INQ_REG_ID" property="SCM_INQ_REG_ID" />
+        <result column="SCM_INQ_REG_NM" property="SCM_INQ_REG_NM" />
+        <result column="SCM_INQ_REG_IP" property="SCM_INQ_REG_IP" />
+        <result column="SCM_INQ_REG_DT" property="SCM_INQ_REG_DT" />
+        <result column="SCM_INQ_REPLY_ID" property="SCM_INQ_REPLY_ID" />
+        <result column="SCM_INQ_REPLY_NM" property="SCM_INQ_REPLY_NM" />
+        <result column="SCM_INQ_REPLY_DT" property="SCM_INQ_REPLY_DT" />
+        <result column="SCM_INQ_REPLY_IP" property="SCM_INQ_REPLY_IP" />
+        <result column="CMN_COM_NM" property="CMN_COM_NM" />
+        <result column="SCM_ORD_MST_CD" property="SCM_ORD_MST_CD"/>
+        <result column="SCM_VDR_MST_IDX" property="SCM_VDR_MST_IDX"/>
+        <result column="VDR_MST_NM" property="VDR_MST_NM"/>
+    </resultMap>
+    <select id="selectVendorInqInfo" parameterType="HashMap" resultMap="resultVendorInqInfo">
+        /* VendorInq.selectVendorInqInfo */
+        SELECT
+            SCM_INQ_IDX,
+            SCM_CMN_COM_IDX,
+            SCM_INQ_TITLE,
+            SCM_INQ_CONTENTS,
+            SCM_INQ_REPLY_CD,
+            SCM_INQ_REPLY_CONTENTS,
+            SCM_INQ_REG_ID,
+            SCM_INQ_REG_NM,
+            SCM_INQ_REG_IP,
+            SCM_INQ_REG_DT,
+            SCM_INQ_REPLY_ID,
+            SCM_INQ_REPLY_NM,
+            SCM_INQ_REPLY_DT,
+            SCM_INQ_REPLY_IP,
+            SCM_ORD_MST_CD,
+            (   SELECT
+                    CMN_COM_NM 
+                FROM
+                    T_CMM_COM 
+                WHERE
+                    CMN_COM_IDX = SCM_CMN_COM_IDX 
+            )
+            AS CMN_COM_NM,
+            SCM_VDR_MST_IDX,
+            V.VDR_MST_NM
+        FROM
+            T_SCM_INQ BI, T_VDR_MST V
+        WHERE
+            BI.SCM_VDR_MST_IDX = V.VDR_MST_IDX(+)
+            AND SCM_INQ_IDX = #{SCM_INQ_IDX}
+    </select>
+    
+    <!-- 관리자 > 게시판센터 > 입점업체문의 답변 등록 -->
+    <update id="updateVendorInq" parameterType="HashMap">
+        /* VendorInq.updateVendorInq */
+        UPDATE
+            T_SCM_INQ 
+        SET
+            SCM_INQ_REPLY_CD = 'Y',
+            SCM_INQ_REPLY_CONTENTS = #{SCM_INQ_REPLY_CONTENTS},
+            SCM_INQ_REPLY_ID = #{SCM_INQ_REPLY_ID},
+            SCM_INQ_REPLY_NM = #{SCM_INQ_REPLY_NM},
+            SCM_INQ_REPLY_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+            SCM_INQ_REPLY_IP = #{SCM_INQ_REPLY_IP}
+        WHERE
+            SCM_INQ_IDX = #{SCM_INQ_IDX}
+    </update>
+    
+    <!-- 관리자 > 게시판관리 > MarketPlant 문의하기 > 등록 -->
+    <insert id="insertVendorInqToEtland" parameterType="HashMap">
+        <selectKey keyProperty="SCM_INQ_IDX" resultType="Integer" order="BEFORE">
+            SELECT SEQ_SCM_INQ_IDX.NEXTVAL FROM DUAL
+        </selectKey>
+        /* VendorInq.insertVendorInqToEtland */
+        INSERT INTO
+            T_SCM_INQ
+            (
+                SCM_INQ_IDX,
+                SCM_CMN_COM_IDX,
+                SCM_INQ_TITLE,
+                SCM_INQ_CONTENTS,
+                SCM_INQ_REG_ID,
+                SCM_INQ_REG_DT,
+                SCM_INQ_REG_IP,
+                SCM_INQ_REG_NM,
+                SCM_VDR_MST_IDX,
+                SCM_INQ_REPLY_CD,
+                SCM_ORD_MST_CD
+            )
+        VALUES
+            (
+                #{SCM_INQ_IDX},
+                #{SCM_CMN_COM_IDX},
+                #{SCM_INQ_TITLE},
+                #{SCM_INQ_CONTENTS},
+                #{SCM_INQ_REG_ID},
+                TO_CHAR(SYSDATE,'YYYYMMDDHH24MISS'),
+                #{SCM_INQ_REG_IP},               
+                #{SCM_INQ_REG_NM},
+                #{SCM_VDR_MST_IDX},
+                'N',
+                #{SCM_ORD_MST_CD}
+            )
+    </insert>
+    
+    <!-- 관리자 > 게시판관리 > MarketPlant 문의하기 > 수정 -->
+    <update id="updateVendorInqToEtland" parameterType="HashMap">
+        /* VendorInq.updateVendorInqToEtland */
+        UPDATE 
+            T_SCM_INQ
+        SET
+            SCM_CMN_COM_IDX = #{SCM_CMN_COM_IDX},
+            SCM_INQ_TITLE = #{SCM_INQ_TITLE},
+            SCM_INQ_CONTENTS = #{SCM_INQ_CONTENTS},
+            SCM_INQ_REG_ID = #{SCM_INQ_UPD_ID},
+            SCM_INQ_REG_DT = TO_CHAR(SYSDATE,'YYYYMMDDHH24MISS'),
+            SCM_INQ_REG_IP = #{SCM_INQ_UPD_IP},
+            SCM_ORD_MST_CD = #{SCM_ORD_MST_CD}
+        WHERE
+            SCM_INQ_IDX = #{SCM_INQ_IDX}             
+    </update>
+</mapper>

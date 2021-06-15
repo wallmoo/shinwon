@@ -1,0 +1,243 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="Outlet">
+	<!-- 상품목록 Top Seller  -->
+	<select id="selectTopSellerList" parameterType="HashMap" resultType="HashMap">
+	/* Outlet.selectTopSellerList */
+	  	SELECT PRD_MST_CD, PRD_MST_NM, PRD_MST_NORMAL_PRICE
+		    , FN_MEMBER_PRICE(PRD_MST_CD , #{MEM_MST_MEMBER_GROUP}) PRICE_MEMBER_GROUP_MALL 
+		    , FN_MEMBER_PRICE_OFFRATE( A.PRD_MST_CD , #{MEM_MST_MEMBER_GROUP}) PROD_PERAMT1
+		    , FN_PRODUCT_IMG(PRD_MST_CD, #{THUMBNAIL_SIZE})  PRD_IMAGE
+		    , FN_PRODUCT_EVENT_YN(PRD_MST_CD)	PRD_EVENT_YN
+		    , FN_PRODUCT_COUPON_YN(PRD_MST_CD, #{MEM_MST_MEMBER_GROUP})	PRD_COUPON_YN
+		    , FN_PRODUCT_POINT_YN(PRD_MST_CD, #{MEM_MST_MEMBER_GROUP})	PRD_POINT_YN
+	   	    , FN_PRODUCT_ICN_NEW(PRD_MST_CD) ICON_NEW
+	   	    , FN_PRODUCT_ICN_MD(PRD_MST_CD) ICON_MD
+	   	    , FN_PRODUCT_ICN_BEST(PRD_MST_CD) ICON_BEST	    
+	  	FROM (      
+		    SELECT 
+				ROW_NUMBER() OVER( ORDER BY PRD_RANK, DBMS_RANDOM.RANDOM ) ORD,
+				PM.PRD_MST_CD, PM.PRD_MST_NM, PM.PRD_MST_NORMAL_PRICE
+		    FROM T_PRD_MST PM ,
+		    (
+		        WITH WT1 AS (
+		                  SELECT PC.PRD_CTG_IDX, PC.PRD_CTG_NM, PC.PRD_CTG_TOP_IDX, PC.PRD_CTG_ENV
+		                  FROM T_PRD_CTG PC
+                          WHERE 1=1
+                          <if test="PRD_CTG_ENV != null and PRD_CTG_ENV != ''">
+                              AND PC.PRD_CTG_ENV = #{PRD_CTG_ENV} 
+                          </if>
+                          <if test="catIdx != null and catIdx != ''">
+                              START WITH PC.PRD_CTG_IDX = #{catIdx}
+                              CONNECT BY PRIOR PC.PRD_CTG_IDX = PC.PRD_CTG_UP_IDX
+                          </if>
+		        )         
+		        SELECT 
+		        	DISTINCT PRD_MST_CD, PRD_RANK
+		        FROM T_PRD_BST PB, T_DSP_CTG CT, WT1
+		        WHERE PB.PRD_MST_CD = CT.DSP_PRD_MST_CD
+		        	AND CT.DSP_PRD_CTG_IDX = WT1.PRD_CTG_IDX
+		    ) TARGET_PRD_CD
+		    WHERE PM.PRD_MST_CD = TARGET_PRD_CD.PRD_MST_CD
+		    AND PM.PRD_MST_GRADE_CD in ( '0010', '0020' )
+		    AND PM.PRD_MST_SEL_STATE = 'I'
+	  	) A
+	  	WHERE ORD &lt;= #{maxListCnt}
+		ORDER BY ORD ASC
+	</select>
+		
+	<!-- 상품 전시 목록-->
+	<select id="selectOutletDisplayList" parameterType="HashMap" resultType="HashMap">
+	/* Outlet.selectOutletDisplayList */
+	    SELECT PRD_MST_CD, PRD_MST_NM, PRD_MST_NORMAL_PRICE
+	    	, FN_PRODUCT_IMG(PRD_MST_CD, #{THUMBNAIL_SIZE})  PRD_IMAGE
+		    , FN_PRODUCT_EVENT_YN(PRD_MST_CD)	PRD_EVENT_YN
+		    , FN_PRODUCT_COUPON_YN(PRD_MST_CD, #{MEM_MST_MEMBER_GROUP})	PRD_COUPON_YN
+		    , FN_PRODUCT_POINT_YN(PRD_MST_CD, #{MEM_MST_MEMBER_GROUP})	PRD_POINT_YN
+		    , FN_PRODUCT_ICN_NEW(PRD_MST_CD) ICON_NEW
+	   	    , FN_PRODUCT_ICN_MD(PRD_MST_CD) ICON_MD
+	   	    , FN_PRODUCT_ICN_BEST(PRD_MST_CD) ICON_BEST	
+	    FROM
+	    (
+	        SELECT ROWNUM RNUM, PM.PRD_MST_CD, PM.PRD_MST_NM, PM.PRD_MST_NORMAL_PRICE
+	        FROM T_PRD_MST PM , T_DSP_MST DPM
+	        WHERE PM.PRD_MST_CD = DPM.PRD_MST_CD
+	        AND PM.PRD_MST_SEL_STATE = 'I'	    
+	        AND DPM.CMN_COM_IDX = #{PD_IDX}
+	        ORDER BY DPM.DSP_MST_IDX
+	    ) A
+        WHERE 1=1
+        <if test="maxListCnt != null and maxListCnt != ''">
+            AND RNUM &lt;= #{maxListCnt} 
+        </if> 
+	    ORDER BY DBMS_RANDOM.RANDOM 
+	</select>	
+	
+	<!-- 화면 배너 목록 -->
+	<select id="selectBannerDisplayList" parameterType="HashMap" resultType="HashMap">
+	/* Outlet.selectBannerDisplayList */
+        SELECT
+            BM.BNR_MST_IDX 
+            , BM.BNR_MST_TITLE 
+            , BM.CMN_COM_IDX 
+            , BM.BNR_MST_ST_DT 
+            , BM.BNR_MST_ED_DT 
+            , BM.BNR_MST_USE_YN 
+            , BM.BNR_MST_REG_DT 
+            , BM.BNR_MST_REG_IP 
+            , BM.BNR_MST_REG_ID 
+        	, BD.BNR_DTL_ORDER 
+        	, BD.BNR_DTL_IDX
+        	, FL.CMM_FLE_ATT_PATH
+          	, FL.CMM_FLE_SYS_NM
+          	, FL.CMN_FLE_ALT_TXT
+          	, BD.BNR_DTL_TARGET
+			, BD.BNR_DTL_URL
+		FROM
+         T_BNR_MST BM, T_BNR_DTL BD , T_CMM_FLE FL
+		WHERE
+            BM.BNR_MST_IDX = BD.BNR_BNR_MST_IDX 
+            AND BD.BNR_DTL_IDX = FL.CMM_FLE_TB_PK
+            AND FL.CMM_FLE_TB_NM =  'T_BNR_DTL'
+        	AND CMN_COM_IDX = #CBANNER_IDX}
+        	AND FL.CMM_FLE_USE_YN = 'Y'
+        	AND TO_CHAR(SYSDATE,'YYYYMMDDHH24MI') BETWEEN BM.BNR_MST_ST_DT AND BM.BNR_MST_ED_DT
+            <if test="LIST_ORDER != null and LIST_ORDER != ''">
+                ORDER BY ${LIST_ORDER}
+            </if>
+            <if test="LIST_ORDER == null and LIST_ORDER == ''">
+                ORDER BY DBMS_RANDOM.RANDOM 
+            </if>
+    </select>
+
+	
+	<sql id="productWhere">
+		AND PM.PRD_MST_GRADE_CD in ( '0010', '0020' )
+		AND PM.PRD_MST_SEL_STATE = 'I'	
+        <if test="PRICE_START != null and PRICE_START != ''">
+            AND #{PRICE_START} &lt;= VP.MEMBER_PRICE
+        </if>
+        <if test="PRICE_END != null and PRICE_END != ''">
+            AND VP.MEMBER_PRICE &lt;= #{PRICE_END}
+        </if> 
+	</sql>	
+    
+	<sql id="productCategoryWhere">
+		WHERE PC.PRD_CTG_USE_YN = 'Y'
+        <if test="searchPrdCtgEnv != null and searchPrdCtgEnv != ''">
+            AND PC.PRD_CTG_ENV = #{searchPrdCtgEnv}
+        </if>
+        <if test="catIdx != null and catIdx != ''">
+            START WITH PC.PRD_CTG_IDX = NVL(#{productSubCategory}, #{catIdx} )
+            CONNECT BY PRIOR PC.PRD_CTG_IDX = PC.PRD_CTG_UP_IDX
+        </if>
+	</sql>
+	
+	<!-- 상품목록 개수 -->
+    <select id="selectOutletCount" parameterType="hashMap" resultType="integer">
+        /* Outlet.selectOutletCount */
+                WITH PWT1 AS (
+	    	SELECT 
+		    	DISTINCT DSP_PRD_MST_CD
+            FROM T_DSP_CTG
+            WHERE DSP_PRD_CTG_IDX IN
+            	(
+                	SELECT 
+                    	PC.PRD_CTG_IDX
+                    FROM T_PRD_CTG PC
+                    <include refid="productCategoryWhere"/>
+			    )
+		)
+        SELECT COUNT(0)
+		FROM T_PRD_MST PM , T_PRD_BST PB, PWT1, V_PRD_PRICE VP
+		WHERE PM.PRD_MST_CD = PWT1.DSP_PRD_MST_CD
+		AND PM.PRD_MST_CD = PB.PRD_MST_CD(+)
+		AND PM.PRD_MST_CD = VP.PRD_MST_CD
+		AND VP.SALE_OBJ_SCTN_CD = #{MEM_MST_MEMBER_GROUP}	
+		<include refid="productWhere"/>	
+    </select>
+    
+    <!-- 상품목록  -->
+	<select id="selectOutletList" parameterType="HashMap" resultType="HashMap">
+		/* Outlet.selectOutletList */
+		SELECT PRD_MST_CD, PRD_MST_NM, PRD_MST_NORMAL_PRICE
+		    , PRICE_MEMBER_GROUP_MALL , PROD_PERAMT1
+		    , FN_PRODUCT_IMG(PRD_MST_CD, #{THUMBNAIL_SIZE}) PRD_IMAGE
+		    , FN_PRODUCT_EVENT_YN(PRD_MST_CD) PRD_EVENT_YN
+		    , FN_PRODUCT_COUPON_YN(PRD_MST_CD, #{MEM_MST_MEMBER_GROUP})	PRD_COUPON_YN
+		    , FN_PRODUCT_POINT_YN(PRD_MST_CD, #{MEM_MST_MEMBER_GROUP})	PRD_POINT_YN
+		    , FN_PRODUCT_ICN_NEW(PRD_MST_CD) ICON_NEW
+	   	    , FN_PRODUCT_ICN_MD(PRD_MST_CD) ICON_MD
+	   	    , FN_PRODUCT_ICN_BEST(PRD_MST_CD) ICON_BEST	
+	   	    , REP_POINT  
+            , FLAT_PRICE_YN
+		FROM ( 
+	        SELECT ROWNUM RNUM, PRD_MST_CD, PRD_MST_NM, PRD_MST_NORMAL_PRICE, PRICE_MEMBER_GROUP_MALL, PROD_PERAMT1
+	        		 , REP_POINT  
+                     , FLAT_PRICE_YN
+	        FROM 
+	        (
+	        	WITH PWT1 AS (
+		        	SELECT 
+		        		DISTINCT DSP_PRD_MST_CD
+              		FROM T_DSP_CTG
+              		WHERE DSP_PRD_CTG_IDX IN
+                      (
+                        SELECT 
+                          PC.PRD_CTG_IDX
+                        FROM T_PRD_CTG PC
+                        <include refid="productCategoryWhere"/>
+                      )
+			    )
+		        SELECT 
+		        	PM.PRD_MST_CD, PM.PRD_MST_NM, PM.PRD_MST_NORMAL_PRICE, PRD_RANK ORD,
+		        	VP.MEMBER_PRICE PRICE_MEMBER_GROUP_MALL, VP.PROD_PERAMT1
+		        	, (SELECT NVL(ROUND ( ( AVG(PRD_REV_DESIGN_STAR) + AVG(PRD_REV_QUALITY_STAR) + AVG(PRD_REV_SIZE_STAR) ) /3 ),0) REP_POINT 
+                        FROM T_PRD_REV REV 
+                        WHERE REV.PRD_PRD_MST_CD = PM.PRD_MST_CD
+                        AND REV.PRD_REV_USE_YN = 'Y') AS REP_POINT
+                     , CASE                        
+                        WHEN PM.PRD_MST_NORMAL_PRICE != VP.MEMBER_PRICE AND VP.PROD_PERAMT1 = 0 THEN 'Y'
+                        ELSE 'N'
+                      END AS FLAT_PRICE_YN
+		        FROM T_PRD_MST PM , T_PRD_BST PB, PWT1, V_PRD_PRICE VP
+		        WHERE PM.PRD_MST_CD = PWT1.DSP_PRD_MST_CD
+			    AND PM.PRD_MST_CD = PB.PRD_MST_CD(+)  
+				AND PM.PRD_MST_CD = VP.PRD_MST_CD
+				AND VP.SALE_OBJ_SCTN_CD = #{MEM_MST_MEMBER_GROUP}
+                <include refid="productWhere"/>
+                <if test="PRODUCT_LIST_ORDER != null and PRODUCT_LIST_ORDER != ''">
+                    ORDER BY ${PRODUCT_LIST_ORDER}
+                </if>
+			)     
+		) A
+		WHERE RNUM BETWEEN #{startNum} AND #{endNum}
+	</select>
+    
+    <select id="selectSubCategoryList" parameterType="HashMap" resultType="HashMap">
+    /* Outlet.selectSubCategoryList */
+        SELECT
+            PRD_CTG_IDX,
+            PRD_CTG_NM
+        FROM
+            T_PRD_CTG
+        WHERE	PRD_CTG_USE_YN = 'Y'
+		AND 	PRD_CTG_UP_IDX = #{catIdx}
+		AND 	PRD_CTG_PRD_CNT &gt; 0
+        ORDER BY PRD_CTG_SORT ASC
+    </select>
+    
+    <!-- 공통코드 조회 -->
+    <select id="selectThisCategoryInfo" parameterType="HashMap" resultType="HashMap">
+    /* Outlet.selectThisCategoryInfo */
+       SELECT
+            PRD_CTG_IDX,
+            PRD_CTG_NM
+        FROM
+            T_PRD_CTG
+        WHERE	PRD_CTG_IDX = #{catIdx}
+        ORDER BY PRD_CTG_SORT ASC
+    </select>
+
+</mapper>

@@ -1,0 +1,561 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="PcPlan">
+
+    <sql id="planWhere">
+        
+        <if test="searchPlnMstStatus != null and searchPlnMstStatus.equals('ing'.toString())">
+            <![CDATA[
+            AND TO_DATE(PLN.PLN_MST_ST_DT || NVL(PLN.PLN_MST_ST_HH, '00') || NVL(PLN.PLN_MST_ST_MI, '00') ||'59','yyyymmddhh24miss') <= SYSDATE
+            AND TO_DATE(PLN.PLN_MST_ED_DT || NVL(PLN.PLN_MST_ED_HH, '00') || NVL(PLN.PLN_MST_ED_MI, '00') ||'59','yyyymmddhh24miss') >= SYSDATE
+            ]]>
+            
+        </if>
+        <if test="searchPlnMstStatus != null and searchPlnMstStatus.equals('end'.toString())">
+            <![CDATA[
+            AND TO_DATE(PLN.PLN_MST_ED_DT || NVL(PLN.PLN_MST_ED_HH, '00') || NVL(PLN.PLN_MST_ED_MI, '00') ||'59','yyyymmddhh24miss') < SYSDATE
+            ]]>           
+        </if>
+        <if test="searchPlnMstShopType != null and searchPlnMstShopType != ''">
+            AND PLN.PLN_MST_CHANNEL_PC_YN = #{searchPlnMstShopType}
+        </if>
+
+        <if test="searchPlnMstShopTypeMobile != null and searchPlnMstShopTypeMobile != ''">
+            AND PLN.PLN_MST_CHANNEL_MOBILE_YN = #{searchPlnMstShopTypeMobile}
+        </if>
+
+        <if test="searchPlnMstCtg != null and searchPlnMstCtg != ''">
+            AND EXISTS (
+                            SELECT 
+                              DISTINCT PCG.PLN_MST_IDX
+                            FROM T_PLN_CTG PCG , WT1
+                            WHERE WT1.PRD_CTG_IDX = PCG.PRD_CTG_IDX
+                            AND PCG.PLN_CTG_ENV = #{PRD_CTG_ENV}
+                            AND PCG.PLN_MST_IDX = PLN.PLN_MST_IDX
+                        )
+        </if>
+        <if test="searchPlanMstType != null and searchPlanMstType != ''">
+            AND PLN.PLN_MST_TYPE = #{searchPlanMstType}
+        </if>
+        
+    </sql>
+    
+    <!-- 기획전 옵션 공통 코드 -->
+    <select id="selectPlanCommonOption" parameterType="HashMap" resultType="HashMap">
+        /* PcPlan.selectPlanCommonOption */
+        SELECT S1.PLN_PRD_MST_CD, TCC.CMN_COM_ETC2, TCC.CMN_COM_NM
+        FROM 
+        	(SELECT *
+        	FROM T_PLN_DTL PD , T_PRD_CMM_OPT TPCO 
+        	WHERE PD.PLN_MST_IDX = #{PLN_MST_IDX}
+   			AND TPCO.PRD_CMM_TYPE = 'C'
+    		AND TPCO.UP_COM_OPT_IDX = '-1'
+        	AND TPCO.PRD_MST_CD = PD.PLN_PRD_MST_CD) S1
+        	LEFT JOIN T_CMM_COM TCC ON TCC.CMN_COM_IDX = S1.CMN_COM_IDX
+    </select>
+    
+    <!-- 기획전 목록 개수 -->
+    <select id="selectPlanListCount" parameterType="HashMap" resultType="Integer">
+        /* PcPlan.selectPlanListCount */
+        WITH WT1 AS (SELECT PC.PRD_CTG_IDX,  
+              PC.PRD_CTG_NM,
+              PC.PRD_CTG_TOP_IDX,
+              PC.PRD_CTG_ENV
+         FROM T_PRD_CTG PC
+         WHERE
+            PC.PRD_CTG_ENV = #{PRD_CTG_ENV}
+         AND PC.PRD_CTG_USE_YN = 'Y'
+         AND PC.PRD_CTG_LEVEL <![CDATA[<]]>  3
+            START WITH PC.PRD_CTG_IDX = #{searchPlnMstCtg}
+            CONNECT BY PRIOR PC.PRD_CTG_IDX = PC.PRD_CTG_UP_IDX
+        )
+        SELECT
+            COUNT(PLN.PLN_MST_IDX)
+        FROM
+            T_PLN_MST PLN, T_CMM_FLE FL             
+        WHERE
+            PLN.PLN_MST_IDX = FL.CMM_FLE_TB_PK            
+            AND FL.CMM_FLE_TB_NM =  #{CMM_FLE_TB_NM}
+            AND FL.CMM_FLE_USE_YN= 'Y'
+            AND FL.CMM_FLE_TB_TYPE = #{CMM_FLE_TB_TYPE}
+            AND FL.CMM_FLE_SORT = #{CMM_FLE_SORT}  
+            AND PLN.PLN_MST_USE_YN = 'Y'     
+            AND (PLN.PLN_MST_TOP_YN != 'Y' OR PLN.PLN_MST_TOP_YN IS NULL)  
+            <include refid="planWhere"/>
+    </select>
+    
+    <!-- 기획전 목록 -->
+    <select id="selectPlanList" parameterType="HashMap" resultType="HashMap">
+        /*PcPlan.selectPlanList*/
+        WITH WT1 AS (SELECT PC.PRD_CTG_IDX,  
+                      PC.PRD_CTG_NM,
+                      PC.PRD_CTG_TOP_IDX,
+                      PC.PRD_CTG_ENV
+                 FROM T_PRD_CTG PC
+                 WHERE
+                    PC.PRD_CTG_ENV = #{PRD_CTG_ENV}
+                 AND PC.PRD_CTG_USE_YN = 'Y'
+                 AND PC.PRD_CTG_LEVEL <![CDATA[<]]>  3
+                    START WITH PC.PRD_CTG_IDX = #{searchPlnMstCtg}
+                    CONNECT BY PRIOR PC.PRD_CTG_IDX = PC.PRD_CTG_UP_IDX
+                )
+        SELECT
+            S2.*            
+        FROM
+            (   SELECT
+                    ROWNUM AS RNUM,
+                    S1.* 
+                FROM
+                    (   SELECT
+                            PLN.PLN_MST_IDX,
+                            PLN.PLN_MST_CHANNEL_PC_YN, 
+                            PLN.PLN_MST_CHANNEL_MOBILE_YN,                    
+                            PLN.PLN_MST_TITLE,
+                            PLN.PLN_MST_ST_DT,
+                            PLN.PLN_MST_ED_DT,
+                            PLN.PLN_MST_USE_YN,
+                            PLN.PLN_MST_REG_DT,
+                            PLN.PLN_MST_TYPE,
+                            PLN.PLN_MST_DETAIL_TYPE,                            
+                            <![CDATA[               
+                            CASE 
+                                WHEN TO_DATE(PLN.PLN_MST_ST_DT || NVL(PLN.PLN_MST_ST_HH, '00') || NVL(PLN.PLN_MST_ST_MI, '00')  ||'59','yyyymmddhh24miss') <= SYSDATE AND TO_DATE(PLN.PLN_MST_ED_DT || NVL(PLN.PLN_MST_ED_HH, '00') || NVL(PLN.PLN_MST_ED_MI, '00') ||'59','yyyymmddhh24miss') >= SYSDATE THEN 'ing'
+                                WHEN TO_DATE(PLN.PLN_MST_ED_DT || NVL(PLN.PLN_MST_ED_HH, '00') || NVL(PLN.PLN_MST_ED_MI, '00') ||'59','yyyymmddhh24miss') < SYSDATE THEN 'end'
+                            END PLN_MST_STATUS,
+                            FL.CMM_FLE_ATT_PATH,
+                            FL.CMM_FLE_SYS_NM,
+                            FL.CMN_FLE_ALT_TXT
+                        FROM
+                            T_PLN_MST PLN, T_CMM_FLE FL             
+                        WHERE
+                            PLN.PLN_MST_IDX = FL.CMM_FLE_TB_PK                          
+                            AND FL.CMM_FLE_TB_NM =  #{CMM_FLE_TB_NM}
+                            AND FL.CMM_FLE_USE_YN= 'Y'
+                            AND FL.CMM_FLE_TB_TYPE = #{CMM_FLE_TB_TYPE}
+                            AND FL.CMM_FLE_SORT = #{CMM_FLE_SORT}
+                            AND PLN.PLN_MST_USE_YN = 'Y'
+                            AND (PLN.PLN_MST_TOP_YN != 'Y' OR PLN.PLN_MST_TOP_YN IS NULL)
+                            ]]>
+                            <include refid="planWhere"/>
+                    )
+                    S1 
+            )
+            S2 
+        <if test="endNum != null and endNum != ''">
+        WHERE
+            S2.RNUM BETWEEN #{startNum} AND #{endNum}
+        </if>
+    </select>
+    
+    <!-- 기획전 상단 리스트 -->
+    <select id="selectPlanTopList" parameterType="HashMap" resultType="HashMap">
+        /*PcPlan.selectPlanTopList*/
+        SELECT
+            BNR_MST_TITLE
+            , BNR_MST_URL
+            , BNR_MST_DESC
+            ,(SELECT CMM_FLE_ATT_PATH || CMM_FLE_SYS_NM FROM T_CMM_FLE WHERE CMM_FLE_TB_NM = 'T_BNR_MST' AND CMM_FLE_TB_PK = BNR.BNR_MST_IDX AND CMM_FLE_SORT = 1 AND CMM_FLE_USE_YN = 'Y') AS IMG_THUMBNAIL
+            ,(SELECT CMN_FLE_ALT_TXT FROM T_CMM_FLE WHERE CMM_FLE_TB_NM = 'T_BNR_MST' AND CMM_FLE_TB_PK = BNR.BNR_MST_IDX AND CMM_FLE_SORT = 1 AND CMM_FLE_USE_YN = 'Y') AS CMN_FLE_ALT_TXT
+        FROM 
+            T_BNR_MST BNR
+        WHERE 
+            BNR.BNR_MST_ENV = #{BNR_MST_ENV}
+            AND BNR.BNR_MST_USE_YN = 'Y'
+            AND TO_CHAR(SYSDATE,'YYYYMMDDHH24MI') BETWEEN BNR.BNR_MST_ST_DT AND BNR.BNR_MST_ED_DT
+            AND BNR.CMN_COM_IDX = #{CMN_COM_IDX}
+    </select>
+    
+    <!-- 해당 브랜드의 다른 기획전 -->
+    <select id="selectOtherPlanList" parameterType="HashMap" resultType="HashMap">
+        /*PcPlan.selectOtherPlanList*/
+       SELECT
+            PLN.PLN_MST_IDX,
+            PLN.PLN_MST_CHANNEL_PC_YN, 
+            PLN.PLN_MST_CHANNEL_MOBILE_YN,
+            PLN.PLN_MST_ST_DT,
+            PLN.PLN_MST_ED_DT,                  
+            PLN.PLN_MST_TITLE,
+            PLN.PLN_MST_ST_DT,
+            PLN.PLN_MST_ED_DT,
+            PLN.PLN_MST_USE_YN,
+            PLN.PLN_MST_REG_DT                          
+       FROM
+           T_PLN_MST PLN             
+       WHERE PLN_MST_IDX != #{PLN_MST_IDX}  
+       AND PLN.PLN_MST_USE_YN = 'Y'
+       AND PLN.PLN_MST_TYPE = 'A'  
+       <![CDATA[       
+       AND TO_DATE(PLN.PLN_MST_ST_DT || NVL(PLN.PLN_MST_ST_HH, '00') || NVL(PLN.PLN_MST_ST_MI, '00') ||'59') <= SYSDATE
+       AND TO_DATE(PLN.PLN_MST_ED_DT || NVL(PLN.PLN_MST_ED_HH, '00') || NVL(PLN.PLN_MST_ED_MI, '00') ||'59') >= SYSDATE
+       ]]>
+       <if test="searchPlnMstShopType != null and searchPlnMstShopType != ''">
+       AND PLN.PLN_MST_CHANNEL_PC_YN = #{searchPlnMstShopType}
+       </if>
+       <if test="searchPlnMstShopTypeMobile != null and searchPlnMstShopTypeMobile != ''">
+       AND PLN.PLN_MST_CHANNEL_MOBILE_YN = #{searchPlnMstShopTypeMobile}
+       </if>
+        ORDER BY PLN.PLN_MST_REG_DT DESC 
+    </select>
+    
+    <!-- 기획전 상세정보 -->
+    <resultMap id="resultPlanInfo" type="HashMap">
+        <result property="PLN_MST_IDX" column="PLN_MST_IDX"/>
+        <result property="PLN_MST_CHANNEL_PC_YN" column="PLN_MST_CHANNEL_PC_YN"/>
+        <result property="PLN_MST_CHANNEL_MOBILE_YN" column="PLN_MST_CHANNEL_MOBILE_YN"/>        
+        <result property="PLN_MST_TITLE" column="PLN_MST_TITLE"/>
+        <result property="PLN_MST_DESC" column="PLN_MST_DESC"/>
+        <result property="PLN_MST_ST_DT" column="PLN_MST_ST_DT"/>
+        <result property="PLN_MST_ED_DT" column="PLN_MST_ED_DT"/>
+        <result property="PLN_MST_USE_YN" column="PLN_MST_USE_YN"/>
+        <result property="PLN_MST_PC_BANNER" column="PLN_MST_PC_BANNER" jdbcType="CLOB" javaType="java.lang.String"/>
+        <result property="PLN_MST_MOBILE_BANNER" column="PLN_MST_MOBILE_BANNER" jdbcType="CLOB" javaType="java.lang.String"/>
+        <result property="PLN_MST_STATUS" column="PLN_MST_STATUS"/>
+        <result property="CMM_FLE_ATT_PATH" column="CMM_FLE_ATT_PATH"/>
+        <result property="CMM_FLE_SYS_NM" column="CMM_FLE_SYS_NM"/>
+        <result property="PLN_MST_PRD_DPL_YN" column="PLN_MST_PRD_DPL_YN"/>
+        <result property="PLN_MST_TYPE" column="PLN_MST_TYPE" />
+    </resultMap>
+    <select id="selectPlanInfo" parameterType="HashMap" resultMap="resultPlanInfo">
+        /* PcPlan.selectPlanInfo */
+        SELECT
+            PLN.PLN_MST_IDX,
+            PLN.PLN_MST_CHANNEL_PC_YN,
+            PLN.PLN_MST_CHANNEL_MOBILE_YN,
+            PLN.PLN_MST_TITLE,
+            1 as PLN_MST_DESC,
+            PLN.PLN_MST_ST_DT,
+            PLN.PLN_MST_ED_DT,
+            PLN.PLN_MST_USE_YN,
+            PLN.PLN_MST_PC_BANNER,
+            PLN.PLN_MST_MOBILE_BANNER,
+            PLN.PLN_MST_TYPE,
+            TTM.TAG_MST_TITLE,
+            PLN.PLN_MST_DETAIL_TYPE,
+       		(SELECT COUNT(TLH.CNT_MST_ID) FROM T_LIK_HIS TLH WHERE TLH.CNT_MST_ID = TO_CHAR(PLN.PLN_MST_IDX) AND TLH.CNT_MST_TYPE='TYPE_PLAN') AS LIKE_COUNTS,
+       		(CASE WHEN (SELECT COUNT(TLH.CNT_MST_ID) FROM T_LIK_HIS TLH WHERE TLH.CNT_MST_ID = TO_CHAR(PLN.PLN_MST_IDX) AND TLH.MEM_MST_ID = #{MEM_MST_MEM_ID})>0 THEN 'on' ELSE '' END) AS LIKE_CLS,
+            <![CDATA[
+            CASE 
+                WHEN TO_DATE(PLN.PLN_MST_ST_DT || NVL(PLN.PLN_MST_ST_HH, '00') || NVL(PLN.PLN_MST_ST_MI, '00') ||'59','yyyymmddhh24miss') <= SYSDATE AND TO_DATE(PLN.PLN_MST_ED_DT || NVL(PLN.PLN_MST_ED_HH, '00') || NVL(PLN.PLN_MST_ED_MI, '00') ||'59','yyyymmddhh24miss') >= SYSDATE THEN 'ing'
+                WHEN TO_DATE(PLN.PLN_MST_ED_DT || NVL(PLN.PLN_MST_ED_HH, '00') || NVL(PLN.PLN_MST_ED_MI, '00') ||'59','yyyymmddhh24miss') < SYSDATE THEN 'end'
+            END PLN_MST_STATUS      
+            ]]>  
+            ,FL.CMM_FLE_ATT_PATH
+            ,FL.CMM_FLE_SYS_NM  
+            ,PLN.PLN_MST_PRD_DPL_YN
+        FROM
+            T_PLN_MST PLN, T_CMM_FLE FL, T_TAG_BND TTB, T_TAG_MST TTM
+        WHERE
+            PLN.PLN_MST_IDX = FL.CMM_FLE_TB_PK                          
+            AND FL.CMM_FLE_TB_NM =  #{CMM_FLE_TB_NM}
+            AND FL.CMM_FLE_USE_YN= 'Y'
+            AND FL.CMM_FLE_TB_TYPE = #{CMM_FLE_TB_TYPE}
+            AND FL.CMM_FLE_SORT = #{CMM_FLE_SORT}
+            AND PLN.PLN_MST_IDX = #{PLN_MST_IDX}
+            AND PLN.PLN_MST_TYPE = #{PLN_MST_TYPE}
+            AND TTB.TAG_BND_ID = TO_CHAR(#{PLN_MST_IDX})
+            AND TTB.TAG_BND_TYPE = 'TYPE_PLAN'
+            AND TTB.TAG_BND_REP = 'Y'
+            AND TTB.TAG_MST_ID = TTM.TAG_MST_ID 
+            <if test="searchPlnMstShopType != null and searchPlnMstShopType != ''">
+                AND PLN_MST_CHANNEL_PC_YN = #{searchPlnMstShopType}
+            </if>
+            <if test="searchPlnMstShopTypeMobile != null and searchPlnMstShopTypeMobile != ''">
+                AND PLN.PLN_MST_CHANNEL_MOBILE_YN = #{searchPlnMstShopTypeMobile}
+            </if>
+    </select>
+    
+    <!-- 기획전 리스트 배너 리스트 -->
+    <select id="selectPlanBannerList" parameterType="HashMap" resultType="hashmap">
+         /*PcPlan.selectPlanBannerList*/
+        SELECT
+            BD.BNR_DTL_TARGET
+            ,BD.BNR_DTL_URL
+            ,CF.CMM_FLE_ATT_PATH
+            ,CF.CMM_FLE_SYS_NM
+            ,CF.CMN_FLE_ALT_TXT
+        FROM
+            T_BNR_MST BM, T_BNR_DTL BD, T_CMM_FLE CF
+        WHERE
+            BM.BNR_MST_IDX = BD.BNR_BNR_MST_IDX
+            AND BD.BNR_DTL_IDX = CF.CMM_FLE_TB_PK
+            AND CF.CMM_FLE_TB_NM =  'T_BNR_DTL'
+            AND CF.CMM_FLE_USE_YN = 'Y'
+            AND BM.BNR_MST_USE_YN = 'Y'
+            AND TO_CHAR(SYSDATE,'YYYYMMDDHH24MI') BETWEEN BM.BNR_MST_ST_DT AND BM.BNR_MST_ED_DT
+            AND CMN_COM_IDX IN 
+            (
+                SELECT 
+                    CMN_COM_IDX 
+                FROM T_CMM_COM 
+                WHERE CMN_COM_UP_IDX = #{CMN_COM_IDX}
+                <if test="mobileYn == null or !mobileYn.equals('Y'.toString())">
+                    <if test="mainYn != null and mainYn.equals('Y'.toString())">
+                        AND CMN_COM_SORT = 1
+                    </if>
+                    <if test="mainYn != null and mainYn.equals('N'.toString())">
+                        AND CMN_COM_SORT != 1
+                    </if>
+                </if>
+            )
+        ORDER BY BM.CMN_COM_IDX ASC
+    </select>
+    
+    <sql id="productWhere">
+        AND FN_GET_PRODUCT_STATUS(PM.PRD_MST_CD) = 'true'    
+    </sql>
+      
+    <sql id="productCategoryWhere">
+        <where>
+            <if test="PRD_CTG_ENV != null and PRD_CTG_ENV != ''">
+                AND PC.PRD_CTG_ENV = #{PRD_CTG_ENV}
+            </if>
+        </where>
+    </sql>
+    
+    <!-- 기획전 상품목록 개수 -->
+    <select id="selectPlanProductListCount" parameterType="hashMap" resultType="integer">
+        /* PcPlan.selectPlanProductCount */
+        WITH PWT1 AS (
+                    SELECT 
+                        DISTINCT DSP_PRD_MST_CD
+                    FROM T_DSP_CTG
+                    WHERE DSP_PRD_CTG_IDX IN
+                      (
+                        SELECT 
+                          PC.PRD_CTG_IDX
+                        FROM T_PRD_CTG PC
+                        <include refid="productCategoryWhere"/>
+                      )
+                )
+        SELECT 
+            COUNT(DISTINCT PM.PRD_MST_CD)
+        FROM T_PRD_MST PM , T_PLN_DTL PD, T_DSP_CTG CT, T_PRD_BST PB, PWT1
+        WHERE PM.PRD_MST_CD = CT.DSP_PRD_MST_CD      
+        AND PD.PLN_PRD_MST_CD = CT.DSP_PRD_MST_CD                                     
+        AND PD.PLN_MST_IDX = #{PLN_MST_IDX}
+        AND PM.PRD_MST_CD = PB.PRD_MST_CD(+)
+        AND PM.PRD_MST_CD = PWT1.DSP_PRD_MST_CD 
+        <include refid="productWhere"/>
+    </select>
+    
+    <!-- 기획전 상품목록  -->
+    <select id="selectPlanProductList" parameterType="HashMap" resultType="HashMap">
+        /* PcPlan.selectPlanProductList */
+        SELECT PRD_MST_CD, PRD_MST_NM, PRD_MST_SELL_PRICE,PRD_MST_NORMAL_PRICE
+            , FN_PRODUCT_IMG (PRD_MST_CD, #{THUMBNAIL_SIZE}) PRD_IMAGE
+            , FN_PRODUCT_IMG (PRD_MST_CD, #{THUMBNAIL_SIZE_BIG}) PRD_IMAGE_BIG
+            , FN_PRODUCT_PRM_TEXT(PRD_MST_CD) PRM_TEXT
+            , FN_PRODUCT_EVENT_YN(PRD_MST_CD)   PRD_EVENT_YN
+            , FN_PRODUCT_POINT_YN(PRD_MST_CD, #{MEM_MST_MEMBER_GROUP})   PRD_POINT_YN
+            , (SELECT SUBSTR(REPLACE(TO_CHAR( WM_CONCAT(DISTINCT TPO.PRD_OPT_COLR_RGB) ),',','|'), 0,39)  PRODUCT_RGB
+                FROM T_PRD_OPT TPO
+               WHERE PRD_MST_CD = TPO.PRD_PRD_MST_CD
+               GROUP BY PRD_PRD_MST_CD ) PRODUCT_RGB        
+        FROM ( 
+            SELECT ROWNUM RNUM, PRD_MST_CD, PRD_MST_NORMAL_PRICE, PRD_MST_NM, PRD_MST_SELL_PRICE
+            FROM 
+            (
+                WITH PWT1 AS (
+                    SELECT 
+                        DISTINCT DSP_PRD_MST_CD
+                    FROM T_DSP_CTG
+                    WHERE DSP_PRD_CTG_IDX IN
+                      (
+                        SELECT 
+                          PC.PRD_CTG_IDX
+                        FROM T_PRD_CTG PC
+                        <include refid="productCategoryWhere"/>
+                      )
+                )
+                SELECT 
+                    DISTINCT PM.PRD_MST_CD, PM.PRD_MST_NM, PM.PRD_MST_NORMAL_PRICE, PM.PRD_MST_SELL_PRICE, PRD_RANK ORD,
+                    PM.PRD_MST_REG_DT
+                FROM T_PRD_MST PM , T_PLN_DTL PD, T_DSP_CTG CT, T_PRD_BST PB, PWT1
+                WHERE PM.PRD_MST_CD = CT.DSP_PRD_MST_CD      
+                    AND PD.PLN_PRD_MST_CD = CT.DSP_PRD_MST_CD
+                    AND PD.PLN_MST_IDX = #{PLN_MST_IDX}
+                    AND PM.PRD_MST_CD = PB.PRD_MST_CD(+)
+                    AND PM.PRD_MST_CD = PWT1.DSP_PRD_MST_CD
+                <include refid="productWhere"/>
+                <if test="PRODUCT_LIST_ORDER != null and PRODUCT_LIST_ORDER != ''">
+                    ORDER BY ${PRODUCT_LIST_ORDER}
+                </if>
+            )     
+        )
+        WHERE RNUM BETWEEN #{startNum} AND #{endNum}
+    </select>
+    
+    <!-- 브랜드별 하위 카테고리 -->
+    <select id="selectSubCategoryList" parameterType="HashMap" resultType="HashMap">
+    /* PcPlan.selectSubCategoryList */
+
+        WITH PCT AS (
+            SELECT 
+                PC.PRD_CTG_IDX, PRD_CTG_NM
+            FROM T_PRD_CTG PC
+            WHERE PC.PRD_CTG_USE_YN = 'Y'
+        <if test="PRD_CTG_ENV != null and PRD_CTG_ENV != ''">
+            AND PC.PRD_CTG_ENV = #{PRD_CTG_ENV}
+        </if>
+            START WITH PC.PRD_CTG_IDX = #{catIdx}
+            CONNECT BY PRIOR PC.PRD_CTG_IDX = PC.PRD_CTG_UP_IDX
+        )
+        SELECT 
+            DISTINCT DSP_PRD_CTG_IDX, PRD_CTG_NM
+        FROM T_PRD_MST PM, T_DSP_CTG DCT, T_PLN_DTL PD, PCT
+        WHERE PM.PRD_MST_CD = DCT.DSP_PRD_MST_CD      
+        AND PM.PRD_MST_CD = PD.PLN_PRD_MST_CD                       
+        AND PD.PLN_MST_IDX = #{PLN_MST_IDX}
+        AND PM.PRD_MST_SEL_STATE = 'I'   
+        AND DCT.DSP_PRD_CTG_IDX = PCT.PRD_CTG_IDX
+        GROUP BY DSP_PRD_CTG_IDX, PRD_CTG_NM     
+           
+    </select>
+    
+    <!--  이벤트 상품 전시 카테고리 (브랜드 기준) -->
+    <select id="selectEventProductCategoryList" parameterType="HashMap" resultType="HashMap">
+        /* PcPlan.selectEventProductCategoryList */
+        SELECT 
+            PRD_CTG_IDX, PRD_CTG_NM, PRD_CTG_LEVEL, PRD_CTG_UP_IDX, PRD_CTG_SORT
+        FROM T_PRD_CTG
+        WHERE PRD_CTG_USE_YN = 'Y'
+        <if test="PRD_CTG_ENV != null and PRD_CTG_ENV != ''">
+        AND PRD_CTG_ENV = #{PRD_CTG_ENV}
+        </if>
+        AND PRD_CTG_PRD_CNT > 0
+        START WITH PRD_CTG_IDX in ( 
+                    WITH PCT AS (
+                      SELECT 
+                        PC.PRD_CTG_IDX, PRD_CTG_NM, PRD_CTG_LEVEL, PRD_CTG_UP_IDX
+                        FROM T_PRD_CTG PC
+                        WHERE PC.PRD_CTG_USE_YN = 'Y'
+                        AND PC.PRD_CTG_PRD_CNT &gt; 0
+                    <if test="PRD_CTG_ENV != null and PRD_CTG_ENV != ''">
+                        AND PC.PRD_CTG_ENV = #{PRD_CTG_ENV}
+                    </if>
+                        START WITH PC.PRD_CTG_IDX = #{catIdx}
+                        CONNECT BY PRIOR PC.PRD_CTG_IDX = PC.PRD_CTG_UP_IDX
+                    )
+                    SELECT 
+                      DISTINCT DSP_PRD_CTG_IDX
+                    FROM T_PLN_DTL PD, T_PRD_MST PM, T_DSP_CTG DCT, PCT
+                    WHERE PD.PLN_PRD_MST_CD = PM.PRD_MST_CD
+                    AND PM.PRD_MST_CD = DCT.DSP_PRD_MST_CD      
+                    AND PD.PLN_MST_IDX = #{PLN_MST_IDX}
+                    AND PM.PRD_MST_SEL_STATE = 'I'   
+                    AND DCT.DSP_PRD_CTG_IDX = PCT.PRD_CTG_IDX
+        )
+        CONNECT BY PRIOR PRD_CTG_UP_IDX = PRD_CTG_IDX AND PRD_CTG_USE_YN = 'Y' AND PRD_CTG_DSP_YN='Y'
+        GROUP BY PRD_CTG_IDX, PRD_CTG_NM, PRD_CTG_LEVEL, PRD_CTG_UP_IDX, PRD_CTG_SORT
+        ORDER BY PRD_CTG_LEVEL, PRD_CTG_UP_IDX, PRD_CTG_SORT
+    </select>
+    
+    <!-- 프론트 > 기획전 > 상품구성 그룹 목록 -->
+    <select id="selectPlanDetailGroupList" parameterType="HashMap" resultType="HashMap">
+        /* PcPlan.selectPlanDetailGroupList */
+        SELECT PLN_GRP_IDX
+             , PLN_MST_IDX
+             , PLN_GRP_TITLE
+             , PLN_GRP_COL
+             , PLN_GRP_SORT
+             , PLN_GRP_TYPE
+             , PLN_GRP_DESC
+             , (SELECT CMM_FLE_ATT_PATH || CMM_FLE_SYS_NM FROM T_CMM_FLE WHERE CMM_FLE_TB_NM = 'T_PLN_GRP' AND CMM_FLE_TB_PK = T.PLN_GRP_IDX AND CMM_FLE_TB_TYPE = #{CMM_FLE_TB_TYPE} AND CMM_FLE_USE_YN = 'Y' AND ROWNUM = 1) AS FILE_NM
+             , (SELECT CMN_FLE_ALT_TXT || CMM_FLE_SYS_NM FROM T_CMM_FLE WHERE CMM_FLE_TB_NM = 'T_PLN_GRP' AND CMM_FLE_TB_PK = T.PLN_GRP_IDX AND CMM_FLE_TB_TYPE = #{CMM_FLE_TB_TYPE} AND CMM_FLE_USE_YN = 'Y' AND ROWNUM = 1) AS CMM_FLE_ALT_TXT
+          FROM T_PLN_GRP T
+         WHERE PLN_MST_IDX = #{PLN_MST_IDX}
+         ORDER BY PLN_GRP_SORT ASC
+    </select>
+    
+    <!-- 프론트 > 기획전 > 상품구성 그룹의 상품 목록 -->
+    <select id="selectPlanDetailList" parameterType="HashMap" resultType="HashMap">
+        /* PcPlan.selectPlanDetailList */
+        SELECT S2.* 
+        	/* , TTM.TAG_MST_TITLE */
+            FROM
+                (SELECT S1.*
+                     /* ,TTB.TAG_MST_ID
+                     , DECODE(MOD(RNK,2),1,'a','b') AS RNK_GB*/
+                     , ROUND(((PRD_MST_PRC - PLN_PRD_PRICE) / PRD_MST_PRC) * 100,1) AS PRD_SALE_RATE
+                  FROM (
+                        SELECT ROW_NUMBER() OVER (PARTITION BY PLN_GRP_IDX ORDER BY PD.PLN_GRP_IDX,PD.PLN_DTL_ORDER ASC) AS RNK 
+                             /*, MOD(TO_NUMBER(ROW_NUMBER() OVER (PARTITION BY PLN_GRP_IDX ORDER BY PD.PLN_GRP_IDX,PD.PLN_DTL_ORDER ASC))-1,(SELECT PLN_GRP_COL FROM T_PLN_GRP TPG WHERE TPG.PLN_GRP_IDX = PD.PLN_GRP_IDX))+1 AS RNK_NUM*/
+                             , PD.PLN_GRP_IDX 
+                             , PD.PLN_DTL_ORDER
+                             , PD.PLN_PRD_MST_CD 
+                             , PM.PRD_MST_NM
+                             , FN_GET_PRODUCT_NM(PM.PRD_MST_CD,34) AS PRD_MST_NM_SUB
+                             , PM.PRD_MST_SEL_STATE
+                             , PM.PRD_MST_PRC  
+                             , PM.PRD_MST_SEL_CNT
+                             , FN_PRODUCT_LIST_PRICE(PD.PLN_PRD_MST_CD , #{PRD_CTG_ENV}, #{MEM_MST_MEM_ID}) PLN_PRD_PRICE 
+                             , FN_PRODUCT_IMG(PD.PLN_PRD_MST_CD,#{IMG_THUMBNAIL_SIZE}) IMG_THUMBNAIL
+                             , (SELECT PRD_IMG_ALT_TEXT FROM T_PRD_IMG WHERE PRD_PRD_MST_CD = PM.PRD_MST_CD AND PRD_IMG_IDX = 0 AND PRD_IMG_ATT_SIZE = 0 ) AS PRD_IMAGE_ALT
+                             , (SELECT PRD_IMG_ATT_PATH||PRD_IMG_SYS_NM FROM T_PRD_IMG WHERE PRD_PRD_MST_CD = PM.PRD_MST_CD AND PRD_IMG_IDX = '1' AND PRD_IMG_ATT_SIZE = #{IMG_THUMBNAIL_SIZE}) AS PRD_ROLL_OVER_IMG
+                             , FN_PRD_MST_DSP_PRC(PM.PRD_MST_CD, #{PRD_CTG_ENV}) AS PRD_MST_DSP_PRC
+                             , (SELECT COUNT(CNT_MST_ID) FROM T_LIK_HIS WHERE CNT_MST_ID = PLN_PRD_MST_CD) AS LIKE_COUNT
+                             , (CASE WHEN (SELECT COUNT(CNT_MST_ID) FROM T_LIK_HIS WHERE CNT_MST_ID = PLN_PRD_MST_CD AND MEM_MST_ID = #{MEM_MST_MEM_ID})>0 THEN 'Y' ELSE 'N' END) AS MY_LIKE
+				             , PM.PRD_MST_LIVE_ON_YN
+				             , ( 
+				             	SELECT tmp01.BND_MST_BRAND_NM 
+				             	FROM T_BND_MST tmp01 
+				             	WHERE tmp01.BND_MST_IDX = PM.PRD_MST_BRD_IDX
+				             ) AS BND_MST_BRAND_NM
+				            , (
+				             	SELECT tmp02.TAG_MST_TITLE
+				             	FROM T_TAG_BND tmp01, T_TAG_MST tmp02 
+				             	WHERE tmp01.TAG_BND_ID = PM.PRD_MST_CD
+				             	AND tmp01.TAG_BND_TYPE = 'TYPE_PRODUCT'
+				             	AND tmp01.TAG_BND_REP = 'Y'
+				             	AND tmp01.TAG_MST_ID = tmp02.TAG_MST_ID
+				             ) AS TAG_MST_TITLE
+                          FROM  T_PLN_DTL PD
+                             ,  T_PRD_MST PM
+                         WHERE PD.PLN_PRD_MST_CD = PM.PRD_MST_CD         
+                           AND PLN_MST_IDX = #{PLN_MST_IDX}
+                           AND FN_GET_PRODUCT_STATUS(PM.PRD_MST_CD) = 'true' 
+                           <if test="searchPlnMstShopType != null and searchPlnMstShopType != ''">
+                           AND PRD_MST_CNL_PC_YN = #{searchPlnMstShopType}
+                           </if>
+                           <if test="searchPlnMstShopTypeMobile != null and searchPlnMstShopTypeMobile != ''">
+                           AND PRD_MST_CNL_MB_YN = #{searchPlnMstShopTypeMobile}
+                           </if>
+                         ) S1 /*LEFT OUTER JOIN T_TAG_BND TTB ON (TO_CHAR(S1.PLN_PRD_MST_CD) = TTB.TAG_BND_ID AND TTB.TAG_BND_TYPE='TYPE_PRODUCT')*/
+                   ORDER BY S1.PLN_GRP_IDX ASC , S1.PLN_DTL_ORDER ASC ) S2 /* LEFT JOIN T_TAG_MST TTM ON S2.TAG_MST_ID = TTM.TAG_MST_ID*/
+    </select>
+    
+    <select id="planSecretSaleCheck" parameterType="hashMap" resultType="Integer">
+        /* PcPlan.planSecretSaleCheck */
+        
+        SELECT COUNT(PLN_MST_IDX)
+          FROM T_PLN_MST
+         WHERE PLN_MST_IDX  = #{PLN_MST_IDX}
+           AND PLN_MST_USE_YN   = 'Y'
+           AND PLN_MST_TYPE     = 'S'
+           AND PLN_MST_SECRET   = #{PLN_MST_SECRET}
+           <![CDATA[      
+           AND TO_DATE(PLN_MST_ST_DT || PLN_MST_ST_HH || PLN_MST_ST_MI ||'59','yyyymmddhh24miss') <= SYSDATE
+           AND TO_DATE(PLN_MST_ED_DT || PLN_MST_ED_HH || PLN_MST_ED_MI ||'59','yyyymmddhh24miss') >= SYSDATE
+           ]]>
+        <if test="searchPlnMstShopType != null and searchPlnMstShopType != ''">
+            AND PLN_MST_CHANNEL_PC_YN = #{searchPlnMstShopType}
+        </if>
+        <if test="searchPlnMstShopTypeMobile != null and searchPlnMstShopTypeMobile != ''">
+            AND PLN_MST_CHANNEL_MOBILE_YN = #{searchPlnMstShopTypeMobile}
+        </if>
+    </select>
+    
+    <select id="selectPlanCategoryList" parameterType="hashMap" resultType="hashMap">
+        SELECT 
+            PRD_CTG_IDX
+            , PRD_CTG_NM
+            , PRD_CTG_UP_IDX
+            , PRD_CTG_LEVEL
+        FROM 
+            T_PRD_CTG
+        WHERE PRD_CTG_DEL_YN != 'Y'
+		AND PRD_CTG_ENV = #{PRD_CTG_ENV}
+		AND PRD_CTG_UP_IDX = -1
+    </select>
+</mapper>

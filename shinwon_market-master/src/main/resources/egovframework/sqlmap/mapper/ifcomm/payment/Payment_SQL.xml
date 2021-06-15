@@ -1,0 +1,291 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="Payment">
+	
+    <!-- PayMaster 등록 -->
+    <insert id="insertLgPayMaster" parameterType="hashmap">
+        <selectKey keyProperty="SEQ_PAY_MST_IDX" resultType="int" order="BEFORE">
+            SELECT SEQ_PAY_MST_IDX.NEXTVAL FROM DUAL
+        </selectKey>
+        /* Payment.insertLgPayMaster */
+        INSERT INTO T_PAY_MST (
+            PAY_MST_IDX, PAY_MST_RESPCODE, PAY_MST_RESPMSG, PAY_MST_MID, PAY_MST_OID, 
+            PAY_MST_AMOUNT, PAY_MST_TID, PAY_MST_PAYTYPE, 
+            PAY_MST_PAYDATE, 
+            PAY_MST_HASHDATA, 
+            PAY_MST_FINANCECODE, PAY_MST_FINANCENAME, PAY_MST_ESCROWYN, PAY_MST_TRANSAMOUNT, PAY_MST_EXCHANGERATE, 
+            PAY_MST_BUYER, PAY_MST_BUYERID, PAY_MST_BUYERPHONE, PAY_MST_BUYEREMAIL, PAY_MST_PRODUCTINFO, 
+            PAY_MST_CARDINSTALLMONTH, PAY_MST_CARDNOINTYN, PAY_MST_FINANCEAUTHNUM, PAY_MST_ACCOUNTNUM, 
+            PAY_MST_CASTAMOUNT, PAY_MST_CASCAMOUNT, PAY_MST_CASFLAG, PAY_MST_CASSEQNO, PAY_MST_CASHRECEIPTNUM, 
+            PAY_MST_CASHRECEIPTSELFYN, PAY_MST_CASHRECEIPTKIND, PAY_MST_TELNO, PAY_MST_TR_STATUS, 
+            PAY_MST_CLOSEDATE
+            , PAY_MST_PG_TXNAME
+            , PAY_MST_PG_CARDNUM
+            , PAY_MST_PG_RESPDATE
+            , PAY_MST_PG_CANREQDATE
+            , PAY_MST_PG_RESREMAINAMOUNT
+            
+        ) VALUES (
+            #{SEQ_PAY_MST_IDX}, #{LGD_RESPCODE}, #{LGD_RESMSG}, #{LGD_MID}
+            , #{LGD_OID}
+            , #{LGD_AMOUNT}, #{LGD_TID}, #{LGD_PAYTYPE},
+            TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS') ,
+            #{LGD_HASHDATA},
+            #{LGD_FINANCECODE}, #{LGD_FINANCENAME}, #{LGD_ESCROWYN}, #{LGD_TRANSAMOUNT}, #{LGD_EXCHANGERATE},
+            #{LGD_BUYER}, #{LGD_BUYERID}, #{LGD_BUYERPHONE}, #{LGD_BUYEREMAIL}, #{LGD_PRODUCTINFO},
+            #{LGD_CARDINSTALLMONTH}, #{LGD_CARDNOINTYN}, #{LGD_FINANCEAUTHNUM}, #{LGD_ACCOUNTNUM},
+            #{LGD_CASTAMOUNT}, #{LGD_CASCAMOUNT}, #{LGD_CASFLAG}, #{LGD_CASSEQNO}, #{LGD_CASHRECEIPTNUM},
+            #{LGD_CASHRECEIPTSELFYN}, #{LGD_CASHRECEIPTKIND}, #{LGD_TELNO}, #{PAY_MST_TR_STATUS},
+            #{LGD_CLOSEDATE}
+            , #{PAY_MST_PG_TXNAME}
+            , #{LGD_CARDNUM}
+            , #{LGD_RESPDATE}
+            , #{LGD_CANREQDATE}
+            , #{LGD_RESREMAINAMOUNT}
+        ) 
+    </insert>   
+    
+	<!-- PayMaster 등록 -->
+	<insert id="insertPayMaster" parameterType="hashmap">
+		<selectKey keyProperty="SEQ_PAY_MST_IDX" resultType="int" order="BEFORE">
+			SELECT SEQ_PAY_MST_IDX.NEXTVAL FROM DUAL
+		</selectKey>
+		/* Payment.insertPayMaster */
+		INSERT INTO T_PAY_MST (
+			PAY_MST_IDX, PAY_MST_RESPCODE, PAY_MST_RESPMSG, PAY_MST_MID, PAY_MST_OID, 
+			PAY_MST_AMOUNT, PAY_MST_TID, PAY_MST_PAYTYPE, 
+			PAY_MST_PAYDATE, 
+			PAY_MST_HASHDATA, 
+			PAY_MST_FINANCECODE, PAY_MST_FINANCENAME, PAY_MST_ESCROWYN, PAY_MST_TRANSAMOUNT, PAY_MST_EXCHANGERATE, 
+			PAY_MST_BUYER, PAY_MST_BUYERID, PAY_MST_BUYERPHONE, PAY_MST_BUYEREMAIL, PAY_MST_PRODUCTINFO, 
+			PAY_MST_CARDINSTALLMONTH, PAY_MST_CARDNOINTYN, PAY_MST_FINANCEAUTHNUM, PAY_MST_ACCOUNTNUM, 
+			PAY_MST_CASTAMOUNT, PAY_MST_CASCAMOUNT, PAY_MST_CASFLAG, PAY_MST_CASSEQNO, PAY_MST_CASHRECEIPTNUM, 
+			PAY_MST_CASHRECEIPTSELFYN, PAY_MST_CASHRECEIPTKIND, PAY_MST_TELNO, PAY_MST_TR_STATUS, 
+			PAY_MST_KAKAO_PAYMETHOD, PAY_MST_KAKAO_AUTHCODE, PAY_MST_KAKAO_CARDCODE, PAY_MST_KAKAO_CARDNAME,
+			PAY_MST_KAKAO_CARDQUOTA, PAY_MST_KAKAO_CARDINTEREST, PAY_MST_KAKAO_CARDCL, PAY_MST_KAKAO_CARDBIN,
+			PAY_MST_KAKAO_CARDPOINT, PAY_MST_KAKAO_NONREPTOKEN,			
+			PAY_MST_KAKAO_AUTHDATE,
+			PAY_MST_CLOSEDATE,
+			PAY_MST_KICC_AUTH_NO,
+			PAY_MST_KICC_TRAN_DATE,
+			PAY_MST_KICC_CARD_NO,
+			PAY_MST_KICC_ISSUER_CD,
+			PAY_MST_KICC_ISSUER_NM,
+			PAY_MST_KICC_ACQUIRER_CD,
+			PAY_MST_KICC_ACQUIRER_NM,
+			PAY_MST_KICC_INSTALL_PERIOD,
+			PAY_MST_KICC_NOINT,
+			PAY_MST_KICC_PNT_AUTH_NO,
+			PAY_MST_KICC_PNT_TRAN_DATE,
+			PAY_MST_KICC_BANK_CD,
+			PAY_MST_KICC_BANK_NM,
+			PAY_MST_KICC_ACCOUNT_NO,
+			PAY_MST_KICC_DEPOSIT_NM,
+			PAY_MST_KICC_EXPIRE_DATE,
+			PAY_MST_KICC_CASH_RES_CD,
+			PAY_MST_KICC_CASH_RES_MSG,
+			PAY_MST_KICC_CASH_AUTH_NO,
+			PAY_MST_KICC_CASH_TRAN_DATE,
+			PAY_MST_KICC_AUTH_ID,
+			PAY_MST_KICC_BILLID,
+			PAY_MST_KICC_MOBILE_NO,
+			PAY_MST_KICC_USED_PNT,
+			PAY_MST_KICC_REMAIN_PNT,
+			PAY_MST_KICC_PAY_PNT,
+			PAY_MST_KICC_ACCURE_PNT,
+			PAY_MST_KICC_ESCROW_YN,
+			PAY_MST_KICC_COMPLEX_YN,
+			PAY_MST_KICC_CANC_ACQ_DATE,
+			PAY_MST_KICC_CANC_DATE,
+			PAY_MST_KICC_REFUND_DATE,
+			PAY_MST_KICC_ARS_NO
+		) VALUES (
+			#{SEQ_PAY_MST_IDX}, #{PAY_MST_RESPCODE}, #{PAY_MST_RESPMSG}, #{PAY_MST_MID}
+			, NVL(#{PAY_MST_OID}, #{ORD_MST_CD})
+			, #{PAY_MST_AMOUNT}, #{PAY_MST_TID}, #{PAY_MST_PAYTYPE},
+            <choose>
+                <when test="PAY_MST_PAYDATE != null and PAY_MST_PAYDATE !=''">
+                    #{PAY_MST_PAYDATE},
+                </when>
+                <otherwise>
+                    TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+                </otherwise>
+            </choose>
+			#{PAY_MST_HASHDATA},
+			#{PAY_MST_FINANCECODE}, #{PAY_MST_FINANCENAME}, #{PAY_MST_ESCROWYN}, #{PAY_MST_TRANSAMOUNT}, #{PAY_MST_EXCHANGERATE},
+			#{PAY_MST_BUYER}, #{PAY_MST_BUYERID}, #{PAY_MST_BUYERPHONE}, #{PAY_MST_BUYEREMAIL}, #{PAY_MST_PRODUCTINFO},
+			#{PAY_MST_CARDINSTALLMONTH}, #{PAY_MST_CARDNOINTYN}, #{PAY_MST_FINANCEAUTHNUM}, #{PAY_MST_ACCOUNTNUM},
+			#{PAY_MST_CASTAMOUNT}, #{PAY_MST_CASCAMOUNT}, #{PAY_MST_CASFLAG}, #{PAY_MST_CASSEQNO}, #{PAY_MST_CASHRECEIPTNUM},
+			#{PAY_MST_CASHRECEIPTSELFYN}, #{PAY_MST_CASHRECEIPTKIND}, #{PAY_MST_TELNO}, #{PAY_MST_TR_STATUS},
+			#{PAY_MST_KAKAO_PAYMETHOD}, #{PAY_MST_KAKAO_AUTHCODE}, #{PAY_MST_KAKAO_CARDCODE}, #{PAY_MST_KAKAO_CARDNAME},
+			#{PAY_MST_KAKAO_CARDQUOTA}, #{PAY_MST_KAKAO_CARDINTEREST}, #{PAY_MST_KAKAO_CARDCL}, #{PAY_MST_KAKAO_CARDBIN},
+			#{PAY_MST_KAKAO_CARDPOINT}, #{PAY_MST_KAKAO_NONREPTOKEN},	
+			#{PAY_MST_KAKAO_AUTHDATE},
+			#{PAY_MST_CLOSEDATE},
+			#{PAY_MST_KICC_AUTH_NO},
+			#{PAY_MST_KICC_TRAN_DATE},
+			#{PAY_MST_KICC_CARD_NO},
+			#{PAY_MST_KICC_ISSUER_CD},
+			#{PAY_MST_KICC_ISSUER_NM},
+			#{PAY_MST_KICC_ACQUIRER_CD},
+			#{PAY_MST_KICC_ACQUIRER_NM},
+			#{PAY_MST_KICC_INSTALL_PERIOD},
+			#{PAY_MST_KICC_NOINT},
+			#{PAY_MST_KICC_PNT_AUTH_NO},
+			#{PAY_MST_KICC_PNT_TRAN_DATE},
+			#{PAY_MST_KICC_BANK_CD},
+			#{PAY_MST_KICC_BANK_NM},
+			#{PAY_MST_KICC_ACCOUNT_NO},
+			#{PAY_MST_KICC_DEPOSIT_NM},
+			#{PAY_MST_KICC_EXPIRE_DATE},
+			#{PAY_MST_KICC_CASH_RES_CD},
+			#{PAY_MST_KICC_CASH_RES_MSG},
+			#{PAY_MST_KICC_CASH_AUTH_NO},
+			#{PAY_MST_KICC_CASH_TRAN_DATE},
+			#{PAY_MST_KICC_AUTH_ID},
+			#{PAY_MST_KICC_BILLID},
+			#{PAY_MST_KICC_MOBILE_NO},
+			#{PAY_MST_KICC_USED_PNT},
+			#{PAY_MST_KICC_REMAIN_PNT},
+			#{PAY_MST_KICC_PAY_PNT},
+			#{PAY_MST_KICC_ACCURE_PNT},
+			#{PAY_MST_KICC_ESCROW_YN},
+			#{PAY_MST_KICC_COMPLEX_YN},
+			#{PAY_MST_KICC_CANC_ACQ_DATE},
+			#{PAY_MST_KICC_CANC_DATE},
+			#{PAY_MST_KICC_REFUND_DATE},
+			#{PAY_MST_KICC_ARS_NO}		
+		) 
+	</insert>	
+	
+	<!-- PayMaster 삭제(캐쉬백 포인트 기존 조회 내역 삭제시에만 사용) -->
+	<update id="deletePayMaster" parameterType="HashMap">
+		/* Payment.deletePayMaster	*/
+		<![CDATA[
+			DELETE FROM T_PAY_MST WHERE PAY_MST_OID = #{ORD_MST_CD} AND PAY_MST_TR_STATUS = 'I'
+		]]>
+	</update>
+	
+	<!-- 무통장 입금 완료시 주문 상태 변경 -->
+	<update id="updatePayDepositState" parameterType="HashMap">
+		/* Payment.updatePayDepositState	*/
+		<![CDATA[
+			UPDATE T_ORD_PRD
+			SET 
+				ORD_PRD_ORD_STATE = #{ORDER_STATE}
+			WHERE 
+				ORD_ORD_MST_CD = #{ORD_MST_CD}
+				AND ORD_PRD_ORD_STATE = #{ORDER_STATE_READY}
+		]]>
+	</update>
+	
+	<!-- 무통장 입금 완료시 T_PAY_MST 수정 -->
+	<update id="updatePayMst" parameterType="HashMap">
+		/* Payment.updatePayMst	*/
+		<![CDATA[
+			UPDATE T_PAY_MST
+			SET 
+				PAY_MST_PAYDATE = TO_CHAR(SYSDATE,'YYYYMMDDHH24MISS')
+                , PAY_MST_CASTAMOUNT = #{LGD_CASTAMOUNT}
+                , PAY_MST_CASCAMOUNT = #{LGD_CASCAMOUNT}
+                , PAY_MST_CASFLAG = #{LGD_CASFLAG}
+                , PAY_MST_CASSEQNO = #{LGD_CASSEQNO}
+			WHERE 
+				PAY_MST_OID = #{LGD_OID}
+		]]>
+	</update>
+	
+	<!-- 무통장 입금 완료시 T_ORD_MST 결제일시 변경 -->
+	<update id="updateOrdMstPayDate" parameterType="HashMap">
+		/* Payment.updateOrdMstPayDate	*/
+		<![CDATA[
+			UPDATE T_ORD_MST
+			SET 
+				ORD_MST_PAY_DT = TO_CHAR(SYSDATE,'YYYYMMDDHH24MISS')
+			WHERE 
+				ORD_MST_CD = #{ORD_MST_CD}
+		]]>
+	</update>
+	
+	<!-- 무통장 입금 완료시 주문 상태 변경 히스토리 등록-->
+	<insert id="insertPayDepositOrdPrdHistory" parameterType="HashMap">
+		/* Payment.insertPayDepositOrdPrdHistory */
+		INSERT INTO T_ORD_PRD_HIS (
+			ORD_PRD_HIS_IDX,
+			ORD_ORD_MST_CD,
+			ORD_PRD_MST_CD,
+			ORD_ORD_PRD_IDX,
+			ORD_PRD_ORD_STATE,
+			ORD_PRD_REG_DT,
+			ORD_PRD_DSC,
+			ORD_PRD_REG_TYPE
+		) 
+		SELECT
+			SEQ_ORD_PRD_HIS_IDX.NEXTVAL, 
+			ORD_ORD_MST_CD,
+			ORD_PRD_MST_CD,
+			ORD_PRD_IDX,
+			ORD_PRD_ORD_STATE,
+			TO_CHAR(SYSDATE,'YYYYMMDDHH24MISS'),
+			#{ORD_PRD_DSC},
+			#{ORD_PRD_REG_TYPE}
+		FROM T_ORD_PRD
+		WHERE 
+			ORD_ORD_MST_CD = #{ORD_MST_CD}
+	</insert>
+	
+	<!-- 무통장 입금 완료시 주문 정보 상세 -->
+	<select id="selectOrdMstInfo" parameterType="HashMap" resultType="HashMap">
+		/* Payment.selectOrdMstInfo */
+		<![CDATA[
+			SELECT 
+				ORD_MST_CD
+				, ORD_MST_HP1
+				, ORD_MST_HP2
+				, ORD_MST_HP3 as ORD_MST_HP3
+			FROM T_ORD_MST 
+			WHERE ORD_MST_CD = #{ORD_MST_CD}
+		]]>	
+	</select>
+	
+	<!-- 무통장 입금 완료시 주문 상품 EDI 배송예약번호 리스트 -->
+	<select id="selectOrdEdiOrdNoList" parameterType="HashMap" resultType="HashMap">
+		/* Payment.selectOrdEdiOrdNoList */
+		<![CDATA[
+			SELECT 
+				ORD_ORD_EDI_ORD_NO 
+			FROM T_ORD_PRD
+			WHERE ORD_ORD_MST_CD = #{ORD_MST_CD}
+		]]>	
+	</select>
+	
+	<!-- 캐쉬백 포인트 조회/사용/적립 정보 -->
+	<select id="selectOrderCashbagInfo" parameterType="HashMap" resultType="HashMap">
+		/* Payment.selectOrderCashbagInfo */
+		<![CDATA[
+			SELECT 
+				PAY_MST_KICC_CARD_NO
+				, PAY_MST_TID
+				, PAY_MST_MID
+			FROM T_PAY_MST
+			WHERE PAY_MST_OID = #{ORD_MST_CD}
+			AND PAY_MST_TR_STATUS = #{trStatus}
+			AND PAY_MST_RESPCODE = '0000'
+			AND ROWNUM = 1
+		]]>	
+	</select>
+	
+	<!-- 에스크로 상태 변경(구매확인/거절) -->
+	<update id="updateEscrowState" parameterType="HashMap">
+		/* Payment.updateEscrowState	*/
+		<![CDATA[
+			UPDATE T_ORD_MST
+			SET 
+				ORD_MST_ECR_CFM_YN = #{ORD_MST_ECR_CFM_YN}
+				, ORD_MST_ECR_CFM_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS')
+			WHERE 
+				ORD_MST_CD = #{ORD_MST_CD}
+		]]>
+	</update>
+	
+</mapper>

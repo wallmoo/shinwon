@@ -1,0 +1,210 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="Sms">
+	<!-- sms 전송 -->
+	<insert id="insertMMS" parameterClass="hashmap">
+		<selectKey keyProperty="SDK_MMS_SEQ" resultClass="Integer">	
+    		SELECT SDK_MMS_SEQ.NEXTVAL FROM DUAL
+    	</selectKey>
+		<![CDATA[
+			/* Sms.insertMMS */		
+			INSERT INTO SDK_MMS_SEND
+				   (MSG_ID, USER_ID,SCHEDULE_TYPE,NOW_DATE,SEND_DATE,CALLBACK,DEST_INFO,MMS_MSG)
+			VALUES (#SDK_MMS_SEQ#, #USER_ID#, #SCHEDULE_TYPE#, TO_CHAR(SYSDATE,'YYYYMMDDHH24MISS'),TO_CHAR(SYSDATE,'YYYYMMDDHH24MISS'),#TR_CALLBACK#,#DEST_INFO#,#TR_MSG#)  	
+		]]>			
+	</insert>	
+	
+	
+	<insert id="insertScTran" parameterClass="hashmap">
+		<selectKey keyProperty="SC_TRAN_SEQ" resultClass="int">
+			SELECT US_SMS_INC.SQ_SC_TRAN.NEXTVAL@US_YAK FROM DUAL
+		</selectKey>
+		<![CDATA[
+			INSERT INTO US_YAK.SC_TRAN
+				(TR_NUM, TR_SENDDATE, TR_SENDSTAT, TR_MSGTYPE, TR_PHONE, TR_CALLBACK, TR_MSG, TR_ETC1)
+			VALUES (#SC_TRAN_SEQ#, SYSDATE, '0','0',#TR_PHONE#,#TR_CALLBACK#,#TR_MSG#, #REG_ID#)  	
+		]]>			
+	</insert>
+	
+	<!-- LMS 전송 -->
+	<insert id="insertLmsMsg" parameterClass="hashmap">
+		<selectKey keyProperty="MMS_MSG_SEQ" resultClass="int">
+			SELECT SDK_MMS_SEQ.NEXTVAL AS MMS_MSG_SEQ FROM DUAL
+		</selectKey>
+			INSERT INTO SDK_MMS_SEND
+			(
+				MSG_ID
+				, USER_ID
+				, SUBJECT
+				, NOW_DATE
+				, SEND_DATE
+				, SCHEDULE_TYPE
+				, CALLBACK
+				, MMS_MSG
+				, DEST_INFO
+			)
+			VALUES 
+			(
+				#MMS_MSG_SEQ#
+				, #USER_ID#
+				, #TR_SUBJECT#
+				, TO_CHAR(SYSDATE,'YYYYMMDDHH24MISS')
+				<isNotEmpty property="sendDate">
+				, #sendDate#
+				, 1
+				</isNotEmpty>
+				<isEmpty property="sendDate">
+				, TO_CHAR(SYSDATE,'YYYYMMDDHH24MISS')
+				, 0
+				</isEmpty>
+				, #TR_CALLBACK#
+				, #TR_MSG#
+				, #DEST_INFO#
+			)  	
+	</insert>
+	
+	<!-- LMS 히스토리 -->
+	<insert id="insertLmsHistory" parameterClass="hashmap">
+		<selectKey keyProperty="LMS_MST_IDX" resultClass="int">
+			SELECT SEQ_LMS_MST_IDX.NEXTVAL AS LMS_MST_IDX FROM DUAL
+		</selectKey>
+		<![CDATA[
+			INSERT INTO T_LMS_MST
+			(
+				LMS_MST_IDX
+				,LMS_MST_TITLE
+				,LMS_MST_HP1
+				,LMS_MST_HP2
+				,LMS_MST_HP3
+				,LMS_MST_CONTENTS
+				,LMS_MST_REG_DT
+				,LMS_MST_REG_IP
+				,LMS_MST_REG_ID
+			)
+			VALUES 
+			(
+				#LMS_MST_IDX#											/* 히스토리 IDX */
+				,#TR_SUBJECT#											/* 제목 */
+				,#LMS_MST_HP1#											/* 휴대폰번호1 */
+				,#LMS_MST_HP2#											/* 휴대폰번호1 */
+				,#LMS_MST_HP3#   /* 휴대폰번호3 */				
+				,#TR_MSG#												/* 내용 */
+				,TO_CHAR(SYSDATE,'YYYYMMDDHH24MISS')					/* 발송일 */
+				,#LMS_MST_REG_IP#										/* 발송IP */
+				,#USER_ID#												/* 발송자 아이디 */
+			)  	
+		]]>			
+	</insert>	
+	
+	
+	
+	<sql id="smsWhere">
+		<isEqual property="searchEtc" compareValue="Y">
+                AND TR_ETC1 IS NOT NULL
+        </isEqual>
+		<isNotEmpty property="searchPhoneNo">
+                AND TR_PHONE LIKE '%' || #searchPhoneNo# || '%'
+        </isNotEmpty>
+        <isNotEmpty property="searchDate">
+                AND TO_CHAR(TR_SENDDATE, 'YYYYMMDD') = #searchDate#
+        </isNotEmpty>
+	</sql>
+	
+	<!-- sms 발송 목록 개수 -->
+	<select id="selectSmsLogListCount" parameterClass="hashMap" resultClass="Integer">
+		SELECT
+			COUNT(1)
+		FROM
+			$TABLE_NAME$
+		WHERE 
+			1=1
+		<include refid="smsWhere"/>	
+	</select>
+	
+	<!-- sms 발송목록 -->
+	<select id="selectSmsLogList" parameterClass="hashmap" resultClass="hashMap">
+		SELECT
+			S2.*
+			, (SELECT ADM_MST_NM FROM T_ADM_MST WHERE ADM_MST_ID = S2.REG_ID) AS REG_NM
+		FROM
+		(
+		SELECT
+           ROWNUM AS RNUM,
+           S1.* 
+        FROM
+           (
+				SELECT
+					TR_SENDSTAT
+					, TO_CHAR(TR_SENDDATE, 'YYYYMMDDhh24miss') AS SEND_DATE
+					, TR_RSLTSTAT AS RESULT_CODE
+					, TR_PHONE AS PHONE_NO
+					, TR_MSG AS CONTENTS
+					, TR_ETC1 AS REG_ID
+				FROM
+					$TABLE_NAME$
+				WHERE 
+					1=1
+				<include refid="smsWhere"/>	
+				ORDER BY TR_SENDDATE DESC	
+			) S1
+		) S2	
+		WHERE
+            S2.RNUM BETWEEN #startNum# AND #endNum#
+	</select>
+	
+	<sql id="mmsWhere">
+		<isEqual property="searchEtc" compareValue="Y">
+                AND ETC1 IS NOT NULL
+        </isEqual>
+		<isNotEmpty property="searchPhoneNo">
+                AND PHONE LIKE '%' || #searchPhoneNo# || '%'
+        </isNotEmpty>
+        <isNotEmpty property="searchDate">
+                AND TO_CHAR(SENTDATE, 'YYYYMMDD') = #searchDate#
+        </isNotEmpty>
+	</sql>
+	
+	<!-- mms 발송 목록 개수 -->
+	<select id="selectMmsLogListCount" parameterClass="hashMap" resultClass="Integer">
+		SELECT
+			COUNT(1)
+		FROM
+			$TABLE_NAME$
+		WHERE 
+			1=1
+		<include refid="mmsWhere"/>	
+	</select>
+	
+	<!-- mms 발송목록 -->
+	<select id="selectMmsLogList" parameterClass="hashmap" resultClass="hashMap">
+		SELECT
+			S2.*
+			, (SELECT ADM_MST_NM FROM T_ADM_MST WHERE ADM_MST_ID = S2.REG_ID) AS REG_NM
+		FROM
+		(
+		SELECT
+           ROWNUM AS RNUM,
+           S1.* 
+        FROM
+           (
+				SELECT
+					STATUS
+					, SUBJECT
+					, TO_CHAR(SENTDATE, 'YYYYMMDDhh24miss') AS SEND_DATE
+					, RSLT AS RESULT_CODE
+					, PHONE AS PHONE_NO
+					, MSG AS CONTENTS
+					, ETC1 AS REG_ID
+				FROM
+					$TABLE_NAME$
+				WHERE 
+					1=1
+				<include refid="mmsWhere"/>	
+				ORDER BY SENTDATE DESC	
+			) S1
+		) S2	
+		WHERE
+            S2.RNUM BETWEEN #startNum# AND #endNum#
+	</select>
+	
+</mapper>

@@ -1,0 +1,486 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="Support">
+
+    <sql id="noticeWhere">
+        <if test="searchDrtCmnComIdx != null and searchDrtCmnComIdx != ''">
+            AND DRT_CMN_COM_IDX = #{searchDrtCmnComIdx}
+        </if>
+    </sql>
+    
+     <sql id="erpEmpWhere">
+        <if test="BU_NAME != null and BU_NAME != ''">
+            AND BU_NAME like  '%'||#{BU_NAME}||'%'
+        </if>
+        <if test="KS_NAME != null and KS_NAME != ''">
+            AND KS_NAME LIKE '%'||#{KS_NAME} ||'%'
+        </if>
+    </sql>
+    
+    <sql id="faqWhere">
+        <if test="SEARCH_WORD != null and SEARCH_WORD != ''">
+            AND ((DRT_FAQ_TITLE LIKE '%' || #{SEARCH_WORD} || '%') OR (DRT_FAQ_CONTENTS LIKE '%' || #{SEARCH_WORD} || '%'))
+        </if>
+        <if test="DRT_CMN_COM_IDX != null and DRT_CMN_COM_IDX != ''">
+            AND DRT_CMN_COM_IDX = #{DRT_CMN_COM_IDX} 
+        </if>
+    </sql>
+    
+    
+    <!-- 관리자 > 게시판 관리 > 공지사항 목록 갯수 -->
+    <select id="selectNoticeListCount" parameterType="HashMap" resultType="Integer">
+        /* Support.selectNoticeListCount */
+        SELECT
+            COUNT(DRT_NTS_IDX)
+        FROM
+            T_DRT_NTS
+        WHERE
+            DRT_NTS_USE_YN = 'Y'
+             <include refid="noticeWhere"/>
+    </select>
+    
+    <!-- 관리자 > 게시판 관리 > 공지사항 목록 -->
+    <select id="selectNoticeList" parameterType="HashMap" resultType="HashMap">
+        /* Support.selectNoticeList */
+        SELECT
+            S2.*,
+            (   SELECT
+                    CMN_COM_NM 
+                FROM
+                    T_CMM_COM 
+                WHERE
+                    CMN_COM_IDX = S2.DRT_CMN_COM_IDX 
+            )AS DRT_CMN_COM_NM,
+            (
+            SELECT
+                ADM_MST_NM
+            FROM
+                T_ADM_MST
+            WHERE
+                ADM_MST_ID = DRT_NTS_REG_ID
+            )
+            AS ADM_MST_NM
+        FROM
+            (   SELECT
+                    ROWNUM AS RNUM,
+                    S1.* 
+                FROM
+                    (   SELECT
+                            DRT_NTS_IDX,
+                            DRT_NTS_TITLE,
+                            DRT_NTS_TOP_YN,
+                            NVL(DRT_NTS_READ_CNT, 0) AS DRT_NTS_READ_CNT,
+                            DRT_NTS_USE_YN,
+                            SUBSTR(DRT_NTS_REG_DT,1,4)||'.'||SUBSTR(DRT_NTS_REG_DT,5,2)||'.'||SUBSTR(DRT_NTS_REG_DT,7,2) AS DRT_NTS_REG_DT,
+                            DRT_NTS_REG_IP,
+                            DRT_NTS_REG_ID,
+                            DRT_NTS_UPD_DT,
+                            DRT_NTS_UPD_IP,
+                            DRT_NTS_UPD_ID,
+                            DRT_CMN_COM_IDX,
+                            DRT_NTS_REG_DT AS DRT_NTS_REG_DT_ORDER
+                        FROM
+                            T_DRT_NTS 
+                        WHERE
+                            DRT_NTS_USE_YN = 'Y'
+                            <include refid="noticeWhere"/>
+                       ORDER BY DRT_NTS_TOP_YN DESC, DRT_NTS_REG_DT_ORDER DESC 
+                    )
+                    S1 
+            )
+            S2
+         WHERE
+            S2.RNUM BETWEEN #{startNum} AND #{endNum}
+        
+    </select>
+    <!-- 관리자 > 게시판 관리 > 공지사항 목록 -->
+    <select id="selectNoticeListMain" parameterType="HashMap" resultType="HashMap">
+        /* Support.selectNoticeListMain */
+        SELECT
+            S2.*,
+            (   SELECT
+                    CMN_COM_NM 
+                FROM
+                    T_CMM_COM 
+                WHERE
+                    CMN_COM_IDX = S2.DRT_CMN_COM_IDX 
+            )AS DRT_CMN_COM_NM,
+            (
+            SELECT
+                ADM_MST_NM
+            FROM
+                T_ADM_MST
+            WHERE
+                ADM_MST_ID = DRT_NTS_REG_ID
+            )
+            AS ADM_MST_NM
+        FROM
+            (   SELECT
+                    ROWNUM AS RNUM,
+                    S1.* 
+                FROM
+                    (   SELECT
+                            DRT_NTS_IDX,
+                            DRT_NTS_TITLE,
+                            DRT_NTS_TOP_YN,
+                            NVL(DRT_NTS_READ_CNT, 0) AS DRT_NTS_READ_CNT,
+                            DRT_NTS_USE_YN,
+                            SUBSTR(DRT_NTS_REG_DT,1,4)||'.'||SUBSTR(DRT_NTS_REG_DT,5,2)||'.'||SUBSTR(DRT_NTS_REG_DT,7,2) AS DRT_NTS_REG_DT,
+                            DRT_NTS_REG_IP,
+                            DRT_NTS_REG_ID,
+                            DRT_NTS_UPD_DT,
+                            DRT_NTS_UPD_IP,
+                            DRT_NTS_UPD_ID,
+                            DRT_CMN_COM_IDX,
+                            DRT_NTS_REG_DT AS DRT_NTS_REG_DT_ORDER
+                        FROM
+                            T_DRT_NTS 
+                        WHERE
+                            DRT_NTS_USE_YN = 'Y'
+                            <include refid="noticeWhere"/>
+                       ORDER BY DRT_NTS_REG_DT_ORDER DESC 
+                    )
+                    S1 
+            )
+            S2
+         WHERE
+            S2.RNUM BETWEEN #{startNum} AND #{endNum}
+        
+    </select>
+    <!-- 관리자 > 오프라인직영점 관리 > 공지사항 상세정보  -->
+    <resultMap id="resultNoticeInfo" type="HashMap">
+        <result property="DRT_NTS_IDX" column="DRT_NTS_IDX"/>
+        <result property="DRT_NTS_TITLE" column="DRT_NTS_TITLE"/>
+        <result property="DRT_NTS_CONTENTS" column="DRT_NTS_CONTENTS" jdbcType="CLOB" javaType="java.lang.String"/>
+        <result property="DRT_NTS_TOP_YN" column="DRT_NTS_TOP_YN"/>
+        <result property="DRT_NTS_READ_CNT" column="DRT_NTS_READ_CNT"/>
+        <result property="DRT_NTS_USE_YN" column="DRT_NTS_USE_YN"/>
+        <result property="DRT_NTS_REG_DT" column="DRT_NTS_REG_DT"/>
+        <result property="DRT_NTS_REG_IP" column="DRT_NTS_REG_IP"/>
+        <result property="DRT_NTS_REG_ID" column="DRT_NTS_REG_ID"/>
+        <result property="DRT_NTS_UPD_DT" column="DRT_NTS_UPD_DT"/>
+        <result property="DRT_NTS_UPD_IP" column="DRT_NTS_UPD_IP"/>
+        <result property="DRT_NTS_UPD_ID" column="DRT_NTS_UPD_ID"/>
+        <result property="DRT_CMN_COM_IDX" column="DRT_CMN_COM_IDX"/>
+        <result property="ADM_MST_NM" column="ADM_MST_NM"/>
+        <result property="ADM_MST_NM_UPD" column="ADM_MST_NM_UPD"/>
+    </resultMap>
+    <select id="selectNoticeInfo" parameterType="HashMap" resultMap="resultNoticeInfo">
+        /* Support.selectNoticeInfo */
+        SELECT
+            DRT_NTS_IDX,
+            DRT_NTS_TITLE,
+            DRT_NTS_CONTENTS,
+            DRT_NTS_TOP_YN,
+            DRT_NTS_READ_CNT,
+            DRT_NTS_USE_YN,
+            SUBSTR(DRT_NTS_REG_DT,1,4)||'.'||SUBSTR(DRT_NTS_REG_DT,5,2)||'.'||SUBSTR(DRT_NTS_REG_DT,7,2) AS DRT_NTS_REG_DT,
+            DRT_NTS_REG_IP,
+            DRT_NTS_REG_ID,
+            DRT_NTS_UPD_DT,
+            DRT_NTS_UPD_IP,
+            DRT_NTS_UPD_ID,
+            DRT_CMN_COM_IDX,
+            (
+            SELECT
+                ADM_MST_NM
+            FROM
+                T_ADM_MST
+            WHERE
+                ADM_MST_ID = DRT_NTS_REG_ID
+            )
+            AS ADM_MST_NM,
+             (
+            SELECT
+                ADM_MST_NM
+            FROM
+                T_ADM_MST
+            WHERE
+                ADM_MST_ID = DRT_NTS_UPD_ID
+            )
+            AS ADM_MST_NM_UPD
+        FROM
+            T_DRT_NTS
+        WHERE
+            DRT_NTS_IDX = #{DRT_NTS_IDX}
+    </select>
+    <!-- 인포사이트 > 조회수 수정 -->
+    <update id="updateNoticeReadCount" parameterType="HashMap">
+        /* Support.updateNoticeReadCount */
+        UPDATE
+            T_DRT_NTS 
+        SET
+            DRT_NTS_READ_CNT = NVL(DRT_NTS_READ_CNT,0)+1
+        WHERE
+            DRT_NTS_IDX = #{DRT_NTS_IDX}
+    </update>
+     <!-- 첨부파일 목록  -->
+    <select id="selectCommonFileList" parameterType="HashMap" resultType="HashMap">
+        /* Support.selectCommonFileList */
+        SELECT
+            CMM_FLE_IDX,
+            CMM_FLE_TB_NM,
+            CMM_FLE_TB_PK,
+            CMM_FLE_TB_TYPE,
+            CMM_FLE_SYS_PATH,
+            CMM_FLE_ATT_PATH,
+            CMM_FLE_ORG_NM,
+            CMM_FLE_SYS_NM,
+            CMM_FLE_ATT_SIZE,
+            CMM_FLE_ATT_EXT,
+            CMM_FLE_DW_CNT,
+            CMM_FLE_SORT,
+            CMM_FLE_USE_YN,
+            CMM_FLE_REG_DT,
+            CMM_FLE_REG_ID,
+            CMN_FLE_ALT_TXT,
+            CMM_FLE_SYS_PATH || CMM_FLE_ATT_PATH || CMM_FLE_SYS_NM AS CMM_FLE_SAVE_PATH
+        FROM
+            T_CMM_FLE
+        WHERE
+            CMM_FLE_TB_NM = #{CMM_FLE_TB_NM}
+            AND CMM_FLE_TB_PK = #{CMM_FLE_TB_PK}
+            AND CMM_FLE_USE_YN = 'Y'
+    </select>
+    <select id="selectPraiseMailInfo" parameterType="HashMap" resultType="HashMap">
+        /* Support.selectPraiseMailInfo */
+        SELECT EMP_THK_IDX,
+               TO_CHAR(TO_DATE(EMP_THK_REG_DT,'yyyymmddhh24miss'),'yyyy-mm-dd') AS EMP_THK_REG_DT,
+               SUBSTR(EMP_THK_CST_NM,1,LENGTH(EMP_THK_CST_NM) - 1)||'*' AS EMP_THK_CST_NM,
+               EMP_THK_HP1||'-****-'||EMP_THK_HP3 AS EMP_THK_HP,
+               CASE WHEN EMP_THK_TEL3 IS NOT NULL THEN EMP_THK_TEL1||'-****-'||EMP_THK_TEL3 ELSE '-' END AS EMP_THK_TEL,
+               EMP_THK_MAIL,
+               EMP_THK_BRC_NM,
+               EMP_THK_CHG_NM,
+               EMP_THK_CTR_NM,
+               EMP_THK_DRV_NM,
+               TO_CHAR(TO_DATE(EMP_THK_VST_DT,'yyyymmdd'),'yyyy-mm-dd') AS EMP_THK_VST_DT,
+               EMP_THK_TITLE,
+               EMP_THK_CONTENTS
+        FROM T_EMP_THK
+        WHERE EMP_THK_IDX = #{EMP_THK_IDX}
+
+    </select>
+    <!-- 관리자 > 오프라인직영점 관리 > 매장관리 등록 -->
+    <insert id="insertPraise" parameterType="HashMap">
+        <selectKey keyProperty="EMP_THK_IDX" resultType="Integer" order="BEFORE">
+            SELECT SEQ_EMP_THK_IDX.NEXTVAL AS EMP_THK_IDX FROM DUAL
+        </selectKey>
+        /* Support.insertPraise */
+        INSERT INTO
+            T_EMP_THK
+            (
+                EMP_THK_IDX,
+                EMP_THK_CST_NM,
+                EMP_THK_MAIL,
+                EMP_THK_HP1,
+                EMP_THK_HP2,
+                EMP_THK_HP3,
+                EMP_THK_TEL1,
+                EMP_THK_TEL2,
+                EMP_THK_TEL3,
+                EMP_THK_BRC_NM,
+                EMP_THK_CHG_NM,
+                EMP_THK_BRC_CD,
+                EMP_THK_CHG_SBN,
+                EMP_THK_CTR_NM,
+                EMP_THK_DRV_NM,
+                EMP_THK_CTR_CD,
+                EMP_THK_DRV_SBN,
+                EMP_THK_VST_DT,
+                EMP_THK_TITLE,
+                EMP_THK_CONTENTS,
+                EMP_THK_READ_CNT,
+                EMP_THK_REG_DT,
+                EMP_THK_REG_IP
+            )
+        VALUES
+            (
+                #{EMP_THK_IDX},
+                #{EMP_THK_CST_NM},
+                #{EMP_THK_MAIL},
+                #{EMP_THK_HP1},
+                #{EMP_THK_HP2},
+                #{EMP_THK_HP3},
+                #{EMP_THK_TEL1},
+                #{EMP_THK_TEL2},
+                #{EMP_THK_TEL3},
+                #{EMP_THK_BRC_NM},
+                #{EMP_THK_CHG_NM},
+                #{EMP_THK_BRC_CD},
+                #{EMP_THK_CHG_SBN},
+                #{EMP_THK_CTR_NM},
+                #{EMP_THK_DRV_NM},
+                #{EMP_THK_CTR_CD},
+                #{EMP_THK_DRV_SBN},
+                TRIM(REPLACE(#{EMP_THK_VST_DT},'-','')),
+                #{EMP_THK_TITLE},
+                #{EMP_THK_CONTENTS},
+                0,
+                TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+                #{EMP_THK_REG_IP}
+           )
+    </insert>
+    <select id="selectErpEmpListCount" parameterType="HashMap" resultType="Integer">
+        /* Support.selectErpEmpListCount */
+        SELECT
+            COUNT(*)
+        FROM
+            T_ERP_EMP
+        WHERE
+            MCSTYL = #{MCSTYL}
+             <include refid="erpEmpWhere"/>
+    </select>
+    
+    <select id="selectPraiseRegCheck" parameterType="String" resultType="String">
+        /* Support.selectErpEmpListCount */
+        SELECT CASE WHEN SYSDATE <![CDATA[ > ]]> NVL(TO_DATE(MAX(EMP_THK_REG_DT),'yyyymmddhh24miss'),SYSDATE - 1)  + ((1/24/60) * 5) THEN 'Y' ELSE 'N' END AS REG_YN
+        FROM T_EMP_THK
+        WHERE EMP_THK_REG_IP = #{EMP_THK_REG_IP}
+    </select>
+    
+    <!-- 관리자 > 게시판 관리 > 공지사항 목록 -->
+    <select id="selectErpEmpList" parameterType="HashMap" resultType="HashMap">
+        /* Support.selectErpEmpList */
+        SELECT
+            S2.* 
+        FROM
+            (   SELECT
+                    ROWNUM AS RNUM,
+                    S1.* 
+                FROM
+                    (   SELECT
+                            BU_CODE,
+                            BU_NAME,
+                            KS_SABUN,
+                            KS_NAME,
+                            PHOTONAME
+                        FROM
+                            T_ERP_EMP 
+                        WHERE
+                            MCSTYL = #{MCSTYL}
+                            <include refid="erpEmpWhere"/>
+                    )
+                    S1 
+            )
+            S2
+         WHERE
+            S2.RNUM BETWEEN #{startNum} AND #{endNum}
+        
+    </select>
+    
+    <select id="selectCounselBranchList" parameterType="HashMap" resultType="HashMap">
+        /* Support.selectCounselBranchList */
+        SELECT SHP_MST_NM, SHP_MST_IDX, SHP_MST_TEL
+        FROM T_SHP_MST
+        WHERE SHP_MST_USE_YN = 'Y'
+        ORDER BY SHP_MST_NM
+    </select>
+        <!-- 인포사이트 > 상담하기 등록 -->
+    <insert id="insertCounsel" parameterType="HashMap">
+        <selectKey keyProperty="MEM_CST_IDX" resultType="Integer" order="BEFORE">
+            SELECT SEQ_MEM_CST_IDX.NEXTVAL AS MEM_CST_IDX FROM DUAL
+        </selectKey>
+        /* Support.insertCounsel */
+        INSERT INTO T_MEM_CST
+        (
+            MEM_CST_IDX,
+            MEM_CST_NM,
+            MEM_CST_MAIL,
+            MEM_CST_HP1,
+            MEM_CST_HP2,
+            MEM_CST_HP3,
+            MEM_CST_TEL1,
+            MEM_CST_TEL2,
+            MEM_CST_TEL3,
+            MEM_CST_SHP_CD,
+            MEM_CST_VST_DT,
+            MEM_CST_TITLE,
+            MEM_CST_CONTENTS,
+            MEM_CST_TYPE,
+            MEM_CST_READ_CNT,
+            MEM_CST_MDL_NO,
+            MEM_CST_REG_DT,
+            MEM_CST_REG_IP
+        )
+        VALUES
+        (
+            #{MEM_CST_IDX},
+            #{MEM_CST_NM},
+            #{MEM_CST_MAIL},
+            #{MEM_CST_HP1},
+            #{MEM_CST_HP2},
+            #{MEM_CST_HP3},
+            #{MEM_CST_TEL1},
+            #{MEM_CST_TEL2},
+            #{MEM_CST_TEL3},
+            #{MEM_CST_SHP_CD},
+            TRIM(REPLACE(#{MEM_CST_VST_DT},'-','')),
+            #{MEM_CST_TITLE},
+            #{MEM_CST_CONTENTS},
+            #{MEM_CST_TYPE},
+            0,
+            #{MEM_CST_MDL_NO},
+            TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+            #{MEM_CST_REG_IP}
+        )
+    </insert>
+    <!-- 인포사이트 > FAQ 관리 목록 갯수 -->
+    <select id="selectFaqListCount" parameterType="HashMap" resultType="Integer">
+        /* Support.selectFaqListCount */
+        SELECT
+            COUNT(DRT_FAQ_IDX)
+        FROM
+            T_DRT_FAQ
+        WHERE
+            DRT_FAQ_USE_YN = 'Y'
+            <include refid="faqWhere"/>
+    </select>
+    <!-- 관리자 > 오프라인직영점 관리 > 공지사항 상세정보  -->
+    <resultMap id="resultFaqInfo" type="HashMap">
+        <result property="DRT_FAQ_IDX" column="DRT_FAQ_IDX"/>
+        <result property="DRT_FAQ_TITLE" column="DRT_FAQ_TITLE"/>
+        <result property="DRT_FAQ_CONTENTS" column="DRT_FAQ_CONTENTS" jdbcType="CLOB" javaType="java.lang.String"/>
+        <result property="DRT_CMN_COM_IDX_NM" column="DRT_CMN_COM_IDX_NM"/>
+    </resultMap>
+    <!-- 인포사이트 > FAQ 관리 목록 -->
+    <select id="selectFaqList" parameterType="HashMap" resultMap="resultFaqInfo">
+        /* Support.selectFaqList */
+        SELECT
+            S2.*  
+        FROM
+            (   SELECT
+                    ROWNUM AS RNUM,
+                    S1.* 
+                FROM
+                    (   SELECT
+                            DRT_FAQ_IDX,
+                            DRT_FAQ_TITLE,
+                            DRT_FAQ_CONTENTS,
+                            (SELECT CMN_COM_NM FROM T_CMM_COM WHERE CMN_COM_IDX =  DRT_CMN_COM_IDX) AS DRT_CMN_COM_IDX_NM
+                        FROM
+                            T_DRT_FAQ 
+                        WHERE
+                            DRT_FAQ_USE_YN = 'Y'
+                            <include refid="faqWhere"/>
+                        ORDER BY DRT_FAQ_REG_DT DESC 
+                    )
+                    S1 
+            )
+            S2 
+        WHERE
+            S2.RNUM BETWEEN #{startNum} AND #{endNum}
+    </select>
+    <select id="selectYearList" parameterType="HashMap" resultType="HashMap">
+        SELECT YEAR
+        FROM
+        (
+            SELECT TO_CHAR(SYSDATE,'yyyy') AS YEAR, 1 AS SEQ  FROM DUAL
+            UNION 
+            SELECT TO_CHAR(SYSDATE - 365,'yyyy') AS YEAR, 2 AS SEQ FROM DUAL
+            UNION
+            SELECT TO_CHAR(SYSDATE + 365,'yyyy')  AS YEAR, 3 AS SEQ  FROM DUAL
+        ) A
+        ORDER BY A.SEQ
+</select>
+</mapper>

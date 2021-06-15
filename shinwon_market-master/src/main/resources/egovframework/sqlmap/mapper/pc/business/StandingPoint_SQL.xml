@@ -1,0 +1,449 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="PcStandingPoint">
+
+	<!-- 프론트 > 입점신청 >  입점상당 -->
+	<insert id="insertStandingPointCounsel" parameterType="HashMap">
+		<selectKey keyProperty="VDR_CST_IDX" resultType="Integer" order="BEFORE">
+        	SELECT SEQ_VDR_CST_IDX.NEXTVAL AS VDR_CST_IDX FROM DUAL
+        </selectKey>					
+		/* PcStandingPoint.insertStandingPointCounsel */
+		INSERT INTO
+			T_VDR_CST
+			(
+				 VDR_CST_IDX 		/* 입점상당 IDX  */
+				,VDR_LGN_IDX		/* 입점업체 계정정보 IDX  */	
+                ,VDR_CST_GUBUN		/* 입점업체 쇼핑몰 분류  */
+                ,VDR_CST_NM          /* 입점업체명  */
+                ,VDR_CST_TITLE      /* 입점문의 제목  */
+                ,VDR_CST_BUSI1
+                ,VDR_CST_BUSI2
+                ,VDR_CST_BUSI3
+                ,VDR_CST_SUB_BUSI
+				,VDR_CST_MNG_NM 	/* 담당자명 */	
+				,VDR_CST_TEL1 		/* 담당자_유선전화1 */
+				,VDR_CST_TEL2 		/* 담당자_유선전화2 */
+				,VDR_CST_TEL3 		/* 담당자_유선전화3 */
+				,VDR_CST_HP1 		/* 휴대폰번호1 */				
+				,VDR_CST_HP2 		/* 휴대폰번호2 */				
+				,VDR_CST_HP3 		/* 휴대폰번호3 */				
+				,VDR_CST_MAIL 		/* 이메일 */
+				,VDR_CST_CTS 		/* 입점신청내용 */
+				,VDR_CST_URL		/* 사이트 URL */				
+				,VDR_CST_GBN 		/* 구분 */				
+				,VDR_CST_REG_DT 	/* 최초등록일 */
+				,VDR_CST_REG_IP 	/* 최초등록IP */
+				,VDR_CST_REG_ID 	/* 최초등록자 아이디 */	
+                ,VDR_CST_AGR_YN
+                
+			) VALUES
+			(
+				#{VDR_CST_IDX} 		/* 입점상당 IDX  */
+				,#{VDR_LGN_IDX}		/* 입점업체 계정정보 IDX  */	
+                ,#{VDR_CST_GUBUN}	/* 입점업체 쇼핑몰 분류  */
+                ,#{VDR_CST_NM}      /* 입점업체명  */
+                ,#{VDR_CST_TITLE}   /* 입점문의 제목  */
+                ,#{VDR_CST_BUSI1}
+                ,#{VDR_CST_BUSI2}
+                ,#{VDR_CST_BUSI3}
+                ,#{VDR_CST_SUB_BUSI}  	
+				,#{VDR_CST_MNG_NM} 	/* 담당자명 */	
+				,#{VDR_CST_TEL1} 	/* 담당자_유선전화1 */
+				,#{VDR_CST_TEL2} 	/* 담당자_유선전화2 */
+				,#{VDR_CST_TEL3}     /* 담당자_유선전화3 */				
+				,#{VDR_CST_HP1} 		/* 휴대폰번호1 */				
+				,#{VDR_CST_HP2} 		/* 휴대폰번호2 */				
+				,#{VDR_CST_HP3}     /* 휴대폰번호3 */								
+				,#{VDR_CST_MAIL}	   /* 이메일 */				
+				,#{VDR_CST_CTS} 		/* 입점신청내용 */
+				,#{VDR_CST_URL}		/* 사이트 URL */							
+				,#{VDR_CST_GBN} 		/* 구분 */				
+				,TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS')                       /* 최초등록일 */
+				,#{VDR_CST_REG_IP} 	/* 최초등록IP */
+				,#{VDR_CST_REG_ID} 	/* 최초등록자 아이디 */
+                ,#{VDR_CST_AGR_YN}			     
+			 )		
+	</insert>	
+	
+	
+	<!-- 프론트 > 입점신청 >  입점상당 리스트 카운트 -->
+    <select id="selectStandingPointCounselListCount" parameterType="HashMap" resultType="Integer">
+        /* PcStandingPoint.selectStandingPointCounselListCount */
+        SELECT
+            COUNT(0)
+        FROM
+            T_VDR_CST
+        WHERE 1=1
+            AND VDR_LGN_IDX = #{VDR_LGN_IDX}
+            AND VDR_CST_USE_YN = 'Y'
+		ORDER BY VDR_CST_IDX DESC            
+    </select>
+    
+    
+	<!-- 프론트 > 입점신청 > 입점상당 리스트 -->
+    <select id="selectStandingPointCounselList" parameterType="HashMap" resultType="HashMap">
+        /* PcStandingPoint.selectStandingPointCounselList */
+        	SELECT 
+				S2.*
+			FROM(
+					SELECT
+	                   ROWNUM AS RNUM		/* 글번호 */
+	                   , S1.VDR_CST_IDX		/* 입점상당 IDX */
+	                   , S1.VDR_LGN_IDX		/* 입점업체 IDX */
+	                   , S1.PRD_CTG_IDX		/* 카테고리 IDX */
+	                   , S1.VDR_CST_SUM		/* 입점신청요약 */
+	                   , S1.PRD_CTG_UP_NM	/* 1Depth */
+	                   , S1.PRD_CTG_NM		/* 2Depth */
+	                   , S1.VDR_CST_GBN		/* 구분 (현재상태)  */
+	                   , S1.VDR_CST_GBN_NM	/* 구분이름 (현재상태)  */                   
+	                   , S1.VDR_CST_REG_DT	/* 등록일  */
+	               FROM
+	                   (   
+							SELECT
+								VDR_CST_IDX				/* 입점상당 IDX */
+								,VDR_LGN_IDX			/* 입점업체 IDX */
+								,PRD_CTG_IDX			/* 카테고리 IDX */
+								,(SELECT PRD_CTG_NM FROM T_PRD_CTG WHERE PRD_CTG_IDX = A.PRD_CTG_IDX) PRD_CTG_NM	/* 현재 카테고리 이름 2Depth */
+								,(
+									SELECT 
+										PRD_CTG_NM 
+									FROM T_PRD_CTG 
+									WHERE 1=1
+										AND PRD_CTG_TOP_IDX = -1 
+										AND PRD_CTG_IDX = (SELECT PRD_CTG_UP_IDX FROM T_PRD_CTG WHERE PRD_CTG_IDX = A.PRD_CTG_IDX) 
+								 ) AS PRD_CTG_UP_NM	    /* 상위 카테고리 이름 1Depth */
+								,VDR_CST_SUM			/* 입점신청요약  */
+								,VDR_CST_GBN			/* 구분 (현재상태) */
+								,(SELECT CMN_COM_NM FROM T_CMM_COM WHERE CMN_COM_IDX=A.VDR_CST_GBN) AS VDR_CST_GBN_NM
+								,TO_CHAR(TO_DATE(VDR_CST_REG_DT,'YYYYMMDDHH24MISS'),'YYYY.MM.DD') AS VDR_CST_REG_DT
+							FROM T_VDR_CST A
+							WHERE 1=1 
+								AND VDR_LGN_IDX = #{VDR_LGN_IDX}
+								AND VDR_CST_USE_YN = 'Y'
+							ORDER BY VDR_CST_IDX DESC
+	                   )
+	                   S1
+				)S2 
+		        WHERE
+		        	S2.RNUM BETWEEN #{startNum} AND #{endNum}
+    </select>    	
+    
+    
+	<!-- 프론트 > 입점신청 > 입점상당 상세정보 -->
+    <select id="selectStandingPointCounselView" parameterType="HashMap" resultType="HashMap">
+        /* PcStandingPoint.selectStandingPointCounselView */    
+    	SELECT 
+			VDR_CST_IDX			/* 입점상당 IDX */
+			,VDR_LGN_IDX		/* 입점업체 계정정보 IDX */
+			,PRD_CTG_IDX		/* 카테고리 IDX */
+			,(SELECT PRD_CTG_NM FROM T_PRD_CTG WHERE PRD_CTG_IDX = A.PRD_CTG_IDX) PRD_CTG_NM	/* 현재 카테고리 이름 2Depth */
+			,(
+				SELECT 
+					PRD_CTG_NM 
+				FROM T_PRD_CTG 
+				WHERE 1=1
+					AND PRD_CTG_TOP_IDX = -1 
+					AND PRD_CTG_IDX = (SELECT PRD_CTG_UP_IDX FROM T_PRD_CTG WHERE PRD_CTG_IDX = A.PRD_CTG_IDX)
+			 ) AS PRD_CTG_UP_NM	    /* 상위 카테고리 이름 1Depth */
+			,(
+				SELECT 
+					PRD_CTG_IDX 
+				FROM T_PRD_CTG 
+				WHERE 1=1
+					AND PRD_CTG_TOP_IDX = -1 
+					AND PRD_CTG_IDX = (SELECT PRD_CTG_UP_IDX FROM T_PRD_CTG WHERE PRD_CTG_IDX = A.PRD_CTG_IDX)
+			 ) AS PRD_CTG_UP_IDX	    /* 상위 카테고리 IDX 1Depth */					 			 			
+			,VDR_CST_MNG_NM		/* 담당자명 */
+			,VDR_CST_TEL1		/* 전화번호1 */
+			,VDR_CST_TEL2		/* 전화번호2 */
+			,VDR_CST_TEL3  /* 전화번호3 */			
+			,VDR_CST_HP1		/* 휴대폰번호1 */
+			,VDR_CST_HP2		/* 휴대폰번호2 */
+			,VDR_CST_HP3  /* 휴대폰번호3 */		
+			,VDR_CST_FAX1		/* 팩스번호1 */
+			,VDR_CST_FAX2		/* 팩스번호2 */
+			,VDR_CST_FAX3  /* 팩스번호3 */			
+			,VDR_CST_MAIL  /* 이메일 */
+			,VDR_CST_SUM		/* 입점신청요약 */
+			,VDR_CST_CTS		/* 입점신청내용 */
+			,VDR_CST_ON_OFF		/* 판매희망채널 */
+			,(SELECT CMN_COM_NM FROM T_CMM_COM WHERE CMN_COM_IDX=VDR_CST_ON_OFF) AS VDR_CST_ON_OFF_NM /* 판매희망채널 명 */
+			,VDR_CST_DTB		/* 현재유통방법 */
+			,VDR_CST_URL		/* 홈페이지 */
+			,VDR_CST_ETC		/* 비고 */
+			,VDR_CST_GBN		/* 구분 */
+			,(SELECT CMN_COM_NM FROM T_CMM_COM WHERE CMN_COM_IDX=VDR_CST_GBN) AS VDR_CST_GBN_NM /* 구분 (현재상태값)*/			
+			,TO_CHAR(TO_DATE(VDR_CST_REG_DT,'YYYYMMDDHH24MISS'),'YYYY.MM.DD HH:mi:SS') AS VDR_CST_REG_DT /* 최초 등록일 */
+			,VDR_CST_REG_ID		/* 최조 등록자 */
+		FROM
+			T_VDR_CST A
+		WHERE 1=1
+			AND VDR_CST_IDX = #{VDR_CST_IDX} 						        			
+    </select>    
+    
+    <!-- 프론트 > 입점신청 > 입점상당 삭제처리  -->
+    <delete id="deleteStandingPointCounsel" parameterType="HashMap">
+        /* PcStandingPoint.deleteStandingPointCounsel */
+        DELETE FROM T_VDR_CST 
+        WHERE
+			VDR_CST_IDX = #{VDR_CST_IDX}
+		AND
+			VDR_LGN_IDX = #{VDR_LGN_IDX}
+    </delete>    
+    
+    <!-- 프론트 > 입점신청 > 입점상당 수정처리  -->
+	<update id="updateStandingPointCounsel" parameterType="HashMap">
+		/* PcStandingPoint.updateStandingPointCounsel */
+		UPDATE
+			T_VDR_CST
+		SET
+			PRD_CTG_IDX 	= #{searchPrdCtgDepth2}		/* 카테고리 IDX */
+			,VDR_CST_MNG_NM = #{VDR_CST_MNG_NM}	/* 담당자명 */	
+			,VDR_CST_TEL1 	= #{VDR_CST_TEL1}	/* 연락처1 */
+			,VDR_CST_TEL2 	= #{VDR_CST_TEL2}	/* 연락처2 */
+			,VDR_CST_TEL3 	= #{VDR_CST_TEL3}		/* 연락처3 */			
+			,VDR_CST_HP1 	= #{VDR_CST_HP1}		/* 휴대폰번호1 */				
+			,VDR_CST_HP2 	= #{VDR_CST_HP2}		/* 휴대폰번호2 */				
+			,VDR_CST_HP3 	= #{VDR_CST_HP3}		/* 휴대폰번호3 */			
+			,VDR_CST_FAX1 	= #{VDR_CST_FAX1}	/* 팩스번호1 */				
+			,VDR_CST_FAX2 	= #{VDR_CST_FAX2}	/* 팩스번호2 */				
+			,VDR_CST_FAX3 	= #{VDR_CST_FAX3}		/* 팩스번호3 */			
+			,VDR_CST_MAIL 	= #{VDR_CST_MAIL}		/* 이메일 */
+			,VDR_CST_SUM 	= #{VDR_CST_SUM}		/* 입점신청요약 */
+			,VDR_CST_CTS 	= #{VDR_CST_CTS}		/* 입점신청내용 */
+			,VDR_CST_ON_OFF = #{VDR_CST_ON_OFF}	/* 판매희망채널 */
+			,VDR_CST_DTB 	= #{RESULT_VDR_CST_DTB}	/* 현재유통방법(구분자처리) */
+			,VDR_CST_URL	= #{VDR_CST_URL}		/* 홈페이지 */	
+			,VDR_CST_ETC 	= #{VDR_CST_ETC}		/* 비고 */				
+			,VDR_CST_UPD_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS') /* 최종등록일 */
+			,VDR_CST_UPD_IP = #{VDR_CST_UPD_IP}	/* 최종등록IP */
+			,VDR_CST_UPD_ID = #{VDR_CST_UPD_ID}	/* 최종등록자 아이디 */	
+		WHERE
+			VDR_CST_IDX = #{VDR_CST_IDX}
+		AND
+			VDR_LGN_IDX = #{VDR_LGN_IDX}
+	</update>    
+	
+	
+	<!-- 프론트 > 입점신청 >  입점 상담서 카운트 -->
+    <select id="selectStandingPointApplicationCount" parameterType="HashMap" resultType="Integer">
+        /* PcStandingPoint.selectStandingPointApplicationCount */
+        SELECT
+            COUNT(0)
+        FROM
+            T_VDR_REQ
+        WHERE 1=1
+            AND VDR_LGN_IDX = #{VDR_LGN_IDX}
+    </select>	
+    
+    
+	<!-- 프론트 > 입점신청 >  입점신청서 등록 -->
+	<insert id="insertStandingPointApplication" parameterType="HashMap">
+		<selectKey keyProperty="VDR_REQ_IDX" resultType="Integer" order="BEFORE">
+        	SELECT SEQ_VDR_REQ_IDX.NEXTVAL AS VDR_REQ_IDX FROM DUAL
+        </selectKey>					
+		/* PcStandingPoint.insertStandingPointApplication */
+		INSERT INTO
+			T_VDR_REQ
+			(
+				VDR_REQ_IDX 		/* 입점상당 IDX  */
+				,VDR_LGN_IDX		/* 입점업체 계정정보 IDX  */			
+				,VDR_REQ_NM 		/* 입점업체명 */
+				,VDR_REQ_CEO_NM 	/* 대표자명 */
+                ,VDR_REQ_BUSI1      /* 사업자번호1 */
+                ,VDR_REQ_BUSI2      /* 사업자번호2 */
+                ,VDR_REQ_BUSI3      /* 사업자번호3 */
+                ,VDR_REQ_SUB_BUSI   /* 종사업자번호 */
+				,VDR_REQ_TYPE 		/* 사업체구분 */
+				,VDR_REQ_JRD_NO1	/* 법인번호1 */ 
+				,VDR_REQ_JRD_NO2 	/* 법인번호2 */
+				,VDR_REQ_POST5 		/* 우편번호 5자리 */
+                ,VDR_REQ_TAX_MAIL   /* 세금계산서이메일 */
+				,VDR_REQ_JB_ADDR1 	/* 지번 기본주소 */
+				,VDR_REQ_JB_ADDR2 	/* 지번 상세주소 */
+				,VDR_REQ_DR_ADDR1 	/* 도로명 기본주소 */
+				,VDR_REQ_DR_ADDR2 	/* 도로명 상세주소 */
+				,VDR_REQ_MAIL 		/* 대표자 이메일 */
+				,VDR_REQ_BUSI_CDT 	/* 업태 */
+				,VDR_REQ_BUSI_TYPE 	/* 업종 */
+				,VDR_REQ_TEL1 		/* 담당자 연락처1 */
+				,VDR_REQ_TEL2 		/* 담당자 연락처2 */
+				,VDR_REQ_TEL3 		/* 담당자 `연락처3 */				
+				,VDR_REQ_FAX1 		/* 팩스번호1 */				
+				,VDR_REQ_FAX2 		/* 팩스번호2 */				
+				,VDR_REQ_FAX3 		/* 팩스번호3 */
+				,VDR_REQ_BANK_CD	/* 은행코드 KICC  기준 */
+				,VDR_REQ_ACT_NO		/* 계좌번호 */
+				,VDR_REQ_ACT_HDR	/* 예금주 */
+				,VDR_REQ_GBN		/* 구분 */
+				,VDR_REQ_REG_DT 	/* 최초등록일 */
+				,VDR_REQ_REG_IP 	/* 최초등록IP */
+				,VDR_REQ_REG_ID 	/* 최초등록자 아이디 */
+                ,VDR_REQ_SHP_NM
+                ,VDR_REQ_URL
+                ,VDR_REQ_MNG_NM
+                ,VDR_REQ_HP1
+                ,VDR_REQ_HP2
+                ,VDR_REQ_HP3
+                ,VDR_REQ_PATH
+                ,VDR_REQ_REF_TEL1
+                ,VDR_REQ_REF_TEL2
+                ,VDR_REQ_REF_TEL3
+                ,VDR_REQ_CNT        /*요청사항*/
+                ,VDR_REQ_SHP_GUBUN /* 쇼핑몰분류 */
+                
+			) VALUES
+			(
+				#{VDR_REQ_IDX} 		/* 입점상당 IDX  */
+				,#{VDR_LGN_IDX}		/* 입점업체 계정정보 IDX  */			
+				,#{VDR_REQ_NM} 		/* 입점업체명 */
+				,#{VDR_REQ_CEO_NM} 	/* 대표자명 */
+                ,#{VDR_REQ_BUSI1}      /* 사업자번호1 */
+                ,#{VDR_REQ_BUSI2}      /* 사업자번호2 */
+                ,#{VDR_REQ_BUSI3}      /* 사업자번호3 */
+                ,#{VDR_REQ_SUB_BUSI}   /* 종사업자번호 */
+				,#{VDR_REQ_TYPE} 	/* 사업체구분 */
+				,#{VDR_REQ_JRD_NO1}	/* 법인번호1 */ 
+				,#{VDR_REQ_JRD_NO2} 	/* 법인번호2 */
+				,#{VDR_REQ_POST5} 		/* 우편번호 5자리 */
+                ,#{VDR_REQ_TAX_MAIL}   /* 세금계산서이메일 */
+				,#{VDR_REQ_JB_ADDR1} 	/* 지번 기본주소 */
+				,#{VDR_REQ_JB_ADDR2} 	/* 지번 상세주소 */
+				,#{VDR_REQ_DR_ADDR1} 	/* 도로명 기본주소 */
+				,#{VDR_REQ_DR_ADDR2} 	/* 도로명 상세주소 */
+				,#{VDR_REQ_MAIL}		/* 이메일 */				
+				,#{VDR_REQ_BUSI_CDT} 	/* 업태 */
+				,#{VDR_REQ_BUSI_TYPE} 	/* 업종 */
+				,#{VDR_REQ_TEL1} 		/* 연락처1 */
+				,#{VDR_REQ_TEL2} 		/* 연락처2 */
+				,#{VDR_REQ_TEL3}		/* 연락처3 */							
+				,#{VDR_REQ_FAX1} 		/* 팩스번호1 */				
+				,#{VDR_REQ_FAX2} 		/* 팩스번호2 */				
+				,#{VDR_REQ_FAX3}		/* 팩스번호3 */				
+				,#{VDR_REQ_BANK_CD}		/* 은행코드 KICC  기준 */
+				,#{VDR_REQ_ACT_NO}		/* 계좌번호 */
+				,#{VDR_REQ_ACT_HDR}		/* 예금주 */
+				,'N'					/* 구분 */
+				,TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS') /* 최초등록일 */
+				,#{VDR_REQ_REG_IP} 	/* 최초등록IP */
+				,#{VDR_REQ_REG_ID} 	/* 최초등록자 아이디 */
+                ,#{VDR_REQ_SHP_NM}
+                ,#{VDR_REQ_URL}
+                ,#{VDR_REQ_MNG_NM}
+                ,#{VDR_REQ_HP1}
+                ,#{VDR_REQ_HP2}
+                ,#{VDR_REQ_HP3}
+                ,#{VDR_REQ_PATH}
+                ,#{VDR_REQ_REF_TEL1}
+                ,#{VDR_REQ_REF_TEL2}
+                ,#{VDR_REQ_REF_TEL3}
+                ,#{VDR_REQ_CNT}
+                ,#{VDR_REQ_SHP_GUBUN} /* 쇼핑몰분류 */ 		     
+			 )		
+	</insert>
+    	    
+    <!-- 입점신청 외부채널 등록 -->
+    <insert id="insertVendorRouteChannel" parameterType="HashMap">                   
+        /* PcStandingPoint.insertVendorRouteChannel */
+        INSERT INTO
+            T_VDR_REQ_CHN
+            (
+                VDR_REQ_IDX         /* 입점상당 IDX  */
+                ,VDR_REQ_CHN_TYPE        /* 입점상담 외부채널  */            
+            ) VALUES
+            (
+                #{VDR_REQ_IDX}      /* 입점상당 IDX  */
+                ,#{VDR_REQ_CHN_TYPE}     /* 입점상담 외부채널  */                   
+             )      
+    </insert>
+    
+	<!-- 프론트 > 입점신청 > 입점 신청서 상세정보 -->
+    <select id="selectStandingPointApplication" parameterType="HashMap" resultType="HashMap">
+		/* PcStandingPoint.selectStandingPointApplication */   
+		SELECT
+				TVR.VDR_REQ_IDX 		/* 입점상당 IDX  */
+				,TVR.VDR_LGN_IDX		/* 입점업체 계정정보 IDX  */			
+				,TVR.VDR_REQ_NM 		/* 입점업체명 */
+				,TVR.VDR_REQ_CEO_NM 	/* 대표자명 */
+				,TVR.VDR_REQ_TYPE 		/* 사업체구분 */
+				,TVR.VDR_REQ_JRD_NO1	/* 법인번호1 */ 
+				,TVR.VDR_REQ_JRD_NO2 	/* 법인번호2 */
+				,TVR.VDR_REQ_POST5 		/* 우편번호 5자리 */
+				,TVR.VDR_REQ_JB_ADDR1 	/* 지번 기본주소 */
+				,TVR.VDR_REQ_JB_ADDR2 	/* 지번 상세주소 */
+				,TVR.VDR_REQ_DR_ADDR1 	/* 도로명 기본주소 */
+				,TVR.VDR_REQ_DR_ADDR2 	/* 도로명 상세주소 */
+				,VDR_REQ_MAIL  /* 이메일 */
+				,TVR.VDR_REQ_BUSI_CDT 	/* 업태 */
+				,TVR.VDR_REQ_BUSI_TYPE 	/* 업종 */
+				,TVR.VDR_REQ_TEL1 		/* 연락처1 */
+				,TVR.VDR_REQ_TEL2 		/* 연락처2 */
+				,VDR_REQ_TEL3  /* 연락처3 */				
+				,TVR.VDR_REQ_FAX1 		/* 팩스번호1 */				
+				,TVR.VDR_REQ_FAX2 		/* 팩스번호2 */				
+				,VDR_REQ_FAX3  /* 팩스번호3 */				
+				,TVR.VDR_REQ_BANK_CD	/* 은행코드 KICC  기준 */
+				,(SELECT CMN_COM_NM FROM T_CMM_COM WHERE CMN_COM_UP_IDX=#{KICC_BANK_CD} AND CMN_COM_ETC1 = TVR.VDR_REQ_BANK_CD  ) AS VDR_REQ_BANK_CD_NM 
+				,TVR.VDR_REQ_ACT_NO		/* 계좌번호 */
+				,TVR.VDR_REQ_ACT_HDR	/* 예금주 */
+				,TVR.VDR_REQ_GBN		/* 구분 */
+				,TVR.VDR_REQ_REG_DT 	/* 최초등록일 */
+				,TVR.VDR_REQ_REG_IP 	/* 최초등록IP */
+				,TVR.VDR_REQ_REG_ID 	/* 최초등록자 아이디 */			
+		FROM 
+			T_VDR_REQ TVR
+		WHERE  	
+			VDR_LGN_IDX = #{VDR_LGN_IDX} 			  		
+    </select>
+        
+	<!-- 프론트 > 입점신청 > 입점 신청서 수정 -->        
+	<update id="updateStandingPointApplication" parameterType="HashMap">
+		/* PcStandingPoint.updateStandingPointApplication */
+		UPDATE
+			T_VDR_REQ
+		SET
+			VDR_REQ_NM 			= #{VDR_REQ_NM} 		/* 입점업체명 */
+			,VDR_REQ_CEO_NM 	= #{VDR_REQ_CEO_NM}  /* 대표자명 */
+			,VDR_REQ_TYPE 		= #{VDR_REQ_TYPE} 	/* 사업체구분 */
+			,VDR_REQ_JRD_NO1	= #{VDR_REQ_JRD_NO1} /* 법인번호1 */ 
+			,VDR_REQ_JRD_NO2 	= #{VDR_REQ_JRD_NO2} /* 법인번호2 */
+			,VDR_REQ_POST5 		= #{VDR_REQ_POST5} 	/* 우편번호 5자리 */
+			,VDR_REQ_JB_ADDR1 	= #{VDR_REQ_JB_ADDR1} /* 지번 기본주소 */
+			,VDR_REQ_JB_ADDR2 	= #{VDR_REQ_JB_ADDR2} /* 지번 상세주소 */
+			,VDR_REQ_DR_ADDR1 	= #{VDR_REQ_DR_ADDR1} /* 도로명 기본주소 */
+			,VDR_REQ_DR_ADDR2 	= #{VDR_REQ_DR_ADDR2} /* 도로명 상세주소 */
+			,VDR_REQ_MAIL       = #{VDR_REQ_MAIL} /* 이메일 */
+			,VDR_REQ_BUSI_CDT 	= #{VDR_REQ_BUSI_CDT}  /* 업태 */
+			,VDR_REQ_BUSI_TYPE 	= #{VDR_REQ_BUSI_TYPE} /* 업종 */
+			,VDR_REQ_TEL1 		= #{VDR_REQ_TEL1} 	/* 연락처1 */
+			,VDR_REQ_TEL2 		= #{VDR_REQ_TEL2} 	/* 연락처2 */
+			,VDR_REQ_TEL3       = #{VDR_REQ_TEL3} /* 연락처3 */			
+			,VDR_REQ_FAX1 		= #{VDR_REQ_FAX1} 	/* 팩스번호1 */				
+			,VDR_REQ_FAX2 		= #{VDR_REQ_FAX2} 	/* 팩스번호2 */				
+			,VDR_REQ_FAX3       = #{VDR_REQ_FAX3} /* 팩스번호3 */			
+			,VDR_REQ_BANK_CD	= #{VDR_REQ_BANK_CD} /* 은행코드 KICC  기준 */
+			,VDR_REQ_ACT_NO		= #{VDR_REQ_ACT_NO}  /* 계좌번호 */
+			,VDR_REQ_ACT_HDR	= #{VDR_REQ_ACT_HDR} /* 예금주 */
+			,VDR_REQ_UPD_DT 	= TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS') /* 최종등록일 */
+			,VDR_REQ_UPD_IP 	= #{VDR_REQ_UPD_IP} /* 최종등록IP */
+			,VDR_REQ_UPD_ID 	= #{VDR_REQ_UPD_ID} /* 최종등록자 아이디 */	
+		WHERE
+			VDR_REQ_IDX = #{VDR_REQ_IDX}
+		AND
+			VDR_LGN_IDX = #{VDR_LGN_IDX}		
+	</update>        
+	
+	<!-- 프론트 > 입점신청 >  입점상당 승인 카운트 -->
+    <select id="selectStandingPointCounselStateCount" parameterType="HashMap" resultType="Integer">
+        /* PcStandingPoint.selectStandingPointCounselStateCount */
+        SELECT
+            COUNT(0)
+        FROM
+            T_VDR_CST  
+        WHERE 1=1
+            AND VDR_LGN_IDX = #{VDR_LGN_IDX}
+            AND VDR_CST_USE_YN = 'Y'
+			AND VDR_CST_GBN = #{VDR_CST_GBN}            
+    </select>	
+</mapper>

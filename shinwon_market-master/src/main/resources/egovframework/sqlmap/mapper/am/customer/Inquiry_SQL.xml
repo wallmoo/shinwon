@@ -1,0 +1,272 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="Inquiry">
+
+    <!-- 관리자 > 고객센터 > 1:1 문의 조건절 -->
+    <sql id="inquiryWhere">
+        <if test="searchStartDate != null and searchStartDate != '' and searchEndDate != null and searchEndDate != ''">
+            AND MEM_ADV_REG_DT BETWEEN REPLACE(#{searchStartDate},'-', '')||'000000' AND REPLACE(#{searchEndDate},'-', '')||'235959'
+        </if>
+
+        <if test="searchMemAdvRegNm != null and searchMemAdvRegNm !=''">
+            AND MEM_ADV_REG_ID IN (SELECT ADM_MST_ID FROM T_ADM_MST WHERE ADM_MST_NM LIKE '%' || #{searchMemAdvRegNm} || '%')
+        </if>
+        
+        <if test="searchMemAdvRegId != null and searchMemAdvRegId !=''">
+            AND MEM_ADV_REG_ID LIKE '%' || #{searchMemAdvRegId} || '%'
+        </if>
+        
+        <if test="searchMemMstMemNm != null and searchMemMstMemNm != ''">
+            AND MEM_MST_MEM_NM LIKE '%' || #{searchMemMstMemNm} || '%'
+        </if>
+        
+        <if test="searchMemMstMemTel != null and searchMemMstMemTel !=''">
+            AND MEM_MST_MEM_ID IN (SELECT MEM_MST_MEM_ID FROM T_MEM_MST WHERE MEM_MST_HP3 LIKE '%' || #{searchMemMstMemTel} || '%')
+        </if>
+        
+        <if test="searchKeyword != null and searchKeyword != ''">
+            AND
+                ((MEM_ADV_TITLE LIKE '%' || #{searchKeyword} || '%') OR (MEM_ADV_CONTENTS LIKE '%' || #{searchKeyword} || '%'))
+        </if>
+        
+        <if test="searchMemAdvType != null and searchMemAdvType != ''">
+            AND MEM_ADV_TYPE = #{searchMemAdvType}
+        </if>
+        
+        <if test="searchMemAdvQstTypeUp != null and searchMemAdvQstTypeUp != ''">
+            AND MEM_ADV_QST_TYPE IN (SELECT CMN_COM_IDX FROM T_CMM_COM WHERE CMN_COM_UP_IDX =  #{searchMemAdvQstTypeUp})
+        </if>
+
+        <if test="searchMemAdvQstType != null and searchMemAdvQstType != ''">
+            AND MEM_ADV_QST_TYPE = #{searchMemAdvQstType}
+        </if>
+        
+        <if test="searchMemAdvRplYn != null and searchMemAdvRplYn != ''">
+            AND MEM_ADV_RPL_YN = #{searchMemAdvRplYn}
+        </if>
+        
+        <if test="searchPrdMstCd != null and searchPrdMstCd != ''">
+            AND MEM_ADV_MDL_NO LIKE '%' ||#{searchPrdMstCd}||'%'
+        </if>
+        
+        <if test="searchPrdMstNm != null and searchPrdMstNm != ''">
+            AND MEM_ADV_MDL_NO IN (SELECT PRD_MST_CD FROM T_PRD_MST WHERE PRD_MST_NM LIKE '%'||#{searchPrdMstNm}||'%')
+        </if>
+        
+        <if test="searchMemAdvTitle != null and searchMemAdvTitle != ''">
+            AND MEM_ADV_TITLE  LIKE '%'||#{searchMemAdvTitle}||'%'
+        </if>
+        <if test="MEM_MST_MEM_ID != null and MEM_MST_MEM_ID != ''">
+            AND MEM_MST_MEM_ID LIKE '%' || #{MEM_MST_MEM_ID} || '%'
+        </if>
+    </sql>
+    
+    <!-- 관리자 > 고객센터 > 1:1문의 목록 갯수 -->
+    <select id="selectInquiryListCount" parameterType="HashMap" resultType="Integer">
+        /* Inquiry.selectInquiryListCount */
+        SELECT
+            COUNT(MEM_ADV_IDX)
+        FROM
+            T_MEM_ADV
+        WHERE
+            1=1
+            <include refid="inquiryWhere"/>
+    </select>
+   
+    <select id="selectInquiryList" parameterType="HashMap" resultType="HashMap">
+        /* Inquiry.selectInquiryList */
+        SELECT
+            S2.* 
+        FROM
+            (   SELECT
+                    ROWNUM AS RNUM,
+                    S1.MEM_ADV_QST_TYPE_UP_NM || '>' || S1.MEM_ADV_QST_TYPE_NM AS MEM_ADV_QST_TYPE_UP_NMS ,
+                    S1.* 
+                FROM
+                    (   SELECT
+                            MEM_ADV_IDX,
+                            MEM_ADV_TYPE,
+                            (SELECT CMN_COM_NM FROM T_CMM_COM WHERE CMN_COM_IDX = MEM_ADV_TYPE) AS MEM_ADV_TYPE_NM,
+                            MEM_ADV_QST_TYPE,
+                            (SELECT CMN_COM_NM FROM T_CMM_COM WHERE CMN_COM_IDX = MEM_ADV_QST_TYPE) AS MEM_ADV_QST_TYPE_NM,
+                            (SELECT CMN_COM_UP_IDX FROM T_CMM_COM WHERE CMN_COM_IDX = MEM_ADV_QST_TYPE) AS MEM_ADV_QST_TYPE_UP,
+                            (SELECT CMN_COM_NM FROM T_CMM_COM WHERE CMN_COM_IDX = 
+                            	(SELECT CMN_COM_UP_IDX FROM T_CMM_COM WHERE CMN_COM_IDX = MEM_ADV_QST_TYPE)) AS MEM_ADV_QST_TYPE_UP_NM,
+                            MEM_ADV_TITLE,
+                            MEM_ADV_RPL_YN,
+                            CASE WHEN MEM_ADV_TYPE = 2238 THEN MEM_MST_MEM_ID ELSE MEM_ADV_REG_ID END AS MEM_ADV_REG_ID, 
+                            CASE WHEN MEM_ADV_TYPE = 2238 THEN A.MEM_MST_MEM_NM  
+                            ELSE (SELECT ADM_MST_NM FROM T_ADM_MST WHERE ADM_MST_ID = A.MEM_ADV_REG_ID) END AS MEM_ADV_REG_NM, 
+                            MEM_ADV_REG_DT,
+                            MEM_ADV_MBL_YN,
+                            MEM_ADV_UPD_DT,
+                            MEM_ADV_UPD_ID,
+                            (SELECT ADM_MST_NM FROM T_ADM_MST WHERE ADM_MST_ID = A.MEM_ADV_UPD_ID) AS MEM_ADV_UPD_NM,
+                            MEM_ADV_CHN_GBN ,
+                            DECODE( MEM_ADV_RPL_YN , 'Y' , '답변완료' , 'N' , '미답변' , '' ) AS MEM_ADV_RPL_YN_NM ,
+                            TO_CHAR( TO_DATE( MEM_ADV_REG_DT, 'YYYYMMDDHH24MISS') ,'YYYY-MM-DD HH24:MI:SS' ) AS MEM_ADV_REG_DT_CHAR ,
+                            TO_CHAR( TO_DATE( MEM_ADV_UPD_DT, 'YYYYMMDDHH24MISS') ,'YYYY-MM-DD HH24:MI:SS' ) AS MEM_ADV_UPD_DT_CHAR 
+                            
+                        FROM
+                            T_MEM_ADV A
+                        WHERE
+                            1=1
+                            <include refid="inquiryWhere"/>
+                        ORDER BY MEM_ADV_REG_DT DESC 
+                    )
+                    S1 
+            )
+            S2 
+
+    <if test="startNum != null and startNum != '' and endNum != null and endNum != ''">
+        WHERE S2.RNUM BETWEEN #{startNum} AND #{endNum}
+    </if>        
+
+    </select>
+    
+    
+    <select id="selectInquiryInfo" parameterType="HashMap" resultType="HashMap">
+        /* Inquiry.selectInquiryInfo */
+        SELECT
+             MEM_ADV_IDX,
+             MEM_ADV_TYPE,
+             (SELECT CMN_COM_NM FROM T_CMM_COM WHERE CMN_COM_IDX = MEM_ADV_TYPE) AS MEM_ADV_TYPE_NM,
+             MEM_ADV_QST_TYPE,
+             (SELECT CMN_COM_NM FROM T_CMM_COM WHERE CMN_COM_IDX = MEM_ADV_QST_TYPE) AS MEM_ADV_QST_TYPE_NM,
+             (SELECT CMN_COM_UP_IDX FROM T_CMM_COM WHERE CMN_COM_IDX = MEM_ADV_QST_TYPE) AS MEM_ADV_QST_TYPE_UP,
+             (SELECT CMN_COM_NM FROM T_CMM_COM WHERE CMN_COM_IDX = 
+             (SELECT CMN_COM_UP_IDX FROM T_CMM_COM WHERE CMN_COM_IDX = MEM_ADV_QST_TYPE)) AS MEM_ADV_QST_TYPE_UP_NM,
+             MEM_ADV_TITLE,
+             MEM_ADV_RPL_YN,
+             CASE WHEN MEM_ADV_TYPE = 2238 THEN MEM_MST_MEM_ID ELSE MEM_ADV_REG_ID END AS MEM_ADV_REG_ID, 
+             CASE WHEN MEM_ADV_TYPE = 2238 THEN A.MEM_MST_MEM_NM  
+                  ELSE (SELECT ADM_MST_NM FROM T_ADM_MST WHERE ADM_MST_ID = A.MEM_ADV_REG_ID) END AS MEM_ADV_REG_NM,  
+             MEM_ADV_CS_STR,
+             (SELECT CMN_COM_NM FROM T_CMM_COM WHERE CMN_COM_IDX = MEM_ADV_CS_STR) AS MEM_ADV_CS_STR_NM,
+             MEM_ADV_CS_ITM,
+             (SELECT CMN_COM_NM FROM T_CMM_COM WHERE CMN_COM_IDX = MEM_ADV_CS_ITM) AS MEM_ADV_CS_ITM_NM,
+             MEM_ADV_MDL_NO,
+             ORD_MST_CD,
+             MEM_ADV_CONTENTS,
+             MEM_ADV_MAIL_YN,
+             MEM_ADV_RPL_CONTENTS,
+             MEM_ADV_MBL_YN,
+             MEM_ADV_REG_IP,
+             MEM_ADV_REG_DT,
+             MEM_ADV_UPD_DT,
+             MEM_ADV_UPD_IP,
+             MEM_ADV_UPD_ID,
+             (SELECT ADM_MST_NM FROM T_ADM_MST WHERE ADM_MST_ID = A.MEM_ADV_UPD_ID) AS MEM_ADV_UPD_NM,
+             MEM_MST_MEM_ID,
+             MEM_MST_MEM_NM,
+             CASE WHEN MEM_ADV_HP1 IS NULL AND MEM_ADV_HP3 IS NULL THEN
+             	(SELECT MEM_MST_HP1||'-'||MEM_MST_HP2||'-'||MEM_MST_HP3 FROM T_MEM_VIEW WHERE MEM_MST_MEM_ID = A.MEM_MST_MEM_ID) 
+             ELSE MEM_ADV_HP1||'-'||MEM_ADV_HP2||'-'||MEM_ADV_HP3 END AS MEM_TEL_NO,
+             CASE WHEN MEM_ADV_MAIL IS NULL THEN
+             	(SELECT DECODE(MEM_MST_MAIL,null,'',MEM_MST_MAIL) FROM T_MEM_VIEW WHERE MEM_MST_MEM_ID = A.MEM_MST_MEM_ID) 
+             ELSE  MEM_ADV_MAIL END AS MEM_ADV_EMAIL
+        FROM
+            T_MEM_ADV A
+        WHERE
+        	 MEM_ADV_IDX = #{MEM_ADV_IDX}
+    </select>
+    
+    <select id="selectInquiryMailInfo" parameterType="HashMap" resultType="HashMap">
+        /* Inquiry.selectInquiryMailInfo */
+        SELECT 
+		    TO_CHAR(TO_DATE(MEM_ADV_REG_DT,'YYYYMMDDHH24MISS'),'YYYY-MM-DD HH24:MI:SS') AS MEM_ADV_REG_DT,    /* 등록일 */
+		             MEM_ADV_IDX,           /* 글번호 */
+		             MEM_ADV_TYPE,              /* 구분    */
+		             MEM_MST_MEM_NM,          /* 회원명 */             
+		    (SELECT MEM_MST_MAIL FROM T_MEM_MST WHERE MEM_MST_MEM_ID = A.MEM_MST_MEM_ID) AS MEM_ADV_EMAIL,     /* 회원이메일 */        
+		             (SELECT CMN_COM_NM FROM T_CMM_COM WHERE CMN_COM_IDX = 
+		             (SELECT CMN_COM_UP_IDX FROM T_CMM_COM WHERE CMN_COM_IDX = MEM_ADV_QST_TYPE)) AS MEM_ADV_QST_TYPE_UP_NM,   /* 문의유형1 */
+		             (SELECT CMN_COM_NM FROM T_CMM_COM WHERE CMN_COM_IDX = MEM_ADV_QST_TYPE) AS MEM_ADV_QST_TYPE_NM,                 /* 문의유형2 */
+		             ORD_MST_CD,           /* 주문번호 */     
+		             MEM_ADV_MDL_NO,        /* 상품코드 */     
+		             MEM_ADV_TITLE,          /* 제목 */ 
+		             MEM_ADV_CONTENTS,     /* 내용 */
+		             TO_CHAR(TO_DATE(MEM_ADV_UPD_DT,'YYYYMMDDHH24MISS'),'YYYY-MM-DD HH24:MI:SS') AS MEM_ADV_UPD_DT,  /*답변등록일 */  
+		             MEM_ADV_RPL_CONTENTS, /* 답변내용*/            
+		             MEM_ADV_UPD_ID,    /* 답변자 ID */
+		             (SELECT ADM_MST_NM FROM T_ADM_MST WHERE ADM_MST_ID = A.MEM_ADV_UPD_ID) AS MEM_ADV_UPD_NM /* 답변자 */                       
+		FROM 
+		 	T_MEM_ADV A
+        WHERE
+          MEM_ADV_IDX = #{MEM_ADV_IDX}
+    </select>
+    
+    <!-- 관리자 > 고객센터 > 1:1문의 답변 등록 -->
+    <update id="updateInquiry" parameterType="HashMap">
+        /* Inquiry.udateInquiry */
+        UPDATE
+            T_MEM_ADV 
+        SET
+            MEM_ADV_RPL_YN = 'Y',
+            MEM_ADV_RPL_CONTENTS = #{MEM_ADV_RPL_CONTENTS},
+            MEM_ADV_UPD_ID = #{MEM_ADV_UPD_ID},
+            MEM_ADV_UPD_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+            MEM_ADV_UPD_IP = #{MEM_ADV_UPD_IP}
+        WHERE
+            MEM_ADV_IDX = #{MEM_ADV_IDX}
+    </update>
+    <!-- 관리자 > 고객센터 > 1:1문의 답변 등록 -->
+    <insert id="insertInquiry" parameterType="HashMap">
+    	<selectKey keyProperty="MEM_ADV_IDX" resultType="Integer" order="BEFORE">
+            SELECT SEQ_MEM_ADV_IDX.NEXTVAL AS MEM_ADV_IDX FROM DUAL
+        </selectKey>
+        /* Inquiry.insertInquiry */
+        INSERT INTO T_MEM_ADV
+        (
+        	MEM_ADV_IDX,
+        	MEM_ADV_TYPE,
+        	MEM_ADV_QST_TYPE,
+        	MEM_ADV_CS_STR,
+        	MEM_ADV_CS_ITM,
+        	MEM_MST_MEM_ID,
+        	MEM_MST_MEM_NM,
+        	MEM_ADV_MDL_NO,
+        	ORD_MST_CD,
+        	MEM_ADV_TITLE,
+        	MEM_ADV_CONTENTS,
+        	MEM_ADV_RPL_YN,
+        	MEM_ADV_MAIL_YN,
+        	MEM_ADV_RPL_CONTENTS,
+        	MEM_ADV_READ_CNT,
+        	MEM_ADV_MBL_YN,
+        	MEM_ADV_REG_DT,
+        	MEM_ADV_REG_IP,
+        	MEM_ADV_REG_ID,
+        	MEM_ADV_UPD_DT,
+        	MEM_ADV_UPD_IP,
+        	MEM_ADV_UPD_ID
+        ) 
+        VALUES(
+        	#{MEM_ADV_IDX},
+        	#{MEM_ADV_TYPE},
+        	#{MEM_ADV_QST_TYPE},
+        	#{MEM_ADV_CS_STR},
+        	#{MEM_ADV_CS_ITM},
+        	#{MEM_MST_MEM_ID},
+        	#{MEM_MST_MEM_NM},
+        	#{MEM_ADV_MDL_NO},
+        	#{ORD_MST_CD},
+        	#{MEM_ADV_TITLE},
+        	#{MEM_ADV_CONTENTS},
+        	'Y',
+        	#{MEM_ADV_MAIL_YN},
+        	#{MEM_ADV_RPL_CONTENTS},
+        	0,
+        	'N',
+        	TO_CHAR(SYSDATE,'yyyymmddhh24miss'),
+        	#{MEM_ADV_REG_IP},
+        	#{MEM_ADV_REG_ID},
+        	TO_CHAR(SYSDATE,'yyyymmddhh24miss'),
+        	#{MEM_ADV_REG_IP},
+        	#{MEM_ADV_REG_ID}
+        )
+        
+        
+    </insert>
+    
+</mapper>

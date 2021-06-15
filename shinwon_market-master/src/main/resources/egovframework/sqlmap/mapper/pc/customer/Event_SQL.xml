@@ -1,0 +1,840 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="PcEvent">
+    
+    <sql id="eventWhere">
+        <if test="searchEvtMstShopType != null and searchEvtMstShopType != ''">
+            AND EVT.EVT_MST_CHANNEL_PC_YN = #{searchEvtMstShopType}
+        </if>
+
+        <if test="searchEvtMstShopTypeMobile != null and searchEvtMstShopTypeMobile != ''">
+            AND EVT.EVT_MST_CHANNEL_MOBILE_YN = #{searchEvtMstShopTypeMobile}
+        </if>
+
+        <if test="preEvent == null or !preEvent.equals('Y'.toString())">
+            <if test="searchEvtMstStatus != null and searchEvtMstStatus.equals('ing'.toString())">
+                <![CDATA[
+                AND EVT.EVT_MST_ST_DT || EVT.EVT_MST_AUC_ST_HH || EVT.EVT_MST_AUC_ST_MM <= TO_CHAR(SYSDATE, 'YYYYMMDDHHMI')
+                AND EVT.EVT_MST_ED_DT || EVT.EVT_MST_AUC_ED_HH || EVT.EVT_MST_AUC_ED_MM >= TO_CHAR(SYSDATE, 'YYYYMMDDHHMI')
+                ]]>
+            </if>
+            <if test="searchEvtMstStatus != null and searchEvtMstStatus.equals('end'.toString())">
+                <![CDATA[
+                AND EVT.EVT_MST_ED_DT || EVT.EVT_MST_AUC_ED_HH || EVT.EVT_MST_AUC_ED_MM < TO_CHAR(SYSDATE, 'YYYYMMDDHHMI')
+                ]]>
+            </if>
+            <if test="searchForTop != null and searchForTop != ''">
+                <![CDATA[
+                AND ROWNUM < 4
+                ]]>
+            </if>
+        </if>
+    </sql>
+    
+    <!-- 프론트 > 이벤트 목록 갯수 -->
+    <select id="selectEventListCount" parameterType="HashMap" resultType="Integer">
+        /*Event.selectEventListCount*/
+        SELECT
+            COUNT(EVT.EVT_MST_IDX)
+        FROM
+            T_EVT_MST EVT, T_CMM_FLE FL            
+        WHERE
+            EVT.EVT_MST_IDX = FL.CMM_FLE_TB_PK
+            AND FL.CMM_FLE_TB_NM =  #{CMM_FLE_TB_NM}
+            AND FL.CMM_FLE_USE_YN= 'Y'
+            AND FL.CMM_FLE_TB_TYPE = #{CMM_FLE_TB_TYPE}
+            AND FL.CMM_FLE_SORT = #{CMM_FLE_SORT}
+        <![CDATA[ 
+            AND EVT.EVT_MST_ST_DT <= TO_CHAR(SYSDATE, 'YYYYMMDD')
+            AND EVT.EVT_MST_USE_YN = 'Y'
+            AND EVT.EVT_MST_BRAND_CD = #{BRAND_CD}
+        ]]> 
+            <include refid="eventWhere"/>
+    </select>
+    
+    <!-- 프론트 > 이벤트 목록 -->
+    <select id="selectEventList" parameterType="HashMap" resultType="HashMap">
+        /* Event.selectEventList */
+        SELECT
+            S2.*        
+        FROM
+            (   SELECT
+                    ROWNUM AS RNUM,
+                    S1.* 
+                FROM
+                    (   SELECT
+                            EVT.EVT_MST_IDX,
+                            EVT.EVT_MST_TITLE,
+                            EVT.EVT_MST_ST_DT,
+                            EVT.EVT_MST_ED_DT,
+                            EVT.EVT_MST_TYPE,
+                            EVT.EVT_MST_WIN_CNT,                       
+                            EVT.EVT_MST_URL,
+                            EVT.EVT_MST_USE_YN,
+                            EVT.EVT_MST_REG_DT, 
+                            EVT.EVT_MST_GUBUN, 
+                            EVT.EVT_MST_AUC_ST_HH,
+                            EVT.EVT_MST_AUC_ST_MM,
+                            EVT.EVT_MST_AUC_ED_HH,
+                            EVT.EVT_MST_AUC_ED_MM,           
+                            <![CDATA[               
+                            CASE 
+                                WHEN EVT.EVT_MST_ST_DT || EVT.EVT_MST_AUC_ST_HH || EVT.EVT_MST_AUC_ST_MM <= TO_CHAR(SYSDATE, 'YYYYMMDDHHMI') AND EVT.EVT_MST_ED_DT || EVT.EVT_MST_AUC_ED_HH || EVT.EVT_MST_AUC_ED_MM >= TO_CHAR(SYSDATE, 'YYYYMMDDHHMI') THEN 'ing'
+                                WHEN EVT.EVT_MST_ED_DT || EVT.EVT_MST_AUC_ED_HH || EVT.EVT_MST_AUC_ED_MM < TO_CHAR(SYSDATE, 'YYYYMMDDHHMI') THEN 'end'
+                            END EVT_MST_STATUS
+                            ,FL.CMM_FLE_ATT_PATH
+                            ,FL.CMM_FLE_SYS_NM  
+                        FROM
+                            T_EVT_MST EVT, T_CMM_FLE FL
+                        WHERE
+                            EVT.EVT_MST_IDX = FL.CMM_FLE_TB_PK
+                            AND FL.CMM_FLE_TB_NM =  #{CMM_FLE_TB_NM}
+                            AND FL.CMM_FLE_USE_YN= 'Y'
+                            AND FL.CMM_FLE_TB_TYPE = #{CMM_FLE_TB_TYPE}
+                            AND FL.CMM_FLE_SORT = #{CMM_FLE_SORT}
+                            AND EVT.EVT_MST_ST_DT <= TO_CHAR(SYSDATE, 'YYYYMMDD')
+                            AND EVT.EVT_MST_USE_YN = 'Y'
+                            AND EVT.EVT_MST_BRAND_CD = #{BRAND_CD}
+                            ]]>
+                            <include refid="eventWhere"/> 
+                        ORDER BY EVT.EVT_MST_REG_DT DESC 
+                    )
+                    S1 
+            )
+            S2
+           <if test="endNum != null and endNum != ''">
+            WHERE
+                S2.RNUM BETWEEN #{startNum} AND #{endNum}
+           </if>
+    </select>
+    
+    <!-- 프론트 > 이벤트 상세 -->
+    <select id="selectEventInfo" parameterType="HashMap" resultType="HashMap">
+        /* Event.selectEventInfo */
+        SELECT
+            EVT.EVT_MST_IDX,
+            EVT.EVT_MST_TITLE,
+            EVT.EVT_MST_ST_DT,
+            EVT.EVT_MST_ED_DT,
+            EVT.EVT_MST_TYPE,
+            EVT.EVT_MST_WIN_CNT,                       
+            EVT.EVT_MST_URL,
+            EVT.EVT_MST_USE_YN,
+            EVT.EVT_MST_REG_DT, 
+            EVT.EVT_MST_GUBUN, 
+            EVT.EVT_MST_AUC_ST_HH,
+            EVT.EVT_MST_AUC_ST_MM,
+            EVT.EVT_MST_AUC_ED_HH,
+            EVT.EVT_MST_AUC_ED_MM,           
+            <![CDATA[               
+               CASE 
+                WHEN EVT.EVT_MST_ST_DT || EVT.EVT_MST_AUC_ST_HH || EVT.EVT_MST_AUC_ST_MM <= TO_CHAR(SYSDATE, 'YYYYMMDDHHMI') AND EVT.EVT_MST_ED_DT || EVT.EVT_MST_AUC_ED_HH || EVT.EVT_MST_AUC_ED_MM >= TO_CHAR(SYSDATE, 'YYYYMMDDHHMI') THEN 'ing'
+                WHEN EVT.EVT_MST_ED_DT || EVT.EVT_MST_AUC_ED_HH || EVT.EVT_MST_AUC_ED_MM < TO_CHAR(SYSDATE, 'YYYYMMDDHHMI') THEN 'end'
+               END EVT_MST_STATUS   
+             ]]>
+            ,FL.CMM_FLE_ATT_PATH
+            ,FL.CMM_FLE_SYS_NM  
+            FROM
+                T_EVT_MST EVT, T_CMM_FLE FL
+            WHERE
+                EVT.EVT_MST_IDX = FL.CMM_FLE_TB_PK
+                AND FL.CMM_FLE_TB_NM =  #{CMM_FLE_TB_NM}
+                AND FL.CMM_FLE_USE_YN= 'Y'
+                AND FL.CMM_FLE_TB_TYPE = #{CMM_FLE_TB_TYPE}
+                AND FL.CMM_FLE_SORT = #{CMM_FLE_SORT}
+                AND EVT_MST_IDX = #{EVT_MST_IDX}
+                <if test="preEvent == null or !preEvent.equals('Y'.toString())">
+                AND EVT.EVT_MST_USE_YN = 'Y'
+                </if>
+                <include refid="eventWhere"/>
+    </select>
+    
+    <!-- 프론트 > 이벤트 응모여부 체크 -->
+    <select id="selectEventEnterCheck" parameterType="HashMap" resultType="Integer">
+        SELECT
+            COUNT(1)
+        FROM T_EVT_ETR
+        WHERE EVT_EVT_MST_IDX = #{EVT_MST_IDX}
+        AND EVT_ETR_REG_ID = #{EVT_ETR_REG_ID}    
+    </select>
+    
+    <!-- 프론트 > 이벤트 응모 -->
+    <insert id="insertEventEtr" parameterType="HashMap">
+        INSERT INTO T_EVT_ETR
+        (
+            EVT_EVT_MST_IDX
+            , EVT_ETR_IDX
+            , EVT_ETR_REG_DT
+            , EVT_ETR_REG_IP
+            , EVT_ETR_REG_ID
+            , EVT_ETR_WIN_YN
+        )VALUES(
+            #{EVT_MST_IDX}
+            , SEQ_EVT_ETR_IDX.NEXTVAL
+            , TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS')
+            , #{EVT_ETR_REG_IP}
+            , #{EVT_ETR_REG_ID}
+            , 'N'
+        )
+    </insert>
+    
+    <!-- 프론트 > 이벤트 > 진행중인 이벤트 목록 -->
+    <select id="selectIngEventList" parameterType="HashMap" resultType="HashMap">
+        /* PcEvent.selectIngEventList */
+        SELECT
+            EVT.EVT_MST_IDX,
+            EVT.EVT_MST_TITLE,
+            EVT.EVT_MST_ST_DT,
+            EVT.EVT_MST_ED_DT,
+            EVT.EVT_MST_TYPE,
+            EVT.EVT_MST_WIN_CNT,                       
+            EVT.EVT_MST_URL,
+            EVT.EVT_MST_USE_YN,
+            EVT.EVT_MST_REG_DT, 
+            EVT.EVT_MST_GUBUN,            
+            <![CDATA[               
+            CASE 
+                WHEN EVT.EVT_MST_ST_DT || EVT.EVT_MST_AUC_ST_HH || EVT.EVT_MST_AUC_ST_MM <= TO_CHAR(SYSDATE, 'YYYYMMDDHHMI') AND EVT.EVT_MST_ED_DT || EVT.EVT_MST_AUC_ED_HH || EVT.EVT_MST_AUC_ED_MM >= TO_CHAR(SYSDATE, 'YYYYMMDDHHMI') THEN 'ing'
+                WHEN EVT.EVT_MST_ED_DT || EVT.EVT_MST_AUC_ED_HH || EVT.EVT_MST_AUC_ED_MM < TO_CHAR(SYSDATE, 'YYYYMMDDHHMI') THEN 'end'
+            END EVT_MST_STATUS
+            ,FL.CMM_FLE_ATT_PATH
+            ,FL.CMM_FLE_SYS_NM  
+        FROM
+            T_EVT_MST EVT, T_CMM_FLE FL
+        WHERE
+            EVT.EVT_MST_IDX = FL.CMM_FLE_TB_PK
+            AND FL.CMM_FLE_TB_NM =  #{CMM_FLE_TB_NM}
+            AND FL.CMM_FLE_USE_YN= 'Y'
+            AND FL.CMM_FLE_TB_TYPE = #{CMM_FLE_TB_TYPE}
+            AND FL.CMM_FLE_SORT = #{CMM_FLE_SORT}
+            AND EVT.EVT_MST_ST_DT || EVT.EVT_MST_AUC_ST_HH || EVT.EVT_MST_AUC_ST_MM <= TO_CHAR(SYSDATE, 'YYYYMMDDHHMI')
+            AND EVT.EVT_MST_ED_DT || EVT.EVT_MST_AUC_ED_HH || EVT.EVT_MST_AUC_ED_MM >= TO_CHAR(SYSDATE, 'YYYYMMDDHHMI')
+            AND EVT.EVT_MST_USE_YN = 'Y'
+            AND EVT.EVT_MST_BRAND_CD = #{BRAND_CD}
+            AND EVT.EVT_MST_IDX != #{EVT_MST_IDX}
+            ]]>
+            AND EVT.EVT_MST_CHANNEL_PC_YN = #{searchEvtMstShopType}
+        ORDER BY EVT.EVT_MST_REG_DT DESC 
+    </select>
+    
+    <!-- 프론트 > 이벤트 > 덧글형 이벤트 목록 갯수 -->
+    <select id="selectReplyEventListCount" parameterType="HashMap" resultType="Integer">
+        /* PcEvent.selectReplyEventListCount */
+        SELECT 
+            COUNT(1)
+        FROM
+            T_EVT_REPLY
+        WHERE
+            EVT_REPLY_DISPLAY_YN = 'Y'
+        AND 
+            EVT_EVT_MST_IDX = #{EVT_MST_IDX}
+    </select>
+    
+    <!-- 프론트 > 이벤트 > 덧글형 이벤트 목록 -->
+    <select id="selectReplyEventList" parameterType="HashMap" resultType="HashMap">
+        /* PcEvent.selectReplyEventList */
+        SELECT
+            S1.*
+        FROM
+        (
+            SELECT
+                ROWNUM AS RNUM,
+                S2.*
+            FROM
+            (
+                SELECT 
+                    EVT_REPLY_IDX,
+                    EVT_EVT_MST_IDX,
+                    EVT_REPLY_CONTENTS,
+                    EVT_REPLY_DISPLAY_YN,
+                    EVT_REPLY_WIN_YN,
+                    EVT_REPLY_REG_DT,
+                    EVT_REPLY_REG_ID,
+                    EVT_REPLY_REG_IP
+                FROM
+                    T_EVT_REPLY
+                WHERE
+                    EVT_REPLY_DISPLAY_YN = 'Y'
+                AND 
+                    EVT_EVT_MST_IDX = #{EVT_MST_IDX}
+                ORDER BY EVT_REPLY_REG_DT DESC
+            ) S2
+        ) S1
+        WHERE 
+            S1.RNUM BETWEEN #{startNum} AND #{endNum}
+    </select>
+    
+    <!-- 프론트 > 이벤트 > 덧글형 이벤트 응모여부 -->
+    <select id="selectReplyEventCheck" parameterType="HashMap" resultType="Integer">
+        /* PcEvent.selectReplyEventCheck */
+        SELECT 
+            COUNT(1)
+        FROM
+            T_EVT_REPLY
+        WHERE
+            EVT_EVT_MST_IDX = #{EVT_MST_IDX}
+        AND
+            EVT_REPLY_REG_ID = #{EVT_REPLY_REG_ID}
+    </select>
+    <!-- 프론트 > 이벤트 > 덧글형 이벤트 등록 -->
+    <insert id="insertReplyEvent" parameterType="HashMap">
+        <selectKey keyProperty="EVT_REPLY_IDX" resultType="Integer" order="BEFORE">
+            SELECT SEQ_EVT_REPLY_IDX.NEXTVAL AS EVT_REPLY_IDX FROM DUAL         
+        </selectKey>
+        /* PcEvent.insertReplyEvent */
+        INSERT INTO
+            T_EVT_REPLY
+            (
+                EVT_REPLY_IDX,
+                EVT_EVT_MST_IDX,
+                EVT_REPLY_CONTENTS,
+                EVT_REPLY_DISPLAY_YN,
+                EVT_REPLY_WIN_YN,
+                EVT_REPLY_REG_DT,
+                EVT_REPLY_REG_ID,
+                EVT_REPLY_REG_IP
+            )
+        VALUES
+            (
+                #{EVT_REPLY_IDX},
+                #{EVT_MST_IDX},
+                #{EVT_REPLY_CONTENTS},
+                NVL(#{EVT_REPLY_DISPLAY_YN},'Y'),
+                NVL(#{EVT_REPLY_WIN_YN},'N'),
+                TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+                #{EVT_REPLY_REG_ID},
+                #{EVT_REPLY_REG_IP}
+            )
+    </insert>
+    
+    <!-- 프론트 > 이벤트 > 게시판형 이벤트 목록 갯수 -->
+    <select id="selectBoardEventListCount" parameterType="HashMap" resultType="Integer">
+        /* PcEvent.selectBoardEventListCount */
+        SELECT
+            COUNT(1)
+        FROM
+            T_EVT_BOARD
+        WHERE
+            EVT_BOARD_USE_YN = 'Y'
+        AND
+            EVT_EVT_MST_IDX = #{EVT_MST_IDX} 
+    </select>
+    
+    <!-- 프론트 > 이벤트 > 게시판형 이벤트 목록 -->
+    <select id="selectBoardEventList" parameterType="HashMap" resultType="HashMap">
+        /* PcEvent.selectBoardEventList */
+        SELECT
+            S1.*
+        FROM
+        (
+            SELECT
+                ROWNUM AS RNUM,
+                S2.*
+            FROM
+            (
+                SELECT
+                    EVT_BOARD_IDX,
+                    EVT_EVT_MST_IDX,
+                    EVT_BOARD_TITLE,
+                    EVT_BOARD_READ_CNT,
+                    EVT_BOARD_USE_YN,
+                    EVT_BOARD_WIN_YN,
+                    EVT_BOARD_REG_DT,
+                    EVT_BOARD_REG_ID,
+                    EVT_BOARD_REG_IP
+                FROM
+                    T_EVT_BOARD
+                WHERE
+                    EVT_BOARD_USE_YN = 'Y'
+                AND
+                    EVT_EVT_MST_IDX = #{EVT_MST_IDX}
+                ORDER BY EVT_BOARD_REG_DT DESC
+            ) S2
+        ) S1
+        WHERE S1.RNUM BETWEEN #{startNum} AND #{endNum}
+    </select>
+    
+    <!-- 프론트 > 이벤트 > 게시판형 응모여부 체크 -->
+    <select id="selectBoardEventCheck" parameterType="HashMap" resultType="Integer">
+        SELECT
+            COUNT(1)
+        FROM T_EVT_BOARD
+        WHERE EVT_EVT_MST_IDX = #{EVT_MST_IDX}
+        AND EVT_BOARD_REG_ID = #{EVT_BOARD_REG_ID}    
+    </select>
+    
+    <!-- 프론트 > 이벤트 > 게시판형 이벤트 게시글 등록 -->
+    <insert id="insertBoardEvent" parameterType="HashMap">
+        <selectKey keyProperty="EVT_BOARD_IDX" resultType="Integer" order="BEFORE">
+            SELECT SEQ_EVT_BOARD_IDX.NEXTVAL AS EVT_BOARD_IDX FROM DUAL         
+        </selectKey>
+        /* PcEvent.insertBoardEvent */
+        INSERT INTO
+            T_EVT_BOARD
+            (
+                EVT_BOARD_IDX,
+                EVT_EVT_MST_IDX,
+                EVT_BOARD_TITLE,
+                EVT_BOARD_CONTENTS,
+                EVT_BOARD_READ_CNT,
+                EVT_BOARD_USE_YN,
+                EVT_BOARD_WIN_YN,
+                EVT_BOARD_REG_DT,
+                EVT_BOARD_REG_ID,
+                EVT_BOARD_REG_IP
+            )
+        VALUES
+            (
+                #{EVT_BOARD_IDX},
+                #{EVT_MST_IDX},
+                #{EVT_BOARD_TITLE},
+                #{EVT_BOARD_CONTENT},
+                NVL(#{EVT_BOARD_READ_CNT},0),
+                NVL(#{EVT_BOARD_USE_YN},'Y'),
+                NVL(#{EVT_BOARD_WIN_YN},'N'),
+                TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+                #{EVT_BOARD_REG_ID},
+                #{EVT_BOARD_REG_IP}
+            )
+    </insert>
+    
+    <!-- 프론트 > 이벤트 > 게시판형 이벤트 게시글 조회수 증가 -->
+    <update id="updateBoardEventReadCount" parameterType="HashMap">
+        /* PcEvent.updateBoardEventReadCount */
+        UPDATE 
+            T_EVT_BOARD
+        SET 
+            EVT_BOARD_READ_CNT = NVL(EVT_BOARD_READ_CNT, 0) + 1 
+        WHERE 
+            EVT_BOARD_USE_YN = 'Y' 
+            AND EVT_BOARD_IDX = #{EVT_BOARD_IDX}
+    </update>
+    
+    <!-- 프론트 > 이벤트 > 게시판형 이벤트 상세정보 -->
+    <resultMap id="resultBoardEventInfo" type="HashMap">
+        <result property="EVT_BOARD_IDX" column="EVT_BOARD_IDX"/>
+        <result property="EVT_EVT_MST_IDX" column="EVT_EVT_MST_IDX"/>
+        <result property="EVT_BOARD_TITLE" column="EVT_BOARD_TITLE"/>
+        <result property="EVT_BOARD_CONTENTS" column="EVT_BOARD_CONTENTS" jdbcType="CLOB" javaType="java.lang.String"/>
+        <result property="EVT_BOARD_READ_CNT" column="EVT_BOARD_READ_CNT"/>
+        <result property="EVT_BOARD_USE_YN" column="EVT_BOARD_USE_YN"/>
+        <result property="EVT_BOARD_WIN_YN" column="EVT_BOARD_WIN_YN"/>
+        <result property="EVT_BOARD_REG_DT" column="EVT_BOARD_REG_DT"/>
+        <result property="EVT_BOARD_REG_IP" column="EVT_BOARD_REG_IP"/>
+        <result property="EVT_BOARD_REG_ID" column="EVT_BOARD_REG_ID"/>
+        <result property="EVT_BOARD_UPD_DT" column="EVT_BOARD_UPD_DT"/>
+        <result property="EVT_BOARD_UPD_IP" column="EVT_BOARD_UPD_IP"/>
+        <result property="EVT_BOARD_UPD_ID" column="EVT_BOARD_UPD_ID"/>
+    </resultMap>
+    <select id="selectBoardEventInfo" parameterType="HashMap" resultMap="resultBoardEventInfo">
+        /* PcEvent.selectBoardEventInfo */
+        SELECT
+            EVT_BOARD_IDX,
+            EVT_EVT_MST_IDX,
+            EVT_BOARD_TITLE,
+            EVT_BOARD_CONTENTS,
+            EVT_BOARD_READ_CNT,
+            EVT_BOARD_USE_YN,
+            EVT_BOARD_WIN_YN,
+            EVT_BOARD_REG_DT,
+            EVT_BOARD_REG_IP,
+            EVT_BOARD_REG_ID,
+            EVT_BOARD_UPD_DT,
+            EVT_BOARD_UPD_ID,
+            EVT_BOARD_UPD_IP
+        FROM
+            T_EVT_BOARD
+        WHERE
+            EVT_BOARD_IDX = #{EVT_BOARD_IDX}
+        AND
+            EVT_BOARD_USE_YN = 'Y'
+    </select>
+    
+    <!-- 프론트 > 이벤트 > 게시판형 이벤트 게시글 삭제 -->
+    <update id="deleteBoardEvent" parameterType="HashMap">
+        /* PcEvent.deleteBoardEvent */
+        DELETE FROM T_EVT_BOARD WHERE EVT_BOARD_IDX = #{EVT_BOARD_IDX} AND EVT_BOARD_REG_ID = #{EVT_BOARD_UPD_ID}
+    </update>
+    
+    <!-- 프론트 > 이벤트 > 게시판형 이벤트 수정 -->
+    <update id="updateBoardEvent" parameterType="HashMap">
+        /* PcEvent.updateBoardEvent */
+        UPDATE
+            T_EVT_BOARD
+        SET
+            EVT_BOARD_TITLE = #{EVT_BOARD_TITLE},
+            EVT_BOARD_CONTENTS = #{EVT_BOARD_CONTENTS},
+            EVT_BOARD_UPD_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+            EVT_BOARD_UPD_ID = #{EVT_BOARD_UPD_ID},
+            EVT_BOARD_UPD_IP = #{EVT_BOARD_UPD_IP}
+        WHERE
+            EVT_BOARD_IDX = #{EVT_BOARD_IDX}
+    </update>
+    
+    <!-- 프론트 > 이벤트 > 경매형 이벤트 참여 인원 수 -->
+    <select id="selectAuctionEventListCount" parameterType="HashMap" resultType="Integer">
+        /* PcEvent.selectAuctionEventListCount */
+        SELECT
+            COUNT(1)
+        FROM
+            T_EVT_AUCTION
+        WHERE
+            EVT_EVT_MST_IDX = #{EVT_MST_IDX}
+    </select>
+    
+    <!-- 프론트 > 이벤트 > 경매형 이벤트 top1 상세정보 -->
+    <select id="selectAuctionEventTopInfo" parameterType="HashMap" resultType="HashMap">
+        /* PcEvent.selectAuctionEventTopInfo */
+        SELECT
+            S1.*
+        FROM
+        (
+            SELECT
+                ROWNUM AS RNUM,
+                S2.*
+            FROM
+            (
+                SELECT            
+                    EVT_AUCTION_IDX,
+                    EVT_AUCTION_PRICE,
+                    EVT_AUCTION_WIN_YN,
+                    EVT_EVT_MST_IDX,
+                    EVT_AUCTION_REG_DT,
+                    EVT_AUCTION_REG_ID,
+                    EVT_AUCTION_REG_IP
+                FROM
+                    T_EVT_AUCTION
+                WHERE
+                    EVT_EVT_MST_IDX = #{EVT_MST_IDX}
+                ORDER BY EVT_AUCTION_PRICE DESC
+            ) S2
+        ) S1
+        WHERE S1.RNUM = 1
+    </select>
+    
+    <!-- 프론트 > 이벤트 > 경매형 이벤트 응모여부 체크 -->
+    <select id="selectAuctionEventCheck" parameterType="HashMap" resultType="Integer">
+        /* PcEvent.selectAuctionEventCheck */
+        SELECT
+            COUNT(1)
+        FROM
+            T_EVT_AUCTION
+        WHERE
+            EVT_EVT_MST_IDX = #{EVT_MST_IDX}
+        AND 
+            EVT_AUCTION_REG_ID = #{EVT_AUCTION_REG_ID}   
+    </select>
+    
+    <!-- 프론트 > 이벤트 > 경매형 이벤트 입찰 -->
+    <insert id="insertAuctionEvent" parameterType="HashMap">
+        <selectKey keyProperty="EVT_AUCTION_IDX" resultType="Integer" order="BEFORE">
+            SELECT SEQ_EVT_AUCTION_IDX.NEXTVAL AS EVT_AUCTION_IDX FROM DUAL         
+        </selectKey>
+        /* PcEvent.insertAuctionEvent */
+        INSERT INTO
+            T_EVT_AUCTION
+            (
+                EVT_AUCTION_IDX,
+                EVT_EVT_MST_IDX,
+                EVT_AUCTION_PRICE,
+                EVT_AUCTION_WIN_YN,
+                EVT_AUCTION_REG_DT,
+                EVT_AUCTION_REG_ID,
+                EVT_AUCTION_REG_IP
+            )
+        VALUES
+            (
+                #{EVT_AUCTION_IDX},
+                #{EVT_MST_IDX},
+                NVL(#{EVT_AUCTION_PRICE},0),
+                NVL(#{EVT_AUCTION_WIN_YN},'N'),
+                TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+                #{EVT_AUCTION_REG_ID},
+                #{EVT_AUCTION_REG_IP}                
+            )
+    </insert>
+    
+    <!-- 프론트 > 이벤트 > 설문형 이벤트 참여인원수 -->
+    <select id="selectSurveyEventListCount" parameterType="HashMap" resultType="Integer">
+        /* PcEvent.selectSurveyEventListCount */
+        SELECT
+            COUNT(1)
+        FROM
+            T_EVT_SURVEY
+        WHERE
+            EVT_EVT_MST_IDX = #{EVT_MST_IDX}
+    </select>
+    
+    <!-- 프론트 > 이벤트 > 설문형 이벤트 목록 -->
+    <select id="selectSurveyEventList" parameterType="HashMap" resultType="HashMap">
+        /* PcEvent.selectSurveyEventList */
+        SELECT 
+            ROWNUM  AS RNUM,
+            S1.* 
+        FROM        
+            (
+                SELECT 
+                    CMM_FLE_IDX, 
+                    CMM_FLE_SORT, 
+                    CMM_FLE_ATT_PATH || CMM_FLE_SYS_NM AS EVT_SURVEY_NM, 
+                    (SELECT COUNT(1) AS CNT FROM T_EVT_SURVEY TES WHERE EVT_EVT_MST_IDX = #{CMM_FLE_TB_PK} AND TCF.CMM_FLE_IDX = TES.EVT_SURVEY_CMM_FLE_IDX  ) AS EVT_SURVEY_CNT
+                FROM T_CMM_FLE TCF
+                WHERE 
+                    CMM_FLE_TB_NM = #{CMM_FLE_TB_NM} 
+                AND 
+                    CMM_FLE_TB_TYPE= #{CMM_FLE_TB_TYPE}
+                AND 
+                    CMM_FLE_TB_PK = #{CMM_FLE_TB_PK}
+                AND 
+                    CMM_FLE_USE_YN = 'Y'
+                ORDER BY CMM_FLE_SORT ASC
+            ) S1
+    </select>
+    
+    <!-- 프론트 > 이벤트 > 설문형 이벤트 응모여부 체크 -->
+    <select id="selectSurveyEventCheck" parameterType="HashMap" resultType="Integer">
+        /* PcEvent.selectSurveyEventCheck */
+        SELECT
+            COUNT(1)
+        FROM 
+            T_EVT_SURVEY
+        WHERE 
+            EVT_EVT_MST_IDX = #{EVT_MST_IDX}
+        AND 
+            EVT_SURVEY_REG_ID = #{EVT_SURVEY_REG_ID} 
+    </select>
+    
+    <!-- 프론트 > 이벤트 > 설문형 이벤트 등록 -->
+    <insert id="insertSurveyEvent" parameterType="HashMap">
+        <selectKey keyProperty="EVT_SURVEY_IDX" resultType="Integer" order="BEFORE">
+            SELECT SEQ_EVT_SURVEY_IDX.NEXTVAL AS EVT_SURVEY_IDX FROM DUAL           
+        </selectKey>
+        /* PcEvent.insertReplyEvent */
+        INSERT INTO
+            T_EVT_SURVEY
+            (
+                EVT_SURVEY_IDX,
+                EVT_EVT_MST_IDX,
+                EVT_SURVEY_CMM_FLE_IDX,
+                EVT_SURVEY_WIN_YN,
+                EVT_SURVEY_REG_DT,
+                EVT_SURVEY_REG_ID,
+                EVT_SURVEY_REG_IP
+            )
+        VALUES
+            (
+                #{EVT_SURVEY_IDX},
+                #{EVT_MST_IDX},
+                #{EVT_SURVEY_CMM_FLE_IDX},
+                NVL(#{EVT_SURVEY_WIN_YN},'N'),
+                TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+                #{EVT_SURVEY_REG_ID},
+                #{EVT_SURVEY_REG_IP}
+            )
+    </insert>
+    
+    <!-- 프론트 > 이벤트 > 당첨자 발표 게시글 총 수  -->
+    <select id="selectEventWinListCount" parameterType="HashMap" resultType="Integer">
+        /* PcCustomer.selectEventWinListCount */
+        SELECT COUNT(*)
+          FROM T_EVT_MST mst 
+             , T_EVT_WIN win
+         WHERE mst.EVT_MST_IDX      = win.EVT_MST_IDX 
+           AND win.EVT_WIN_USE_YN   = 'Y'
+           AND mst.EVT_MST_PC_YN    = 'Y'
+           AND mst.EVT_MST_USE_YN   = 'Y'
+    </select>
+    
+    <!-- 프론트 > 이벤트 > 당첨자 발표  게시글 리스트  -->
+    <select id="selectEventWinList" parameterType="HashMap" resultType="HashMap">
+        /* PcEvent.selectEventWinList */
+        
+        SELECT
+            S2.*          
+        FROM
+            (   SELECT
+                    ROWNUM AS RNUM,
+                    S1.* 
+                FROM
+                    (  SELECT win.EVT_WIN_IDX
+                            , win.EVT_WIN_NM
+                            , win.EVT_WIN_REG_DT
+                            , win.EVT_WIN_REG_ID
+                            , (SELECT ADM_MST_NM FROM T_ADM_MST WHERE ADM_MST_ID = win.EVT_WIN_REG_ID) EVT_WIN_REG_NM
+                            , win.EVT_WIN_USE_YN
+                            , CASE
+                                WHEN TO_DATE(EVT_WIN_REG_DT,'yyyymmdd hh24:mi:ss') + 7 >= SYSDATE THEN 'Y'
+                                ELSE 'N'
+                              END AS NEWMARK
+                            , NVL(EVT_WIN_CNT, 0) AS EVT_WIN_CNT
+                         FROM T_EVT_MST mst 
+                            , T_EVT_WIN win
+                        WHERE mst.EVT_MST_IDX       = win.EVT_MST_IDX 
+                          AND win.EVT_WIN_USE_YN    = 'Y'
+                          AND mst.EVT_MST_PC_YN     = 'Y'
+                          AND mst.EVT_MST_USE_YN    = 'Y'
+                        ORDER BY win.EVT_WIN_REG_DT DESC 
+                    )
+                    S1 
+            )
+            S2
+        WHERE S2.RNUM BETWEEN #{startNum} AND #{endNum}  
+    </select>
+    
+    <!-- 프론트 > 이벤트 > 당첨자 발표  조회수 증가 -->
+    <update id="updateEventWinReadCount" parameterType="HashMap">
+        /* PcEvent.updateEventWinReadCount */
+        
+        UPDATE T_EVT_WIN
+           SET EVT_WIN_CNT = NVL(EVT_WIN_CNT,0) + 1
+         WHERE EVT_WIN_IDX = #{EVT_WIN_IDX}    
+    </update>
+    
+    <!-- 프론트 > 이벤트 > 당첨자 발표  상세보기  -->
+    <select id="selectEventWinInfo" parameterType="HashMap" resultType="HashMap">
+        /* PcEvent.selectEventWinInfo */
+        
+        SELECT EVT_MST_IDX
+             , EVT_WIN_IDX
+             , EVT_WIN_NM
+             , EVT_WIN_MAN_CPY
+             , EVT_WIN_SUB_CPY
+             , EVT_WIN_ATN
+             , NVL(EVT_WIN_UPD_DT,EVT_WIN_REG_DT) AS EVT_WIN_REG_DT
+             , NVL(EVT_WIN_UPD_ID, EVT_WIN_REG_ID) AS EVT_WIN_REG_ID
+             , (SELECT ADM_MST_NM FROM T_ADM_MST WHERE ADM_MST_ID = NVL(EVT_WIN_UPD_ID, EVT_WIN_REG_ID)) EVT_WIN_REG_NM
+             , EVT_WIN_USE_YN
+             , (SELECT EVT_MST_TITLE FROM T_EVT_MST WHERE EVT_MST_IDX = win.EVT_MST_IDX) EVT_MST_TITLE 
+             , NVL(EVT_WIN_CNT,0) AS EVT_WIN_CNT
+          FROM T_EVT_WIN win
+         WHERE EVT_WIN_IDX = #{EVT_WIN_IDX}
+    </select>
+    
+    <!-- 프론트 > 이벤트 > 당첨자 검색 -->
+    <select id="selectEventWinSearchList" parameterType="HashMap" resultType="HashMap">
+        /* PcEvent.selectEventWinSearchList */
+        
+          SELECT inf.WIN_INF_NM
+               , inf.WIN_INF_MEM_NM 
+            FROM T_EVT_MST mst
+               , T_WIN_INF inf
+           WHERE mst.EVT_MST_IDX        = inf.EVT_MST_IDX
+             AND mst.EVT_MST_IDX        = #{EVT_WIN_IDX}
+             AND mst.EVT_MST_PC_YN      = 'Y'
+             AND mst.EVT_MST_USE_YN     = 'Y' 
+             AND inf.WIN_INF_MEM_HP3    = #{SEARCHKEY}
+    </select>
+    
+    <!-- 프론트 > 이벤트 > 당첨자 리스트 -->
+    <select id="selectEventWinerList" parameterType="HashMap" resultType="HashMap">
+        /* PcEvent.selectEventWinerList */
+        
+          SELECT inf.WIN_INF_NM AS  WIN_INF_NM
+               , inf.WIN_INF_MEM_NM AS WIN_INF_MEM_NM
+               , mst.EVT_MST_IDX
+            FROM T_EVT_MST mst
+               , T_WIN_INF inf
+               , T_EVT_WIN win
+           WHERE mst.EVT_MST_IDX        = inf.EVT_MST_IDX
+             AND mst.EVT_MST_IDX        = win.EVT_MST_IDX
+             AND win.EVT_WIN_IDX        = #{EVT_WIN_IDX}
+             AND mst.EVT_MST_PC_YN      = 'Y'
+             AND mst.EVT_MST_USE_YN     = 'Y' 
+           ORDER BY inf.WIN_INF_NM
+    </select>
+    
+    <!-- 프론트 > 이벤트 > 당첨자 검색 -->
+    <select id="selectMobileEventWinSearchList" parameterType="HashMap" resultType="HashMap">
+        /* PcEvent.selectMobileEventWinSearchList */
+        
+          SELECT inf.WIN_INF_NM
+               , inf.WIN_INF_MEM_NM 
+            FROM T_EVT_MST mst
+               , T_WIN_INF inf
+           WHERE mst.EVT_MST_IDX        = inf.EVT_MST_IDX
+             AND mst.EVT_MST_MB_YN      = 'Y'
+             AND mst.EVT_MST_USE_YN     = 'Y' 
+             AND inf.WIN_INF_MEM_HP3    = #{SEARCHKEY}
+    </select>
+    <!-- 프론트 > 이벤트 > 당첨자 리스트 -->
+    <select id="selectMobileWinInfList" parameterType="HashMap" resultType="HashMap">
+        /* PcEvent.selectMobileWinInfList */
+          SELECT distinct inf.WIN_INF_NM
+          FROM T_EVT_MST mst
+               , T_WIN_INF inf
+               , T_EVT_WIN win
+           WHERE mst.EVT_MST_IDX        = inf.EVT_MST_IDX
+             AND mst.EVT_MST_IDX        = win.EVT_MST_IDX
+             AND win.EVT_WIN_IDX        = #{EVT_WIN_IDX}
+             AND mst.EVT_MST_MB_YN      = 'Y'
+             AND mst.EVT_MST_USE_YN     = 'Y'
+    </select>
+    
+    <!-- 프론트 > 이벤트 > 당첨자 리스트 -->
+    <select id="selectMobileEventWinerList" parameterType="HashMap" resultType="HashMap">
+        /* PcEvent.selectMobileEventWinerList */
+        
+          SELECT distinct inf.WIN_INF_NM
+               , inf.WIN_INF_MEM_NM
+               , mst.EVT_MST_IDX
+               , inf.WIN_INF_MEM_HP3
+            FROM T_EVT_MST mst
+               , T_WIN_INF inf
+               , T_EVT_WIN win
+           WHERE mst.EVT_MST_IDX        = inf.EVT_MST_IDX
+             AND mst.EVT_MST_IDX        = win.EVT_MST_IDX
+             AND win.EVT_WIN_IDX        = #{EVT_WIN_IDX}
+             AND mst.EVT_MST_MB_YN      = 'Y'
+             AND mst.EVT_MST_USE_YN     = 'Y'
+    </select>
+    
+    <!-- 프론트 > 이벤트 > 당첨자 발표 게시글 총 수  -->
+    <select id="selectMobileEventWinListCount" parameterType="HashMap" resultType="Integer">
+        /* PcCustomer.selectEventWinListCount */
+        SELECT COUNT(*)
+          FROM T_EVT_MST mst 
+             , T_EVT_WIN win
+         WHERE mst.EVT_MST_IDX      = win.EVT_MST_IDX 
+           AND win.EVT_WIN_USE_YN   = 'Y'
+           AND mst.EVT_MST_MB_YN    = 'Y'
+           AND mst.EVT_MST_USE_YN   = 'Y'
+    </select>
+    
+    <!-- 프론트 > 이벤트 > 당첨자 발표  게시글 리스트  -->
+    <select id="selectMobileEventWinList" parameterType="HashMap" resultType="HashMap">
+        /* PcEvent.selectEventWinList */
+        
+        SELECT
+            S2.*          
+        FROM
+            (   SELECT
+                    ROWNUM AS RNUM,
+                    S1.* 
+                FROM
+                    (  SELECT win.EVT_WIN_IDX
+                            , win.EVT_WIN_NM
+                            , win.EVT_WIN_REG_DT
+                            , win.EVT_WIN_REG_ID
+                            , (SELECT ADM_MST_NM FROM T_ADM_MST WHERE ADM_MST_ID = win.EVT_WIN_REG_ID) EVT_WIN_REG_NM
+                            , win.EVT_WIN_USE_YN
+                            , CASE
+                                WHEN TO_DATE(EVT_WIN_REG_DT,'yyyymmdd hh24:mi:ss') + 7 >= SYSDATE THEN 'Y'
+                                ELSE 'N'
+                              END AS NEWMARK
+                            , EVT_WIN_CNT
+                         FROM T_EVT_MST mst 
+                            , T_EVT_WIN win
+                        WHERE mst.EVT_MST_IDX       = win.EVT_MST_IDX 
+                          AND win.EVT_WIN_USE_YN    = 'Y'
+                          AND mst.EVT_MST_MB_YN     = 'Y'
+                          AND mst.EVT_MST_USE_YN    = 'Y'
+                        ORDER BY win.EVT_WIN_REG_DT DESC 
+                    )
+                    S1 
+            )
+            S2
+        WHERE S2.RNUM BETWEEN #{startNum} AND #{endNum}  
+    </select>
+    
+</mapper>

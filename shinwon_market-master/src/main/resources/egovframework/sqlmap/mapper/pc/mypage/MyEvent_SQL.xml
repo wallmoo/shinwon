@@ -1,0 +1,182 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="PcMyEvent">
+	<!-- 프론트 > 마이페이지 > 쇼핑활동 > 참여한 이벤트 카운트 -->
+    <select id="selectMyEventListCount" parameterType="hashMap" resultType="integer">
+    	/* PcMyCoupon.selectMyEventListCount */
+    	WITH T_EVT_VIEW AS(
+			SELECT
+				EVT_JOIN_MST_IDX
+				, EVT_JOIN_MEM_ID
+				, EVT_JOIN_REG_DT
+				, EVT_JOIN_WIN_YN
+				, EVT_JOIN_CHN_TYPE
+			FROM(
+					--일반응모
+					SELECT
+						EVT_MST_IDX AS EVT_JOIN_MST_IDX
+						, EVT_ETR_REG_ID AS EVT_JOIN_MEM_ID
+						, EVT_ETR_REG_DT AS EVT_JOIN_REG_DT
+						, EVT_ETR_WIN_YN AS EVT_JOIN_WIN_YN
+						, EVT_ETR_CHN_TYPE AS EVT_JOIN_CHN_TYPE
+					FROM
+						T_EVT_ETR
+			
+					UNION ALL
+					--이미지 응모
+					SELECT
+						EVT_MST_IDX AS EVT_JOIN_MST_IDX
+						, EVT_IMG_REG_ID AS EVT_JOIN_MEM_ID
+						, EVT_IMG_REG_DT AS EVT_JOIN_REG_DT
+						, EVT_IMG_WIN_YN AS EVT_JOIN_WIN_YN
+						, EVT_IMG_CHN_TYPE AS EVT_JOIN_CHN_TYPE
+					FROM
+						T_EVT_IMG
+			
+					UNION ALL
+					--덧글형 응모
+					SELECT
+						EVT_MST_IDX AS EVT_JOIN_MST_IDX
+						, EVT_RPL_REG_ID AS EVT_JOIN_MEM_ID
+						, EVT_RPL_REG_DT AS EVT_JOIN_REG_DT
+						, EVT_RPL_WIN_YN AS EVT_JOIN_WIN_YN
+						, EVT_RPL_CHN_TYPE AS EVT_JOIN_CHN_TYPE
+					FROM
+						T_EVT_RPL
+			
+					UNION ALL
+					--설문형 응모
+					SELECT
+						EDL.EVT_MST_IDX AS EVT_JOIN_MST_IDX
+						, ESY.EVT_SVY_REG_ID AS EVT_JOIN_MEM_ID
+						, ESY.EVT_SVY_REG_DT AS EVT_JOIN_REG_DT
+						, ESY.EVT_SVY_WIN_YN AS EVT_JOIN_WIN_YN
+						, ESY.EVT_SVY_CHN_TYPE AS EVT_JOIN_CHN_TYPE
+					FROM
+						T_EVT_DTL EDL
+					INNER JOIN T_EVT_SVY ESY ON ESY.EVT_DTL_IDX = EDL.EVT_DTL_IDX
+				)
+			ORDER BY EVT_JOIN_REG_DT DESC
+		)
+    	SELECT 
+			COUNT(0)
+		FROM T_EVT_MST EMT
+        <if test="EVT_JOIN_WIN_YN != null and EVT_JOIN_WIN_YN != ''">
+            <if test="EVT_JOIN_WIN_YN.equals('Y'.toString())">
+                INNER JOIN T_WIN_INF WIF ON EMT.EVT_MST_IDX = WIF.EVT_MST_IDX
+            </if>
+        </if>
+		INNER JOIN T_EVT_VIEW EVM ON EVM.EVT_JOIN_MST_IDX = EMT.EVT_MST_IDX
+		WHERE
+			EVM.EVT_JOIN_MEM_ID = #{MEM_MST_MEM_ID}
+        <if test="EVT_JOIN_WIN_YN != null and EVT_JOIN_WIN_YN != ''">
+            AND EVM.EVT_JOIN_WIN_YN = #{EVT_JOIN_WIN_YN}
+        </if>
+    </select>
+    
+    <!-- 프론트 > 마이페이지 > 쇼핑혜택 > 사용가능 쿠폰 목록 -->
+    <select id="selectMyEventList" parameterType="hashMap" resultType="hashMap">
+        /* PcMyCoupon.selectMyEventList */
+        WITH T_EVT_VIEW AS(
+			SELECT
+				EVT_JOIN_MST_IDX
+				, EVT_JOIN_MEM_ID
+				, EVT_JOIN_REG_DT
+				, EVT_JOIN_WIN_YN
+				, EVT_JOIN_CHN_TYPE
+			FROM(
+					--일반응모
+					SELECT
+						EVT_MST_IDX AS EVT_JOIN_MST_IDX
+						, EVT_ETR_REG_ID AS EVT_JOIN_MEM_ID
+						, EVT_ETR_REG_DT AS EVT_JOIN_REG_DT
+						, EVT_ETR_WIN_YN AS EVT_JOIN_WIN_YN
+						, EVT_ETR_CHN_TYPE AS EVT_JOIN_CHN_TYPE
+					FROM
+						T_EVT_ETR
+			
+					UNION ALL
+					--이미지 응모
+					SELECT
+						EVT_MST_IDX AS EVT_JOIN_MST_IDX
+						, EVT_IMG_REG_ID AS EVT_JOIN_MEM_ID
+						, EVT_IMG_REG_DT AS EVT_JOIN_REG_DT
+						, EVT_IMG_WIN_YN AS EVT_JOIN_WIN_YN
+						, EVT_IMG_CHN_TYPE AS EVT_JOIN_CHN_TYPE
+					FROM
+						T_EVT_IMG
+			
+					UNION ALL
+					--덧글형 응모
+					SELECT
+						EVT_MST_IDX AS EVT_JOIN_MST_IDX
+						, EVT_RPL_REG_ID AS EVT_JOIN_MEM_ID
+						, EVT_RPL_REG_DT AS EVT_JOIN_REG_DT
+						, EVT_RPL_WIN_YN AS EVT_JOIN_WIN_YN
+						, EVT_RPL_CHN_TYPE AS EVT_JOIN_CHN_TYPE
+					FROM
+						T_EVT_RPL
+			
+					UNION ALL
+					--설문형 응모
+					SELECT
+						EDL.EVT_MST_IDX AS EVT_JOIN_MST_IDX
+						, ESY.EVT_SVY_REG_ID AS EVT_JOIN_MEM_ID
+						, ESY.EVT_SVY_REG_DT AS EVT_JOIN_REG_DT
+						, ESY.EVT_SVY_WIN_YN AS EVT_JOIN_WIN_YN
+						, ESY.EVT_SVY_CHN_TYPE AS EVT_JOIN_CHN_TYPE
+					FROM
+						T_EVT_DTL EDL
+					INNER JOIN T_EVT_SVY ESY ON ESY.EVT_DTL_IDX = EDL.EVT_DTL_IDX
+				)
+			ORDER BY EVT_JOIN_REG_DT DESC
+		)
+        SELECT
+			RUNM
+			, EVT_MST_TITLE
+			, EVT_MST_REG_DT
+			, EVT_MST_ED_DT
+			, EVT_JOIN_REG_DT
+			, EVT_JOIN_WIN_YN
+			, EVT_JOIN_CHN_TYPE
+			, EVT_WIN_REG_DT
+			, <![CDATA[CASE  WHEN
+				TO_CHAR(SYSDATE,'YYYYMMDDHH24MISS')  >= EVT_MST_REG_DT AND TO_CHAR(SYSDATE,'YYYYMMDDHH24MISS')  <= EVT_MST_ED_DT
+				THEN '진행중'
+			  ELSE
+			  		 '종료'
+			  END]]> AS EVT_MST_STATUS
+			, EVT_ETR_MON_DAY
+			, EVT_MST_IDX
+			, EVT_WIN_IDX
+			, EVT_WIN_CNT
+		FROM(	SELECT 
+					ROWNUM AS RUNM
+					, EMT.EVT_MST_TITLE
+					, EMT.EVT_MST_ST_DT||EMT.EVT_MST_ST_HH||EMT.EVT_MST_ST_MM||'00' AS EVT_MST_REG_DT
+					, EMT.EVT_MST_ED_DT||EMT.EVT_MST_ED_HH||EMT.EVT_MST_ED_MM||'59' AS EVT_MST_ED_DT
+					, EVM.EVT_JOIN_REG_DT
+					, EVM.EVT_JOIN_WIN_YN
+					, <![CDATA[CASE EVM.EVT_JOIN_CHN_TYPE WHEN 'P' 
+						THEN 'PC'
+					  ELSE
+					  	'MOBILE'
+					  END]]> AS EVT_JOIN_CHN_TYPE
+					, NVL((SELECT MAX(EVT_WIN_REG_DT) FROM T_EVT_WIN WHERE EVT_MST_IDX = EMT.EVT_MST_IDX),'') AS EVT_WIN_REG_DT
+					, TO_CHAR(ADD_MONTHS(SYSDATE, -6),'YYYYMMDD') AS EVT_ETR_MON_DAY
+					, EMT.EVT_MST_IDX
+					, (SELECT MAX(EVT_WIN_IDX) FROM T_EVT_WIN WHERE EVT_MST_IDX = EMT.EVT_MST_IDX AND EVT_WIN_USE_YN = 'Y') AS EVT_WIN_IDX
+					, (SELECT COUNT(0) FROM T_WIN_INF WHERE EVT_MST_IDX = EMT.EVT_MST_IDX AND MEM_MST_MEM_ID = #{MEM_MST_MEM_ID}) AS EVT_WIN_CNT
+				FROM T_EVT_MST EMT
+				INNER JOIN T_EVT_VIEW EVM ON EVM.EVT_JOIN_MST_IDX = EMT.EVT_MST_IDX
+				WHERE
+					EVM.EVT_JOIN_MEM_ID = #{MEM_MST_MEM_ID}
+			)S1
+		WHERE
+			S1.EVT_ETR_MON_DAY <![CDATA[<=]]> EVT_JOIN_REG_DT||'000000'
+		AND
+			S1.RUNM BETWEEN #{startNum} AND #{endNum}
+		ORDER BY S1.EVT_JOIN_REG_DT DESC
+    </select>
+</mapper>

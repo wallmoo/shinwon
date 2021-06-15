@@ -1,0 +1,52 @@
+[10:22:50] [T00027292nQm3NJjuRZ] START:mall_id=[T0002729]+tr_cd=[00101000]+order_no=[2016021901287]
+[10:22:50] [T00027292nQm3NJjuRZ] DATA:pay_data=common=tot_amt=1000currency=00client_ip=130.1.184.123escrow_yn=Ycomplex_yn=Ncli_ver=N8vacct=vacct_txtype=10vacct_amt=1000bank_cd=004cash_yn=0order_data=order_no=2016021901287user_phone2=01022222222product_nm=브랜드2CRPCHS1010FS4인용압력밥솥product_amt=1000escrow_data=escr_type=Kbk_cnt=1bk_totamt=1000bk_goodinfo=prd_no=S2015120915453911585recv_nm=강현규recv_mob=01022222222recv_mail=rkdgusrb1@test.com
+[10:22:51] [T00027292nQm3NJjuRZ] RESULT:res_cd=E982res_msg=장바구니 FORMAT 오류(금액)
+[10:22:51] [T00027292nQm3NJjuRZ] ENDED :mall_id=[T0002729]+tr_cd=[00101000]+order_no=[2016021901287]
+[10:28:05] [T0002729FI1dJqY0SBI] START:mall_id=[T0002729]+tr_cd=[00101000]+order_no=[2016021901288]
+[10:28:05] [T0002729FI1dJqY0SBI] DATA:pay_data=common=tot_amt=1000currency=00client_ip=130.1.184.123escrow_yn=Ncomplex_yn=Ncli_ver=N8vacct=vacct_txtype=10vacct_amt=1000bank_cd=003expire_date=20160222expire_time=235959cash_yn=0order_data=order_no=2016021901288user_phone2=01022222222product_nm=브랜드2CRPCHS1010FS4인용압력밥솥product_amt=1000
+[10:28:05] [T0002729FI1dJqY0SBI] RESULT:res_cd=0000res_msg=계좌 채번 정상cno=16021910244623475614order_no=2016021901288amount=1000tran_date=20160219102446bank_cd=003bank_nm=기업은행account_no=T8201367697141deposit_nm=epasscniexpire_date=20160222235959escrow_yn=Ncomplex_yn=Nstat_cd=TS07stat_msg=입금대기pay_type=22memb_id=T0002729memb_gubun=2bk_pay_yn=N
+[10:28:05] [T0002729FI1dJqY0SBI] ENDED :mall_id=[T0002729]+tr_cd=[00101000]+order_no=[2016021901288]
+[10:29:34] [T0002729Y8YQrr2MTZf] START:mall_id=[T0002729]+tr_cd=[00101000]+order_no=[2016021901289]
+[10:29:34] [T0002729Y8YQrr2MTZf] DATA:pay_data=common=tot_amt=1000currency=00client_ip=130.1.184.123escrow_yn=Ycomplex_yn=Ncli_ver=N8vacct=vacct_txtype=10vacct_amt=1000bank_cd=004cash_yn=0order_data=order_no=2016021901289user_phone2=01022222222product_nm=브랜드2CRPCHS1010FS4인용압력밥솥product_amt=1000escrow_data=escr_type=Kbk_cnt=1bk_totamt=1000bk_goodinfo=prd_no=S2015120915453911585recv_nm=강현규recv_mob=01022222222recv_mail=rkdgusrb1@test.com
+[10:29:34] [T0002729Y8YQrr2MTZf] RESULT:res_cd=E982res_msg=장바구니 FORMAT 오류(금액)
+[10:29:34] [T0002729Y8YQrr2MTZf] ENDED :mall_id=[T0002729]+tr_cd=[00101000]+order_no=[2016021901289]
+[10:34:56] [T00027293NSosggi73c] START:mall_id=[T0002729]+tr_cd=[00101000]+order_no=[2016021901290]
+[10:34:56] [T00027293NSosggi73c] DATA:pay_data=common=currency=00client_ip=130.1.184.123escrow_yn=Ycomplex_yn=Ncli_ver=N8vacct=vacct_txtype=10vacct_amt=1000bank_cd=004cash_yn=0order_data=order_no=2016021901290user_phone2=01022222222product_nm=브랜드2CRPCHS1010FS4인용압력밥솥product_amt=1000escrow_data=escr_type=Kbk_cnt=1bk_totamt=1000bk_goodinfo=prd_no=S2015120915453911585recv_nm=강현규recv_mob=01022222222recv_mail=rkdgusrb1@test.com
+[10:34:56] [T00027293NSosggi73c] RESULT:res_cd=E901res_msg=결제총금액 없음
+[10:34:56] [T00027293NSosggi73c] ENDED :mall_id=[T0002729]+tr_cd=[00101000]+order_no=[2016021901290]
+[10:39:43] [T0002729hPb0xNkill0] START:mall_id=[T0002729]+tr_cd=[00101000]+order_no=[2016021901291]
+[10:39:43] [T0002729hPb0xNkill0] DATA:pay_data=common=tot_amt=1000currency=00client_ip=130.1.184.123escrow_yn=Ycomplex_yn=Ncli_ver=N8vacct=vacct_txtype=10vacct_amt=1000bank_cd=004cash_yn=0order_data=order_no=2016021901291user_phone2=01022222222product_nm=브랜드2CRPCHS1010FS4인용압력밥솥product_amt=1000escrow_data=escr_type=Kbk_cnt=1bk_totamt=1000bk_goodinfo=prd_no=S2015120915453911585recv_nm=강현규recv_mob=01022222222recv_mail=rkdgusrb1@test.com
+[10:39:43] [T0002729hPb0xNkill0] RESULT:res_cd=E982res_msg=장바구니 FORMAT 오류(금액)
+[10:39:43] [T0002729hPb0xNkill0] ENDED :mall_id=[T0002729]+tr_cd=[00101000]+order_no=[2016021901291]
+[10:54:18] [T0002729GPCq4A01JO3] START:mall_id=[T0002729]+tr_cd=[00101000]+order_no=[2016021901293]
+[10:54:18] [T0002729GPCq4A01JO3] DATA:pay_data=common=tot_amt=1000currency=00client_ip=130.1.184.123escrow_yn=Ycomplex_yn=Ncli_ver=N8vacct=vacct_txtype=10vacct_amt=1000bank_cd=020cash_yn=0order_data=order_no=2016021901293user_phone2=01022222222product_nm=브랜드2CRPCHS1010FS4인용압력밥솥product_amt=1000escrow_data=escr_type=Kbk_cnt=1bk_totamt=1000bk_goodinfo=prd_no=S2015120915453911585recv_nm=강현규recv_mob=01022222222recv_mail=rkdgusrb1@test.com
+[10:54:18] [T0002729GPCq4A01JO3] RESULT:res_cd=E982res_msg=장바구니 FORMAT 오류(금액)
+[10:54:18] [T0002729GPCq4A01JO3] ENDED :mall_id=[T0002729]+tr_cd=[00101000]+order_no=[2016021901293]
+[11:06:52] [T0002729XyrZDHMebPj] START:mall_id=[T0002729]+tr_cd=[00101000]+order_no=[2016021901294]
+[11:06:52] [T0002729XyrZDHMebPj] DATA:pay_data=common=tot_amt=1000currency=00client_ip=130.1.184.123escrow_yn=Ycomplex_yn=Ncli_ver=N8vacct=vacct_txtype=10vacct_amt=1000bank_cd=003cash_yn=0order_data=order_no=2016021901294user_phone2=01022222222product_nm=브랜드2CRPCHS1010FS4인용압력밥솥product_amt=1000escrow_data=escr_type=Kbk_cnt=1bk_totamt=1000bk_goodinfo=prd_no=S2015120915453911585recv_nm=강현규recv_mob=01022222222recv_mail=rkdgusrb1@test.com
+[11:06:52] [T0002729XyrZDHMebPj] RESULT:res_cd=E982res_msg=장바구니 FORMAT 오류(금액)
+[11:06:52] [T0002729XyrZDHMebPj] ENDED :mall_id=[T0002729]+tr_cd=[00101000]+order_no=[2016021901294]
+[11:10:01] [T0002729TdEnPGYLlAf] START:mall_id=[T0002729]+tr_cd=[00101000]+order_no=[2016021901295]
+[11:10:01] [T0002729TdEnPGYLlAf] DATA:pay_data=common=tot_amt=1000currency=00client_ip=130.1.184.123escrow_yn=Ycomplex_yn=Ncli_ver=N8vacct=vacct_txtype=10vacct_amt=1000bank_cd=004cash_yn=0order_data=order_no=2016021901295user_phone2=01022222222product_nm=브랜드2CRPCHS1010FS4인용압력밥솥product_amt=1000escrow_data=escr_type=Kbk_cnt=1bk_totamt=1000bk_goodinfo=prd_no=S2015120915453911585prd_amt=1000prd_nm=브랜드2CRPCHS1010FS4인용압력밥솥recv_nm=강현규recv_mob=01022222222recv_mail=rkdgusrb1@test.com
+[11:10:01] [T0002729TdEnPGYLlAf] RESULT:res_cd=0000res_msg=계좌 채번 정상cno=16021911064123475721order_no=2016021901295amount=1000tran_date=20160219110642bank_cd=004bank_nm=국민은행account_no=T9649078161305deposit_nm=epasscniexpire_date=20160222235959escrow_yn=Yescrow_type=Kcomplex_yn=Nstat_cd=ES03stat_msg=입금대기pay_type=22memb_id=T0002729memb_gubun=2bk_pay_yn=N
+[11:10:01] [T0002729TdEnPGYLlAf] ENDED :mall_id=[T0002729]+tr_cd=[00101000]+order_no=[2016021901295]
+[11:13:21] [T0002729Ryel6WxUVFT] START:mall_id=[T0002729]+tr_cd=[00101000]+order_no=[2016021901296]
+[11:13:21] [T0002729Ryel6WxUVFT] DATA:pay_data=common=tot_amt=1000currency=00client_ip=130.1.184.157escrow_yn=Ycomplex_yn=Ncli_ver=N8vacct=vacct_txtype=10vacct_amt=1000bank_cd=003cash_yn=0order_data=order_no=2016021901296user_phone2=01022222222product_nm=브랜드2CRPCHS1010FS4인용압력밥솥product_amt=1000escrow_data=escr_type=Kbk_cnt=1bk_totamt=1000bk_goodinfo=prd_no=S2015120915453911585prd_amt=1000prd_nm=브랜드2CRPCHS1010FS4인용압력밥솥recv_nm=강현규recv_mob=01022222222recv_mail=everafterk@naver.com
+[11:13:21] [T0002729Ryel6WxUVFT] RESULT:res_cd=0000res_msg=계좌 채번 정상cno=16021911100123475728order_no=2016021901296amount=1000tran_date=20160219111001bank_cd=003bank_nm=기업은행account_no=T8201368597845deposit_nm=epasscniexpire_date=20160222235959escrow_yn=Yescrow_type=Kcomplex_yn=Nstat_cd=ES03stat_msg=입금대기pay_type=22memb_id=T0002729memb_gubun=2bk_pay_yn=N
+[11:13:21] [T0002729Ryel6WxUVFT] ENDED :mall_id=[T0002729]+tr_cd=[00101000]+order_no=[2016021901296]
+[11:16:31] [T0002729SkN9xgqayQH] START:mall_id=[T0002729]+tr_cd=[00201000]+order_no=[]
+[11:16:31] [T0002729SkN9xgqayQH] DATA:mgr_data=mgr_txtype=61mgr_subtype=ES07org_cno=16021911100123475728deli_cd=DE02deli_corp_cd=DC01deli_invoice=12345deli_rcv_nm=에스크로테스트deli_rcv_tel=01011112525req_ip=130.1.184.157
+[11:16:31] [T0002729SkN9xgqayQH] RESULT:res_cd=0000res_msg=정상 처리cno=16021911100123475728order_no=2016021901296tran_date=20160219111312escrow_yn=Ycanc_date=20160219111312stat_cd=ES07stat_msg=배송중memb_id=T0002729
+[11:16:31] [T0002729SkN9xgqayQH] ENDED :mall_id=[T0002729]+tr_cd=[00201000]+order_no=[]
+[15:51:11] [T0002729cMGrNzV24ab] START:mall_id=[T0002729]+tr_cd=[00101000]+order_no=[2016021901301]
+[15:51:11] [T0002729cMGrNzV24ab] DATA:pay_data=common=tot_amt=10000currency=00client_ip=130.1.184.157escrow_yn=Ycomplex_yn=Ncli_ver=N8vacct=vacct_txtype=10vacct_amt=10000bank_cd=004cash_yn=0order_data=order_no=2016021901301user_phone2=01022222222product_nm=samsung1TEST1122상품고시정보상품4product_amt=10000escrow_data=escr_type=Kbk_cnt=1bk_totamt=10000bk_goodinfo=prd_no=TEST112200011432prd_amt=10000prd_nm=samsung1TEST1122상품고시정보상품4recv_nm=에스크로맨recv_mob=01022222222recv_mail=everafterk@naver.com
+[15:51:12] [T0002729cMGrNzV24ab] RESULT:res_cd=0000res_msg=계좌 채번 정상cno=16021915475223476325order_no=2016021901301amount=10000tran_date=20160219154752bank_cd=004bank_nm=기타은행account_no=T9649078172024deposit_nm=epasscniexpire_date=20160222235959escrow_yn=Yescrow_type=Kcomplex_yn=Nstat_cd=ES03stat_msg=입금대기pay_type=22memb_id=T0002729memb_gubun=2bk_pay_yn=N
+[15:51:12] [T0002729cMGrNzV24ab] ENDED :mall_id=[T0002729]+tr_cd=[00101000]+order_no=[2016021901301]
+[15:56:17] [T0002729rnbtUFFJRtR] START:mall_id=[T0002729]+tr_cd=[00201000]+order_no=[]
+[15:56:17] [T0002729rnbtUFFJRtR] DATA:mgr_data=mgr_txtype=61mgr_subtype=ES07org_cno=16021915475223476325deli_cd=DE02deli_corp_cd=DC01deli_invoice=1234deli_rcv_nm=에스크로맨deli_rcv_tel=01022222222req_ip=130.1.184.157
+[15:56:17] [T0002729rnbtUFFJRtR] RESULT:res_cd=0000res_msg=정상 처리cno=16021915475223476325order_no=2016021901301tran_date=20160219155257escrow_yn=Ycanc_date=20160219155257stat_cd=ES07stat_msg=배송중memb_id=T0002729
+[15:56:17] [T0002729rnbtUFFJRtR] ENDED :mall_id=[T0002729]+tr_cd=[00201000]+order_no=[]
+[16:42:58] [T5102001pAAOunOuF0b] START:mall_id=[T5102001]+tr_cd=[00201000]+order_no=[2016021101078]
+[16:42:58] [T5102001pAAOunOuF0b] DATA:mgr_data=mgr_txtype=40org_cno=16021109340523363565order_no=2016021101078req_ip=130.1.184.157
+[16:42:58] [T5102001pAAOunOuF0b] RESULT:res_cd=0000res_msg=정상 취소cno=16021109340523363565tran_date=20160219163939escrow_yn=Ncanc_date=20160219163939stat_cd=TS02stat_msg=승인취소memb_id=T5102001bk_pay_yn=N
+[16:42:58] [T5102001pAAOunOuF0b] ENDED :mall_id=[T5102001]+tr_cd=[00201000]+order_no=[2016021101078]

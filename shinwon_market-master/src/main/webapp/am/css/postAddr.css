@@ -1,0 +1,24 @@
+/* address popup  ========================================================================== */
+#keyword { background-color: #FCFCFC; height: 38px; padding: 10px; border-color: #4374D9; }
+#totalCntDiv { text-align: right; }
+
+.pop-address-search-layer3 { position: absolute; z-index:10; margin: -290px 0 0 -340px; width:480px; border:1px solid #000; background:#fff; -webkit-box-shadow: 5px 5px 12px -2px rgba(0,0,0,0.36); -moz-box-shadow: 5px 5px 12px -2px rgba(0,0,0,0.36); box-shadow: 5px 5px 12px -2px rgba(0,0,0,0.36); }
+.pop-address-header { height: 40px; background-color: #3e98dd; color: #fff; }
+.pop-address-header h1 { margin: 0; padding: 10px; color: #fff; }
+.pop-address-header .close { display: inline-block; position: relative; color: #fff; float: right; height: 40px; width: 40px; text-align: center; line-height: 40px; font-size: 20px; } 
+.pop-address-body { padding: 20px; } 
+.pop-address-body h4 { margin: 0 0 10px; color: #999; }
+.pop-address-body table th { padding-left: 0; }
+
+.pop-address-field { padding: 10px 10px 20px; }
+.pop-address-field legend { display: none; }
+.pop-address-field .button { line-height: 35px; }
+
+.pop-addr-wrap { text-align: center; }
+.paginate { text-align: center; }
+
+.data-col { margin: 0 0 20px; border-top:2px solid #000; }
+// .data-col thead th { padding: 5px 0; background: #EAEAEA; text-align: center; }
+.data-col tbody td { padding: 5px 0; text-align: center; border-bottom: 1px solid #eee; }
+.data-col tbody tr:nth-child(even) td { background-color: #f9f9f9; }
+.data-col tbody tr:nth-child(odd) td {  }

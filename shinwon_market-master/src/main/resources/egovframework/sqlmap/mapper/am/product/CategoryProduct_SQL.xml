@@ -1,0 +1,318 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="CategoryProduct">
+
+    <!-- 상품 카테고리 계층형 리스트 조회 -->
+    <select id="selectCategoryProductList" parameterType="hashMap" resultType="hashMap">
+        /* CategoryProduct.selectCategoryProductList */
+        SELECT 
+            PRD_CTG_IDX
+            , PRD_CTG_NM
+            , PRD_CTG_UP_IDX
+            , PRD_CTG_LEVEL
+        FROM 
+            T_PRD_CTG
+        WHERE PRD_CTG_DEL_YN != 'Y'
+        <if test="!useYn.equals('all'.toString())">
+            AND PRD_CTG_USE_YN = 'Y'
+        </if>
+        
+        <if test="PRD_CTG_ENV != null and PRD_CTG_ENV != ''">
+            AND PRD_CTG_ENV = #{PRD_CTG_ENV}
+        </if>        
+        START WITH PRD_CTG_UP_IDX = -1 
+        CONNECT BY PRIOR PRD_CTG_IDX = PRD_CTG_UP_IDX
+        ORDER SIBLINGS BY PRD_CTG_SORT ASC
+    </select>
+
+    <!-- 하위 상품 카테고리 리스트 조회 -->
+    <select id="selectSubCategoryProductList" parameterType="hashMap" resultType="hashMap">
+        /* CategoryProduct.selectSubCategoryProductList */
+        SELECT
+            PRD_CTG_IDX
+            , PRD_CTG_NM
+            , PRD_CTG_USE_YN
+        FROM
+            T_PRD_CTG
+        WHERE
+            PRD_CTG_UP_IDX = #{PRD_CTG_IDX}
+        AND
+            PRD_CTG_DEL_YN != 'Y'
+            <if test="useYn != all">
+                AND PRD_CTG_USE_YN = 'Y'
+            </if>
+            <if test="PRD_CTG_ENV != null and PRD_CTG_ENV != ''">
+                AND PRD_CTG_ENV = #{PRD_CTG_ENV}
+            </if>   
+            <if test="searchPrdMstVdrYn != null and searchPrdMstVdrYn != ''">
+                <if test="searchPrdMstVdrYn != '' and searchPrdMstVdrYn.equals('Y'.toString())">
+                    AND PRD_CTG_DSP_YN = 'Y'
+                </if>
+            </if>
+        ORDER BY PRD_CTG_SORT ASC
+    </select>
+
+    <!-- 상품 카테고리 상위 계층형 리스트 조회 -->
+    <select id="selectUpperCategoryProductList" parameterType="hashMap" resultType="hashMap">
+        /* CategoryProduct.selectUpperCategoryProductList */
+        SELECT 
+            PRD_CTG_IDX
+            , PRD_CTG_NM
+            , PRD_CTG_UP_IDX
+            , PRD_CTG_LEVEL
+        FROM 
+            T_PRD_CTG
+        WHERE 1=1
+        AND PRD_CTG_USE_YN = 'Y'
+        START WITH PRD_CTG_IDX = #{PRD_CTG_IDX}
+        CONNECT BY PRD_CTG_IDX = PRIOR PRD_CTG_UP_IDX
+        ORDER BY PRD_CTG_LEVEL, PRD_CTG_SORT
+    </select>
+
+    <!-- 상품 카테고리 상세 정보 조회 -->
+    <select id="selectCategoryProductInfo" parameterType="hashMap" resultType="hashMap">
+        /* CategoryProduct.selectCategoryProductInfo */
+        SELECT 
+             CTG.PRD_CTG_IDX
+             , (SELECT PRD_CTG_NM FROM T_PRD_CTG WHERE PRD_CTG_IDX = CTG.PRD_CTG_TOP_IDX) PRD_CTG_TOP_NM
+             , (SELECT PRD_CTG_NM FROM T_PRD_CTG WHERE PRD_CTG_TOP_IDX != -1 AND PRD_CTG_IDX = CTG.PRD_CTG_UP_IDX)  PRD_CTG_UP_NM  
+             , SUBSTR(SYS_CONNECT_BY_PATH(CTG.PRD_CTG_NM, '>'),2) AS PRD_CTG_LVL_NM                        
+             , CTG.PRD_CTG_NM
+             , CTG.PRD_CTG_LEVEL
+             , CTG.PRD_CTG_UP_IDX
+             , CTG.PRD_CTG_TOP_IDX
+             , CTG.PRD_CTG_SORT
+             , CTG.PRD_CTG_USE_YN
+             , CTG.PRD_CTG_REG_DT
+             , CTG.PRD_CTG_REG_IP
+             , CTG.PRD_CTG_REG_ID
+             , CTG.PRD_CTG_UPD_DT
+             , CTG.PRD_CTG_UPD_IP
+             , CTG.PRD_CTG_UPD_ID
+             , (SELECT COUNT(PRD_CTG_IDX) FROM T_PRD_CTG WHERE PRD_CTG_UP_IDX = #{PRD_CTG_IDX} AND PRD_CTG_DEL_YN != 'Y') AS CHILD_CNT
+             , CTG.PRD_CTG_ENV
+             , CTG.PRD_CTG_DSP_YN
+             , (SELECT MAX(CMM_FLE_ORG_NM) KEEP(DENSE_RANK FIRST ORDER BY CMM_FLE_IDX DESC) FROM T_CMM_FLE WHERE CMM_FLE_TB_NM  = 'T_PRD_CTG' AND CMM_FLE_TB_PK  = CTG.PRD_CTG_IDX) AS CMM_FLE_ORG_NM
+	         , (SELECT MAX(CMM_FLE_ATT_SIZE) KEEP(DENSE_RANK FIRST ORDER BY CMM_FLE_IDX DESC) FROM T_CMM_FLE WHERE CMM_FLE_TB_NM  = 'T_PRD_CTG' AND CMM_FLE_TB_PK  = CTG.PRD_CTG_IDX) AS CMM_FLE_ATT_SIZE
+         FROM 
+             T_PRD_CTG CTG 
+         WHERE 
+             PRD_CTG_IDX = #{PRD_CTG_IDX}
+         AND 
+             PRD_CTG_DEL_YN != 'Y'
+         START WITH PRD_CTG_UP_IDX = -1
+         CONNECT BY PRIOR PRD_CTG_IDX = PRD_CTG_UP_IDX
+    </select>
+
+    <!-- 상품 카테고리 입력 -->
+    <insert id="insertCategoryProduct" parameterType="hashmap" >
+        <selectKey keyProperty="SEQ_PRD_CTG_IDX" resultType="integer" order="BEFORE"> 
+            SELECT SEQ_CMM_COM_IDX.NEXTVAL FROM DUAL 
+        </selectKey> 
+        <![CDATA[
+        /* CategoryProduct.insertCategoryProduct */
+        INSERT INTO T_PRD_CTG (
+            PRD_CTG_IDX
+            , PRD_CTG_NM
+            , PRD_CTG_LEVEL
+            , PRD_CTG_UP_IDX
+            , PRD_CTG_TOP_IDX
+            , PRD_CTG_SORT
+            , PRD_CTG_USE_YN
+            , PRD_CTG_REG_DT
+            , PRD_CTG_REG_IP
+            , PRD_CTG_REG_ID
+            , PRD_CTG_UPD_DT
+            , PRD_CTG_UPD_IP
+            , PRD_CTG_UPD_ID
+            , PRD_CTG_ENV
+            , PRD_CTG_BRAND_CD
+            , PRD_CTG_DEL_YN
+            , PRD_CTG_DSP_YN
+        )VALUES (
+            #{SEQ_PRD_CTG_IDX}
+            , #{CHILD_CODENAME}
+            , #{PRD_CTG_LEVEL}+1
+            , #{PRD_CTG_IDX}
+            , #{PRD_CTG_TOP_IDX}
+            , (SELECT NVL((SELECT MAX(NVL(PRD_CTG_SORT, 0))+1 FROM T_PRD_CTG WHERE PRD_CTG_UP_IDX = #{PRD_CTG_IDX}), 1) AS C_SORT FROM DUAL)
+            , NVL(#{PRD_CTG_USE_YN},'Y')
+            , TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS')
+            , #{PRD_CTG_REG_IP}
+            , #{PRD_CTG_REG_ID}
+            , TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS')
+            , #{PRD_CTG_REG_IP}
+            , #{PRD_CTG_REG_ID}
+            , #{PRD_CTG_ENV}
+            , #{PRD_CTG_BRAND_CD}
+            , 'N'
+            , 'Y'
+        )
+        ]]>
+    </insert>
+    
+    <!-- 상품 카테고리 수정 -->
+    <update id="updateCategoryProduct" parameterType="hashmap" >
+        <![CDATA[
+        /* CategoryProduct.updateCategoryProduct */
+        UPDATE 
+            T_PRD_CTG
+        SET
+            PRD_CTG_NM = #{PRD_CTG_NM},
+            PRD_CTG_USE_YN = #{PRD_CTG_USE_YN},
+            PRD_CTG_UPD_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+            PRD_CTG_UPD_IP = #{PRD_CTG_UPD_IP},
+            PRD_CTG_UPD_ID = #{PRD_CTG_UPD_ID},
+            PRD_CTG_DSP_YN = #{PRD_CTG_DSP_YN}
+        WHERE 
+            PRD_CTG_IDX = #{PRD_CTG_IDX}
+        ]]>
+    </update>
+    
+    <!-- 상품 카테고리 하위 프론트 노출여부  -->
+    <update id="updateCategoryChildProduct" parameterType="hashmap" >
+        <![CDATA[
+        /* CategoryProduct.updateCategoryChildProduct */
+        UPDATE 
+            T_PRD_CTG
+        SET
+            PRD_CTG_DSP_YN = #{PRD_CTG_DSP_YN}
+        WHERE  
+            PRD_CTG_TOP_IDX = #{PRD_CTG_IDX}
+        ]]>
+    </update>
+    
+    <!-- 상품 카테고리 하위 정렬 수정 -->
+    <update id="updateCategoryProductSort" parameterType="hashmap" >
+        <![CDATA[
+        /* CategoryProduct.updateCategoryProductSort */
+        UPDATE 
+            T_PRD_CTG
+        SET
+            PRD_CTG_SORT = #{PRD_CTG_SORT},
+            PRD_CTG_UPD_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+            PRD_CTG_UPD_IP = #{PRD_CTG_UPD_IP},
+            PRD_CTG_UPD_ID = #{PRD_CTG_UPD_ID}
+        WHERE  
+            PRD_CTG_IDX = #{PRD_CTG_IDX}
+        ]]>
+    </update>
+    
+    <!-- 상품 카테고리 삭제 -->
+    <update id="deleteCategoryProduct" parameterType="hashmap" >
+        <![CDATA[
+        /* CategoryProduct.deleteCategoryProduct */
+        UPDATE 
+            T_PRD_CTG
+        SET
+            PRD_CTG_USE_YN = 'N',
+            PRD_CTG_DEL_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+            PRD_CTG_DEL_IP = #{PRD_CTG_UPD_IP},
+            PRD_CTG_DEL_ID = #{PRD_CTG_UPD_ID},
+            PRD_CTG_DEL_YN = 'Y'
+        WHERE 
+            PRD_CTG_DEL_YN != 'Y'
+        AND
+           ( PRD_CTG_IDX = #{PRD_CTG_IDX} OR PRD_CTG_UP_IDX = #{PRD_CTG_IDX} )
+        ]]>
+    </update>
+    
+    <!-- 카테고리 스펙 등록 -->
+    <insert id="insertcategorySpec" parameterType="hashmap" >
+        <selectKey keyProperty="SEQ_DSP_SPC_IDX" resultType="integer" order="BEFORE"> 
+            SELECT SEQ_DSP_SPC_IDX.NEXTVAL FROM DUAL 
+        </selectKey> 
+        <![CDATA[
+        /* CategoryProduct.insertcategorySpec */
+        INSERT INTO T_DSP_SPC (
+            DSP_SPC_IDX
+            , DSP_PRD_CTG_IDX
+            , DSP_PRD_SPC_IDX
+            , DSP_PRD_DEL_YN
+            , DSP_SPC_REG_ID
+            , DSP_SPC_REG_DT
+            , DSP_SPC_REG_IP
+        )VALUES (
+            #{SEQ_DSP_SPC_IDX}
+            , #{PRD_CTG_IDX}
+            , #{DSP_PRD_SPC_IDX}
+            , 'N'
+            , #{PRD_CTG_REG_IP}
+            , TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS')
+            , #{PRD_CTG_REG_ID}
+        )
+        ]]>
+    </insert>
+    
+    <!-- 하위 상품 카테고리 리스트 조회 -->
+    <select id="selectSpecCategoryList" parameterType="hashMap" resultType="hashMap">
+        /* CategoryProduct.selectSpecCategoryList */
+        SELECT TA.DSP_SPC_IDX
+       , TA.DSP_PRD_CTG_IDX
+       , TA.DSP_PRD_SPC_IDX
+       , TA.DSP_PRD_DEL_YN
+       , (
+            SELECT 
+                      SUBSTR(SYS_CONNECT_BY_PATH(SPC_MST_NM, '>'),2) AS PRD_CTG_LVL_NM                        
+                 FROM 
+                     T_SPC_MST A
+                 WHERE 
+                     SPC_MST_DEL_YN != 'Y'
+                 AND SPC_MST_IDX = TA.DSP_PRD_SPC_IDX
+                 START WITH A.SPC_MST_UP_IDX = -1
+                 CONNECT BY PRIOR A.SPC_MST_IDX = A.SPC_MST_UP_IDX
+            ) AS PRD_CTG_LVL_NM
+        FROM T_DSP_SPC TA
+        WHERE
+            TA.DSP_PRD_CTG_IDX = #{PRD_CTG_IDX}
+        AND TA.DSP_PRD_DEL_YN = 'N'
+    </select>
+    
+    <!-- 카테고리 스펙 삭제 -->
+    <update id="deleteCategorySpec" parameterType="hashmap" >
+        <![CDATA[
+        /* CategoryProduct.deleteCategorySpec */
+        UPDATE 
+            T_DSP_SPC
+        SET
+            DSP_SPC_DEL_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+            DSP_SPC_DEL_IP = #{PRD_CTG_UPD_IP},
+            DSP_SPC_DEL_ID = #{PRD_CTG_UPD_ID},
+            DSP_PRD_DEL_YN = 'Y'
+        WHERE 
+           DSP_SPC_IDX = #{DSP_SPC_IDX}
+        ]]>
+    </update>
+    
+    <!-- 스펙 등록 여부 -->
+    <select id="selectCategorySpecCount" parameterType="HashMap" resultType="Integer">
+        /* CategoryProduct.selectCategorySpecCount */
+        SELECT 
+             NVL(COUNT(DSP_SPC_IDX),0)
+         FROM 
+             T_DSP_SPC
+         WHERE 
+             DSP_PRD_CTG_IDX = #{PRD_CTG_IDX}
+         AND
+             DSP_PRD_SPC_IDX = #{DSP_PRD_SPC_IDX}
+         AND 
+             DSP_PRD_DEL_YN != 'Y'
+    </select>
+    
+    <!-- 카테고리 스펙 삭제 -->
+    <update id="deleteCategorySpecAll" parameterType="hashmap" >
+        <![CDATA[
+        /* CategoryProduct.deleteCategorySpec */
+        UPDATE 
+            T_DSP_SPC
+        SET
+            DSP_SPC_DEL_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+            DSP_SPC_DEL_IP = #{PRD_CTG_UPD_IP},
+            DSP_SPC_DEL_ID = #{PRD_CTG_UPD_ID},
+            DSP_PRD_DEL_YN = 'Y'
+        WHERE 
+           DSP_PRD_CTG_IDX = #{PRD_CTG_IDX}
+        ]]>
+    </update>
+</mapper>

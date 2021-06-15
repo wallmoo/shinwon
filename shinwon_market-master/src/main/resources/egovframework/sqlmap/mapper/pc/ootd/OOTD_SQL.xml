@@ -1,0 +1,315 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="PcOOTD">
+
+    <!-- 상품 검색절 -->
+    <sql id="productWhere">
+        <if test="searchPrdMstCd != null and searchPrdMstCd != ''">
+            AND PM.PRD_MST_CD LIKE '%'||UPPER(#{searchPrdMstCd})||'%'    
+        </if>
+        
+        <if test="searchPrdMstNm != null and searchPrdMstNm != ''">
+            AND UPPER(PM.PRD_MST_NM) LIKE '%'||UPPER(#{searchPrdMstNm})||'%'
+        </if>
+    </sql>
+
+    <!-- OOTD 특정 권한 체크 -->
+    <select id="selectMemberPrivilege" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+        /* PcOOTD.selectMemberPrivilege */
+        SELECT
+        	TMSP.CMN_COM_IDX
+        FROM T_MEM_SPC_PRV TMSP
+        WHERE 
+        	TMSP.MEM_MST_MEM_ID = #{MEM_MST_MEM_ID}
+        	AND TMSP.CMN_COM_IDX = #{CMN_COM_IDX}
+    </select>
+
+    <!-- 본인 OOTD 등록 글 조회 -->
+    <select id="selectMyOOTDCount" parameterType="java.util.HashMap" resultType="integer">
+        /* PcOOTD.selectMyOOTDCount */
+       SELECT
+            COUNT(TCM.CNT_MST_IDX)
+        FROM
+            T_CNT_MST TCM
+        WHERE
+            CNT_MST_IDX = #{CNT_MST_IDX}
+            AND CNT_MST_TYPE = 'TYPE_OOTD'
+            AND CNT_MST_REG_ID = #{CNT_MST_REG_ID}
+    </select>
+
+    <!-- OOTD 조회 -->
+    <select id="selectOotdInfo" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+        /* PcOOTD.selectOotdInfo */
+       SELECT
+            TCM.CNT_MST_IDX
+            , TCM.CNT_MST_TITLE
+            , TCM.CNT_MST_USE_YN
+            , TCM.CNT_MST_REG_DT
+            , TCM.CNT_MST_REG_IP
+            , TCM.CNT_MST_REG_ID
+            , TCM.CNT_MST_TYPE
+            , TCM.CNT_MST_DESC
+            , (SELECT COUNT(TLH.CNT_MST_ID) FROM T_LIK_HIS TLH WHERE TCM.CNT_MST_IDX = TLH.CNT_MST_ID AND TLH.CNT_MST_TYPE= 'TYPE_OOTD') LIKE_COUNTS
+            , (CASE WHEN (SELECT COUNT(TLH.CNT_MST_ID) FROM T_LIK_HIS TLH WHERE TLH.CNT_MST_ID = TCM.CNT_MST_IDX AND TLH.MEM_MST_ID = #{MEM_MST_ID} AND TLH.CNT_MST_TYPE= 'TYPE_OOTD') > 0 THEN 'Y' ELSE 'N' END ) MY_LIKE
+            , (SELECT COUNT(TOR.OTD_RPL_ID) FROM T_OTD_RPL TOR WHERE TCM.CNT_MST_IDX = TOR.CNT_OTD_ID) REPLY_COUNTS
+        FROM
+            T_CNT_MST TCM
+        WHERE
+            CNT_MST_IDX = #{CNT_MST_IDX}
+            AND CNT_MST_TYPE = 'TYPE_OOTD'
+    </select>
+    
+    <!-- OOTD 등록 상품 조회 -->
+    <select id="selectOOTDProductList" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+        /* PcOOTD.selectOOTDProductList */
+        SELECT TA.*, (PRD_MST_PRICE - PRD_NOW_DST_PRICE) / PRD_MST_PRICE * 100 AS PRD_DST_PERCENT
+        FROM (
+        SELECT
+            TCD.CNT_DTL_IDX
+            , TCD.CNT_MST_IDX
+            , TCD.CNT_PRD_MST_CD
+            , TPM.PRD_MST_NM
+            , TCD.CNT_DTL_ORDER
+   			, FN_PRODUCT_IMG(TPM.PRD_MST_CD, #{THUMBNAIL_SIZE}) PRD_IMAGE
+   			, FN_PRODUCT_IMG_ALT(TPM.PRD_MST_CD, #{THUMBNAIL_SIZE}) PRD_IMAGE_ALT
+	        , (
+	         	SELECT tmp02.TAG_MST_TITLE
+	         	FROM T_TAG_BND tmp01, T_TAG_MST tmp02 
+	         	WHERE tmp01.TAG_BND_ID = TO_CHAR(TPM.PRD_MST_CD)
+	         	AND tmp01.TAG_BND_TYPE = 'TYPE_PRODUCT'
+	         	AND tmp01.TAG_BND_REP = 'Y'
+	         	AND tmp01.TAG_MST_ID = tmp02.TAG_MST_ID
+	         	AND ROWNUM = 1
+	         ) AS TAG_MST_TITLE
+	        , ( 
+	         	SELECT tmp01.BND_MST_BRAND_NM 
+	         	FROM T_BND_MST tmp01 
+	         	WHERE tmp01.BND_MST_IDX = TPM.PRD_MST_BRD_IDX
+	         ) AS BND_MST_BRAND_NM
+			, FN_PRODUCT_LIST_PRICE(TPM.PRD_MST_CD, #{USER_ENV_TYPE}, #{MEM_MST_ID}) AS PRD_MST_PRICE
+            , (SELECT FN_PRODUCT_DETAIL_PRICE(TPM.PRD_MST_CD, #{USER_ENV_TYPE}, #{MEM_MST_ID},'N',null) FROM DUAL) AS PRD_NOW_DST_PRICE
+        FROM T_CNT_DTL TCD, T_PRD_MST TPM
+        WHERE 
+            TCD.CNT_MST_IDX = #{CNT_MST_IDX}
+            AND TPM.PRD_MST_CD = TCD.CNT_PRD_MST_CD
+        ) TA
+    </select>
+    
+	<!-- OOTD 기본 정보 등록 -->
+	<insert id="insertOOTDData" parameterType="java.util.HashMap">
+        <selectKey keyProperty="CNT_MST_IDX" resultType="Integer" order="BEFORE">
+            SELECT SEQ_CNT_MST_IDX.NEXTVAL AS CNT_MST_IDX FROM DUAL
+        </selectKey>
+        /* PcOOTD.insertOOTDData */
+        INSERT INTO
+            T_CNT_MST
+            (
+                CNT_MST_IDX,                                
+                CNT_MST_TITLE,
+                CNT_MST_USE_YN,
+                CNT_MST_REG_DT,
+                CNT_MST_REG_IP,
+                CNT_MST_REG_ID,
+            	CNT_MST_TYPE,
+                CNT_MST_DESC
+            )
+        VALUES
+            (
+                #{CNT_MST_IDX},
+                #{CNT_MST_TITLE},
+                NVL(#{CNT_MST_USE_YN},'Y'),               
+                TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+                #{CNT_MST_REG_IP},
+                #{CNT_MST_REG_ID},
+           		#{CNT_MST_TYPE},
+                #{CNT_MST_DESC}
+            )
+    </insert>
+    
+    <!-- OOTD 태그 바인딩 -->
+    <insert id="insertOOTDWithTagData" parameterType="java.util.HashMap">
+        /* PcOOTD.insertOOTDWithTagData */
+    
+        INSERT 
+          INTO T_TAG_BND (    TAG_MST_ID
+                                ,TAG_BND_ID
+                                ,TAG_BND_STATUS
+                                ,TAG_BND_REG_DT
+                                ,TAG_BND_UPD_DT
+                                ,TAG_BND_REP
+                                ,TAG_BND_TYPE
+
+                            )
+        VALUES          (     #{TAG_MST_ID}
+                            , #{TAG_BND_ID}
+                            , #{TAG_STATUS}
+                            , TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS')
+                            , TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS')
+                            , #{TAG_BND_REP}
+                            , #{TAG_BND_TYPE}
+
+                            )
+    </insert>
+    
+    <!-- OOTD 특정회원 상품  목록 -->
+    <select id="selectSpecialOOTDProductList" parameterType="hashMap" resultType="hashMap">
+        /* PcOOTD.selectSpecialOOTDProductList */
+        SELECT 
+            PM.PRD_MST_CD
+             , PM.PRD_MST_TYPE
+             , TTM.TAG_MST_TITLE
+             , BND_MST_BRAND_NM
+             , PRD_MST_URL
+             , FN_GET_PRODUCT_NM(PM.PRD_MST_CD,34) AS PRD_MST_NM
+             , PM.PRD_MST_PRC
+             , FN_PRODUCT_IMG(PRD_MST_CD, 450) PRD_IMAGE
+             , (SELECT PRD_IMG_ATT_PATH||PRD_IMG_SYS_NM FROM T_PRD_IMG WHERE PRD_PRD_MST_CD = PM.PRD_MST_CD AND PRD_IMG_IDX = '1' AND PRD_IMG_ATT_SIZE = 450) AS PRD_ROLL_OVER_IMG
+             , FN_PRODUCT_IMG_ALT(PRD_MST_CD, 450) PRD_IMAGE_ALT
+             , FN_PRODUCT_LIST_PRICE(PM.PRD_MST_CD, #{USER_ENV_TYPE}, #{MEM_CRT_SES_ID}) AS PRD_MST_PRICE
+             , PM.PRD_MST_SEL_STATE
+             , (SELECT FN_PRODUCT_DETAIL_PRICE(PM.PRD_MST_CD, #{USER_ENV_TYPE}, #{MEM_CRT_SES_ID},'N',null) FROM DUAL) AS PRD_NOW_DST_PRICE
+        FROM T_PRD_MST PM, T_TAG_MST TTM, T_TAG_BND TTB, T_BND_MST TBM, T_DSP_CTG TDC
+        WHERE
+            TDC.DSP_PRD_CTG_IDX = #{PRD_CTG_IDX}
+            AND PM.PRD_MST_CD = TDC.DSP_PRD_MST_CD
+            AND TTB.TAG_BND_ID = TO_CHAR(PM.PRD_MST_CD)
+            AND TTB.TAG_BND_TYPE = 'TYPE_PRODUCT'
+            AND TTB.TAG_BND_REP = 'Y'
+            AND TTB.TAG_MST_ID = TTM.TAG_MST_ID
+            AND TBM.BND_MST_IDX = PM.PRD_MST_BRD_IDX
+            AND PM.PRD_MST_SEL_STATE <![CDATA[ <> ]]> 'S' 
+            AND PM.PRD_MST_APV_STATE = 'A'
+            AND PM.PRD_MST_DPL_STATE = 'Y'
+            AND PM.PRD_MST_DEL_YN  <![CDATA[ <> ]]> 'Y'        
+            AND PM.PRD_MST_CNL_PC_YN = 'Y'
+            <include refid="productWhere"/>
+        ORDER BY PM.PRD_MST_REG_DT DESC , PRD_MST_PRICE , PRD_MST_NM ASC
+    </select>
+
+    <!-- OOTD 수정 -->
+    <update id="updateOOTDData" parameterType="HashMap">
+        /* PcOOTD.updateOOTDData */
+        UPDATE
+            T_CNT_MST
+        SET
+        	CNT_MST_UPD_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS')
+			<if test="CNT_MST_TITLE != null and CNT_MST_TITLE != ''">
+            	, CNT_MST_TITLE = #{CNT_MST_TITLE}
+            </if>
+			<if test="CNT_MST_DESC != null and CNT_MST_DESC != ''">
+            	, CNT_MST_DESC = #{CNT_MST_DESC}
+            </if>
+            , CNT_MST_UPD_ID = #{CNT_MST_UPD_ID}
+            , CNT_MST_UPD_IP = #{CNT_MST_UPD_IP}
+            <if test="CNT_MST_USE_YN != null and CNT_MST_USE_YN != ''">
+            	, CNT_MST_USE_YN = #{CNT_MST_USE_YN}
+            </if>
+        WHERE
+            CNT_MST_IDX = #{CNT_MST_IDX}
+    </update>
+    
+    <!-- OOTD 등록 가능 상품 갯수  -->
+    <select id="selectMyShoppingListCount" parameterType="hashMap" resultType="integer">
+        /* PcOOTD.selectMyShoppingListCount */
+        SELECT
+            COUNT(1)
+        FROM T_ORD_MST TOM, T_ORD_PRD TOP, T_PRD_MST TPM, T_TAG_BND TTB, T_TAG_MST TTM, T_BND_MST TBM
+        WHERE TOM.ORD_MST_CD = TOP.ORD_ORD_MST_CD
+            AND TOP.ORD_PRD_MST_CD = TPM.PRD_MST_CD
+            AND TOP.ORD_PRD_ORD_STATE = #{OST_FIX} /* 구매확정만 */
+            AND TOM.ORD_MST_ORD_ID = #{MEM_MST_MEM_ID}
+            AND TOM.ORD_MST_ORD_DT BETWEEN REPLACE(#{searchStartDate},'-', '') || '000000' AND REPLACE(#{searchEndDate},'-', '') || '235959'
+            AND TOP.ORD_PRD_SLT_YN = 'N' /* 선택옵션은 나오지 않음 */
+            AND TOP.ORD_PRD_ORG_IDX IS NULL /* 교환상품은 나오지 않음 */
+            AND TTB.TAG_BND_TYPE = 'TYPE_PRODUCT'
+            AND TTB.TAG_BND_ID = TO_CHAR(TPM.PRD_MST_CD)
+            AND TTM.TAG_MST_ID = TTB.TAG_MST_ID
+            AND TTB.TAG_BND_REP = 'Y'
+            AND TBM.VDR_MST_IDX = TPM.PRD_MST_VDR_IDX
+    </select>
+    
+    <!-- OOTD 등록 가능 상품 리스트 -->
+    <select id="selectMyShoppingList" parameterType="HashMap" resultType="HashMap">
+        /* PcOOTD.selectMyShoppingList */
+        SELECT
+            T1.*
+            , ERP_MST_DSP_PRC
+        FROM
+        (
+        SELECT
+            ROW_NUMBER() OVER(ORDER BY TOM.ORD_MST_ORD_DT DESC) as PRD_RNUM /* 주문상품 순번 */
+            , TOM.ORD_MST_CD
+            , TOM.ORD_MST_ORD_DT
+            , TOP.ORD_PRD_IDX
+            , (SELECT PRD_OPT_IDX FROM T_OPT_DTL WHERE OPT_DTL_IDX = TOP.ORD_PRD_OPT_DTL_IDX) as PRD_OPT_IDX
+            , (SELECT OPT_DTL_NM FROM T_OPT_DTL WHERE OPT_DTL_IDX = TOP.ORD_PRD_OPT_DTL_IDX) as OPT_DTL_NM
+            , FN_GET_PRODUCT_NM(TPM.PRD_MST_CD,30) PRD_MST_NM
+            , FN_PRODUCT_IMG(ORD_PRD_MST_CD, #{THUMBNAIL_SIZE}) PRD_IMAGE
+            , FN_PRODUCT_IMG_ALT(ORD_PRD_MST_CD, #{THUMBNAIL_SIZE}) PRD_IMAGE_ALT
+            , FN_PRODUCT_LIST_PRICE(TPM.PRD_MST_CD,#{USER_ENV_TYPE},#{MEM_MST_MEM_ID}) AS PRD_MST_PRICE
+            , (SELECT COUNT(1) FROM T_ORD_PRD OP WHERE OP.ORD_PRD_UP_IDX = TOP.ORD_PRD_IDX) as SUB_OPTION_CNT /* 서브 옵션 개수 */
+            , TPM.PRD_MST_CD
+            , TBM.BND_MST_BRAND_NM
+            , TTM.TAG_MST_TITLE
+            , (
+                    SELECT COUNT(0) 
+                    FROM T_PRD_OPT PRP
+                    WHERE PRP.PRD_MST_CD = TPM.PRD_MST_CD 
+                    AND PRP.PRD_OPT_EST_YN = 'Y' 
+                    AND EXISTS (
+                        SELECT COUNT(*)
+                        FROM T_OPT_DTL OPD
+                        WHERE OPD.PRD_OPT_IDX = PRP.PRD_OPT_IDX
+                        AND OPD.OPT_DTL_USE_YN = 'Y'
+                        AND TO_CHAR(SYSDATE,'YYYYMMDDHH24MI') BETWEEN OPD.OPT_DTL_ST_DT||'000000' AND OPD.OPT_DTL_ED_DT||'235959' 
+                    )
+                ) AS PRD_MST_OPT_EST_CNT 
+             , TPM.PRD_MST_IVB_YN
+             , 0 AS ERP_MST_DSP_PRC
+             , (SELECT FN_PRODUCT_DETAIL_PRICE(TPM.PRD_MST_CD,#{USER_ENV_TYPE},#{MEM_MST_MEM_ID},'N',null) FROM DUAL) AS PRD_NOW_DST_PRICE
+        FROM T_ORD_MST TOM, T_ORD_PRD TOP, T_PRD_MST TPM, T_TAG_BND TTB, T_TAG_MST TTM, T_BND_MST TBM 
+        WHERE TOM.ORD_MST_CD = TOP.ORD_ORD_MST_CD
+            AND TOP.ORD_PRD_MST_CD = TPM.PRD_MST_CD
+            AND TOP.ORD_PRD_ORD_STATE = #{OST_FIX} /* 구매확정만 */
+            AND TOM.ORD_MST_ORD_ID = #{MEM_MST_MEM_ID}
+            AND TOM.ORD_MST_ORD_DT BETWEEN REPLACE(#{searchStartDate},'-', '') || '000000' AND REPLACE(#{searchEndDate},'-', '') || '235959'
+            AND TOP.ORD_PRD_SLT_YN = 'N' /* 선택옵션은 나오지 않음 */
+            AND TOP.ORD_PRD_ORG_IDX IS NULL /* 교환상품은 나오지 않음 */
+            AND TTB.TAG_BND_TYPE = 'TYPE_PRODUCT'
+            AND TTB.TAG_BND_ID = TO_CHAR(TPM.PRD_MST_CD)
+            AND TTM.TAG_MST_ID = TTB.TAG_MST_ID
+            AND TTB.TAG_BND_REP = 'Y'
+            AND TBM.VDR_MST_IDX = TPM.PRD_MST_VDR_IDX
+        ) T1
+        <if test="startNum != null and startNum != '' and endNum != null and endNum != ''">
+            WHERE PRD_RNUM BETWEEN #{startNum} AND #{endNum}
+        </if>
+        ORDER BY PRD_RNUM
+    </select>
+    
+    <!-- OOTD 상품 바인딩 -->
+    <insert id="insertOOTDWithProduct" parameterType="java.util.HashMap">
+        /* PcOOTD.insertOOTDWithProduct */
+        INSERT INTO 
+            T_CNT_DTL 
+            (    
+                CNT_DTL_IDX
+                ,CNT_MST_IDX
+                ,CNT_PRD_MST_CD
+            )
+        VALUES          
+            (
+                SEQ_CNT_DTL_IDX.NEXTVAL
+                , #{CNT_MST_IDX}
+                , #{CNT_PRD_MST_CD}
+            )
+    </insert>
+    
+    <!-- OOTD 등록 상품 삭제 -->
+    <delete id="deleteOOTDProduct" parameterType="HashMap">
+        /* PcOOTD.deleteOOTDProduct */
+        DELETE FROM T_CNT_DTL WHERE CNT_MST_IDX = #{CNT_MST_IDX}
+    </delete>
+    
+</mapper>

@@ -1,0 +1,172 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="PcFaqBoard">
+    <!-- 프론트 > 고객센터 > FAQ 검색 조건 -->
+    <sql id="faqBoardWhere">
+        <if test="searchBrdCmnComIdx != null and searchBrdCmnComIdx != ''">
+            AND BRD_CMN_COM_IDX = #{searchBrdCmnComIdx}
+        </if>
+        <if test="searchWord != null and searchWord != ''">
+            AND (UPPER(BRD_FAQ_TITLE) LIKE '%' || UPPER(#{searchWord}) || '%' OR UPPER(BRD_FAQ_CONTENTS) LIKE '%' || (#{searchWord}) || '%')
+        </if>
+        <if test="searchBrdCmnComUpIdx != null and searchBrdCmnComUpIdx != ''">
+            AND BRD_CMN_COM_IDX = #{searchBrdCmnComUpIdx}
+        </if>
+    </sql>
+    
+    <!-- 프론트 > 고객센터 > FAQ 목록 갯수 -->
+    <select id="selectFaqBoardListCount" parameterType="HashMap" resultType="Integer">
+        /* PcFaqBoard.selectFaqBoardListCount */
+        SELECT
+            COUNT(BRD_FAQ_IDX)
+        FROM
+            T_BRD_FAQ
+        WHERE
+            BRD_FAQ_USE_YN = 'Y'
+            <include refid="faqBoardWhere"/>
+    </select>
+    
+    <!-- 프론트 > 고객센터 > FAQ 목록 -->
+    <resultMap id="resultFaqBoardList" type="HashMap">
+        <result property="BRD_FAQ_IDX" column="BRD_FAQ_IDX"/>
+        <result property="BRD_FAQ_OFTEN_YN" column="BRD_FAQ_OFTEN_YN"/>
+        <result property="BRD_CMN_COM_IDX" column="BRD_CMN_COM_IDX"/>
+        <result property="BRD_FAQ_TITLE" column="BRD_FAQ_TITLE"/>
+        <result property="BRD_FAQ_CONTENTS" column="BRD_FAQ_CONTENTS" jdbcType="CLOB" javaType="java.lang.String"/>
+        <result property="BRD_FAQ_READ_CNT" column="BRD_FAQ_READ_CNT"/>
+        <result property="BRD_FAQ_USE_YN" column="BRD_FAQ_USE_YN"/>
+        <result property="BRD_FAQ_REG_DT" column="BRD_FAQ_REG_DT"/>
+        <result property="BRD_FAQ_REG_IP" column="BRD_FAQ_REG_IP"/>
+        <result property="BRD_FAQ_REG_ID" column="BRD_FAQ_REG_ID"/>
+        <result property="BRD_FAQ_UPD_DT" column="BRD_FAQ_UPD_DT"/>
+        <result property="BRD_FAQ_UPD_IP" column="BRD_FAQ_UPD_IP"/>
+        <result property="BRD_FAQ_UPD_ID" column="BRD_FAQ_UPD_ID"/>
+        <result property="BRD_CMN_COM_NM" column="BRD_CMN_COM_NM"/>
+        <result property="BRD_FAQ_BRAND_CD" column="BRD_FAQ_BRAND_CD"/>
+    </resultMap>
+    <select id="selectFaqBoardList" parameterType="HashMap" resultMap="resultFaqBoardList">
+        /* PcFaqBoard.selectFaqBoardList */
+        SELECT
+            S3.*
+        FROM    
+        (   
+            SELECT
+                ROWNUM AS RNUM,
+                S2.*            
+            FROM
+                (   SELECT
+                        S1.*,
+                        CASE 
+                            WHEN BRD_CMN_COM_NM LIKE '%' || #{searchWord} || '%' THEN 1
+                            ELSE 2
+                        END FAQ_SORT 
+                    FROM
+                        (   SELECT
+                                BRD_FAQ_IDX,
+                                BRD_FAQ_OFTEN_YN,
+                                BRD_CMN_COM_IDX,
+                                BRD_FAQ_TITLE,
+                                BRD_FAQ_CONTENTS,
+                                BRD_FAQ_READ_CNT,
+                                BRD_FAQ_USE_YN,
+                                BRD_FAQ_REG_DT,
+                                BRD_FAQ_REG_IP,
+                                BRD_FAQ_REG_ID,
+                                BRD_FAQ_UPD_DT,
+                                BRD_FAQ_UPD_IP,
+                                BRD_FAQ_UPD_ID,
+                                BRD_FAQ_BRAND_CD,
+                                (
+                                SELECT
+                                    CMN_COM_NM
+                                FROM
+                                    T_CMM_COM
+                                WHERE
+                                    CMN_COM_IDX = BRD_CMN_COM_IDX
+                                )
+                                AS BRD_CMN_COM_NM 
+                            FROM
+                                T_BRD_FAQ
+                            WHERE
+                                BRD_FAQ_USE_YN = 'Y'
+                                <include refid="faqBoardWhere"/>                         
+                        )
+                        S1
+                        ORDER BY
+                            <if test="searchWord != null and searchWord != ''">
+                                FAQ_SORT, BRD_FAQ_READ_CNT DESC
+                            </if>
+                            <if test="searchWord == null or searchWord == ''">
+                                BRD_FAQ_REG_DT DESC
+                            </if>
+                )
+                S2
+            )
+            S3            
+        WHERE
+            S3.RNUM BETWEEN NVL(#{startNum}, 1) AND NVL(#{endNum}, 10)
+    </select>
+    
+    <!-- 프론트 > 고객센터 > FAQ 조회수 증가 -->
+    <update id="updateFaqBoardReadCount" parameterType="HashMap">
+        /* PcFaqBoard.updateFaqBoardReadCount */
+        UPDATE 
+            T_BRD_FAQ 
+        SET 
+            BRD_FAQ_READ_CNT = NVL(BRD_FAQ_READ_CNT, 0) + 1 
+        WHERE 
+            BRD_FAQ_USE_YN = 'Y' 
+            AND BRD_FAQ_IDX = #{BRD_FAQ_IDX}
+    </update>
+    
+    <!-- 프론트 > 고객센터 > FAQ 하위 카테고리 -->
+    <select id="selectFaqCodeList" parameterType="String" resultType="HashMap">
+        /* PcFaqBoard.selectFaqCodeList */
+        SELECT
+            CMN_COM_IDX,
+            CMN_COM_NM,
+            CMN_COM_UP_IDX,
+            CMN_COM_TOP_IDX,
+            CMN_COM_ETC1
+        FROM
+            T_CMM_COM
+        WHERE
+            CMN_COM_UP_IDX = #{searchBrdCmnComUpIdx}
+            AND CMN_COM_USE_YN = 'Y'
+        ORDER BY CMN_COM_LEVEL, CMN_COM_SORT ASC
+    </select>
+    
+    <!-- 프론트 > 고객센터 > FAQ 상위 카테고리 Name -->
+    <select id="selectFaqCateNameInfo" parameterType="String" resultType="String">
+        /* PcFaqBoard.selectFaqCateNameInfo */
+        
+        SELECT CMN_COM_NM
+          FROM T_CMM_COM
+         WHERE CMN_COM_IDX = #{searchBrdCmnComIdx}
+           AND CMN_COM_USE_YN = 'Y'
+        ORDER BY CMN_COM_LEVEL, CMN_COM_SORT ASC
+    </select>
+    
+    <!-- 프론트 >  게시판 관리 > FAQ 문의 유형 리스트 -->
+    <select id="selectFaqAllCategoryList" parameterType="hashMap" resultType="hashMap">
+        /* FaqBoard.selectFaqAllCategoryList */
+        SELECT  
+        	CMN_COM_IDX,
+            CMN_COM_NM,
+            CMN_COM_LEVEL,
+            CMN_COM_UP_IDX,
+            CMN_COM_TOP_IDX,
+            CMN_COM_ETC1,
+            CMN_COM_ETC2,
+            CMN_COM_ETC3,
+            CMN_COM_SORT,
+            CMN_COM_USE_YN
+        FROM 
+         T_CMM_COM 
+        WHERE 
+        	CMN_COM_UP_IDX = '3156'
+        ORDER BY CMN_COM_SORT ASC    	
+    </select>
+    
+</mapper>

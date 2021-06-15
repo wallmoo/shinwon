@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="AppVersionManage">
+
+    <!-- 관리자 > APP 관리 > APP VERSION관리 목록 갯수 -->
+    <select id="selectAppVersionManageListCount" parameterType="HashMap" resultType="Integer">
+        /* AppVersionManage.selectAppVersionManageListCount */
+        SELECT
+            COUNT(0)
+        FROM
+            T_APP_VER
+    </select>
+    
+    <!-- 관리자 > APP 관리 > APP VERSION관리 목록 -->
+    <select id="selectAppVersionManageList" parameterType="HashMap" resultType="HashMap">
+        /* AppVersionManage.selectAppVersionManageList */
+        SELECT
+            S2.*
+        FROM
+        (
+            SELECT
+                ROWNUM AS RNUM,
+                S1.*
+            FROM
+            (
+                SELECT
+                    APP_VER_IDX,
+                    APP_VER_GBN,
+                    APP_VER_NO,
+                    APP_VER_NM,
+                    APP_VER_CTS,
+                    APP_VER_YN,
+                    APP_VER_REG_DT
+                FROM
+                    T_APP_VER
+                ORDER BY APP_VER_REG_DT DESC
+            ) S1
+        ) S2
+        <if test="startNum != null and startNum != '' and endNum != null and endNum != ''">
+            WHERE 
+                S2.RNUM BETWEEN #{startNum} AND #{endNum}
+        </if>
+    </select>
+    
+    <!-- 관리자 > APP 관리 > APP VERSION관리 등록 -->
+    <insert id="insertAppVersionManage" parameterType="HashMap">
+        /* AppVersionManage.insertAppVersionManage */
+        INSERT INTO
+            T_APP_VER
+            (
+                APP_VER_IDX,
+                APP_VER_GBN,
+                APP_VER_NO,
+                APP_VER_NM,
+                APP_VER_CTS,
+                APP_VER_YN,
+                APP_VER_REG_DT,
+                APP_VER_REG_IP,
+                APP_VER_REG_ID
+            )
+        VALUES
+            (
+                SEQ_APP_VER_IDX.NEXTVAL,
+                #{APP_VER_GBN},
+                #{APP_VER_NO},
+                #{APP_VER_NM},
+                #{APP_VER_CTS},
+                NVL(#{APP_VER_YN},'Y'),
+                TO_CHAR(SYSDATE,'YYYYMMDDHH24MISS'),
+                #{APP_VER_REG_IP},
+                #{APP_VER_REG_ID}
+            )
+    </insert>
+    
+    <!-- 관리자 > APP 관리 > APP VERSION관리 상세정보 -->
+    <select id="selectAppVersionManageInfo" parameterType="HashMap" resultType="HashMap">
+        /* AppVersionManage.selectAppVersionManageInfo */
+        SELECT
+            APP_VER_IDX,
+            APP_VER_GBN,
+            APP_VER_NO,
+            APP_VER_NM,
+            APP_VER_CTS,
+            APP_VER_YN
+        FROM
+            T_APP_VER
+        WHERE
+            APP_VER_IDX = #{APP_VER_IDX}
+    </select>
+    
+    <!-- 관리자 > APP 관리 > APP VERSION관리 수정 -->
+    <update id="updateAppVersionManage" parameterType="HashMap">
+        /* AppVersionManage.updateAppVersionManage */
+        UPDATE
+            T_APP_VER
+        SET
+            APP_VER_GBN = #{APP_VER_GBN},
+            APP_VER_NO = #{APP_VER_NO},
+            APP_VER_NM = #{APP_VER_NM},
+            APP_VER_CTS = #{APP_VER_CTS},
+            APP_VER_YN = #{APP_VER_YN}
+        WHERE
+            APP_VER_IDX = #{APP_VER_IDX}
+    </update>
+    
+    <!-- 모바일 > APP > intro페이지에서 사용할 최신 안드로이드,아이폰 버전 정보  -->
+    <select id="selectLatestAppVersionInfo" parameterType="HashMap" resultType="HashMap">
+        /* AppVersionManage.selectLatestAppVersionInfo */
+        SELECT
+            (SELECT APP_VER_NO FROM (SELECT APP_VER_NO, APP_VER_REG_DT FROM T_APP_VER WHERE APP_VER_YN = 'Y' AND APP_VER_GBN = 'A' ORDER BY APP_VER_REG_DT DESC ) WHERE ROWNUM = 1) AS AN_VERSION,
+            (SELECT APP_VER_NO FROM (SELECT APP_VER_NO, APP_VER_REG_DT FROM T_APP_VER WHERE APP_VER_YN = 'Y' AND APP_VER_GBN = 'I' ORDER BY APP_VER_REG_DT DESC ) WHERE ROWNUM = 1) AS IOS_VERSION
+        FROM DUAL
+    </select>
+    
+</mapper>

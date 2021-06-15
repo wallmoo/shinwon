@@ -1,0 +1,489 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="Accounting">
+
+    <!-- 관리자 > 업체정산 > 1:1 문의 조건절 -->
+    <sql id="accountingWhere">
+        <if test="searchVdrMstIdx != null and searchVdrMstIdx != ''">
+            AND V.VDR_MST_IDX = #{searchVdrMstIdx}
+        </if>
+
+        <if test="searchVdrMstMdId != null and searchVdrMstMdId != ''">
+            AND V.VDR_MST_MD_ID  = #{searchVdrMstMdId}
+        </if>
+
+        <if test="searchPrdMstCd != null and searchPrdMstCd != ''">
+            AND P.PRD_MST_CD  = #{searchPrdMstCd}
+        </if>
+
+        <if test="searchPrdMstNm != null and searchPrdMstNm != ''">
+            AND P.PRD_MST_NM  LIKE '%'||#{searchPrdMstNm}||'%'
+        </if>
+
+        <if test="searchOrdMstCd != null and searchOrdMstCd != ''">
+            AND OM.ORD_MST_CD  = #{searchOrdMstCd}
+        </if>
+
+        <if test="searchOrdMstNm != null and searchOrdMstNm != ''">
+            AND OM.ORD_MST_ORD_NM  LIKE '%'||#{searchOrdMstNm}||'%'
+        </if>
+    </sql>
+    <select id="selectCompanyAccountingList" parameterType="HashMap" resultType="HashMap">
+        /* Accounting.selectCompanyAccountingList */
+        SELECT ROW_NUMBER() OVER(ORDER BY VDR_MST_IDX, VDR_MST_NM, VDR_MST_BAL_ACT, ADM_MST_NM) AS RNUM,
+              VDR_MST_NM,
+              VDR_MST_BAL_ACT,
+              COUNT(*) AS ORD_CNT,
+              SUM(PRD_MST_PRC) AS PRD_MST_PRC,
+              SUM(PRD_MST_ORD_PRC) AS PRD_MST_ORD_PRC,
+              SUM(PRD_MST_BUY_PRC) AS PRD_MST_BUY_PRC,
+              SUM(ORD_PRD_DLV_CAG) AS ORD_PRD_DLV_CAG,
+              SUM(JUNGSAN_AMT - PRD_MST_ORD_PRC) AS JUNGSAN_AMT,
+              ADM_MST_NM,
+              VDR_MST_IDX,
+              #{searchMonth} AS ACC_MONTH,
+              NVL((SELECT ACC_REQ_STATUS FROM T_ACC_REQ WHERE ACC_VDR_MST_IDX = A.VDR_MST_IDX AND ACC_REQ_YEAR||ACC_REQ_MON = #{searchMonth} AND ROWNUM = 1),'X') AS ACC_REQ_STATUS,
+              CASE NVL((SELECT ACC_REQ_STATUS FROM T_ACC_REQ WHERE ACC_VDR_MST_IDX = A.VDR_MST_IDX AND ACC_REQ_YEAR||ACC_REQ_MON = #{searchMonth} AND ROWNUM = 1),'X') WHEN 'X' THEN '정산미진행'
+                WHEN 'R' THEN '정산요청중' WHEN 'Y' THEN '정산확정' END AS ACC_REQ_STATUS_EXCEL
+        FROM
+        (SELECT  V.VDR_MST_NM, 
+                V.VDR_MST_BAL_ACT, 
+                P.PRD_MST_PRC * O.ORD_PRD_ORD_CNT AS PRD_MST_PRC, 
+                CASE WHEN PRD_MST_PC_CPN_UNT = 'R' THEN
+                        (PRD_MST_PRC * (NVL(PRD_MST_PC_CPN_PRC,0) / 100 )) * O.ORD_PRD_ORD_CNT
+                    ELSE   NVL(PRD_MST_PC_CPN_PRC,0) * O.ORD_PRD_ORD_CNT END    AS PRD_MST_ORD_PRC,
+                (NVL(P.PRD_MST_BUY_PRC,0) * O.ORD_PRD_ORD_CNT) AS PRD_MST_BUY_PRC,
+                NVL(ORD_PRD_DLV_CAG,0)+NVL(ORD_PRD_DLV_BND_CAG,0)+NVL(ORD_PRD_DLV_ADD_CAG,0) AS ORD_PRD_DLV_CAG,
+                (NVL(P.PRD_MST_BUY_PRC,0) * O.ORD_PRD_ORD_CNT) + NVL(ORD_PRD_DLV_CAG,0)+NVL(ORD_PRD_DLV_BND_CAG,0)+NVL(ORD_PRD_DLV_ADD_CAG,0) AS JUNGSAN_AMT,
+                (SELECT ADM_MST_NM FROM T_ADM_MST WHERE ADM_MST_ID = V.VDR_MST_MD_ID) AS ADM_MST_NM,
+                V.VDR_MST_IDX
+        FROM T_VDR_MST V, T_ORD_PRD O, T_PRD_MST P, T_ORD_MST OM
+        WHERE V.VDR_MST_IDX = O.ORD_PRD_VDR_IDX
+        AND O.ORD_PRD_MST_CD = P.PRD_MST_CD
+        AND O.ORD_ORD_MST_CD = OM.ORD_MST_CD
+        AND EXISTS
+        (SELECT ORD_PRD_HIS_IDX FROM T_ORD_PRD_HIS 
+         WHERE SUBSTR(ORD_PRD_REG_DT,1,6) = #{searchMonth}
+            AND ORD_PRD_HIS_IDX = (SELECT MIN(ORD_PRD_HIS_IDX) FROM T_ORD_PRD_HIS WHERE ORD_ORD_MST_CD = O.ORD_ORD_MST_CD
+                                        AND ORD_PRD_MST_CD = O.ORD_PRD_MST_CD  AND ORD_PRD_ORD_STATE = '408')
+        )
+        <include refid="accountingWhere"/>
+        UNION ALL
+        SELECT V.VDR_MST_NM, 
+                V.VDR_MST_BAL_ACT, 
+                P.PRD_MST_PRC * O.ORD_PRD_ORD_CNT * -1 AS PRD_MST_PRC, 
+                CASE WHEN PRD_MST_PC_CPN_UNT = 'R' THEN
+                         (PRD_MST_PRC * (NVL(PRD_MST_PC_CPN_PRC,0) / 100 )) * O.ORD_PRD_ORD_CNT * -1
+                    ELSE  NVL(PRD_MST_PC_CPN_PRC,0)  * O.ORD_PRD_ORD_CNT * -1 END AS PRD_MST_ORD_PRC,
+                NVL(P.PRD_MST_BUY_PRC,0) * O.ORD_PRD_ORD_CNT * -1 AS PRD_MST_BUY_PRC,
+                (NVL(ORD_PRD_DLV_CAG,0)+NVL(ORD_PRD_DLV_BND_CAG,0)+NVL(ORD_PRD_DLV_ADD_CAG,0)) * -1 AS ORD_PRD_DLV_CAG,
+                ((NVL(P.PRD_MST_BUY_PRC,0) * O.ORD_PRD_ORD_CNT) + NVL(ORD_PRD_DLV_CAG,0)+NVL(ORD_PRD_DLV_BND_CAG,0)+NVL(ORD_PRD_DLV_ADD_CAG,0)) * -1 AS JUNGSAN_AMT,
+                (SELECT ADM_MST_NM FROM T_ADM_MST WHERE ADM_MST_ID = V.VDR_MST_MD_ID) AS ADM_MST_NM,
+                V.VDR_MST_IDX
+        FROM T_VDR_MST V, T_ORD_PRD O, T_PRD_MST P, T_ORD_MST OM
+        WHERE V.VDR_MST_IDX = O.ORD_PRD_VDR_IDX
+        AND O.ORD_PRD_MST_CD = P.PRD_MST_CD
+        AND O.ORD_ORD_MST_CD = OM.ORD_MST_CD
+        AND O.ORD_PRD_ORD_STATE IN ('433','434','403')
+        AND EXISTS
+        (SELECT ORD_PRD_HIS_IDX FROM T_ORD_PRD_HIS 
+         WHERE SUBSTR(ORD_PRD_REG_DT,1,6) <![CDATA[<]]> #{searchMonth}
+         AND ORD_PRD_HIS_IDX = (SELECT MIN(ORD_PRD_HIS_IDX) FROM T_ORD_PRD_HIS WHERE ORD_ORD_MST_CD = O.ORD_ORD_MST_CD
+                                        AND ORD_PRD_MST_CD = O.ORD_PRD_MST_CD  AND ORD_PRD_ORD_STATE = '408')
+        )
+        AND EXISTS
+        (SELECT ORD_PRD_HIS_IDX FROM T_ORD_PRD_HIS 
+         WHERE SUBSTR(ORD_PRD_REG_DT,1,6) = #{searchMonth}
+            AND ORD_PRD_HIS_IDX = (SELECT MIN(ORD_PRD_HIS_IDX) FROM T_ORD_PRD_HIS WHERE ORD_ORD_MST_CD = O.ORD_ORD_MST_CD
+                                        AND ORD_PRD_MST_CD = O.ORD_PRD_MST_CD  AND ORD_PRD_ORD_STATE IN ('433','434','403'))
+        )
+        <include refid="accountingWhere"/>
+        ) A
+        GROUP BY VDR_MST_IDX, VDR_MST_NM, VDR_MST_BAL_ACT, ADM_MST_NM
+                    
+    </select>
+    <select id="selectVdrMstList" parameterType="HashMap" resultType="HashMap">
+        /* Accounting.selectVdrMstList */
+        SELECT VDR_MST_IDX, VDR_MST_NM
+        FROM T_VDR_MST
+        WHERE VDR_MST_USE_YN = 'Y'
+        ORDER BY VDR_MST_NM
+    </select>
+    <select id="selectAdmMstList" parameterType="HashMap" resultType="HashMap">
+        /* Accounting.selectAdmMstList */
+        SELECT ADM_MST_ID, ADM_MST_NM 
+        FROM T_ADM_MST
+        WHERE AUT_MST_IDX  IN (
+        SELECT AUT_MST_IDX FROM T_AUT_MST WHERE AUT_MST_NM = 'MD')
+    </select>
+    
+    <select id="selectAccReqCnt" parameterType="HashMap" resultType="Integer">
+        /* Accounting.selectAccReqCnt */
+        SELECT COUNT(*) AS REQ_CNT
+        FROM T_ACC_REQ
+        WHERE ACC_VDR_MST_IDX = #{ACC_VDR_MST_IDX}
+            AND ACC_REQ_YEAR = #{ACC_REQ_YEAR}
+            AND ACC_REQ_MON = #{ACC_REQ_MON}
+    </select>
+    
+    <select id="selectJungsanYearList" parameterType="HashMap" resultType="HashMap">
+        SELECT JUNGSAN_YEAR, CASE WHEN NVL(#{searchJungsanYear},TO_CHAR(SYSDATE,'yyyy')) = JUNGSAN_YEAR THEN 'Y' ELSE 'N' END AS CHECK_YN
+        FROM (
+            SELECT TO_CHAR(ADD_MONTHS(SYSDATE,12),'yyyy') AS JUNGSAN_YEAR, 'N' AS CHECK_YN FROM DUAL
+            UNION
+            SELECT TO_CHAR(SYSDATE,'yyyy') AS JUNGSAN_YEAR, 'Y' AS CHECK_YN FROM DUAL
+            UNION
+            SELECT TO_CHAR(ADD_MONTHS(SYSDATE,-12),'yyyy') AS JUNGSAN_YEAR, 'N' AS CHECK_YN  FROM DUAL
+            UNION
+            SELECT TO_CHAR(ADD_MONTHS(SYSDATE,-24),'yyyy') AS JUNGSAN_YEAR, 'N' AS CHECK_YN  FROM DUAL
+        )
+        WHERE JUNGSAN_YEAR <![CDATA[>=]]> '2015'
+        ORDER BY JUNGSAN_YEAR DESC
+    </select>
+    <select id="selectJungsanMonthList" parameterType="HashMap" resultType="HashMap">
+        SELECT JUNGSAN_MONTH, CASE WHEN NVL(#{searchJungsanMonth},TO_CHAR(SYSDATE,'mm')) = JUNGSAN_MONTH THEN 'Y' ELSE 'N' END AS CHECK_YN
+        FROM (
+            SELECT '01' AS JUNGSAN_MONTH FROM DUAL UNION
+            SELECT '02' AS JUNGSAN_MONTH FROM DUAL UNION
+            SELECT '03' AS JUNGSAN_MONTH FROM DUAL UNION
+            SELECT '04' AS JUNGSAN_MONTH FROM DUAL UNION
+            SELECT '05' AS JUNGSAN_MONTH FROM DUAL UNION
+            SELECT '06' AS JUNGSAN_MONTH FROM DUAL UNION
+            SELECT '07' AS JUNGSAN_MONTH FROM DUAL UNION
+            SELECT '08' AS JUNGSAN_MONTH FROM DUAL UNION
+            SELECT '09' AS JUNGSAN_MONTH FROM DUAL UNION
+            SELECT '10' AS JUNGSAN_MONTH FROM DUAL UNION
+            SELECT '11' AS JUNGSAN_MONTH FROM DUAL UNION
+            SELECT '12' AS JUNGSAN_MONTH FROM DUAL 
+        )
+        ORDER BY JUNGSAN_MONTH
+    </select>
+    <insert id="insertAccountingRequest" parameterType="HashMap">
+        <selectKey keyProperty="ACC_REQ_IDX" resultType="Integer">
+            SELECT SEQ_ACC_REQ_IDX.NEXTVAL AS ACC_REQ_IDX FROM DUAL
+        </selectKey>
+        /* Accounting.insertAccountingRequest */
+        INSERT INTO T_ACC_REQ
+        (
+            ACC_REQ_IDX,
+            ACC_VDR_MST_IDX,
+            ACC_REQ_YEAR,
+            ACC_REQ_MON,
+            ACC_REQ_STATUS,
+            ACC_REQ_DTS,    
+            ACC_REQ_ID
+        )
+        VALUES
+        (
+            #{ACC_REQ_IDX},
+            #{ACC_VDR_MST_IDX},
+            #{ACC_REQ_YEAR},
+            #{ACC_REQ_MON},
+            #{ACC_REQ_STATUS},
+            TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+            #{ACC_REQ_ID}
+        )
+        
+    </insert>
+    <insert id="insertAccountingOrder" parameterType="HashMap">
+        /* Accounting.insertAccountingOrder */
+        INSERT INTO T_ACC_ORD
+        (
+            ACC_ORD_IDX,
+            ACC_REQ_IDX,
+            ORD_PRD_IDX,
+            ORD_ORD_MST_CD,
+            ORD_PRD_MST_CD,
+            ORD_PRD_OPT_DTL_IDX,
+            ORD_PRD_ORD_STATE,
+            ORD_PRD_PRD_PRC,
+            ORD_PRD_SAL_PRC,
+            ORD_PRD_ORD_CNT,
+            ORD_PRD_ORD_PRC,
+            ORD_PRD_DLV_CAG,
+            ORD_PRD_DLV_BND_CAG,
+            ORD_PRD_DLV_ADD_CAG,
+            ORD_PRD_SLP_NO,
+            ORD_ORD_EDI_ORD_NO,
+            ORD_PRD_DLV_TYPE,
+            ORD_DLV_CPN_IDX,
+            ORD_PRD_IVC_NO,
+            ORD_PRD_PKU_IVC_NO,
+            ORD_PRD_ORG_IDX,
+            ORD_PRD_IST_CPN_PRC,
+            ORD_PRD_IST_CPN_UNT,
+            ORD_PRD_ERP_DLV_CD,
+            ORD_PRD_DLV_DUE_DT,
+            ORD_PRD_DLV_BND_YN,
+            ORD_PRD_VDR_IDX,
+            ORD_PRD_OPT_ADD_PRC,
+            ORD_PRD_SAV_MIL,
+            ORD_PRD_SAV_OCB,
+            PLN_MST_IDX,
+            ORD_PRD_SLT_YN,
+            ORD_PRD_UP_IDX,
+            ORD_PRD_BUY_PRC,
+            ORD_PRD_SCM_CNL_YN,
+            ORD_PRD_SCM_CNL_DESC,
+            ORD_PRD_SCM_CNL_DT,
+            ORD_PRD_SEQ,
+            ORD_PRD_SYS_SGS,
+            ORD_PRD_CPN_OWN
+        )
+        SELECT 
+            SEQ_ACC_ORD_IDX.NEXTVAL,
+            ACC_REQ_IDX,
+            ORD_PRD_IDX,
+            ORD_ORD_MST_CD,
+            ORD_PRD_MST_CD,
+            ORD_PRD_OPT_DTL_IDX,
+            ORD_PRD_ORD_STATE,
+            ORD_PRD_PRD_PRC,
+            ORD_PRD_SAL_PRC,
+            ORD_PRD_ORD_CNT,
+            ORD_PRD_ORD_PRC,
+            ORD_PRD_DLV_CAG,
+            ORD_PRD_DLV_BND_CAG,
+            ORD_PRD_DLV_ADD_CAG,
+            ORD_PRD_SLP_NO,
+            ORD_ORD_EDI_ORD_NO,
+            ORD_PRD_DLV_TYPE,
+            ORD_DLV_CPN_IDX,
+            ORD_PRD_IVC_NO,
+            ORD_PRD_PKU_IVC_NO,
+            ORD_PRD_ORG_IDX,
+            ORD_PRD_IST_CPN_PRC,
+            ORD_PRD_IST_CPN_UNT,
+            ORD_PRD_ERP_DLV_CD,
+            ORD_PRD_DLV_DUE_DT,
+            ORD_PRD_DLV_BND_YN,
+            ORD_PRD_VDR_IDX,
+            ORD_PRD_OPT_ADD_PRC,
+            ORD_PRD_SAV_MIL,
+            ORD_PRD_SAV_OCB,
+            PLN_MST_IDX,
+            ORD_PRD_SLT_YN,
+            ORD_PRD_UP_IDX,
+            ORD_PRD_BUY_PRC,
+            ORD_PRD_SCM_CNL_YN,
+            ORD_PRD_SCM_CNL_DESC,
+            ORD_PRD_SCM_CNL_DT,
+            ORD_PRD_SEQ,
+            ORD_PRD_SYS_SGS,
+            ORD_PRD_CPN_OWN
+        FROM
+        (
+        SELECT
+            #{ACC_REQ_IDX} AS ACC_REQ_IDX,
+            O.ORD_PRD_IDX,
+            O.ORD_ORD_MST_CD,
+            O.ORD_PRD_MST_CD,
+            O.ORD_PRD_OPT_DTL_IDX,
+            O.ORD_PRD_ORD_STATE,
+            O.ORD_PRD_PRD_PRC,
+            O.ORD_PRD_SAL_PRC,
+            O.ORD_PRD_ORD_CNT,
+            O.ORD_PRD_ORD_PRC,
+            O.ORD_PRD_DLV_CAG,
+            O.ORD_PRD_DLV_BND_CAG,
+            O.ORD_PRD_DLV_ADD_CAG,
+            O.ORD_PRD_SLP_NO,
+            O.ORD_ORD_EDI_ORD_NO,
+            O.ORD_PRD_DLV_TYPE,
+            O.ORD_DLV_CPN_IDX,
+            O.ORD_PRD_IVC_NO,
+            O.ORD_PRD_PKU_IVC_NO,
+            O.ORD_PRD_ORG_IDX,
+            O.ORD_PRD_IST_CPN_PRC,
+            O.ORD_PRD_IST_CPN_UNT,
+            O.ORD_PRD_ERP_DLV_CD,
+            O.ORD_PRD_DLV_DUE_DT,
+            O.ORD_PRD_DLV_BND_YN,
+            O.ORD_PRD_VDR_IDX,
+            O.ORD_PRD_OPT_ADD_PRC,
+            O.ORD_PRD_SAV_MIL,
+            O.ORD_PRD_SAV_OCB,
+            O.PLN_MST_IDX,
+            O.ORD_PRD_SLT_YN,
+            O.ORD_PRD_UP_IDX,
+            O.ORD_PRD_BUY_PRC,
+            O.ORD_PRD_SCM_CNL_YN,
+            O.ORD_PRD_SCM_CNL_DESC,
+            O.ORD_PRD_SCM_CNL_DT,
+            O.ORD_PRD_SEQ,
+            O.ORD_PRD_SYS_SGS,
+            O.ORD_PRD_CPN_OWN
+        FROM T_VDR_MST V, T_ORD_PRD O, T_PRD_MST P, T_ORD_MST OM
+        WHERE V.VDR_MST_IDX = O.ORD_PRD_VDR_IDX
+            AND O.ORD_PRD_MST_CD = P.PRD_MST_CD
+            AND O.ORD_ORD_MST_CD = OM.ORD_MST_CD
+            AND EXISTS
+            (SELECT ORD_PRD_HIS_IDX FROM T_ORD_PRD_HIS 
+             WHERE SUBSTR(ORD_PRD_REG_DT,1,6) = #{ACC_MONTH}
+                AND ORD_PRD_HIS_IDX = (SELECT MIN(ORD_PRD_HIS_IDX) FROM T_ORD_PRD_HIS WHERE ORD_ORD_MST_CD = O.ORD_ORD_MST_CD
+                                            AND ORD_PRD_MST_CD = O.ORD_PRD_MST_CD  AND ORD_PRD_ORD_STATE = '408')
+            )
+            AND V.VDR_MST_IDX = #{VDR_MST_IDX}
+        UNION ALL
+        SELECT
+            #{ACC_REQ_IDX} AS ACC_REQ_IDX,
+            O.ORD_PRD_IDX,
+            O.ORD_ORD_MST_CD,
+            O.ORD_PRD_MST_CD,
+            O.ORD_PRD_OPT_DTL_IDX,
+            O.ORD_PRD_ORD_STATE,
+            O.ORD_PRD_PRD_PRC,
+            O.ORD_PRD_SAL_PRC,
+            O.ORD_PRD_ORD_CNT,
+            O.ORD_PRD_ORD_PRC,
+            O.ORD_PRD_DLV_CAG,
+            O.ORD_PRD_DLV_BND_CAG,
+            O.ORD_PRD_DLV_ADD_CAG,
+            O.ORD_PRD_SLP_NO,
+            O.ORD_ORD_EDI_ORD_NO,
+            O.ORD_PRD_DLV_TYPE,
+            O.ORD_DLV_CPN_IDX,
+            O.ORD_PRD_IVC_NO,
+            O.ORD_PRD_PKU_IVC_NO,
+            O.ORD_PRD_ORG_IDX,
+            O.ORD_PRD_IST_CPN_PRC,
+            O.ORD_PRD_IST_CPN_UNT,
+            O.ORD_PRD_ERP_DLV_CD,
+            O.ORD_PRD_DLV_DUE_DT,
+            O.ORD_PRD_DLV_BND_YN,
+            O.ORD_PRD_VDR_IDX,
+            O.ORD_PRD_OPT_ADD_PRC,
+            O.ORD_PRD_SAV_MIL,
+            O.ORD_PRD_SAV_OCB,
+            O.PLN_MST_IDX,
+            O.ORD_PRD_SLT_YN,
+            O.ORD_PRD_UP_IDX,
+            O.ORD_PRD_BUY_PRC,
+            O.ORD_PRD_SCM_CNL_YN,
+            O.ORD_PRD_SCM_CNL_DESC,
+            O.ORD_PRD_SCM_CNL_DT,
+            O.ORD_PRD_SEQ,
+            O.ORD_PRD_SYS_SGS,
+            O.ORD_PRD_CPN_OWN
+        FROM T_VDR_MST V, T_ORD_PRD O, T_PRD_MST P, T_ORD_MST OM
+        WHERE V.VDR_MST_IDX = O.ORD_PRD_VDR_IDX
+            AND O.ORD_PRD_MST_CD = P.PRD_MST_CD
+            AND O.ORD_ORD_MST_CD = OM.ORD_MST_CD
+            AND O.ORD_PRD_ORD_STATE IN ('433','434','403')
+            AND EXISTS
+            (SELECT ORD_PRD_HIS_IDX FROM T_ORD_PRD_HIS 
+             WHERE SUBSTR(ORD_PRD_REG_DT,1,6) <![CDATA[<]]> #{ACC_MONTH}
+             AND ORD_PRD_HIS_IDX = (SELECT MIN(ORD_PRD_HIS_IDX) FROM T_ORD_PRD_HIS WHERE ORD_ORD_MST_CD = O.ORD_ORD_MST_CD
+                                            AND ORD_PRD_MST_CD = O.ORD_PRD_MST_CD  AND ORD_PRD_ORD_STATE = '408')
+            )
+            AND EXISTS
+            (SELECT ORD_PRD_HIS_IDX FROM T_ORD_PRD_HIS 
+             WHERE SUBSTR(ORD_PRD_REG_DT,1,6) = #{ACC_MONTH}
+                AND ORD_PRD_HIS_IDX = (SELECT MIN(ORD_PRD_HIS_IDX) FROM T_ORD_PRD_HIS WHERE ORD_ORD_MST_CD = O.ORD_ORD_MST_CD
+                                            AND ORD_PRD_MST_CD = O.ORD_PRD_MST_CD  AND ORD_PRD_ORD_STATE IN ('433','434','403'))
+            )
+            AND V.VDR_MST_IDX = #{VDR_MST_IDX}
+        )
+        
+    </insert>
+    
+    <select id="selectCompanyAccountingDetail" parameterType="HashMap" resultType="HashMap">
+        /* Accounting.selectCompanyAccountingDetail */
+        SELECT TO_CHAR(TO_DATE(SUBSTR(ORD_MST_PAY_DT,1,8),'yyyymmdd'),'yyyy.mm.dd') AS ORD_MST_PAY_DT,
+              ORD_MST_CD,
+              (SELECT CMN_COM_NM FROM T_CMM_COM WHERE CMN_COM_IDX = ORD_MST_PAY_TYPE) AS ORD_MST_PAY_TYPE,
+              ORD_PRD_MST_CD,
+              PRD_MST_NM,
+              PRD_MST_PRC,
+              ORD_PRD_ORD_CNT,
+              PRD_MST_ORD_PRC,
+              ORD_PRD_BUY_PRC,
+              PRD_MST_BUY_PRC AS PRD_MST_BUY_PRC,
+              ORD_PRD_DLV_CAG AS ORD_PRD_DLV_CAG,
+              JUNGSAN_AMT - PRD_MST_ORD_PRC AS JUNGSAN_AMT,
+              (SELECT TO_CHAR(TO_DATE(SUBSTR(ORD_PRD_REG_DT,1,8),'yyyymmdd'),'yyyy.mm.dd') FROM T_ORD_PRD_HIS 
+               WHERE ORD_PRD_HIS_IDX = (SELECT MIN(ORD_PRD_HIS_IDX) FROM T_ORD_PRD_HIS WHERE ORD_ORD_MST_CD = A.ORD_MST_CD
+                                            AND ORD_PRD_MST_CD = A.ORD_PRD_MST_CD  AND ORD_PRD_ORD_STATE = '408') 
+                                            ) AS DLV_DTS,
+              (SELECT TO_CHAR(TO_DATE(SUBSTR(ORD_PRD_REG_DT,1,8),'yyyymmdd'),'yyyy.mm.dd') FROM T_ORD_PRD_HIS 
+               WHERE ORD_PRD_HIS_IDX = (SELECT MIN(ORD_PRD_HIS_IDX) FROM T_ORD_PRD_HIS WHERE ORD_ORD_MST_CD = A.ORD_MST_CD
+                                            AND ORD_PRD_MST_CD = A.ORD_PRD_MST_CD  AND ORD_PRD_ORD_STATE = '409') 
+                                            ) AS CNFM_DTS
+        FROM
+        (SELECT  V.VDR_MST_NM, 
+                V.VDR_MST_BAL_ACT, 
+                P.PRD_MST_PRC * O.ORD_PRD_ORD_CNT AS PRD_MST_PRC, 
+                CASE WHEN PRD_MST_PC_CPN_UNT = 'R' THEN
+                        (PRD_MST_PRC * (NVL(PRD_MST_PC_CPN_PRC,0) / 100 )) * O.ORD_PRD_ORD_CNT
+                    ELSE NVL(PRD_MST_PC_CPN_PRC,0) * O.ORD_PRD_ORD_CNT END  AS PRD_MST_ORD_PRC,
+                (NVL(P.PRD_MST_BUY_PRC,0) * O.ORD_PRD_ORD_CNT) AS PRD_MST_BUY_PRC,
+                NVL(ORD_PRD_DLV_CAG,0)+NVL(ORD_PRD_DLV_BND_CAG,0)+NVL(ORD_PRD_DLV_ADD_CAG,0) AS ORD_PRD_DLV_CAG,
+                (NVL(P.PRD_MST_BUY_PRC,0) * O.ORD_PRD_ORD_CNT) + NVL(ORD_PRD_DLV_CAG,0)+NVL(ORD_PRD_DLV_BND_CAG,0)+NVL(ORD_PRD_DLV_ADD_CAG,0) AS JUNGSAN_AMT,
+                (SELECT ADM_MST_NM FROM T_ADM_MST WHERE ADM_MST_ID = V.VDR_MST_MD_ID) AS ADM_MST_NM,
+                OM.ORD_MST_CD,
+                OM.ORD_MST_PAY_DT,
+                OM.ORD_MST_PAY_TYPE,
+                O.ORD_PRD_MST_CD,
+                P.PRD_MST_NM,
+                O.ORD_PRD_ORD_CNT,
+                O.ORD_PRD_ORD_PRC,
+                NVL(O.ORD_PRD_BUY_PRC,0) AS ORD_PRD_BUY_PRC
+        FROM T_VDR_MST V, T_ORD_PRD O, T_PRD_MST P, T_ORD_MST OM
+        WHERE V.VDR_MST_IDX = O.ORD_PRD_VDR_IDX
+        AND O.ORD_PRD_MST_CD = P.PRD_MST_CD
+        AND O.ORD_ORD_MST_CD = OM.ORD_MST_CD
+        AND EXISTS
+        (SELECT ORD_PRD_HIS_IDX FROM T_ORD_PRD_HIS 
+         WHERE SUBSTR(ORD_PRD_REG_DT,1,6) = #{searchMonth}
+            AND ORD_PRD_HIS_IDX = (SELECT MIN(ORD_PRD_HIS_IDX) FROM T_ORD_PRD_HIS WHERE ORD_ORD_MST_CD = O.ORD_ORD_MST_CD
+                                        AND ORD_PRD_MST_CD = O.ORD_PRD_MST_CD  AND ORD_PRD_ORD_STATE = '408')
+        )
+        <include refid="accountingWhere"/>
+        UNION ALL
+        SELECT V.VDR_MST_NM, 
+                V.VDR_MST_BAL_ACT, 
+                P.PRD_MST_PRC * O.ORD_PRD_ORD_CNT * -1 AS PRD_MST_PRC, 
+                CASE WHEN PRD_MST_PC_CPN_UNT = 'R' THEN
+                        (PRD_MST_PRC * (NVL(PRD_MST_PC_CPN_PRC,0) / 100 )) * O.ORD_PRD_ORD_CNT * -1
+                    ELSE NVL(PRD_MST_PC_CPN_PRC,0) * O.ORD_PRD_ORD_CNT * -1 END AS PRD_MST_ORD_PRC,
+                NVL(P.PRD_MST_BUY_PRC,0) * O.ORD_PRD_ORD_CNT * -1 AS PRD_MST_BUY_PRC,
+                (NVL(ORD_PRD_DLV_CAG,0)+NVL(ORD_PRD_DLV_BND_CAG,0)+NVL(ORD_PRD_DLV_ADD_CAG,0)) * -1 AS ORD_PRD_DLV_CAG,
+                ((NVL(P.PRD_MST_BUY_PRC,0) * O.ORD_PRD_ORD_CNT) + NVL(ORD_PRD_DLV_CAG,0)+NVL(ORD_PRD_DLV_BND_CAG,0)+NVL(ORD_PRD_DLV_ADD_CAG,0)) * -1 AS JUNGSAN_AMT,
+                (SELECT ADM_MST_NM FROM T_ADM_MST WHERE ADM_MST_ID = V.VDR_MST_MD_ID) AS ADM_MST_NM,
+                OM.ORD_MST_CD,
+                OM.ORD_MST_PAY_DT,
+                OM.ORD_MST_PAY_TYPE,
+                O.ORD_PRD_MST_CD,
+                P.PRD_MST_NM,
+                O.ORD_PRD_ORD_CNT,
+                O.ORD_PRD_ORD_PRC,
+                O.ORD_PRD_BUY_PRC
+        FROM T_VDR_MST V, T_ORD_PRD O, T_PRD_MST P, T_ORD_MST OM
+        WHERE V.VDR_MST_IDX = O.ORD_PRD_VDR_IDX
+        AND O.ORD_PRD_MST_CD = P.PRD_MST_CD
+        AND O.ORD_ORD_MST_CD = OM.ORD_MST_CD
+        AND O.ORD_PRD_ORD_STATE IN ('433','434','403')
+        AND EXISTS
+        (SELECT ORD_PRD_HIS_IDX FROM T_ORD_PRD_HIS 
+         WHERE SUBSTR(ORD_PRD_REG_DT,1,6) <![CDATA[<]]> #{searchMonth}
+         AND ORD_PRD_HIS_IDX = (SELECT MIN(ORD_PRD_HIS_IDX) FROM T_ORD_PRD_HIS WHERE ORD_ORD_MST_CD = O.ORD_ORD_MST_CD
+                                        AND ORD_PRD_MST_CD = O.ORD_PRD_MST_CD  AND ORD_PRD_ORD_STATE = '408')
+        )
+        AND EXISTS
+        (SELECT ORD_PRD_HIS_IDX FROM T_ORD_PRD_HIS 
+         WHERE SUBSTR(ORD_PRD_REG_DT,1,6) = #{searchMonth}
+            AND ORD_PRD_HIS_IDX = (SELECT MIN(ORD_PRD_HIS_IDX) FROM T_ORD_PRD_HIS WHERE ORD_ORD_MST_CD = O.ORD_ORD_MST_CD
+                                        AND ORD_PRD_MST_CD = O.ORD_PRD_MST_CD  AND ORD_PRD_ORD_STATE IN ('433','434','403'))
+        )
+        <include refid="accountingWhere"/>
+        ) A
+        ORDER BY ORD_MST_CD DESC
+    </select>
+    <update id="updateAccountingRequestCnfm" parameterType="HashMap">
+        /* Accounting.updateAccountingRequestCnfm */
+        UPDATE T_ACC_REQ SET ACC_REQ_STATUS = #{ACC_REQ_STATUS}, ACC_REQ_CNF_DTS = TO_CHAR(SYSDATE,'yyyymmddhh24miss'), ACC_REQ_CNF_ID = #{ACC_REQ_CNF_ID}
+        WHERE ACC_VDR_MST_IDX = #{ACC_VDR_MST_IDX}
+            AND ACC_REQ_YEAR = #{ACC_REQ_YEAR}
+            AND ACC_REQ_MON = #{ACC_REQ_MON}
+    </update>
+</mapper>

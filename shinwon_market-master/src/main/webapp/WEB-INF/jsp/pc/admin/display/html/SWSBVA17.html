@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="ko" dir="ltr">
+    <head>
+        <meta charset="utf-8">
+        <title></title>
+		<link href="http://bo.marketplanta.epasscni.com:8080/am/css/font-awesome.css" rel="stylesheet">
+		<link rel="stylesheet" href="http://bo.marketplanta.epasscni.com:8080/am/css/import.css">
+        <link rel="stylesheet" href="style.css">
+		<script src="http://bo.marketplanta.epasscni.com:8080/am/js/vendor/modernizr-2.6.2-respond-1.1.0.min.js"></script>
+		<script src="http://bo.marketplanta.epasscni.com:8080/am/js/vendor/jquery-1.11.2.min.js"></script>
+    </head>
+    <body><!-- body class, 중요 -->
+
+    <div id="header"><!-- header -->
+        <div id="top" class="container" style="background: #414547 url('/am/img/bg_head.png') no-repeat center top;"><!-- top -->
+            <div class="wrap">
+                <div class="menu"><!-- menu -->
+                    <div id="togglerAside" class="toggler left">
+                        <a href="#!" class="js-toggle-nav" data-class="is-aside-in" data-lg-class="is-aside-out">
+                            <i class="fonti um-fog on"><em>메뉴 펼치기</em></i>
+                            <i class="fonti um-fog off"><em>메뉴 접기</em></i>
+                        </a>
+                    </div>
+                </div><!-- // menu -->
+                <h1 class="logo">
+                    <a href="http://bo.marketplanta.epasscni.com"><img src="http://bo.marketplanta.epasscni.com/nas/cdn/logo/2c679ea5-27f8-4d4b-a2ee-0bd2e4aa2bef.png" alt="HOME" /></a>
+                </h1>
+                <div class="util"><!-- util -->
+                    <div class="col">
+                        <a href="javascript:;"><i class="fonti um-gears"><em>환경설정</em></i></a>
+                    </div>
+                    <div class="col">
+                        <a href="http://bo.marketplanta.epasscni.com/am/manager/logout.do"><i class="fonti um-sign-out"><em>로그아웃</em></i></a>
+                    </div>
+                    <div class="col">
+                        <div id="togglerQuick" class="toggler left">
+                            <a href="#!" class="js-toggle-nav" data-class="is-quick-in" data-lg-class="is-quick-out">
+                                <i class="fonti um-ellipsis-h on"><em>사용자 메뉴 펼치기</em></i>
+                                <i class="fonti um-ellipsis-v off"><em>사용자 메뉴 접기</em></i>
+                            </a>
+                        </div>
+                    </div>
+                </div><!-- // util -->
+            </div>
+        </div><!-- // top -->
+
+        <div id="gnb" class="container">
+            <div class="wrap core"></div><!-- // gnb -->
+            <div class="spacer"></div>
+        </div>
+    </div><!-- // header -->
+
+    <div id="container"><!-- container -->
+
+        <div id="aside" class="aside left"><!-- aside -->
+            <div class="holder"><!-- holder -->
+                <div id="lnb" class="container">
+                    <div class="wrap modules"><!-- modules -->
+                        <div class="title">
+
+                        </div>
+                        <div class="core"></div>
+                    </div><!-- // modules -->
+                </div>
+            </div><!-- // holder --></div><!-- // aside -->
+
+        <div id="wrapper"><!-- wrapper -->
+
+            <div id="breadcrumb"></div><!-- breadcrumb -->
+
+            <div id="contents"><!-- contents -->
+
+                <div class="container">
+
+                    <h2 class="title"><span>GNB관리</span></h2>
+
+                    <h3 class="title"><span>목록</span></h3>
+
+                    <input type="hidden" name="PRD_CTG_ENV" id="PRD_CTG_ENV" value="P" />
+                    <br/>
+                    <div class="clearfix">
+
+                        <!-- https://github.com/jzaefferer/jquery-treeview -->
+                        <!-- http://bassistance.de/jquery-plugins/jquery-plugin-treeview/ -->
+
+                        <div style="float:left; width: 20%;">
+                        <div style="margin-right: 5px; padding: 10px 20px 10px 10px; border: solid 1px #ccc; min-height: 600px; margin-bottom: 20px;">
+                            <a href="javascript:;" id="rootCategory" class="button small primary"><span>카테고리관리</span></a>
+                        <ul id="browser" class="filetree treeview-famfamfam treeview">
+                            <li class="closed collapsable">
+                                <div class="hitarea closed-hitarea collapsable-hitarea"></div>
+                                <span class="folder">스페셜</span>
+                            </li>
+                            <li class="closed expandable">
+                                <div class="hitarea closed-hitarea expandable-hitarea"></div>
+                                <span class="folder">펀딩</span>
+                            </li>
+                            <li class="closed expandable">
+                                <div class="hitarea closed-hitarea expandable-hitarea"></div>
+                                <span class="folder">기획전</span>
+                            </li>
+                            <li class="closed expandable">
+                                <div class="hitarea closed-hitarea expandable-hitarea"></div>
+                                <span class="folder">이벤트</span>
+                            </li>
+                            <li class="closed expandable">
+                                <div class="hitarea closed-hitarea expandable-hitarea"></div>
+                                <span class="folder">셀러픽</span>
+                            </li>
+                            <li class="closed expandable">
+                                <div class="hitarea closed-hitarea expandable-hitarea"></div>
+                                <span class="folder">BRAND</span>
+                            </li>
+                            <li class="closed expandable">
+                                <div class="hitarea closed-hitarea expandable-hitarea"></div>
+                                <span class="folder">TOP SELLER</span>
+                            </li>
+                            <li class="closed expandable">
+                                <div class="hitarea closed-hitarea expandable-hitarea"></div>
+                                <span class="folder">라이브 ON</span>
+                            </li>
+                            <li class="closed expandable lastExpandable">
+                                <div class="hitarea closed-hitarea expandable-hitarea lastExpandable-hitarea"></div>
+                                <span class="folder">채널 ON</span>
+                            </li>
+                        </ul>
+                    </div>
+
+                        <p style="float:left;">
+                            <a href="javascript:registPopup();" id="categoryAdd" class="button small primary" title="팝업으로 열립니다."><span>하위 카테고리추가</span></a>
+                        </p>
+                    </div>
+
+                    <div id="main_con" style="float: left; padding: 10px;">
+                        <div class="contents-inner"><!-- contents-inner -->
+	                        <h3 class="title"><span>카테고리 상세</span></h3>
+
+
+                        	<form id="frm" name="frm">
+                        		<input type="hidden" id="CMN_COM_IDX" name="CMN_COM_IDX" value="2350">
+                        	    <input type="hidden" id="PRD_CTG_ENV" name="PRD_CTG_ENV" value="">
+                        	    <input type="hidden" id="DSP_MST_ENV" name="DSP_MST_ENV" value="P">
+                        	    <input type="hidden" id="searchGubun" name="searchGubun" value="">
+
+                        		<div class="table-a"><!-- col list -->
+                        			<table class="table-row table-a">
+                        				<colgroup>
+                        					<col style="width: 20%;">
+                        					<col style="width: auto;">
+                        				</colgroup>
+                        				<tbody >
+                        					<tr>
+            									<th>하위 카테고리 수</th>
+            									<td>9</td></tr>
+                        					<tr>
+                                                <th>하위 카테고리 정렬</th>
+                                                <td id="tdSortHeight">
+                                                	<small class="desc">* 하위카테고리를 순서를 변경하실 수 있습니다.</small>
+                                                	<br>
+                                                    <ul style="width:300px;">
+                                                        <li style="padding: 5px 10px;margin-top:2px;">
+                                                            <a href="javascript:;" class="row-sort" data-sort_type="up">△</a>
+                                                            <a href="javascript:;" class="row-sort" data-sort_type="down">▽</a>
+                                                            스페셜[사용]<input type="hidden" name="PRD_CTG_IDXs" value="3411">
+                                                        </li>
+                                                        <li style="padding: 5px 10px;margin-top:2px;">
+                                                            <a href="javascript:;" class="row-sort" data-sort_type="up">△</a>
+                                                            <a href="javascript:;" class="row-sort" data-sort_type="down">▽</a>
+                                                            펀딩[사용]<input type="hidden" name="PRD_CTG_IDXs" value="3440">
+                                                        </li>
+                                                        <li style="padding: 5px 10px;margin-top:2px;">
+                                                            <a href="javascript:;" class="row-sort" data-sort_type="up">△</a>
+                                                            <a href="javascript:;" class="row-sort" data-sort_type="down">▽</a>
+                                                            기획전[사용]<input type="hidden" name="PRD_CTG_IDXs" value="3441">
+                                                        </li>
+                                                        <li style="padding: 5px 10px;margin-top:2px;">
+                                                            <a href="javascript:;" class="row-sort" data-sort_type="up">△</a>
+                                                            <a href="javascript:;" class="row-sort" data-sort_type="down">▽</a>
+                                                            이벤트[사용]<input type="hidden" name="PRD_CTG_IDXs" value="3411">
+                                                        </li>
+                                                        <li style="padding: 5px 10px;margin-top:2px;">
+                                                            <a href="javascript:;" class="row-sort" data-sort_type="up">△</a>
+                                                            <a href="javascript:;" class="row-sort" data-sort_type="down">▽</a>
+                                                            셀러픽[사용]<input type="hidden" name="PRD_CTG_IDXs" value="3440">
+                                                        </li>
+                                                        <li style="padding: 5px 10px;margin-top:2px;">
+                                                            <a href="javascript:;" class="row-sort" data-sort_type="up">△</a>
+                                                            <a href="javascript:;" class="row-sort" data-sort_type="down">▽</a>
+                                                            BRAND[사용]<input type="hidden" name="PRD_CTG_IDXs" value="3441">
+                                                        </li>
+                                                        <li style="padding: 5px 10px;margin-top:2px;">
+                                                            <a href="javascript:;" class="row-sort" data-sort_type="up">△</a>
+                                                            <a href="javascript:;" class="row-sort" data-sort_type="down">▽</a>
+                                                            TOP SELLER[사용]<input type="hidden" name="PRD_CTG_IDXs" value="3411">
+                                                        </li>
+                                                        <li style="padding: 5px 10px;margin-top:2px;">
+                                                            <a href="javascript:;" class="row-sort" data-sort_type="up">△</a>
+                                                            <a href="javascript:;" class="row-sort" data-sort_type="down">▽</a>
+                                                            라이브 ON[사용]<input type="hidden" name="PRD_CTG_IDXs" value="3440">
+                                                        </li>
+                                                        <li style="padding: 5px 10px;margin-top:2px;">
+                                                            <a href="javascript:;" class="row-sort" data-sort_type="up">△</a>
+                                                            <a href="javascript:;" class="row-sort" data-sort_type="down">▽</a>
+                                                            채널 ON[사용]<input type="hidden" name="PRD_CTG_IDXs" value="3441">
+                                                        </li>
+                                                    </ul>
+                                                </td>
+            								</tr>
+            							</tbody>
+                        			</table>
+                                    <table class="table-row table-a">
+                                        <colgroup>
+                        					<col style="width: 20%;">
+                        					<col style="width: auto;">
+                        				</colgroup>
+                                        <tbody>
+                                            <tr>
+                                                <th>카테고리 ID</th>
+                                                <td>3389</td>
+                                            </tr>
+                                            <tr>
+                                                <th>현재 위치</th>
+                                                <td>스페셜</td>
+                                            </tr>
+                                            <tr>
+                                                <th>카테고리명</th>
+                                                <td><input type="text" name="" value=""> <span style="color:red">* 20bye제한</span></td>
+                                            </tr>
+                                            <tr><!-- row -->
+                                                <th>카테고리 사용여부</th>
+                                                <td>
+                                                    <label><input type="radio" class="radio" id="PRD_CTG_USE_YN1" name="PRD_CTG_USE_YN" value="Y">사용</label>
+                                                    <label><input type="radio" class="radio" id="PRD_CTG_USE_YN2" name="PRD_CTG_USE_YN" value="N" checked="">미사용</label>
+                                                </td>
+                                            </tr>
+                                            <tr><!-- row -->
+                                                <th>프론트 노출여부</th>
+                                                <td>
+                                                    <label><input type="radio" class="radio" id="PRD_CTG_DSP_YN1" name="PRD_CTG_DSP_YN" value="Y">사용</label>
+                                                    <label><input type="radio" class="radio" id="PRD_CTG_DSP_YN2" name="PRD_CTG_DSP_YN" value="N" checked="">미사용</label>
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                        		</div><!-- // col list -->
+                            </form>
+                        </div>
+                    </div>
+
+                    </div>
+
+                    <p>
+
+                    </p>
+                </div>
+
+            </div><!-- // contents -->
+
+        </div><!-- // wrapper -->
+
+        <div id="quickmenu" class="aside right"><!-- quickmenu-->
+            <div class="holder"><!-- holder -->
+
+                <div id="quick" class="container">
+
+                    <div class="wrap modules"><!-- modules -->
+                        <ul class="core">
+                            <li class="d2 active">
+                                <a href="javascript:;" class="d2"><span>admin 님</span></a>
+                                <div class="d3 show"><!-- d3 -->
+                                    <ul class="d3">
+                                        <li class="d3">
+                                            <a href="http://bo.marketplanta.epasscni.com/am/manager/logout.do" class="d3"><span>로그아웃</span></a>
+                                        </li>
+                                    </ul>
+                                </div><!-- // d3 -->
+                            </li>
+                        </ul>
+                    </div><!-- // modules -->
+
+                </div>
+
+            </div><!-- // holder -->
+        </div><!-- // quickmenu -->
+
+    </div><!-- // container -->
+
+    <div id="footer">
+        <div id="copyrights"><!-- copyrights -->
+            <div class="container">
+                <p>
+                    Copyrights &copy; MarketPlant, co.ltd. All rights Reserved.
+                </p>
+            </div>
+        </div><!-- // copyrights -->
+    </div>
+
+<script src="/am/js/epass.base-0.3.js"></script>
+<script src="/am/js/plugins.js"></script>
+<script src="/am/js/plugins/jquery.menu-aim.js"></script>
+<script src="/am/js/plugins/nanobar.js"></script>
+<script src="/am/js/plugins/alertify.custom-0.3.11.js"></script>
+<script src="/am/js/plugins/Chart.bundle.js"></script>
+<script src="/am/js/common/jquery.cookie.js"></script>
+<script src="/am/js/epass.helper.notify-0.1.js"></script>
+<script src="/am/js/epass.modalr-0.1.js"></script>
+<!-- run -->
+<script src="/am/js/ui.nav.js"></script>
+<script src="/am/js/ui.js"></script>
+<script src="/am/js/admin.js"></script>
+<script src="/am/js/common.js"></script>
+<script src="/am/js/common/jquery.validate.js"></script>
+<!-- common -->
+<script src="/am/js/plugins/jquery.cookie.js"></script> <!-- treeview -->
+<script src="/am/js/plugins/jquery.treeview.js"></script> <!-- treeview -->
+<script src="/am/js/common/jquery.ajax.js"></script>
+
+</body>
+	</html>

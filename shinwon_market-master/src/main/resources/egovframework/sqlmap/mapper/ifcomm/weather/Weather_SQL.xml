@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="Weather">
+
+	<!-- 날씨 > 날씨지역목록 가져오기 -->
+    <select id="selectCityCoord" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+        /* Weather.selectCityCoord */
+        SELECT 
+ 			CTY_CRD_IDX,
+ 			CTY_SDO_NM,
+ 			CTY_GGU_NM,
+ 			CTY_CRD_LAT,
+ 			CTY_CRD_LON 
+        FROM 
+           T_CTY_CRD
+        WHERE (CASE WHEN TO_NUMBER(TO_CHAR(SYSDATE,'MI')) BETWEEN 0 AND 10 THEN 0
+        		   WHEN  TO_NUMBER(TO_CHAR(SYSDATE,'MI')) BETWEEN 11 AND 20 THEN 1
+        		   WHEN  TO_NUMBER(TO_CHAR(SYSDATE,'MI')) BETWEEN 21 AND 30 THEN 2
+        		   WHEN  TO_NUMBER(TO_CHAR(SYSDATE,'MI')) BETWEEN 31 AND 40 THEN 3
+        		   WHEN  TO_NUMBER(TO_CHAR(SYSDATE,'MI')) BETWEEN 41 AND 50 THEN 4
+        		   WHEN  TO_NUMBER(TO_CHAR(SYSDATE,'MI')) BETWEEN 51 AND 59 THEN 5
+				END) = MOD(CTY_CRD_IDX,6)
+    </select>
+        <!-- 날씨 > 지역별 날씨 입력 -->
+    <insert id="insertWeather" parameterClass="HashMap">
+        <selectKey keyProperty="CTY_WTH_IDX" resultClass="Integer">
+            SELECT SEQ_CTY_WTH_IDX.NEXTVAL AS CTY_WTH_IDX FROM DUAL
+        </selectKey>
+        /* Weather.insertWeather */
+        INSERT INTO
+            T_CTY_WTH
+            (
+			    CTY_WTH_IDX,
+				CTY_WTH_DTS,
+				CTY_CRD_IDX,
+				CTY_WTH_CTM,
+				CTY_WTH_MTM,
+				CTY_WTH_XTM,
+				CTY_WTH_HUM,
+				CTY_WTH_POC,
+				CTY_WTH_PRS,
+				CTY_WTH_WCD,
+				CTY_WTH_DSC,
+				CTY_WTH_ICO,
+				CTY_WTH_WSP 
+			 )
+        VALUES
+            (
+                #CTY_WTH_IDX#,
+                SYSDATE,
+                #CTY_CRD_IDX#,
+                #CTY_WTH_CTM#,
+                #CTY_WTH_MTM#,
+                #CTY_WTH_XTM#,
+                #CTY_WTH_HUM#,
+                #CTY_WTH_POC#,
+                #CTY_WTH_PRS#,
+                #CTY_WTH_WCD#,
+                #CTY_WTH_DSC#,
+                #CTY_WTH_ICO#,
+                #CTY_WTH_WSP#
+            )
+    </insert>
+    
+    <delete id="deleteWeather" parameterClass="HashMap">
+	    /* Weather.deleteWeather */
+	    DELETE 
+	    	FROM T_CTY_WTH 
+	    WHERE CTY_WTH_DTS &lt; SYSDATE - 3
+	    
+    </delete>
+</mapper>

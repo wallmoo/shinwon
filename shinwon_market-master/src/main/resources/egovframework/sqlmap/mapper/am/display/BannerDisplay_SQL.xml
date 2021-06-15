@@ -1,0 +1,519 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="BannerDisplay">
+
+    <!-- 관리자 > 전시관리 > 배너관리 조건절 -->
+    <sql id="bannerDisplayWhere">
+        <if test="searchBnrMstTitle != null and searchBnrMstTitle != ''">
+            AND BM.BNR_MST_TITLE LIKE '%' || #{searchBnrMstTitle} || '%'
+        </if>
+
+        <if test="searchType != null and searchType.equals('S_REG_DT'.toString())">
+            <if test="searchStartDate != null and searchStartDate != '' and searchEndDate != null and searchEndDate != ''">
+                AND BM.BNR_MST_REG_DT BETWEEN REPLACE(#{searchStartDate},'-', '')||'000000' AND REPLACE(#{searchEndDate},'-', '')||'235959'
+            </if>
+        </if>
+        <if test="searchType != null and searchType.equals('S_DIS_DT'.toString())">
+            <if test="searchType != null and searchType != '' and searchEndDate != null and searchEndDate != ''">
+                <![CDATA[
+                AND BM.BNR_MST_ST_DT >= REPLACE(#{searchStartDate}, '-', '')||'0000' AND BM.BNR_MST_ED_DT <= REPLACE(#{searchEndDate}, '-', '')||'2359'
+                ]]>
+            </if>
+        </if>
+
+        <if test="searchBnrMstUseYn != null and searchBnrMstUseYn != ''">
+            AND BM.BNR_MST_USE_YN = #{searchBnrMstUseYn}
+        </if>
+    </sql>
+    
+    <!-- 관리자 > 전시관리 > 배너관리 목록 갯수 -->
+    <select id="selectBannerDisplayListCount" parameterType="HashMap" resultType="Integer">
+        /* BannerDisplay.selectBannerDisplayListCount */
+        SELECT
+            COUNT(BM.BNR_MST_IDX)
+        FROM
+            T_BNR_MST BM 
+        WHERE
+            CMN_COM_IDX = #{CMN_COM_IDX}#
+    </select>
+    
+    <!-- 관리자 > 전시관리 > 배너관리 목록 -->
+    <select id="selectBannerDisplayList" parameterType="HashMap" resultType="HashMap">
+        /* BannerDisplay.selectBannerDisplayList */
+        SELECT
+            BM.BNR_MST_IDX 
+            , BM.BNR_MST_TITLE 
+            , BM.CMN_COM_IDX 
+            , BM.BNR_MST_ST_DT
+            , BM.BNR_MST_ST_HH
+            , BM.BNR_MST_ST_MM
+            , BM.BNR_MST_ED_DT
+            , BM.BNR_MST_ED_HH 
+            , BM.BNR_MST_ED_MM
+            , BM.BNR_MST_USE_YN 
+            , BM.BNR_MST_REG_DT 
+            , BM.BNR_MST_REG_IP 
+            , BM.BNR_MST_REG_ID 
+            , BM.BNR_MST_SRT
+            , BM.BNR_MST_USE_YN
+            , BM.BNR_MST_TGT
+            , BM.BNR_MST_URL
+            , BM.BND_MST_IDX
+            , BM.ADM_MST_ID
+            , (SELECT BND_MST_BRAND_NM FROM T_BND_MST WHERE BND_MST_IDX = BM.BND_MST_IDX) AS BND_MST_NM
+            , (SELECT ADM_MST_NM FROM T_ADM_MST WHERE ADM_MST_ID = BM.ADM_MST_ID) AS ADM_MST_NM
+            , TO_DATE(TO_CHAR(TO_DATE(BM.BNR_MST_ED_DT,'YYYYMMDDHH24MISS'),'YYYYMMDD'),'YYYYMMDD') - TO_DATE(TO_CHAR(SYSDATE, 'YYYYMMDD'),'YYYYMMDD') +1 AS BNR_MST_MOD_DT
+            , <![CDATA[CASE WHEN 
+                BM.BNR_MST_USE_YN = 'Y' AND TO_CHAR(SYSDATE,'YYYYMMDDYYYYMMDDHH24MISS') BETWEEN BM.BNR_MST_ST_DT||BM.BNR_MST_ST_HH||BM.BNR_MST_ST_MM AND BM.BNR_MST_ED_DT||BM.BNR_MST_ED_HH||BM.BNR_MST_ED_MM THEN 'ON'
+                WHEN 
+                BM.BNR_MST_USE_YN = 'Y' AND TO_CHAR(SYSDATE,'YYYYMMDDYYYYMMDDHH24MISS') < BM.BNR_MST_ED_DT||BM.BNR_MST_ED_HH||BM.BNR_MST_ED_MM THEN '대기중'
+              ELSE
+                'OFF'
+              END]]> AS BNR_MST_STATE
+            , BNR_MST_HEX_CD
+        FROM
+         T_BNR_MST BM
+        WHERE
+            CMN_COM_IDX = #{CMN_COM_IDX}
+        <if test="searchGubun != null and searchGubun != ''">
+            AND BM.BNR_MST_ENV = #{searchGubun}
+        </if>
+        <if test="BND_MST_IDX != null and BND_MST_IDX != ''">
+            AND BM.BND_MST_IDX = #{BND_MST_IDX}
+        </if>
+        <if test="ADM_MST_ID != null and ADM_MST_ID != ''">
+            AND BM.ADM_MST_ID = #{ADM_MST_ID}
+        </if>
+        <if test="BNR_MST_GBN != null and BNR_MST_GBN != ''">
+        	AND BM.BNR_MST_GBN = #{BNR_MST_GBN}
+        </if>
+        <if test="VDR_MST_IDX != null and VDR_MST_IDX != ''">
+        	AND BM.VDR_MST_IDX = #{VDR_MST_IDX}
+        </if>
+        ORDER BY BM.BNR_MST_SRT ASC 
+    </select>
+    
+    <!-- 관리자 > 전시관리 > 배너관리 상세정보 -->
+    <select id="selectBannerDisplayInfo" parameterType="HashMap" resultType="HashMap">
+        /* BannerDisplay.selectBannerDisplayInfo */
+        SELECT
+            BM.BNR_MST_IDX 
+            , BM.BNR_MST_TITLE 
+            , BM.CMN_COM_IDX 
+            , BM.BNR_MST_ST_DT
+            , BM.BNR_MST_ST_HH
+            , BM.BNR_MST_ST_MM
+            , BM.BNR_MST_ED_DT
+            , BM.BNR_MST_ED_HH 
+            , BM.BNR_MST_ED_MM
+            , BM.BNR_MST_SRT
+            , BM.BNR_MST_USE_YN
+            , BM.BNR_MST_TGT
+            , BM.BNR_MST_URL
+            , BM.BND_MST_IDX
+            , BM.ADM_MST_ID
+            , (SELECT BND_MST_BRAND_NM FROM T_BND_MST WHERE BND_MST_IDX = BM.BND_MST_IDX) AS BND_MST_NM
+            , (SELECT ADM_MST_NM FROM T_ADM_MST WHERE ADM_MST_ID = BM.ADM_MST_ID) AS ADM_MST_NM
+            , NVL2(BNR_MST_HEX_CD,SUBSTR(BNR_MST_HEX_CD,2,LENGTH(BNR_MST_HEX_CD)),NULL) AS BNR_MST_HEX_CD
+            , BNR_MST_SUB_TITLE
+            , BNR_MST_DESC
+            , BNR_MST_ENV
+        FROM
+            T_BNR_MST BM 
+        WHERE
+            BM.BNR_MST_IDX = #{BNR_MST_IDX}
+    </select>
+    
+    <!-- SEQ_BNR_MST_IDX 시퀀스만 조회 부분 추가   -->
+    <select id="selectBannerDisplayIndex" parameterType="HashMap" resultType="Integer">
+      SELECT SEQ_BNR_MST_IDX.NEXTVAL AS BNR_MST_IDX  FROM DUAL
+    </select>
+    
+    
+    
+    <insert id="insertBannerDisplaySeq" parameterType="HashMap">
+        /* BannerDisplay.insertBannerDisplay */
+        INSERT INTO
+            T_BNR_MST
+            (
+                BNR_MST_IDX,
+                BNR_MST_TITLE,
+                CMN_COM_IDX,
+                BNR_MST_ST_DT,
+                BNR_MST_ST_HH,
+                BNR_MST_ST_MM,
+                BNR_MST_ED_DT,
+                BNR_MST_ED_HH,
+                BNR_MST_ED_MM,
+                BNR_MST_USE_YN,
+                BNR_MST_REG_DT,
+                BNR_MST_REG_IP,
+                BNR_MST_REG_ID,
+                BNR_MST_ENV,
+                BNR_MST_GBN,
+                BNR_MST_TGT,
+                BNR_MST_URL,
+                BNR_MST_SRT,
+                BNR_MST_HEX_CD
+                <if test="BND_MST_IDX != null and BND_MST_IDX != ''">
+                ,BND_MST_IDX
+                </if>
+                <if test="ADM_MST_ID != null and ADM_MST_ID != ''">
+                ,ADM_MST_ID
+                </if>
+                 <if test="VDR_MST_IDX != null and VDR_MST_IDX != ''">
+                 ,VDR_MST_IDX
+                 </if>
+                 
+                 <if test="BNR_MST_SUB_TITLE != null and BNR_MST_SUB_TITLE != ''">
+                 ,BNR_MST_SUB_TITLE
+                 </if>                 
+                 <if test="BNR_MST_DESC != null and BNR_MST_DESC != ''">
+                 ,BNR_MST_DESC
+                 </if>                 
+                 
+            )
+        VALUES
+            (
+                #{BNR_MST_IDX},
+                #{BNR_MST_TITLE},
+                #{CMN_COM_IDX},
+                REPLACE(#{BNR_MST_ST_DT},'-',''),
+                #{BNR_MST_ST_HH},
+                #{BNR_MST_ST_MM},
+                REPLACE(#{BNR_MST_ED_DT},'-',''),
+                #{BNR_MST_ED_HH},
+                #{BNR_MST_ED_MM},
+                NVL(#{BNR_MST_USE_YN}, 'N'),
+                TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+                #{BNR_MST_REG_IP},
+                #{BNR_MST_REG_ID},
+                #{PRD_CTG_ENV},
+                #{BNR_MST_GBN},
+                #{BNR_MST_TGT},
+                #{BNR_MST_URL},
+                1,
+                #{BNR_MST_HEX_CD}
+                <if test="BND_MST_IDX != null and BND_MST_IDX != ''">
+                ,#{BND_MST_IDX}
+                </if>
+                <if test="ADM_MST_ID != null and ADM_MST_ID != ''">
+                ,#{ADM_MST_ID}
+                </if>
+
+                <if test="VDR_MST_IDX != null and VDR_MST_IDX != ''">
+                ,#{VDR_MST_IDX}
+                </if>
+                
+                 <if test="BNR_MST_SUB_TITLE != null and BNR_MST_SUB_TITLE != ''">
+                , #{BNR_MST_SUB_TITLE}
+                 </if>                 
+                 <if test="BNR_MST_DESC != null and BNR_MST_DESC != ''">
+                , #{BNR_MST_DESC}                 
+                 </if>                   
+            )
+    </insert>    
+    
+    <!-- 관리자 > 전시관리 > 배너관리 등록 -->
+    <insert id="insertBannerDisplay" parameterType="HashMap">
+        <selectKey keyProperty="BNR_MST_IDX" resultType="Integer" order="BEFORE">
+            SELECT SEQ_BNR_MST_IDX.NEXTVAL AS BNR_MST_IDX  FROM DUAL
+        </selectKey>
+        /* BannerDisplay.insertBannerDisplay */
+        INSERT INTO
+            T_BNR_MST
+            (
+                BNR_MST_IDX,
+                BNR_MST_TITLE,
+                CMN_COM_IDX,
+                BNR_MST_ST_DT,
+                BNR_MST_ST_HH,
+                BNR_MST_ST_MM,
+                BNR_MST_ED_DT,
+                BNR_MST_ED_HH,
+                BNR_MST_ED_MM,
+                BNR_MST_USE_YN,
+                BNR_MST_REG_DT,
+                BNR_MST_REG_IP,
+                BNR_MST_REG_ID,
+                BNR_MST_ENV,
+                BNR_MST_GBN,
+                BNR_MST_TGT,
+                BNR_MST_URL,
+                BNR_MST_SRT,
+                BNR_MST_HEX_CD
+                <if test="BND_MST_IDX != null and BND_MST_IDX != ''">
+                ,BND_MST_IDX
+                </if>
+                <if test="ADM_MST_ID != null and ADM_MST_ID != ''">
+                ,ADM_MST_ID
+                </if>
+                , BNR_MST_SUB_TITLE
+                 <if test="VDR_MST_IDX != null and VDR_MST_IDX != ''">
+                 ,VDR_MST_IDX
+                 </if>
+            )
+        VALUES
+            (
+                #{BNR_MST_IDX},
+                #{BNR_MST_TITLE},
+                #{CMN_COM_IDX},
+                REPLACE(#{BNR_MST_ST_DT},'-',''),
+                #{BNR_MST_ST_HH},
+                #{BNR_MST_ST_MM},
+                REPLACE(#{BNR_MST_ED_DT},'-',''),
+                #{BNR_MST_ED_HH},
+                #{BNR_MST_ED_MM},
+                NVL(#{BNR_MST_USE_YN}, 'N'),
+                TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+                #{BNR_MST_REG_IP},
+                #{BNR_MST_REG_ID},
+                #{PRD_CTG_ENV},
+                #{BNR_MST_GBN},
+                #{BNR_MST_TGT},
+                #{BNR_MST_URL},
+                1,
+                #{BNR_MST_HEX_CD}
+                <if test="BND_MST_IDX != null and BND_MST_IDX != ''">
+                ,#{BND_MST_IDX}
+                </if>
+                <if test="ADM_MST_ID != null and ADM_MST_ID != ''">
+                ,#{ADM_MST_ID}
+                </if>
+                , #{BNR_MST_SUB_TITLE}
+                <if test="VDR_MST_IDX != null and VDR_MST_IDX != ''">
+                ,#{VDR_MST_IDX}
+                </if>
+            )
+    </insert>
+    
+    <insert id="insertBannerProduct" parameterType="HashMap">
+        <selectKey keyProperty="BNR_PRD_IDX" resultType="Integer" order="BEFORE">
+            SELECT SEQ_BNR_PRD_IDX.NEXTVAL AS BNR_PRD_IDX  FROM DUAL
+        </selectKey>    
+    
+        /* BannerDisplay.insertBannerProduct */    
+		INSERT INTO T_BNR_PRD 
+		       (
+		       BNR_PRD_IDX    ,
+		       BNR_MST_IDX    ,
+		       BNR_PRD_MST_CD ,
+		       BNR_PRD_REF_USE_YN 
+		       )
+		VALUES 
+		       (
+		       #{BNR_PRD_IDX}        ,
+		       #{BNR_MST_IDX}        ,
+		       #{BNR_PRD_MST_CD}     ,
+		       #{BNR_PRD_REF_USE_YN} 
+		       )    
+    </insert>
+    
+    
+    <!-- 관리자 > 전시관리 > 배너관리 수정 -->
+    <update id="updateBannerDisplay" parameterType="HashMap">
+        /* BannerDisplay.updateBannerDisplay */
+        UPDATE
+            T_BNR_MST 
+        SET
+            BNR_MST_USE_YN = #{BNR_MST_USE_YN},
+            BNR_MST_TITLE = #{BNR_MST_TITLE},
+            BNR_MST_ST_DT = REPLACE(#{BNR_MST_ST_DT}, '-', ''),
+            BNR_MST_ST_HH = #{BNR_MST_ST_HH},
+            BNR_MST_ST_MM = #{BNR_MST_ST_MM},
+            BNR_MST_ED_DT = REPLACE(#{BNR_MST_ED_DT}, '-', ''),
+            BNR_MST_ED_HH = #{BNR_MST_ED_HH},
+            BNR_MST_ED_MM = #{BNR_MST_ED_MM},
+            BNR_MST_UPD_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+            BNR_MST_UPD_IP = #{BNR_MST_UPD_IP},
+            BNR_MST_UPD_ID = #{BNR_MST_UPD_ID},
+            BNR_MST_TGT = #{BNR_MST_TGT},
+            BNR_MST_URL = #{BNR_MST_URL},
+            BNR_MST_HEX_CD = #{BNR_MST_HEX_CD}
+            <if test="BNR_MST_SUB_TITLE != null and BNR_MST_SUB_TITLE != ''">
+           , BNR_MST_SUB_TITLE = #{BNR_MST_SUB_TITLE}
+            </if>                 
+            <if test="BNR_MST_DESC != null and BNR_MST_DESC != ''">
+           , BNR_MST_DESC = #{BNR_MST_DESC}    
+            </if>              
+        WHERE
+            BNR_MST_IDX = #{BNR_MST_IDX}
+    </update>
+    
+    <!-- 관리자 > 전시관리 > 배너관리 순번 수정 -->
+    <update id="updateBannerDisplaySort" parameterType="HashMap">
+        /* BannerDisplay.updateBannerDisplaySort */
+        UPDATE
+            T_BNR_MST 
+        SET
+            BNR_MST_SRT = BNR_MST_SRT + 1
+        WHERE
+            CMN_COM_IDX = #{CMN_COM_IDX}
+        AND
+            BNR_MST_IDX <![CDATA[ <> ]]> #{BNR_MST_IDX}
+    </update>
+    
+    
+    <!-- 관리자 > 전시관리 > 배너관리 배너정보 등록 -->
+    <insert id="insertBannerDisplayDetail" parameterType="HashMap">
+        <selectKey keyProperty="BNR_DTL_IDX" resultType="Integer" order="BEFORE">
+            SELECT SEQ_BNR_DTL_IDX.NEXTVAL AS BNR_DTL_IDX FROM DUAL
+        </selectKey>
+        /* BannerDisplay.insertBannerDisplayDetail */
+        INSERT INTO
+            T_BNR_DTL
+            (
+                BNR_DTL_IDX,
+                BNR_BNR_MST_IDX,
+                BNR_DTL_TARGET,
+                BNR_DTL_URL,
+                BNR_DTL_ORDER
+            )
+        VALUES
+            (
+                #{BNR_DTL_IDX},
+                #{BNR_MST_IDX},
+                #{BNR_DTL_TARGET},
+                #{BNR_DTL_URL},
+                (   SELECT NVL(COUNT(0),0)+1
+                    FROM T_BNR_MST
+                    WHERE CMN_COM_IDX = #{CMN_COM_IDX}
+                    AND BNR_MST_IDX != #{BNR_MST_IDX}
+                )
+            )
+    </insert>
+    
+    
+    <!-- 관리자 > 전시관리 > 배너관리 배너정보 삭제 -->
+    <delete id="deleteBannerDisplay" parameterType="HashMap">
+        /* BannerDisplay.deleteBannerDisplay */
+        DELETE FROM T_BNR_MST WHERE BNR_MST_IDX = #{BNR_MST_IDX}
+    </delete>
+    
+    <delete id="deleteBannerDisplayBatch" parameterType="HashMap">
+        /* BannerDisplay.deleteBannerDisplayBatch */
+        DELETE FROM T_BNR_MST
+        WHERE BNR_MST_IDX IN
+        <foreach collection="bannerList" item="banner" open="(" close=")" separator=",">
+        	#{banner.BNR_MST_IDX}
+        </foreach>
+    </delete>
+    
+
+    <delete id="deleteBannerContent" parameterType="HashMap">
+        /* BannerDisplay.deleteBannerContent */
+        DELETE FROM T_BNR_CNT WHERE BNR_MST_IDX = #{BNR_MST_IDX}
+    </delete>
+        
+    <delete id="deleteBannerContentDisplayBatch" parameterType="HashMap">
+        /* BannerDisplay.deleteBannerContentDisplayBatch */
+        DELETE FROM T_BNR_CNT 
+        WHERE BNR_MST_IDX IN
+        <foreach collection="bannerList" item="banner" open="(" close=")" separator=",">
+        	#{banner.BNR_MST_IDX}
+        </foreach>
+        
+    </delete>
+    
+    
+        
+    <!-- 공통코드 현재 포함 하위 코드 조회 -->
+    <select id="selectBnrCatCodeList" parameterType="hashMap" resultType="hashMap">
+        /* BannerDisplay.selectBnrCatCodeList */
+        SELECT CMN_COM_LEVEL, CMN_COM_NM TITLE , CMN_COM_ETC1, CMN_COM_ETC2, CMN_COM_ETC3, CMN_COM_ETC4
+        FROM (
+            SELECT 
+                CMN_COM_LEVEL, CMN_COM_NM , CMN_COM_ETC1, CMN_COM_ETC2, CMN_COM_ETC3, CMN_COM_ETC4
+            FROM 
+                T_CMM_COM
+            <if test="path != null and path != ''">
+                START WITH CMN_COM_IDX = #{CMN_COM_IDX}
+                CONNECT BY PRIOR CMN_COM_UP_IDX = CMN_COM_IDX
+            </if>
+            <if test="path == null or path == ''">
+            WHERE
+                CMN_COM_USE_YN = 'Y'
+                START WITH CMN_COM_IDX = #{CMN_COM_IDX}
+                CONNECT BY PRIOR CMN_COM_UP_IDX = CMN_COM_IDX and CMN_COM_USE_YN = 'Y'
+            </if>
+            ORDER SIBLINGS BY CMN_COM_LEVEL ASC
+        ) ORDER BY CMN_COM_LEVEL DESC          
+    </select>
+    
+    <!-- 관리자 > 전시관리 > 배너관리 배너 순서 정렬 -->
+    <update id="updateBannerDisplaySortArray" parameterType="HashMap">
+        /* BannerDisplay.updateBannerDisplaySortArray */
+        UPDATE
+            T_BNR_MST 
+        SET
+            BNR_MST_SRT = NVL(#{BNR_MST_SRT}, 1) 
+            <if test="BNR_MST_USE_YN != null and BNR_MST_USE_YN != ''">
+                , BNR_MST_USE_YN = NVL(#{BNR_MST_USE_YN}, 'Y')
+            </if>
+        WHERE
+            BNR_MST_IDX = #{BNR_MST_IDX}   
+    </update>   
+    
+    <!-- 공통코드 현재 포함 하위 코드 조회 -->
+    <select id="selectSubCodeList" parameterType="hashMap" resultType="hashMap">
+        /* BannerDisplay.selectSubCodeList */
+        SELECT 
+            CMN_COM_IDX,
+            CMN_COM_NM,
+            CMN_COM_LEVEL,
+            CMN_COM_UP_IDX,
+            CMN_COM_TOP_IDX,
+            CMN_COM_ETC1,
+            CMN_COM_ETC2,
+            CMN_COM_ETC3,
+            CMN_COM_SORT,
+            CMN_COM_USE_YN,
+            CMN_COM_REG_DT,
+            CMN_COM_REG_IP,
+            CMN_COM_REG_ID,
+            CMN_COM_UPD_DT,
+            CMN_COM_UPD_IP,
+            CMN_COM_UPD_ID 
+        FROM 
+            T_CMM_COM
+        WHERE 1=1
+        START WITH CMN_COM_UP_IDX = #{CODE} AND CMN_COM_USE_YN = 'Y'
+        CONNECT BY PRIOR CMN_COM_IDX = CMN_COM_UP_IDX
+        ORDER SIBLINGS BY CMN_COM_LEVEL, CMN_COM_SORT ASC
+    </select>
+    
+    
+    <select id="selectBannerProductList" parameterType="hashMap" resultType="hashMap">
+        /* BannerDisplay.selectBannerProductList */
+		SELECT  
+		        ROWNUM AS NUM   ,
+		        TBP.BNR_PRD_IDX ,
+		        TBP.BNR_MST_IDX ,
+		        TBP.BNR_PRD_MST_CD ,
+		        TPM.PRD_MST_NM  ,
+		        TPM.PRD_MST_CD  ,
+		        TPM.PRD_MST_PRC , 
+		        TPM.PRD_MST_DLV_FEE , 
+		        FN_PRODUCT_IMG(TPM.PRD_MST_CD, 84) AS PRD_IMAGE,
+		        FN_PRODUCT_IMG_ALT(TPM.PRD_MST_CD, 84) PRD_IMAGE_ALT,
+		        TPM.PRD_MST_SEL_STATE ,
+		        TPM.PRD_MST_REG_DT 
+		 FROM   T_BNR_PRD TBP
+		        INNER JOIN 
+		        T_PRD_MST TPM
+		        ON TBP.BNR_PRD_MST_CD = TPM.PRD_MST_CD
+		WHERE   TBP.BNR_MST_IDX = #{BNR_MST_IDX}
+		ORDER BY 
+		        TBP.BNR_PRD_IDX ASC        
+    </select>    
+    
+    
+    <delete id="deleteBannerProduct" parameterType="HashMap">
+        /* BannerDisplay.deleteBannerProduct */
+        DELETE FROM T_BNR_PRD
+        WHERE BNR_MST_IDX = #{BNR_MST_IDX}
+    </delete>
+    
+    
+</mapper>

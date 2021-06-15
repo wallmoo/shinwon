@@ -1,0 +1,282 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="OrderChannel">
+
+    <!-- 채널별매출 > 매출합계조회 (판매)-->
+    <select id="selectOrderChannelSumListA" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+        /* OrderChannel.selectOrderChannelSumListA */
+        SELECT CHN_DTL_CD, 
+            (SELECT CHN_DTL_NM FROM T_CHN_DTL WHERE CHN_DTL_CD = A.CHN_DTL_CD) AS CHN_DTL_NM, 
+            SUM(ACNT+BCNT) AS TOTAL_CNT,
+            SUM(BCNT) AS CANCEL_CNT, 
+            SUM(ACNT) AS ORD_CNT, 
+            SUM(ORD_PRC+CANCEL_PRC) AS TOTAL_PRC, 
+            SUM(CANCEL_PRC) AS CANCEL_PRC, 
+            SUM(ORD_PRC) AS ORD_PRC
+        FROM (
+        SELECT NVL(OP.CHN_DTL_CD, O.CHN_DTL_CD) AS CHN_DTL_CD, 
+                'A' AS GB, 1 AS ACNT, 0 AS BCNT,
+                O.ORD_MST_CD,
+                OP.ORD_PRD_ORD_PRC AS ORD_PRC,
+                0 AS CANCEL_PRC
+        FROM T_ORD_MST O, T_ORD_PRD OP, T_PRD_MST P
+        WHERE O.ORD_MST_CD = OP.ORD_ORD_MST_CD
+        AND OP.ORD_PRD_MST_CD = P.PRD_MST_CD
+        AND (O.CHN_DTL_CD IN ('A066','A072','A062') OR OP.CHN_DTL_CD IN ('A066','A072','A062'))
+        AND EXISTS
+                (SELECT ORD_PRD_HIS_IDX FROM T_ORD_PRD_HIS 
+                 WHERE ORD_PRD_REG_DT BETWEEN REPLACE(#{searchStartDate},'-','')||'000000' AND REPLACE(#{searchEndDate},'-','')||'235959'
+                 AND ORD_PRD_HIS_IDX = (SELECT MIN(ORD_PRD_HIS_IDX) FROM T_ORD_PRD_HIS WHERE ORD_ORD_MST_CD = OP.ORD_ORD_MST_CD
+                                                AND ORD_PRD_MST_CD = OP.ORD_PRD_MST_CD  AND ORD_PRD_ORD_STATE = '405'
+                                        )
+                )
+        UNION ALL
+        SELECT NVL(OP.CHN_DTL_CD, O.CHN_DTL_CD) AS CHN_DTL_CD, 
+            'B' AS GB, 0 AS ACNT, 1 AS BCNT,
+                O.ORD_MST_CD,
+                0 AS ORD_PRC,
+                OP.ORD_PRD_ORD_PRC AS CANCEL_PRC
+        FROM T_ORD_MST O, T_ORD_PRD OP, T_PRD_MST P
+        WHERE O.ORD_MST_CD = OP.ORD_ORD_MST_CD
+        AND OP.ORD_PRD_MST_CD = P.PRD_MST_CD
+        AND (O.CHN_DTL_CD IN ('A066','A072','A062') OR OP.CHN_DTL_CD IN ('A066','A072','A062'))
+        AND EXISTS
+                (SELECT ORD_PRD_HIS_IDX FROM T_ORD_PRD_HIS 
+                 WHERE ORD_PRD_REG_DT BETWEEN REPLACE(#{searchStartDate},'-','')||'000000' AND REPLACE(#{searchEndDate},'-','')||'235959'
+                 AND ORD_PRD_HIS_IDX = (SELECT MIN(ORD_PRD_HIS_IDX) FROM T_ORD_PRD_HIS WHERE ORD_ORD_MST_CD = OP.ORD_ORD_MST_CD
+                                                AND ORD_PRD_MST_CD = OP.ORD_PRD_MST_CD  AND ORD_PRD_ORD_STATE IN ('403','433','434')
+                                        )
+                )
+        ) A
+        WHERE A.CHN_DTL_CD LIKE NVL(#{searchChnDtlCd},'')||'%'
+        GROUP BY CHN_DTL_CD
+    </select>
+    <!-- 채널별매출 > 매출합계조회 (매출) -->
+    <select id="selectOrderChannelSumListB" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+        /* OrderChannel.selectOrderChannelSumListB */
+        SELECT CHN_DTL_CD, 
+            (SELECT CHN_DTL_NM FROM T_CHN_DTL WHERE CHN_DTL_CD = A.CHN_DTL_CD) AS CHN_DTL_NM, 
+            SUM(ACNT+BCNT) AS TOTAL_CNT,
+            SUM(BCNT) AS CANCEL_CNT, 
+            SUM(ACNT) AS ORD_CNT, 
+            SUM(ORD_PRC+CANCEL_PRC) AS TOTAL_PRC, 
+            SUM(CANCEL_PRC) AS CANCEL_PRC, 
+            SUM(ORD_PRC) AS ORD_PRC
+        FROM (
+        SELECT NVL(OP.CHN_DTL_CD, O.CHN_DTL_CD) AS CHN_DTL_CD, 
+                'A' AS GB, 1 AS ACNT, 0 AS BCNT,
+                O.ORD_MST_CD,
+                OP.ORD_PRD_ORD_PRC AS ORD_PRC,
+                0 AS CANCEL_PRC
+        FROM T_ORD_MST O, T_ORD_PRD OP, T_PRD_MST P
+        WHERE O.ORD_MST_CD = OP.ORD_ORD_MST_CD
+        AND OP.ORD_PRD_MST_CD = P.PRD_MST_CD
+        AND (O.CHN_DTL_CD IN ('A066','A072','A062') OR OP.CHN_DTL_CD IN ('A066','A072','A062'))
+        AND EXISTS
+                (SELECT ORD_PRD_HIS_IDX FROM T_ORD_PRD_HIS 
+                 WHERE ORD_PRD_REG_DT BETWEEN REPLACE(#{searchStartDate},'-','')||'000000' AND REPLACE(#{searchEndDate},'-','')||'235959'
+                 AND ORD_PRD_HIS_IDX = (SELECT MIN(ORD_PRD_HIS_IDX) FROM T_ORD_PRD_HIS WHERE ORD_ORD_MST_CD = OP.ORD_ORD_MST_CD
+                                                AND ORD_PRD_MST_CD = OP.ORD_PRD_MST_CD  AND ORD_PRD_ORD_STATE = '408'
+                                        )
+                )
+        UNION ALL
+        SELECT NVL(OP.CHN_DTL_CD, O.CHN_DTL_CD) AS CHN_DTL_CD, 
+            'B' AS GB, 0 AS ACNT, 1 AS BCNT,
+                O.ORD_MST_CD,
+                0 AS ORD_PRC,
+                OP.ORD_PRD_ORD_PRC AS CANCEL_PRC
+        FROM T_ORD_MST O, T_ORD_PRD OP, T_PRD_MST P
+        WHERE O.ORD_MST_CD = OP.ORD_ORD_MST_CD
+        AND OP.ORD_PRD_MST_CD = P.PRD_MST_CD
+        AND (O.CHN_DTL_CD IN ('A066','A072','A062') OR OP.CHN_DTL_CD IN ('A066','A072','A062'))
+        AND EXISTS
+                (SELECT ORD_PRD_HIS_IDX FROM T_ORD_PRD_HIS 
+                 WHERE ORD_PRD_REG_DT BETWEEN REPLACE(#{searchStartDate},'-','')||'000000' AND REPLACE(#{searchEndDate},'-','')||'235959'
+                 AND ORD_PRD_HIS_IDX = (SELECT MIN(ORD_PRD_HIS_IDX) FROM T_ORD_PRD_HIS WHERE ORD_ORD_MST_CD = OP.ORD_ORD_MST_CD
+                                                AND ORD_PRD_MST_CD = OP.ORD_PRD_MST_CD  AND ORD_PRD_ORD_STATE IN ('433','434')                                       
+                                        )
+                )
+        ) A
+        WHERE A.CHN_DTL_CD LIKE NVL(#{searchChnDtlCd},'')||'%'
+        GROUP BY CHN_DTL_CD
+    </select>
+    <!-- 채널별매출 > 매출조회 (판매)-->
+    <select id="selectOrderChannelListA" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+    /* OrderChannel.selectOrderChannelListA */
+        SELECT ROWNUM AS RNUM,
+                ORD_MST_CD,
+                PRD_MST_TYPE,
+                ORD_MST_ORD_NM,
+                PRD_MST_CD,
+                PRD_MST_NM,
+                ORD_PRD_ORD_PRC,
+                ORD_PRD_ORD_CNT,
+                ORD_MST_PAY_TYPE,
+                ORD_MST_ORD_DT,
+                ORD_PRD_ORD_STATE
+        FROM
+            (
+                    SELECT ORD_MST_CD, 
+                        DECODE(A.PRD_MST_TYPE,'G','일반','P','패키지') AS PRD_MST_TYPE,
+                        ORD_MST_ORD_NM,
+                        PRD_MST_CD,
+                        PRD_MST_NM,
+                        ORD_PRD_ORD_PRC,
+                        ORD_PRD_ORD_CNT,
+                        (SELECT CMN_COM_NM FROM T_CMM_COM WHERE CMN_COM_IDX = ORD_MST_PAY_TYPE) AS ORD_MST_PAY_TYPE,
+                        TO_CHAR(TO_DATE(ORD_MST_ORD_DT,'yyyymmddhh24miss'),'yyyy.mm.dd') AS ORD_MST_ORD_DT,
+                        (SELECT CMN_COM_NM FROM T_CMM_COM WHERE CMN_COM_IDX = ORD_PRD_ORD_STATE) AS ORD_PRD_ORD_STATE
+                    FROM (
+                    SELECT 'A' AS GB,
+                           O.ORD_MST_CD,
+                           P.PRD_MST_TYPE,
+                           O.ORD_MST_ORD_NM,
+                           P.PRD_MST_CD,
+                           P.PRD_MST_NM,
+                           OP.ORD_PRD_ORD_PRC,
+                           OP.ORD_PRD_ORD_CNT,
+                           O.ORD_MST_PAY_TYPE,
+                           O.ORD_MST_ORD_DT,
+                           (SELECT MAX(ORD_PRD_ORD_STATE) FROM T_ORD_PRD_HIS 
+                             WHERE ORD_PRD_REG_DT BETWEEN REPLACE(#{searchStartDate},'-','')||'000000' AND REPLACE(#{searchEndDate},'-','')||'235959'
+                             AND ORD_PRD_HIS_IDX = (SELECT MIN(ORD_PRD_HIS_IDX) FROM T_ORD_PRD_HIS WHERE ORD_ORD_MST_CD = OP.ORD_ORD_MST_CD
+                                                            AND ORD_PRD_MST_CD = OP.ORD_PRD_MST_CD  AND ORD_PRD_ORD_STATE = '405'
+                                                    )
+                                                        ) AS ORD_PRD_ORD_STATE
+                    FROM T_ORD_MST O, T_ORD_PRD OP, T_PRD_MST P
+                    WHERE O.ORD_MST_CD = OP.ORD_ORD_MST_CD
+                    AND OP.ORD_PRD_MST_CD = P.PRD_MST_CD
+                    AND (O.CHN_DTL_CD IN ('A066','A072','A062') OR OP.CHN_DTL_CD IN ('A066','A072','A062'))
+                    AND (O.CHN_DTL_CD LIKE #{CHN_DTL_CD}||'%' OR OP.CHN_DTL_CD LIKE #{CHN_DTL_CD}||'%')
+                    AND EXISTS
+                            (SELECT ORD_PRD_HIS_IDX FROM T_ORD_PRD_HIS 
+                             WHERE ORD_PRD_REG_DT BETWEEN REPLACE(#{searchStartDate},'-','')||'000000' AND REPLACE(#{searchEndDate},'-','')||'235959'
+                             AND ORD_PRD_HIS_IDX = (SELECT MIN(ORD_PRD_HIS_IDX) FROM T_ORD_PRD_HIS WHERE ORD_ORD_MST_CD = OP.ORD_ORD_MST_CD
+                                                            AND ORD_PRD_MST_CD = OP.ORD_PRD_MST_CD  AND ORD_PRD_ORD_STATE = '405'
+                                                    )
+                            )
+                    UNION ALL
+                    SELECT 'B' AS GB,
+                           O.ORD_MST_CD,
+                           P.PRD_MST_TYPE,
+                           O.ORD_MST_ORD_NM,
+                           P.PRD_MST_CD,
+                           P.PRD_MST_NM,
+                           OP.ORD_PRD_ORD_PRC,
+                           OP.ORD_PRD_ORD_CNT,
+                           O.ORD_MST_PAY_TYPE,
+                           O.ORD_MST_ORD_DT,
+                           (SELECT MAX(ORD_PRD_ORD_STATE) FROM T_ORD_PRD_HIS 
+                             WHERE ORD_PRD_REG_DT BETWEEN REPLACE(#{searchStartDate},'-','')||'000000' AND REPLACE(#{searchEndDate},'-','')||'235959'
+                             AND ORD_PRD_HIS_IDX = (SELECT MIN(ORD_PRD_HIS_IDX) FROM T_ORD_PRD_HIS WHERE ORD_ORD_MST_CD = OP.ORD_ORD_MST_CD
+                                                            AND ORD_PRD_MST_CD = OP.ORD_PRD_MST_CD  AND ORD_PRD_ORD_STATE IN ('403','433','434')
+                                                    )                       
+                                                        ) AS ORD_PRD_ORD_STATE
+                    FROM T_ORD_MST O, T_ORD_PRD OP, T_PRD_MST P
+                    WHERE O.ORD_MST_CD = OP.ORD_ORD_MST_CD
+                    AND OP.ORD_PRD_MST_CD = P.PRD_MST_CD
+                    AND (O.CHN_DTL_CD IN ('A066','A072','A062') OR OP.CHN_DTL_CD IN ('A066','A072','A062'))
+                    AND (O.CHN_DTL_CD LIKE #{CHN_DTL_CD}||'%' OR OP.CHN_DTL_CD LIKE #{CHN_DTL_CD}||'%')
+                    AND EXISTS
+                            (SELECT ORD_PRD_HIS_IDX FROM T_ORD_PRD_HIS 
+                             WHERE ORD_PRD_REG_DT BETWEEN REPLACE(#{searchStartDate},'-','')||'000000' AND REPLACE(#{searchEndDate},'-','')||'235959'
+                             AND ORD_PRD_HIS_IDX = (SELECT MIN(ORD_PRD_HIS_IDX) FROM T_ORD_PRD_HIS WHERE ORD_ORD_MST_CD = OP.ORD_ORD_MST_CD
+                                                            AND ORD_PRD_MST_CD = OP.ORD_PRD_MST_CD  AND ORD_PRD_ORD_STATE IN ('403','433','434')
+                                                 
+                                                    )
+                            )
+                    ) A
+                    ORDER BY ORD_MST_CD DESC, GB
+            )
+    </select>
+    
+    <!-- 채널별매출 > 매출조회 (매출)-->
+    <select id="selectOrderChannelListB" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+        /* OrderChannel.selectOrderChannelListB */
+        SELECT ROWNUM AS RNUM,
+                ORD_MST_CD,
+                PRD_MST_TYPE,
+                ORD_MST_ORD_NM,
+                PRD_MST_CD,
+                PRD_MST_NM,
+                ORD_PRD_ORD_PRC,
+                ORD_PRD_ORD_CNT,
+                ORD_MST_PAY_TYPE,
+                ORD_MST_ORD_DT,
+                ORD_PRD_ORD_STATE
+        FROM 
+                (
+                SELECT ORD_MST_CD, 
+                        DECODE(A.PRD_MST_TYPE,'G','일반','P','패키지') AS PRD_MST_TYPE,
+                        ORD_MST_ORD_NM,
+                        PRD_MST_CD,
+                        PRD_MST_NM,
+                        ORD_PRD_ORD_PRC,
+                        ORD_PRD_ORD_CNT,
+                        (SELECT CMN_COM_NM FROM T_CMM_COM WHERE CMN_COM_IDX = ORD_MST_PAY_TYPE) AS ORD_MST_PAY_TYPE,
+                        TO_CHAR(TO_DATE(ORD_MST_ORD_DT,'yyyymmddhh24miss'),'yyyy.mm.dd') AS ORD_MST_ORD_DT,
+                        (SELECT CMN_COM_NM FROM T_CMM_COM WHERE CMN_COM_IDX = ORD_PRD_ORD_STATE) AS ORD_PRD_ORD_STATE
+                    FROM (
+                    SELECT 'A' AS GB,
+                           O.ORD_MST_CD,
+                           P.PRD_MST_TYPE,
+                           O.ORD_MST_ORD_NM,
+                           P.PRD_MST_CD,
+                           P.PRD_MST_NM,
+                           OP.ORD_PRD_ORD_PRC,
+                           OP.ORD_PRD_ORD_CNT,
+                           O.ORD_MST_PAY_TYPE,
+                           O.ORD_MST_ORD_DT,
+                           (SELECT MAX(ORD_PRD_ORD_STATE) FROM T_ORD_PRD_HIS 
+                             WHERE ORD_PRD_REG_DT BETWEEN REPLACE(#{searchStartDate},'-','')||'000000' AND REPLACE(#{searchEndDate},'-','')||'235959'
+                              AND ORD_PRD_HIS_IDX = (SELECT MIN(ORD_PRD_HIS_IDX) FROM T_ORD_PRD_HIS WHERE ORD_ORD_MST_CD = OP.ORD_ORD_MST_CD
+                                                        AND ORD_PRD_MST_CD = OP.ORD_PRD_MST_CD  AND ORD_PRD_ORD_STATE = '408'
+                                                    )
+                                                        ) AS ORD_PRD_ORD_STATE
+                    FROM T_ORD_MST O, T_ORD_PRD OP, T_PRD_MST P
+                    WHERE O.ORD_MST_CD = OP.ORD_ORD_MST_CD
+                    AND OP.ORD_PRD_MST_CD = P.PRD_MST_CD
+                    AND (O.CHN_DTL_CD IN ('A066','A072','A062') OR OP.CHN_DTL_CD IN ('A066','A072','A062'))
+                    AND (O.CHN_DTL_CD LIKE #{CHN_DTL_CD}||'%' OR OP.CHN_DTL_CD LIKE #{CHN_DTL_CD}||'%')
+                    AND EXISTS
+                            (SELECT ORD_PRD_HIS_IDX FROM T_ORD_PRD_HIS 
+                             WHERE ORD_PRD_REG_DT BETWEEN REPLACE(#{searchStartDate},'-','')||'000000' AND REPLACE(#{searchEndDate},'-','')||'235959'
+                              AND ORD_PRD_HIS_IDX = (SELECT MIN(ORD_PRD_HIS_IDX) FROM T_ORD_PRD_HIS WHERE ORD_ORD_MST_CD = OP.ORD_ORD_MST_CD
+                                                        AND ORD_PRD_MST_CD = OP.ORD_PRD_MST_CD  AND ORD_PRD_ORD_STATE = '408'
+                                                )
+                            )
+                    UNION ALL
+                    SELECT 'B' AS GB,
+                           O.ORD_MST_CD,
+                           P.PRD_MST_TYPE,
+                           O.ORD_MST_ORD_NM,
+                           P.PRD_MST_CD,
+                           P.PRD_MST_NM,
+                           OP.ORD_PRD_ORD_PRC,
+                           OP.ORD_PRD_ORD_CNT,
+                           O.ORD_MST_PAY_TYPE,
+                           O.ORD_MST_ORD_DT,
+                           (SELECT MAX(ORD_PRD_ORD_STATE) FROM T_ORD_PRD_HIS 
+                             WHERE ORD_PRD_REG_DT BETWEEN REPLACE(#{searchStartDate},'-','')||'000000' AND REPLACE(#{searchEndDate},'-','')||'235959'
+                              AND ORD_PRD_HIS_IDX = (SELECT MIN(ORD_PRD_HIS_IDX) FROM T_ORD_PRD_HIS WHERE ORD_ORD_MST_CD = OP.ORD_ORD_MST_CD
+                                                            AND ORD_PRD_MST_CD = OP.ORD_PRD_MST_CD  AND ORD_PRD_ORD_STATE IN ('433','434')
+                                                    )
+                                                        ) AS ORD_PRD_ORD_STATE
+                    FROM T_ORD_MST O, T_ORD_PRD OP, T_PRD_MST P
+                    WHERE O.ORD_MST_CD = OP.ORD_ORD_MST_CD
+                    AND OP.ORD_PRD_MST_CD = P.PRD_MST_CD
+                    AND (O.CHN_DTL_CD IN ('A066','A072','A062') OR OP.CHN_DTL_CD IN ('A066','A072','A062'))
+                    AND (O.CHN_DTL_CD LIKE #{CHN_DTL_CD}||'%' OR OP.CHN_DTL_CD LIKE #{CHN_DTL_CD}||'%')
+                    AND EXISTS
+                            (SELECT ORD_PRD_HIS_IDX FROM T_ORD_PRD_HIS 
+                             WHERE ORD_PRD_REG_DT BETWEEN REPLACE(#{searchStartDate},'-','')||'000000' AND REPLACE(#{searchEndDate},'-','')||'235959'
+                             AND ORD_PRD_HIS_IDX = (SELECT MIN(ORD_PRD_HIS_IDX) FROM T_ORD_PRD_HIS WHERE ORD_ORD_MST_CD = OP.ORD_ORD_MST_CD
+                                                            AND ORD_PRD_MST_CD = OP.ORD_PRD_MST_CD  AND ORD_PRD_ORD_STATE IN ('433','434')
+                                                    )
+                            )
+                    ) A
+                    ORDER BY ORD_MST_CD DESC, GB
+            )
+    </select>
+  
+</mapper>

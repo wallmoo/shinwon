@@ -1,0 +1,868 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="PcMyPage">
+
+    <!-- 프론트 > 마이페이지 > 요약정보 -->
+    <select id="selectMyPageSummary" parameterType="hashMap" resultType="hashMap">
+        /* PcMyPage.selectMyPageSummary */
+        SELECT
+            NVL(MEM_PIT_TOT_PIT,0) AS MEM_PIT_TOT_PIT,
+            0 AS MEM_PIT_TOT_EPIT,
+            MEM_MST_MEM_GBN,
+            MEM_MST_MEM_GRD,
+       		MEM_GRD_NM,
+            MEM_CPN_CNT,
+            PRD_MEM_CPN_CNT,
+            MEM_KEP_CNT,
+	       	(
+	       	 SELECT SUM(ORD_PRD_PRD_PRC)
+	       	 FROM T_ORD_MST AA, T_ORD_PRD BB
+	       	 WHERE ORD_MST_ORD_ID = #{MEM_MST_MEM_ID}
+	       	 AND ORD_MST_CD = ORD_ORD_MST_CD(+)
+	       	 AND ORD_PRD_ORD_STATE IN (405,409,423)
+	       	 AND ORD_MST_PAY_DT BETWEEN TO_CHAR(SYSDATE-90,'YYYYMMDDHH24MISS') AND TO_CHAR(SYSDATE,'YYYYMMDDHH24MISS')
+	       	 ) AS TOT_AMOUNT,    	
+			/* 회원의 최근3개월 토탈금액*/	
+			CAL_ST_DT,
+            CAL_ED_DT
+        FROM DUAL        
+        LEFT OUTER JOIN (
+            SELECT 
+            	SUM(NVL(MEM_PIT_PLS,0)) - (SUM(NVL(MEM_PIT_MNS,0)) + SUM(NVL(MEM_PIT_EXT,0))) AS MEM_PIT_TOT_PIT
+		    FROM 
+		    	T_MEM_PIT
+		    WHERE 
+		    	MEM_PIT_MEM_ID = #{MEM_MST_MEM_ID}
+        )
+        ON 1=1
+        LEFT OUTER JOIN(
+        	SELECT
+        		MEM_MST_MEM_GBN, 
+        		MEM_MST_MEM_GRD,
+        		(SELECT CMN_COM_NM FROM T_CMM_COM TCC WHERE TCC.CMN_COM_IDX = MEM_MST_MEM_GRD) AS MEM_GRD_NM
+        	FROM
+        		T_MEM_VIEW
+        	WHERE
+        		MEM_MST_MEM_ID = #{MEM_MST_MEM_ID}
+        )
+        ON 1=1
+        LEFT OUTER JOIN(
+        	SELECT 
+				COUNT(0) AS MEM_CPN_CNT
+			FROM T_CPN_MST CMT
+			INNER JOIN T_CPN_MEM CMM ON CMM.CPN_MST_IDX = CMT.CPN_MST_IDX
+			WHERE CMM.CPN_MEM_ID = #{MEM_MST_MEM_ID}
+			AND CMM.CPN_MEM_USE_YN = 'N'
+			AND (
+					( CMT.CPN_MST_ISU_DAY_GBN = 'A' AND TO_CHAR(SYSDATE,'YYYYMMDD') BETWEEN CMT.CPN_MST_USE_ST_DT AND CMT.CPN_MST_USE_ED_DT)
+					OR (CMT.CPN_MST_ISU_DAY_GBN = 'B' AND CMT.CPN_MST_USE_DAY >= TO_DATE(TO_CHAR(SYSDATE, 'YYYYMMDD')) +1 - TO_DATE(TO_CHAR(TO_DATE(CMM.CPN_MEM_ISU_DT,'YYYYMMDDHH24MISS'),'YYYYMMDD'),'YYYYMMDD'))
+					OR (CMT.CPN_MST_ISU_DAY_GBN = 'M' AND (SYSDATE BETWEEN TO_DATE(CMM.CPN_MEM_ISU_DT,'YYYYMMDDHH24MISS') AND TO_CHAR(LAST_DAY(TO_DATE(CMM.CPN_MEM_ISU_DT,'YYYYMMDDHH24MISS')),'YYYYMMDD')) )
+				)
+        )
+        ON 1=1
+        LEFT OUTER JOIN(
+        	SELECT 
+				COUNT(0) AS PRD_MEM_CPN_CNT /* 상품쿠폰 개수 */
+			FROM T_CPN_MST CMT
+			INNER JOIN T_CPN_MEM CMM ON CMM.CPN_MST_IDX = CMT.CPN_MST_IDX
+			WHERE CMM.CPN_MEM_ID = #{MEM_MST_MEM_ID}
+			AND CMM.CPN_MEM_USE_YN = 'N'
+			AND CPN_MST_GBN <![CDATA[ <> ]]> 'F'
+			AND (
+					( CMT.CPN_MST_ISU_DAY_GBN = 'A' AND TO_CHAR(SYSDATE,'YYYYMMDD') BETWEEN CMT.CPN_MST_USE_ST_DT AND CMT.CPN_MST_USE_ED_DT)
+					OR (CMT.CPN_MST_ISU_DAY_GBN = 'B' AND CMT.CPN_MST_USE_DAY >= TO_DATE(TO_CHAR(SYSDATE, 'YYYYMMDD')) +1 - TO_DATE(TO_CHAR(TO_DATE(CMM.CPN_MEM_ISU_DT,'YYYYMMDDHH24MISS'),'YYYYMMDD'),'YYYYMMDD'))
+					OR (CMT.CPN_MST_ISU_DAY_GBN = 'M' AND (SYSDATE BETWEEN TO_DATE(CMM.CPN_MEM_ISU_DT,'YYYYMMDDHH24MISS') AND TO_CHAR(LAST_DAY(TO_DATE(CMM.CPN_MEM_ISU_DT,'YYYYMMDDHH24MISS')),'YYYYMMDD')) )
+				)
+        )
+        ON 1=1
+        LEFT OUTER JOIN(
+        	SELECT 
+				 COUNT(0) AS MEM_KEP_CNT
+			FROM T_MEM_KEP MKP
+			INNER JOIN T_PRD_MST PM ON PM.PRD_MST_CD = MKP.PRD_MST_CD
+			,(
+	        	SELECT DISTINCT DSP_PRD_MST_CD
+	            		 FROM T_DSP_CTG
+	            		WHERE DSP_PRD_CTG_IDX IN
+	                    (
+	                      SELECT 
+	                        PC.PRD_CTG_IDX
+	                      FROM T_PRD_CTG PC
+	                      WHERE PC.PRD_CTG_USE_YN = 'Y'
+	                    )
+	    	 ) TPC
+			WHERE PM.PRD_MST_CD = TPC.DSP_PRD_MST_CD
+			AND MKP.MEM_MST_MEM_ID = #{MEM_MST_MEM_ID}
+			AND PM.PRD_MST_SEL_STATE != 'S'	
+			AND PM.PRD_MST_APV_STATE = 'A'
+			AND PM.PRD_MST_DPL_STATE = 'Y'
+        )
+        ON 1=1
+        LEFT OUTER JOIN(
+        	SELECT 
+				SUM(T1.ORD_MST_PAY_PRC) AS TOT_AMOUNT		/* 회원의 최근3개월 토탈금액*/											
+			FROM
+				(
+				
+				SELECT
+						 TOM.ORD_MST_CD                          /* 주문번호 */
+						, TOM.ORD_MST_PAY_PRC					 /* 결제금액(합계) */
+						, TOM.ORD_MST_ORD_ID					 /* 주문자 아이디 */
+						, (
+							 SELECT  
+							 	COUNT(ORD_PRD_IDX) FROM T_ORD_PRD
+							 WHERE 
+							 	ORD_ORD_MST_CD = TOM.ORD_MST_CD
+								AND ORD_PRD_ORD_STATE NOT IN 
+                                <foreach collection="IGNO_ORD_PRD_ORD_STATE" item="IGNO_ORD_PRD_ORD_STATE_ITEM" open="(" close=")" separator=",">
+                                    #{IGNO_ORD_PRD_ORD_STATE_ITEM}              /* 교환완료, 교환대기중, 교환취소 */
+                                </foreach>
+						  ) AS PRODUCT_CNT    					/* 주문당 상품 카운트 */
+						,(
+							SELECT  
+								COUNT(ORD_PRD_IDX) FROM T_ORD_PRD
+							WHERE 
+								ORD_ORD_MST_CD = TOM.ORD_MST_CD
+								AND ORD_PRD_ORD_STATE = #{ORD_PRD_ORD_STATE}	
+						 ) AS FIX_PROCT_CNT    					/* 주문당 구매확정 카운트  */
+						,(
+					          SELECT MAX(ORD_PRD_REG_DT) KEEP(DENSE_RANK FIRST ORDER BY ORD_PRD_HIS_IDX DESC) FROM T_ORD_PRD_HIS HIS
+					          WHERE HIS.ORD_ORD_MST_CD = TOM.ORD_MST_CD 
+					          AND HIS.ORD_PRD_ORD_STATE = #{ORD_PRD_ORD_STATE}	     
+						  ) AS FIX_DT   						/* 구매확정 날짜(주문당) */
+						,(
+				        	SELECT
+				        		MEM_MST_MEM_GBN 
+				        	FROM
+				        		T_MEM_VIEW
+				        	WHERE
+			        			MEM_MST_MEM_ID = TOM.ORD_MST_ORD_ID						
+						  ) AS MEM_MST_MEM_GBN  				/* 회원등급  */
+				FROM T_ORD_MST TOM
+				WHERE TOM.ORD_MST_ORD_ID = #{MEM_MST_MEM_ID}
+				)T1		
+				WHERE 1=1
+					AND T1.PRODUCT_CNT = T1.FIX_PROCT_CNT			/* 주문상품 카운트와 구매확정 카운트 동일하게.( 주문기준으로 ) */
+					AND T1.FIX_DT > TO_CHAR(SYSDATE-90,'YYYYMMDDHH24MISS')    /* 오늘 날짜 기준으로 최근3개월을 한다. */
+       	)
+       	ON 1=1
+       	LEFT OUTER JOIN(
+       		SELECT 
+				TO_CHAR(ADD_MONTHS(SYSDATE, -3) ,'YYYY.MM') as CAL_ST_DT, 
+				TO_CHAR(ADD_MONTHS(SYSDATE, -1) ,'YYYY.MM') AS CAL_ED_DT
+			FROM DUAL
+       	)
+       	ON 1=1
+    </select>
+    <!-- 프론트 > 마이페이지 > 주문상태요약정보 -->
+    <select id="selectMyPageTotCnt" parameterType="hashMap" resultType="hashMap">
+    SELECT 
+             AA.ID
+            ,ORD_STY
+            ,ORD_FIN
+            ,ORD_DLV_RED
+            ,ORD_DLV_ING
+            ,ORD_DLV_FIN
+            ,ORD_FIX
+            ,ORD_CNL
+            ,ORD_CHG
+            ,ORD_RTN
+            ,ORD_DLV_DRT
+    FROM 
+        ( SELECT #{MEM_MST_MEM_ID} AS ID,COUNT(*) AS ORD_STY
+       	 FROM T_ORD_MST AA, T_ORD_PRD BB
+       	 WHERE ORD_MST_ORD_ID = #{MEM_MST_MEM_ID}
+       	 AND ORD_MST_CD = ORD_ORD_MST_CD(+)
+       	 AND ORD_PRD_ORD_STATE IN (404)
+       	 AND ORD_MST_PAY_DT BETWEEN TO_CHAR(SYSDATE-30,'YYYYMMDDHH24MISS') AND TO_CHAR(SYSDATE,'YYYYMMDDHH24MISS')
+         --입금대기
+       	) AA ,
+       ( SELECT #{MEM_MST_MEM_ID} AS ID,COUNT(*) AS ORD_FIN
+       	 FROM T_ORD_MST AA, T_ORD_PRD BB
+       	 WHERE ORD_MST_ORD_ID = #{MEM_MST_MEM_ID}
+       	 AND ORD_MST_CD = ORD_ORD_MST_CD(+)
+       	 AND ORD_PRD_ORD_STATE IN (405)
+       	 AND ORD_MST_PAY_DT BETWEEN TO_CHAR(SYSDATE-30,'YYYYMMDDHH24MISS') AND TO_CHAR(SYSDATE,'YYYYMMDDHH24MISS')
+         --결제완료
+       	) BB ,
+       ( SELECT #{MEM_MST_MEM_ID} AS ID,COUNT(*) AS ORD_DLV_RED
+       	 FROM T_ORD_MST AA, T_ORD_PRD BB
+       	 WHERE ORD_MST_ORD_ID = #{MEM_MST_MEM_ID}
+       	 AND ORD_MST_CD = ORD_ORD_MST_CD(+)
+       	 AND ORD_PRD_ORD_STATE IN (406)
+       	 AND ORD_MST_PAY_DT BETWEEN TO_CHAR(SYSDATE-30,'YYYYMMDDHH24MISS') AND TO_CHAR(SYSDATE,'YYYYMMDDHH24MISS')
+         --배송준비중
+       	) CC ,
+       ( SELECT #{MEM_MST_MEM_ID} AS ID,COUNT(*) AS ORD_DLV_ING
+       	 FROM T_ORD_MST AA, T_ORD_PRD BB
+       	 WHERE ORD_MST_ORD_ID = #{MEM_MST_MEM_ID}
+       	 AND ORD_MST_CD = ORD_ORD_MST_CD(+)
+       	 AND ORD_PRD_ORD_STATE IN (407)
+       	 AND ORD_MST_PAY_DT BETWEEN TO_CHAR(SYSDATE-30,'YYYYMMDDHH24MISS') AND TO_CHAR(SYSDATE,'YYYYMMDDHH24MISS')
+         --배송중
+       	) DD ,
+       ( SELECT #{MEM_MST_MEM_ID} AS ID,COUNT(*) AS ORD_DLV_FIN
+       	 FROM T_ORD_MST AA, T_ORD_PRD BB
+       	 WHERE ORD_MST_ORD_ID = #{MEM_MST_MEM_ID}
+       	 AND ORD_MST_CD = ORD_ORD_MST_CD(+)
+       	 AND ORD_PRD_ORD_STATE IN (408)
+       	 AND ORD_MST_PAY_DT BETWEEN TO_CHAR(SYSDATE-30,'YYYYMMDDHH24MISS') AND TO_CHAR(SYSDATE,'YYYYMMDDHH24MISS')
+         --배송완료
+       	) EE,
+       	( SELECT #{MEM_MST_MEM_ID} AS ID,COUNT(*) AS ORD_FIX
+       	 FROM T_ORD_MST AA, T_ORD_PRD BB
+       	 WHERE ORD_MST_ORD_ID = #{MEM_MST_MEM_ID}
+       	 AND ORD_MST_CD = ORD_ORD_MST_CD(+)
+       	 AND ORD_PRD_ORD_STATE IN (409)
+       	 AND ORD_MST_PAY_DT BETWEEN TO_CHAR(SYSDATE-30,'YYYYMMDDHH24MISS') AND TO_CHAR(SYSDATE,'YYYYMMDDHH24MISS')
+         --구매확정
+       	) FF,
+       	( SELECT #{MEM_MST_MEM_ID} AS ID,COUNT(*) AS ORD_CNL
+       	 FROM T_ORD_MST AA, T_ORD_PRD BB
+       	 WHERE ORD_MST_ORD_ID = #{MEM_MST_MEM_ID}
+       	 AND ORD_MST_CD = ORD_ORD_MST_CD(+)
+       	 AND ORD_PRD_ORD_STATE IN (403)
+       	 AND ORD_MST_PAY_DT BETWEEN TO_CHAR(SYSDATE-30,'YYYYMMDDHH24MISS') AND TO_CHAR(SYSDATE,'YYYYMMDDHH24MISS')
+         --주문취소
+       	) FF,
+       	( SELECT #{MEM_MST_MEM_ID} AS ID,COUNT(*) AS ORD_CHG
+       	 FROM T_ORD_MST AA, T_ORD_PRD BB
+       	 WHERE ORD_MST_ORD_ID = #{MEM_MST_MEM_ID}
+       	 AND ORD_MST_CD = ORD_ORD_MST_CD(+)
+       	 AND ORD_PRD_ORD_STATE IN (423)
+       	 AND ORD_MST_PAY_DT BETWEEN TO_CHAR(SYSDATE-30,'YYYYMMDDHH24MISS') AND TO_CHAR(SYSDATE,'YYYYMMDDHH24MISS')
+         --교환완료
+       	) FF,
+       	( SELECT #{MEM_MST_MEM_ID} AS ID,COUNT(*) AS ORD_RTN
+       	 FROM T_ORD_MST AA, T_ORD_PRD BB
+       	 WHERE ORD_MST_ORD_ID = #{MEM_MST_MEM_ID}
+       	 AND ORD_MST_CD = ORD_ORD_MST_CD(+)
+       	 AND ORD_PRD_ORD_STATE IN (433)
+       	 AND ORD_MST_PAY_DT BETWEEN TO_CHAR(SYSDATE-30,'YYYYMMDDHH24MISS') AND TO_CHAR(SYSDATE,'YYYYMMDDHH24MISS')
+         --반품완료
+       	) GG,
+       	( SELECT #{MEM_MST_MEM_ID} AS ID,COUNT(*) AS ORD_DLV_DRT
+       	 FROM T_ORD_MST AA, T_ORD_PRD BB
+       	 WHERE ORD_MST_ORD_ID = #{MEM_MST_MEM_ID}
+       	 AND ORD_MST_CD = ORD_ORD_MST_CD(+)
+       	 AND ORD_PRD_DLV_TYPE IN (1790)
+       	 AND ORD_MST_PAY_DT BETWEEN TO_CHAR(SYSDATE-30,'YYYYMMDDHH24MISS') AND TO_CHAR(SYSDATE,'YYYYMMDDHH24MISS')
+         --매장수령
+       	) HH
+   WHERE  1=1
+   AND ROWNUM =1
+    </select>
+    <!-- 프론트 > 마이페이지 > 메인 > 최근 주문내역 개수 -->
+    <select id="selectMyPageOrderListCount" parameterType="hashMap" resultType="Integer">
+    	/* PcMyPage.selectMyPageOrderListCount */
+    	SELECT
+			COUNT(1)
+		FROM
+		(
+		SELECT
+			T1.*	
+		FROM
+		(
+		SELECT
+			ORD_MST_CD
+			, ORD_MST_ORD_DT
+			, ORD_MST_PAY_PRC	
+			, ROW_NUMBER() OVER(PARTITION BY ORD_MST_CD ORDER BY ORD_ORD_EDI_ORD_NO) as PRD_RNUM
+			, COUNT(1) OVER(PARTITION BY ORD_MST_CD) as ORD_PRD_CNT
+			, ORD_PRD_MST_CD	
+			, ORD_ORD_EDI_ORD_NO
+		FROM T_ORD_MST TOM, T_ORD_PRD TOP
+		WHERE TOM.ORD_MST_CD = TOP.ORD_ORD_MST_CD
+		AND ORD_PRD_SLT_YN = 'N'
+		AND ORD_MST_ORD_ID = #{ORD_MST_ORD_ID}
+		AND ORD_PRD_ORD_STATE NOT IN
+        <foreach collection="OST_SWAP_IGNORE_ARR" item="OST_SWAP_IGNORE" open="(" close=")" separator=",">
+            #{OST_SWAP_IGNORE}
+        </foreach>
+		) T1
+		WHERE PRD_RNUM = 1
+		AND ORD_MST_ORD_DT > TO_CHAR(ADD_MONTHS(SYSDATE, -6),'YYYYMMDD')||'000000'
+		) T2
+    </select>
+
+    <!-- 프론트 > 마이페이지 > 메인 > 최근 주문내역 -->
+    <select id="selectMyPageOrderList" parameterType="hashMap" resultType="hashMap">
+        /* PcMyPage.selectMyPageOrderList */
+        SELECT
+        	T3.*
+        FROM
+        (
+        SELECT
+			ROWNUM RNUM
+			, T2.*
+		FROM
+		(
+		SELECT
+			T1.*	
+			, FN_GET_PRODUCT_NM(ORD_PRD_MST_CD,30) as PRD_MST_NM
+		FROM
+		(
+		SELECT
+			ORD_MST_CD
+			, ORD_MST_ORD_DT
+			, ORD_MST_PAY_PRC	
+			, ROW_NUMBER() OVER(PARTITION BY ORD_MST_CD ORDER BY ORD_ORD_EDI_ORD_NO) as PRD_RNUM
+			, COUNT(1) OVER(PARTITION BY ORD_MST_CD) as ORD_PRD_CNT
+			, ORD_PRD_MST_CD	
+			, ORD_ORD_EDI_ORD_NO
+		FROM T_ORD_MST TOM, T_ORD_PRD TOP
+		WHERE TOM.ORD_MST_CD = TOP.ORD_ORD_MST_CD
+		AND ORD_PRD_SLT_YN = 'N'
+		AND ORD_MST_ORD_ID = #{ORD_MST_ORD_ID}
+		AND ORD_PRD_ORD_STATE NOT IN
+        <foreach collection="OST_SWAP_IGNORE_ARR" item="OST_SWAP_IGNORE" open="(" close=")" separator=",">
+            #{OST_SWAP_IGNORE}
+        </foreach>
+		) T1
+		WHERE PRD_RNUM = 1
+		AND ORD_MST_ORD_DT > TO_CHAR(ADD_MONTHS(SYSDATE, -6),'YYYYMMDD')||'000000'
+		ORDER BY ORD_MST_CD DESC, ORD_ORD_EDI_ORD_NO
+		) T2
+		) T3
+        WHERE RNUM BETWEEN #{startNum} AND #{endNum}
+    </select>
+
+    <!-- 프론트 > 마이페이지 > 메인 > 취소/반품/교환 현황 -->
+    <select id="selectMyPageCancelBackCount" parameterType="hashMap" resultType="hashMap">
+        /* PcMyPage.selectMyPageCancelBackCount */
+        SELECT
+            NVL(CANCEL_CNT,0) AS CANCEL_CNT,
+            NVL(BACK_CNT,0) AS BACK_CNT,
+            NVL(SWAP_CNT,0) AS SWAP_CNT
+        FROM DUAL
+        LEFT OUTER JOIN (
+	        SELECT
+	            COUNT(DISTINCT ORD_MST_CD) AS CANCEL_CNT
+	        FROM
+	            T_ORD_MST OM, T_ORD_PRD OP
+	        WHERE
+	            OM.ORD_MST_ORD_ID = #{MEM_MST_MEM_ID}
+	        AND OM.ORD_MST_CD = OP.ORD_ORD_MST_CD    
+	        AND OP.ORD_PRD_ORD_STATE = #{OST_CANCEL}
+	        GROUP BY ORD_MST_CD
+            )
+        ON  1=1
+        LEFT OUTER JOIN (
+            SELECT
+                COUNT(DISTINCT ORD_MST_CD) AS BACK_CNT
+            FROM (
+		        SELECT
+		            ORD_MST_CD
+		        FROM
+		            T_ORD_MST OM, T_ORD_PRD OP
+		        WHERE
+		            OM.ORD_MST_ORD_ID = #{MEM_MST_MEM_ID}
+		        AND OM.ORD_MST_CD = OP.ORD_ORD_MST_CD    
+		        AND OP.ORD_PRD_ORD_STATE = #{OST_BACK}
+		        GROUP BY ORD_MST_CD
+		        )
+            )
+        ON  1=1
+        LEFT OUTER JOIN (
+            SELECT
+                COUNT(DISTINCT ORD_MST_CD) AS SWAP_CNT
+            FROM (
+		        SELECT
+		            ORD_MST_CD
+		        FROM
+		            T_ORD_MST OM, T_ORD_PRD OP
+		        WHERE
+		            OM.ORD_MST_ORD_ID = #{MEM_MST_MEM_ID}
+		        AND OM.ORD_MST_CD = OP.ORD_ORD_MST_CD    
+		        AND OP.ORD_PRD_ORD_STATE = #{OST_SWAP}
+		        GROUP BY ORD_MST_CD
+		        )
+            )
+        ON  1=1
+    </select>
+
+    <!-- 프론트 > 마이페이지 > 메인 > 나의 정보 -->
+    <select id="selectMyPageMyInfo" parameterType="hashMap" resultType="hashMap">
+        /* PcMyPage.selectMyPageMyInfo */
+        SELECT
+            NVL(MEM_DLV_NM,'') AS MEM_DLV_BASE_NM
+        FROM DUAL
+        LEFT OUTER JOIN (
+            SELECT
+                ROWNUM AS RNUM, MEM_DLV_IDX, MEM_DLV_NM
+            FROM (
+		        SELECT
+		            MEM_DLV_IDX, MEM_DLV_NM
+		        FROM
+		            T_MEM_DLV
+		        WHERE
+		            MEM_MST_MEM_ID = #{MEM_MST_MEM_ID}
+		            AND MEM_DLV_BRAND_CD = #{BRAND_CD}
+		       		<!-- AND MEM_DLV_BASE_YN = 'Y' 2020.06.16 컬럼명 오류-->
+		       		AND MEM_DLV_BSC_YN = 'Y'
+		        ORDER BY MEM_DLV_IDX
+		        )
+            )
+        ON  RNUM = 1
+    </select>
+    <select id="selectMyPageOotdList" parameterType="hashMap" resultType="hashMap">
+    <![CDATA[
+                 SELECT ROWNUM AS RNUM 
+		          		, TCM.CNT_MST_IDX
+		                , TCM.CNT_MST_TITLE
+		                , TCM.CNT_MST_DESC 
+		                , CNT_MST_URL
+		          FROM T_CNT_MST TCM
+				  WHERE TCM.CNT_MST_TYPE = 'TYPE_OOTD'
+               	  AND TCM.CNT_MST_REG_ID = #{MEM_MST_MEM_ID}
+			      AND   ROWNUM < 7
+		          ORDER BY TCM.CNT_MST_REG_DT DESC      
+	]]>	  
+    </select>
+    
+    
+    <select id="selectMyPageLikList" parameterType="hashMap" resultType="hashMap">
+    <![CDATA[
+		SELECT 
+		       PRD_PRD_MST_CD    AS PRD_MST_CD
+		      ,PRD_IMG_URL_PATH
+		FROM T_PRD_IMG	
+		WHERE 	PRD_PRD_MST_CD IN (
+			    SELECT  DISTINCT
+				         CNT_MST_ID
+				FROM 
+				(SELECT 
+				         CNT_MST_ID
+				       , MEM_MST_ID
+				       , LIK_HIS_REG_DT
+				       , CNT_MST_TYPE
+				FROM T_LIK_HIS 
+				WHERE MEM_MST_ID = #{MEM_MST_MEM_ID}
+				ORDER BY LIK_HIS_REG_DT DESC 
+				)
+			    WHERE   ROWNUM < 7
+				)
+		AND PRD_IMG_IDX	=0
+		AND PRD_IMG_SORT=1  
+	]]>	  
+    </select>
+    
+    
+    <!-- 프론트 > 마이페이지 > 메인 > 나의 문의 내역 -->
+    <select id="selectMyPageInquiryList" parameterType="hashMap" resultType="hashMap">
+        /* PcMyPage.selectMyPageInquiryList */
+        SELECT
+            S2.*,
+            (   SELECT
+                    CMN_COM_NM 
+                FROM
+                    T_CMM_COM 
+                WHERE
+                    CMN_COM_IDX = S2.BRD_CMN_COM_IDX 
+            )
+            AS CMN_COM_NM 
+        FROM (
+            SELECT
+                ROWNUM AS RNUM,
+                S1.* 
+            FROM (
+                SELECT
+                    BRD_INQ_IDX,
+                    BRD_INQ_TYPE,
+                    BRD_CMN_COM_IDX,
+                    BRD_INQ_TITLE,
+                    BRD_INQ_REPLY_CD,
+                    BRD_INQ_REG_DT
+                FROM
+                    T_BRD_INQ 
+                WHERE
+                    BRD_INQ_REG_ID = #{MEM_MST_MEM_ID}
+                AND 
+                	BRD_INQ_TYPE = 'I'
+                AND 
+                	BRD_INQ_REG_DT BETWEEN TO_CHAR(SYSDATE-30,'YYYYMMDD')||'000000' AND TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS')
+                ORDER BY BRD_INQ_REG_DT DESC 
+                ) S1 
+            ) S2 
+        WHERE
+            S2.RNUM BETWEEN 1 AND 5
+    </select>
+
+	<!-- 장바구니 목록 -->
+	<select id="selectMyPageCartList" parameterType="HashMap" resultType="HashMap">
+	/* PcMyPage.selectMyPageCartList */
+		SELECT
+			T3.*
+		FROM
+		(
+			SELECT
+				ROW_NUMBER() OVER(ORDER BY TMP_RNUM) as RNUM
+				, T2.*			
+			FROM
+			(
+				SELECT
+					ROW_NUMBER() OVER(ORDER BY MEM_CRT_IDX DESC) as TMP_RNUM
+					, DENSE_RANK() OVER(PARTITION BY PRD_MST_CD ORDER BY MEM_CRT_IDX DESC) as PRD_RANK
+					, T1.*
+				FROM
+				(
+					SELECT		
+						MEM_CRT_IDX 
+						, TPM.PRD_MST_CD
+						, FN_GET_PRODUCT_NM(TPM.PRD_MST_CD,30) as PRD_MST_NM
+						, FN_PRODUCT_IMG (TPM.PRD_MST_CD, #{THUMBNAIL_SIZE}) PRODUCT_THUM_IMG
+						, FN_PRODUCT_IMG_ALT(TPM.PRD_MST_CD, #{THUMBNAIL_SIZE}) PRD_IMAGE_ALT
+					FROM T_MEM_CRT TMC, T_PRD_MST TPM
+					WHERE TMC.MEM_PRD_MST_CD = TPM.PRD_MST_CD
+					AND MEM_CRT_SLT_YN = 'N'
+					AND MEM_CRT_DRT_SAL_YN = 'N'
+					AND MEM_MST_MEM_ID = #{MEM_MST_MEM_ID}
+                    <if test="PRD_MST_CNL_PC_YN != null and PRD_MST_CNL_PC_YN.equals('Y'.toString())">
+                        AND TPM.PRD_MST_CNL_PC_YN = #{PRD_MST_CNL_PC_YN}
+                    </if>
+                    <if test="PRD_MST_CNL_MB_YN != null and PRD_MST_CNL_MB_YN.equals('Y'.toString())">
+                        AND TPM.PRD_MST_CNL_MB_YN = #{PRD_MST_CNL_MB_YN}
+                    </if>
+				) T1	
+			) T2
+			WHERE PRD_RANK = 1
+		) T3
+		WHERE RNUM <![CDATA[ < ]]> 6
+	</select>
+	
+	<!-- 프론트 > 마이페이지 > 메인 > 상품Q&A 내역 -->
+    <select id="selectProductInquiryList" parameterType="hashMap" resultType="hashMap">
+        /* PcMyPage.selectProductInquiryList */
+        SELECT
+            S2.*,
+            (   SELECT
+                    CMN_COM_NM 
+                FROM
+                    T_CMM_COM 
+                WHERE
+                    CMN_COM_IDX = S2.BRD_CMN_COM_IDX 
+            )
+            AS CMN_COM_NM 
+        FROM (
+            SELECT
+                ROWNUM AS RNUM,
+                S1.* 
+            FROM (
+                SELECT
+                    BRD_INQ_IDX,
+                    BRD_INQ_TYPE,
+                    BRD_CMN_COM_IDX,
+                    BRD_INQ_TITLE,
+                    BRD_INQ_REPLY_CD,
+                    BRD_INQ_REG_DT
+                FROM
+                    T_BRD_INQ 
+                WHERE
+                    BRD_INQ_REG_ID = #{MEM_MST_MEM_ID}
+                AND
+                	BRD_INQ_TYPE = 'Q'
+               	AND 
+                	BRD_INQ_REG_DT BETWEEN TO_CHAR(SYSDATE-30,'YYYYMMDD')||'000000' AND TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS')
+                ORDER BY BRD_INQ_REG_DT DESC 
+                ) S1 
+            ) S2 
+        WHERE
+            S2.RNUM BETWEEN 1 AND 5
+    </select>
+    
+    <!-- 프론트 > 마이페이지 > 메인 > 배송현황 -->
+    <select id="selectMyPageOrderInfo" parameterType="hashMap" resultType="hashMap">
+        /* PcMyPage.selectMyPageOrderInfo */
+        SELECT
+	 		NVL(PAY_READY_CNT,0) as PAY_READY_CNT
+	 		, NVL(PAY_CNT,0) as PAY_CNT
+	 		, NVL(CANCEL_CNT,0) as CANCEL_CNT
+	 		, NVL(BACK_CNT,0) as BACK_CNT
+	 		, NVL(PRD_SEND_READY_CNT,0) as PRD_SEND_READY_CNT
+	 		, NVL(PRD_SEND_CNT,0) as PRD_SEND_CNT  
+	 		, NVL(PRD_SEND_END_CNT,0) as PRD_SEND_END_CNT
+	 		, NVL(PRD_SWAP_CNT,0) as PRD_SWAP_CNT
+	 	FROM
+    	 	(
+                SELECT
+        			SUM(PAY_READY_CNT) as PAY_READY_CNT              /* 주문단위 기준 입금대기 개수 */
+        			, SUM(PAY_CNT) as PAY_CNT                        /* 주문단위 기준 결제완료 개수 */	
+        			, SUM(CANCEL_CNT) as CANCEL_CNT                  /* 주문단위 기준 취소 개수 */
+        			, SUM(BACK_CNT) as BACK_CNT                      /* 주문단위 기준 반품 개수 */	
+        			, MAX(PRD_SEND_READY_CNT) as PRD_SEND_READY_CNT  /* 상품단위 기준 배송준비중 개수 */
+        			, MAX(PRD_SEND_CNT) as PRD_SEND_CNT              /* 상품단위 기준 배송중 개수 */
+        			, MAX(PRD_SEND_END_CNT) as PRD_SEND_END_CNT      /* 상품단위 기준 배송완료 개수 */
+        			, MAX(PRD_SWAP_CNT) as PRD_SWAP_CNT              /* 상품단위 기준 교환 개수 */
+        		FROM
+        		(
+            		SELECT
+            			T2.ORD_MST_CD
+            			, MAX(PAY_READY_CNT) as PAY_READY_CNT
+            			, MAX(PAY_CNT) as PAY_CNT
+            			, MAX(CANCEL_CNT) as CANCEL_CNT
+            			, MAX(BACK_CNT) as BACK_CNT
+            			, MAX(PRD_SEND_READY_CNT) as PRD_SEND_READY_CNT
+            			, MAX(PRD_SEND_CNT) as PRD_SEND_CNT
+            			, MAX(PRD_SEND_END_CNT) as PRD_SEND_END_CNT
+            			, MAX(PRD_SWAP_CNT) as PRD_SWAP_CNT
+            		FROM
+            		(
+                		SELECT
+                			T1.*
+                			, SUM(SEND_READY_CNT) OVER() as PRD_SEND_READY_CNT 
+                			, SUM(SEND_CNT) OVER() as PRD_SEND_CNT
+                			, SUM(SEND_END_CNT) OVER() as PRD_SEND_END_CNT 
+                			, SUM(SWAP_CNT) OVER() as PRD_SWAP_CNT 
+                		FROM
+                		(
+                    		SELECT	
+                    			ORD_ORD_MST_CD as ORD_MST_CD
+                    			, ORD_PRD_IDX
+                    			, ORD_PRD_ORD_STATE
+                    			, DECODE(ORD_PRD_ORD_STATE, #{OST_PAY_READY}, 1, 0) as PAY_READY_CNT                                                   /* 입금대기 */
+                    			, DECODE(ORD_PRD_ORD_STATE, #{OST_PAY}, 1, 0) as PAY_CNT                                                               /* 결제완료 */
+                    			, DECODE(ORD_PRD_ORD_STATE, #{OST_SEND_READY}, 1, 0) as SEND_READY_CNT                                                 /* 배송준비중 */
+                    			, DECODE(ORD_PRD_ORD_STATE, #{OST_SEND}, 1, 0) as SEND_CNT                                                             /* 배송중 */
+                    			, DECODE(ORD_PRD_ORD_STATE, #{OST_SEND_END}, 1, 0) as SEND_END_CNT                                                     /* 배송완료 */
+                    			, DECODE(ORD_PRD_ORD_STATE, #{OST_CANCEL_BEFORE_DEPOSIT}, 1, #{OST_CANCEL}, 1, #{OST_CANCEL_END}, 1, 0) as CANCEL_CNT  /* 취소 */
+                    			, CASE 
+                    				WHEN ORD_PRD_ORD_STATE IN
+                                    <foreach collection="OST_SWAP_ARR" item="OST_SWAP" open="(" close=")" separator=",">#{OST_SWAP}</foreach>
+                    				THEN 1
+                    				ELSE 0
+                    			  END SWAP_CNT /* 교환 */
+                    			, CASE 
+                    				WHEN ORD_PRD_ORD_STATE IN
+                                    <foreach collection="OST_BACK_ARR" item="OST_BACK" open="(" close=")" separator=",">#{OST_BACK}</foreach>
+                    				THEN 1
+                    				ELSE 0
+                    			  END BACK_CNT /* 반품 */  
+                    		FROM T_ORD_PRD TOP, 
+                    		(
+                    			SELECT
+                                    ORD_MST_CD 
+                                FROM 
+                                    T_ORD_MST 
+                                WHERE 
+                                    1=1 
+                                    <if test="MEM_MST_MEM_ID != null and MEM_MST_MEM_ID != ''">
+                                        AND ORD_MST_ORD_ID = #{MEM_MST_MEM_ID}
+                                    </if>
+                                    <if test="ORD_MST_CD != null and ORD_MST_CD != '' and ORD_MST_ORD_NM != null and ORD_MST_ORD_NM != ''">
+                                        AND ORD_MST_CD = #{ORD_MST_CD}
+                                        AND ORD_MST_ORD_NM = #{ORD_MST_ORD_NM}
+                                    </if>     
+            		) TOM    
+            		WHERE TOP.ORD_ORD_MST_CD = TOM.ORD_MST_CD
+        		) T1
+    		) T2
+    		GROUP BY ORD_MST_CD
+    		ORDER BY ORD_MST_CD DESC
+		) T3
+		)
+    </select>
+    
+    <!-- 프론트 > 마이페이지 > 메인(킹저 여부) -->
+    <select id="selectKingerCount" parameterType="HashMap" resultType="Integer">
+    	/* PcMyPage.selectKingerCount */
+    	SELECT 
+			COUNT(0)
+		FROM 
+			T_EXP_MST TEM, T_EXP_ETR TEE
+		WHERE 
+			TEM.EXP_MST_CD = TEE.EXP_MST_CD
+		AND TEM.EXP_MST_USE_YN = 'Y' /* 전시 여부  */
+	    AND TEE.EXP_ETR_WIN_YN = 'Y' /* 당첨 여부  */   
+	    AND TEE.EXP_ETR_AGR_YN = 'Y' /* 동의서 여부 */ 
+	    AND TO_CHAR(SYSDATE,'YYYYMMDD') BETWEEN TEM.EXP_MST_ATV_ST_DT AND TEM.EXP_MST_ATV_ED_DT /* 활동기간 */
+	    AND TEE.MEM_MST_MEM_ID = #{MEM_MST_MEM_ID} /* 아이디 */
+    </select>
+    
+    <!-- 프론트 > 마이페이지 > 메인(킹저의 상품후기 갯수 및 IDX) -->
+    <select id="selectkingerProductCommentList" parameterType="HashMap" resultType="HashMap">
+    	/* PcMyPage.selectkingerProductCommentList */
+    	SELECT 
+			COUNT(0) AS EXP_REV_CNT,
+			TEE.EXP_MST_CD,
+			(SELECT EXP_KINGER_CD FROM T_EXP_MST WHERE EXP_MST_CD = TEE.EXP_MST_CD) AS EXP_KINGER_CD
+		FROM 
+			T_EXP_MST TEM, T_EXP_ETR TEE, T_EXP_REV TER
+		WHERE TEM.EXP_MST_CD = TEE.EXP_MST_CD
+			AND TEE.EXP_MST_CD = TER.EXP_MST_CD(+)
+			AND TEE.MEM_MST_MEM_ID = TER.MEM_MST_MEM_ID(+)
+		    AND TEM.EXP_MST_USE_YN = 'Y' /* 전시 여부  */
+		    AND TEE.EXP_ETR_WIN_YN = 'Y' /* 당첨 여부  */ 
+		    AND TEE.EXP_ETR_AGR_YN = 'Y' /* 동의서 여부 */   
+		    AND TO_CHAR(SYSDATE,'YYYYMMDD') BETWEEN TEM.EXP_MST_ATV_ST_DT AND TEM.EXP_MST_ATV_ED_DT /* 활동기간 */
+		    AND TEE.MEM_MST_MEM_ID = #{MEM_MST_MEM_ID} /* 아이디 */
+		GROUP BY TEE.EXP_MST_CD
+    </select>
+
+	<select id="selectMyFitAllCatList" parameterType="HashMap" resultType="HashMap">
+		SELECT tcc.CMN_COM_IDX, tcc.CMN_COM_NM, tcc.CMN_COM_LEVEL, tcc.CMN_COM_UP_IDX,
+		(
+		SELECT tmp02.CMM_FLE_ATT_PATH || tmp02.CMM_FLE_SYS_NM 
+		FROM T_FIT_MST tmp01, T_CMM_FLE tmp02 
+		WHERE tmp01.FIT_MST_USE_YN = 'Y'
+		AND tmp01.CMN_COM_IDX = tcc.CMN_COM_IDX
+		AND tmp01.FIT_MST_IDX =tmp02.CMM_FLE_TB_PK
+           AND tmp02.CMM_FLE_TB_NM = 'T_FIT_MST'
+           AND tmp02.CMM_FLE_SORT = 1
+           AND ROWNUM = 1
+		) AS FIT_THUMB_IMG,
+		(
+		SELECT tmp02.CMM_FLE_ATT_PATH || tmp02.CMM_FLE_SYS_NM 
+		FROM T_FIT_MST tmp01, T_CMM_FLE tmp02 
+		WHERE tmp01.FIT_MST_USE_YN = 'Y'
+		AND tmp01.CMN_COM_IDX = tcc.CMN_COM_IDX
+		AND tmp01.FIT_MST_IDX =tmp02.CMM_FLE_TB_PK
+           AND tmp02.CMM_FLE_TB_NM = 'T_FIT_MST'
+           AND tmp02.CMM_FLE_SORT = 2
+            AND ROWNUM = 1
+		) AS FIT_SAMP_IMG
+		FROM T_CMM_COM tcc
+		WHERE tcc.CMN_COM_LEVEL NOT IN (1, 4)
+		AND CMN_COM_USE_YN = 'Y'
+		START WITH tcc.CMN_COM_IDX = '3224'
+		CONNECT BY PRIOR CMN_COM_IDX = CMN_COM_UP_IDX
+		ORDER SIBLINGS BY CMN_COM_LEVEL, CMN_COM_SORT ASC
+	</select>
+	
+	<!-- 0626 마이핏에 내 키와 몸무게 값이 들어있는지 확인-->
+	<select id="selectMyFitInfoWeightHeight" parameterType="HashMap" resultType="HashMap">
+		SELECT 
+			MEM_MST_STY_WEIGHT, 
+			MEM_MST_STY_HEIGHT 
+		FROM T_MEM_MST 
+		WHERE MEM_MST_MEM_ID = #{MEM_MST_MEM_ID}
+	</select>
+	
+	<!-- 0626 마이핏에 내 키와 몸무게 값이 들어있는지 확인-->
+	<insert id="insertMyFitInfoWeightHeight" parameterType="HashMap">
+	
+	</insert>
+	
+	<select id="selectMyFitInfoList" parameterType="HashMap" resultType="HashMap">
+	   		SELECT tfm.FIT_MST_IDX, 
+           		tfm.CMN_COM_IDX AS FIT_CTG_IDX,
+           		tcc.CMN_COM_IDX AS FIT_INFO_IDX, 
+           		tcc.CMN_COM_NM AS FIT_INFO_NM,
+           		(
+           		SELECT NVL(MAX(mem.MEM_FIT_VAL), 0) 
+           		FROM T_MEM_FIT mem 
+           		WHERE mem.FIT_MST_IDX = tfm.FIT_MST_IDX 
+           		AND mem.CMN_COM_IDX = tfi.CMN_COM_IDX
+           		AND mem.MEM_MST_MEM_ID = #{MEM_MST_MEM_ID}
+           		) AS MEM_FIT_VAL
+            FROM T_FIT_MST tfm, T_FIT_INFO tfi, T_CMM_COM tcc
+            WHERE tfm.FIT_MST_USE_YN = 'Y'
+            AND tfm.FIT_MST_IDX = tfi.FIT_MST_IDX
+            AND tfi.CMN_COM_IDX = tcc.CMN_COM_IDX
+            ORDER BY tfm.FIT_MST_IDX, tfi.CMN_COM_IDX, tfi.CMN_COM_IDX
+	</select>
+	
+	<select id="selectMyFitExist" parameterType="HashMap" resultType="Integer">
+		SELECT NVL(MAX(FIT_MST_IDX), 0) FROM T_MEM_FIT
+		WHERE FIT_MST_IDX = #{FIT_MST_IDX}
+		AND CMN_COM_IDX = #{CMN_COM_IDX}
+		AND MEM_MST_MEM_ID = #{MEM_MST_MEM_ID}
+	</select>
+	
+	<insert id="insertMyFitInfo" parameterType="HashMap" >
+		INSERT INTO T_MEM_FIT (FIT_MST_IDX, CMN_COM_IDX, MEM_FIT_VAL, MEM_MST_MEM_ID)
+		VALUES(#{FIT_MST_IDX}, #{CMN_COM_IDX}, #{MEM_FIT_VAL}, #{MEM_MST_MEM_ID})
+    </insert>
+    
+    <update id="updateMyFitInfo" parameterType="HashMap" >
+		UPDATE T_MEM_FIT
+		SET MEM_FIT_VAL=#{MEM_FIT_VAL}
+		WHERE FIT_MST_IDX = #{FIT_MST_IDX}
+		AND CMN_COM_IDX = #{CMN_COM_IDX}
+		AND MEM_MST_MEM_ID =#{MEM_MST_MEM_ID}
+    </update>
+    
+    <update id="updateUserPhoneNumber" parameterType="HashMap">
+		UPDATE T_MEM_MST
+		SET 
+			MEM_MST_HP1=#{MEM_MST_HP1},
+			MEM_MST_HP2=#{MEM_MST_HP2},
+			MEM_MST_HP3=#{MEM_MST_HP3}
+		WHERE MEM_MST_MEM_ID = #{MEM_MST_MEM_ID}
+    </update>
+    
+	<select id="selectMyRefundAccount" parameterType="HashMap" resultType="HashMap">
+		/*PcMyPage.selectMyRefundAccount*/
+		SELECT 
+			MEM_MST_RFD_CD, /*환불은행코드*/
+			MEM_MST_RFD_NM, /*환불은행명*/
+			MEM_MST_RFD_HDR, /*환불_예금주명*/
+			MEM_MST_RFD_ACT /*환불계좌번호 */
+		FROM T_MEM_MST
+		WHERE MEM_MST_MEM_ID =#{MEM_MST_MEM_ID}
+	</select>
+	
+	<update id="updateMyRefundAccount" parameterType="HashMap">
+		/*updateMyRefundAccount*/
+		UPDATE T_MEM_MST
+			SET MEM_MST_RFD_CD=#{MEM_FIT_VAL}, 		 /*환불은행코드*/
+				MEM_MST_RFD_NM=#{MEM_MST_RFD_NM},	 /*환불은행명*/
+				MEM_MST_RFD_HDR=#{MEM_MST_RFD_HDR},	 /*환불_예금주명*/
+				MEM_MST_RFD_ACT=#{MEM_MST_RFD_ACT}	 /*환불계좌번호 */
+			WHERE MEM_MST_MEM_ID =#{MEM_MST_MEM_ID}
+	</update>
+	
+	<select id = "selectReplyList" parameterType="HashMap" resultType="HashMap">
+		/*PcMyPage.selectReplyList*/
+		SELECT
+			S1.*
+		FROM
+		(
+			SELECT
+				ROWNUM AS RNUM,
+				S2.*
+			FROM
+			(
+				SELECT
+					TOR.OTD_RPL_ID,
+					TOR.CNT_OTD_ID,
+					TOR.OTD_RPL_REG_DT,
+					TOR.OTD_RPL_CTS,
+					TCM.CNT_MST_TITLE,
+					NVL(TCF.CMM_FLE_ATT_PATH,NULL) AS CMM_FLE_ATT_PATH,
+					NVL(TCF.CMM_FLE_SYS_NM,NULL) AS CMM_FLE_SYS_NM
+				FROM T_OTD_RPL TOR, T_CNT_MST TCM, T_CMM_FLE TCF
+				WHERE TOR.CNT_OTD_ID = TCM.CNT_MST_IDX 
+				AND TCM.CNT_MST_TYPE = 'TYPE_OOTD'
+				AND TOR.OTD_RPL_REG_ID = #{MEM_MST_MEM_ID}
+				AND TCF.CMM_FLE_TB_NM = #{CMM_FLE_TB_NM}
+				AND TCF.CMM_FLE_TB_PK = TCM.CNT_MST_IDX
+				AND TOR.OTD_RPL_USE_YN = 'Y'
+				<include refid="searchWhere" />
+				ORDER BY TOR.OTD_RPL_REG_DT DESC
+		    ) S2
+		) S1
+		<if test="startNum != null and startNum != '' and endNum != null and endNum != ''">
+		            WHERE S1.RNUM BETWEEN #{startNum} AND #{endNum}
+		</if>
+	</select>
+	
+	<sql id="searchWhere">
+		<![CDATA[
+		AND to_date(SUBSTR(OTD_RPL_REG_DT,0,8), 'yyyy-mm-dd') >= to_date(#{startDt}, 'yyyy-mm-dd')
+		AND to_date(SUBSTR(OTD_RPL_REG_DT,0,8), 'yyyy-mm-dd') <= to_date(#{endDt}, 'yyyy-mm-dd')
+		]]>
+	</sql>
+
+	<select id="selectMyReplyListCount" parameterType="HashMap" resultType="Integer">
+		/* PcMyPage.selectMyReplyListCount */
+		SELECT
+			COUNT(0)
+		FROM
+			T_OTD_RPL
+		WHERE
+			OTD_RPL_REG_ID = #{MEM_MST_MEM_ID}
+ 		<include refid="searchWhere" />
+		
+	</select>
+</mapper>

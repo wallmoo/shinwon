@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="OOTD">
+    <!-- OOTD 검색 조건  제목 상태-->
+    <sql id = "OOTDSearchWhere">
+
+        <if test="searchKeyword != null and searchKeyword != ''">
+            AND S3.CNT_OTD_TITLE LIKE '%' || #{searchKeyword} || '%'
+        </if>
+        <if test="searchStatus != null and searchStatus != ''">
+            AND S3.CNT_OTD_STATUS = #{searchStatus}
+        </if>
+        <if test="searchStartDate != null and searchStartDate !=''">
+            AND S3.CNT_OTD_REG_DT &gt;= #{searchStartDate}
+        </if>
+        <if test="searchEndDate != null and searchEndDate !=''">
+            AND S3.CNT_OTD_REG_DT &lt; TO_DATE(#{searchEndDate}) + 1
+        </if>
+    
+    </sql>
+    
+    <!-- 회원 OOTD 목록 -->
+    <select id="selectOOTDListByUserId" parameterType="hashMap" resultType="hashMap">
+    /*OOTD.selectOOTDListByUserId*/
+    SELECT S3.*
+    FROM (
+        SELECT 
+            rownum AS rnum, S2.CNT_OTD_ID, S2.CNT_OTD_TITLE, S2.CNT_OTD_REG_DT, S1.count, S2.CNT_OTD_STATUS 
+        FROM 
+            T_CNT_OTD S2 
+            ,(SELECT 
+                TCO.CNT_OTD_ID, count(*) count 
+                FROM T_CNT_OTD TCO 
+                INNER JOIN T_OTD_RPL TOR ON TCO.CNT_OTD_ID = TOR.CNT_OTD_ID
+                GROUP BY TCO.CNT_OTD_ID
+            )S1
+            WHERE S2.CNT_OTD_ID = S1.CNT_OTD_ID 
+            AND S2.CNT_OTD_REG_ID = #{REG_ID}
+        )S3
+    WHERE 1=1
+    <include refid="OOTDSearchWhere" />
+    AND S3.RNUM BETWEEN #{startNum} AND #{endNum}
+    </select>
+    
+    <!-- 회원 OOTD 목록 갯수 -->
+    <select id="selectOOTDListCount" parameterType="java.util.HashMap" resultType="Integer">
+    /*OOTD.selectOOTDListCount*/
+    SELECT count(*)
+    FROM (
+        SELECT 
+            rownum AS rnum, S2.CNT_OTD_ID, S2.CNT_OTD_TITLE, S2.CNT_OTD_REG_DT, S1.count, S2.CNT_OTD_STATUS 
+        FROM 
+            T_CNT_OTD S2 
+            ,(SELECT 
+                TCO.CNT_OTD_ID, count(*) count 
+                FROM T_CNT_OTD TCO 
+                INNER JOIN T_OTD_RPL TOR ON TCO.CNT_OTD_ID = TOR.CNT_OTD_ID
+                GROUP BY TCO.CNT_OTD_ID
+            )S1
+            WHERE S2.CNT_OTD_ID = S1.CNT_OTD_ID 
+            AND S2.CNT_OTD_REG_ID = #{REG_ID}
+        )S3
+    WHERE 1=1
+    <include refid="OOTDSearchWhere" />
+    
+    </select>
+    
+</mapper>

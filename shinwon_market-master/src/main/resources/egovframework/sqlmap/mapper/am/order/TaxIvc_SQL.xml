@@ -1,0 +1,264 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="TaxIvc">
+    
+    <sql id="taxIvcWhere">
+        <where>
+            <if test="searchStartDate != null and searchStartDate != '' and searchEndDate != null and searchEndDate != ''">
+                TAX_IVC_REG_DT BETWEEN REPLACE(#{searchStartDate},'-', '')||'000000' AND REPLACE(#{searchEndDate},'-', '')||'235959'
+            </if>
+
+            <if test="searchKeyword != null and searchKeyword != ''">
+                <choose>
+                    <when test="searchKeywordType != null and searchKeywordType.equals('regId'.toString())">
+                        AND TAX_IVC_REG_ID=#{searchKeyword}
+                    </when>
+                    <when test="searchKeywordType != null and searchKeywordType.equals('regNm'.toString())">
+                        AND MEM_MST_MEM_NM=#{searchKeyword}
+                    </when>
+                    <when test="searchKeywordType != null and searchKeywordType.equals('orderCd'.toString())">
+                        AND TAX_IVC_ORD_CD=#{searchKeyword}
+                    </when>
+                    <when test="searchKeywordType != null and searchKeywordType.equals('phoneNo'.toString())">
+                        AND MEM_MST_HP3= #{searchKeyword}
+                    </when>
+                    <when test="searchKeywordType != null and searchKeywordType.equals('cprNm'.toString())">
+                        AND TAX_IVC_CPR_NM=#{searchKeyword}
+                    </when>
+                    <when test="searchKeywordType != null and searchKeywordType.equals('cprNo'.toString())">
+                        AND TAX_IVC_CPR_NO=#{searchKeyword}
+                    </when>
+                </choose>
+            </if>
+            
+            <if test="MEM_MST_MEM_ID != null and MEM_MST_MEM_ID != ''">
+                AND TAX_IVC_REG_ID=#{MEM_MST_MEM_ID} /* 회원팝업에서 검색시 */
+            </if>
+            
+            <if test="searchPayType != null and searchPayType != ''">
+                AND ORD_MST_PAY_TYPE = #{searchPayType}
+            </if>
+            
+            <if test="searchTaxIvcState != null and searchTaxIvcState != ''">
+                <if test="!searchTaxIvcState.equals('A'.toString())">
+                    AND TAX_IVC_STATE = #{searchTaxIvcState}
+                </if>
+            </if> 
+        </where>        
+    </sql>
+    
+    <!-- 세금계산서 신청관리 개수 -->
+    <select id="selectTaxIvcCount" parameterType="java.util.HashMap" resultType="Integer">
+        /* TaxIvc.selectTaxIvcCount */
+        <![CDATA[
+        SELECT 
+            COUNT(1)
+        FROM 
+            (
+                SELECT 
+                        TAX_IVC_IDX
+                        ,TAX_IVC_ORD_CD
+                        ,TOM.ORD_MST_PAY_TYPE
+                        ,(SELECT PAY_MST_KICC_CASH_AUTH_NO FROM T_PAY_MST WHERE PAY_MST_OID = TTI.TAX_IVC_ORD_CD AND PAY_MST_RESPCODE = '0000' AND PAY_MST_TR_STATUS = 'A' AND ROWNUM=1) as CASH_AUTH_NO 
+                        ,TAX_IVC_TYPE
+                        ,TAX_IVC_CPR_NO1
+                        ,TAX_IVC_CPR_NO2
+                        ,TAX_IVC_CPR_NO3
+                        ,TAX_IVC_CPR_NO1 || TAX_IVC_CPR_NO2 || TAX_IVC_CPR_NO3 as TAX_IVC_CPR_NO
+                        ,TAX_IVC_CPR_NM
+                        ,TAX_IVC_JRD_NO1
+                        ,TAX_IVC_JRD_NO2
+                        ,TAX_IVC_MNG_NM
+                        ,TAX_IVC_MAIL
+                        ,TAX_IVC_STATE
+                        ,TAX_IVC_TXT
+                        ,TAX_IVC_REG_DT
+                        ,TAX_IVC_REG_IP
+                        ,TAX_IVC_REG_ID
+                        , DECODE(MEM_MST_MEM_NM, NULL, 'N', 'Y') as MEMBER_YN /* 회원여부 */
+                        , CASE 
+                            WHEN MEM_MST_MEM_NM IS NOT NULL
+                            THEN MEM_MST_MEM_NM
+                            ELSE TOM.ORD_MST_ORD_NM
+                          END MEM_MST_MEM_NM
+                        , CASE 
+                            WHEN MEM_MST_HP1 IS NOT NULL
+                            THEN MEM_MST_HP1
+                            ELSE TOM.ORD_MST_HP1
+                          END MEM_MST_HP1
+                        , CASE 
+                            WHEN MEM_MST_HP2 IS NOT NULL
+                            THEN MEM_MST_HP2
+                            ELSE TOM.ORD_MST_HP2
+                          END MEM_MST_HP2    
+                        , CASE
+                            WHEN MEM_MST_HP3 IS NOT NULL 
+                            THEN TMM.MEM_MST_HP3
+                            ELSE TOM.ORD_MST_HP3
+                          END MEM_MST_HP3
+                        ,TAX_IVC_UPD_DT
+                        ,TAX_IVC_UPD_IP
+                        ,TAX_IVC_UPD_ID
+                    FROM T_TAX_IVC TTI, T_ORD_MST TOM, T_MEM_VIEW TMM               
+                    WHERE  TTI.TAX_IVC_ORD_CD = TOM.ORD_MST_CD
+                    AND TTI.TAX_IVC_REG_ID = TMM.MEM_MST_MEM_ID(+)
+            )
+        ]]>
+        <include refid="taxIvcWhere"/>
+    </select>
+    
+    <!-- 세금계산서 신청관리 목록 -->
+    <select id="selectTaxIvcList" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+        /* TaxIvc.selectTaxIvcList */
+        <![CDATA[
+        SELECT
+            S2.*
+        FROM
+        (
+            SELECT 
+                ROWNUM AS RNUM,
+                S1.*
+            FROM 
+                (
+                    SELECT 
+                        TAX_IVC_IDX
+                        ,TAX_IVC_ORD_CD
+                        ,TOM.ORD_MST_PAY_TYPE
+                        ,TAX_IVC_TYPE
+                        ,TAX_IVC_CPR_NO1
+                        ,TAX_IVC_CPR_NO2
+                        ,TAX_IVC_CPR_NO3
+                        ,TAX_IVC_CPR_NO1 || TAX_IVC_CPR_NO2 || TAX_IVC_CPR_NO3 as TAX_IVC_CPR_NO
+                        ,TAX_IVC_CPR_NM
+                        ,TAX_IVC_JRD_NO1
+                        ,TAX_IVC_JRD_NO2
+                        ,TAX_IVC_MNG_NM
+                        ,TAX_IVC_MAIL
+                        ,TAX_IVC_STATE
+                        ,TAX_IVC_TXT
+                        ,TAX_IVC_REG_DT
+                        ,TAX_IVC_REG_IP
+                        ,TAX_IVC_REG_ID
+                        , DECODE(MEM_MST_MEM_NM, NULL, 'N', 'Y') as MEMBER_YN /* 회원여부 */
+                        , CASE 
+                            WHEN MEM_MST_MEM_NM IS NOT NULL
+                            THEN MEM_MST_MEM_NM
+                            ELSE TOM.ORD_MST_ORD_NM
+                          END MEM_MST_MEM_NM
+                        , CASE 
+                            WHEN MEM_MST_HP1 IS NOT NULL
+                            THEN MEM_MST_HP1
+                            ELSE TOM.ORD_MST_HP1
+                          END MEM_MST_HP1
+                        , CASE 
+                            WHEN MEM_MST_HP2 IS NOT NULL
+                            THEN MEM_MST_HP2
+                            ELSE TOM.ORD_MST_HP2
+                          END MEM_MST_HP2    
+                        , CASE
+                            WHEN MEM_MST_HP3 IS NOT NULL 
+                            THEN TMM.MEM_MST_HP3
+                            ELSE TOM.ORD_MST_HP3
+                          END MEM_MST_HP3
+                        ,TAX_IVC_UPD_DT
+                        ,TAX_IVC_UPD_IP
+                        ,TAX_IVC_UPD_ID
+                        ,TOM.ORD_MST_CSH_RCP /* 현금영수증 발행여부 */
+                    FROM T_TAX_IVC TTI, T_ORD_MST TOM, T_MEM_VIEW TMM               
+                    WHERE  TTI.TAX_IVC_ORD_CD = TOM.ORD_MST_CD
+                    AND TTI.TAX_IVC_REG_ID = TMM.MEM_MST_MEM_ID(+)
+                    ORDER BY TAX_IVC_IDX DESC 
+                ) S1
+            ]]>
+            <include refid="taxIvcWhere"/>
+        <![CDATA[
+        ) S2
+        WHERE
+            S2.RNUM BETWEEN #{startNum} AND #{endNum}
+        ]]>
+    </select>
+    
+    <!-- 세금계산서 신청관리 상세 -->
+    <select id="selectTaxIvcInfo" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+        /* TaxIvc.selectTaxIvcInfo */
+        <![CDATA[
+        SELECT 
+            TAX_IVC_IDX
+            ,TAX_IVC_ORD_CD
+            ,TOM.ORD_MST_PAY_TYPE
+            ,TOM.ORD_MST_PAY_PRC
+            ,(SELECT CMN_COM_NM FROM T_CMM_COM WHERE CMN_COM_IDX = TOM.ORD_MST_PAY_TYPE) as ORD_MST_PAY_TYPE_NM
+            ,(SELECT PAY_MST_KICC_CASH_AUTH_NO FROM T_PAY_MST WHERE PAY_MST_OID = TTI.TAX_IVC_ORD_CD AND PAY_MST_RESPCODE = '0000' AND PAY_MST_TR_STATUS = 'A' AND ROWNUM=1) as CASH_AUTH_NO 
+            ,TAX_IVC_TYPE
+            ,TAX_IVC_CPR_NO1
+            ,TAX_IVC_CPR_NO2
+            ,TAX_IVC_CPR_NO3
+            ,TAX_IVC_CPR_NO1 || TAX_IVC_CPR_NO2 || TAX_IVC_CPR_NO3 as TAX_IVC_CPR_NO
+            ,TAX_IVC_CPR_NM
+            ,TAX_IVC_JRD_NO1
+            ,TAX_IVC_JRD_NO2
+            ,TAX_IVC_MNG_NM
+            ,TAX_IVC_MAIL
+            ,TAX_IVC_STATE
+            ,TAX_IVC_TXT
+            ,TAX_IVC_REG_DT
+            ,TAX_IVC_REG_IP
+            ,TAX_IVC_REG_ID
+            , DECODE(MEM_MST_MEM_NM, NULL, 'N', 'Y') as MEMBER_YN /* 회원여부 */
+            , CASE 
+                WHEN MEM_MST_MEM_NM IS NOT NULL
+                THEN MEM_MST_MEM_NM
+                ELSE TOM.ORD_MST_ORD_NM
+              END MEM_MST_MEM_NM
+            , CASE 
+                WHEN MEM_MST_HP1 IS NOT NULL
+                THEN MEM_MST_HP1
+                ELSE TOM.ORD_MST_HP1
+              END MEM_MST_HP1
+            , CASE 
+                WHEN MEM_MST_HP2 IS NOT NULL
+                THEN MEM_MST_HP2
+                ELSE TOM.ORD_MST_HP2
+              END MEM_MST_HP2    
+            , CASE
+                WHEN MEM_MST_HP3 IS NOT NULL 
+                THEN TMM.MEM_MST_HP3
+                ELSE TOM.ORD_MST_HP3
+              END MEM_MST_HP3
+            ,TAX_IVC_UPD_DT
+            ,TAX_IVC_UPD_IP
+            ,TAX_IVC_UPD_ID
+        FROM T_TAX_IVC TTI, T_ORD_MST TOM, T_MEM_VIEW TMM               
+        WHERE  TTI.TAX_IVC_ORD_CD = TOM.ORD_MST_CD
+        AND TTI.TAX_IVC_REG_ID = TMM.MEM_MST_MEM_ID(+)
+        AND TTI.TAX_IVC_IDX = #{TAX_IVC_IDX}
+        ]]>
+    </select>
+    
+    <!-- 세금계산서 신청관리 수정 -->
+    <update id="updateTaxIvc" parameterType="java.util.HashMap">
+        /* TaxIvc.updateTaxIvc */
+        <![CDATA[
+        UPDATE 
+            T_TAX_IVC
+        SET
+            TAX_IVC_TYPE = #{TAX_IVC_TYPE}
+            , TAX_IVC_CPR_NO1 = #{TAX_IVC_CPR_NO1}
+            , TAX_IVC_CPR_NO2 = #{TAX_IVC_CPR_NO2}
+            , TAX_IVC_CPR_NO3 = #{TAX_IVC_CPR_NO3}
+            , TAX_IVC_JRD_NO1 = #{TAX_IVC_JRD_NO1}
+            , TAX_IVC_JRD_NO2 = #{TAX_IVC_JRD_NO2}
+            , TAX_IVC_CPR_NM = #{TAX_IVC_CPR_NM}
+            , TAX_IVC_MNG_NM = #{TAX_IVC_MNG_NM}
+            , TAX_IVC_MAIL = #{TAX_IVC_MAIL}
+            , TAX_IVC_STATE = #{TAX_IVC_STATE}
+            , TAX_IVC_TXT = #{TAX_IVC_TXT}
+            , TAX_IVC_UPD_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS')
+            , TAX_IVC_UPD_IP = #{TAX_IVC_UPD_IP}
+            , TAX_IVC_UPD_ID = #{TAX_IVC_UPD_ID}
+        WHERE TAX_IVC_IDX = #{TAX_IVC_IDX}
+        ]]>
+    </update>
+    
+    
+</mapper>

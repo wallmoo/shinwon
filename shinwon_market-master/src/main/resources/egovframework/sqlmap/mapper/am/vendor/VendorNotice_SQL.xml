@@ -1,0 +1,246 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="VendorNotice">
+
+     <!-- 관리자 > 입점업체관리 > 입점업체 공지사항 조건절 -->
+     <sql id="vendorNoticeWhere">
+        <if test="searchScmNtsTitle !=null and searchScmNtsTitle !=''">
+                AND SCM_NTS_TITLE LIKE '%' || #{searchScmNtsTitle} || '%'
+        </if>
+        <if test="searchScmNtsContents !=null and searchScmNtsContents !=''">
+            AND SCM_NTS_CONTENTS LIKE '%' || #{searchScmNtsContents} || '%'
+        </if>
+        
+        <if test="searchScmNtsTitleAndContents !=null and searchScmNtsTitleAndContents !=''">
+            AND ((SCM_NTS_TITLE LIKE '%' || #{searchScmNtsTitleAndContents} || '%') OR (SCM_NTS_CONTENTS LIKE '%' || #{searchScmNtsTitleAndContents} || '%'))
+        </if>
+        <if test="searchScmCmnComIdx !=null and searchScmCmnComIdx !=''">
+            AND SCM_CMN_COM_IDX = #{searchScmCmnComIdx} 
+        </if>
+        <if test="searchStartDate != null and searchStartDate != '' and searchEndDate != null and searchEndDate != ''">
+                AND SCM_NTS_REG_DT BETWEEN REPLACE(#{searchStartDate},'-', '')||'000000' AND REPLACE(#{searchEndDate},'-', '')||'235959'
+        </if>
+        <if test="searchScmNtsUseYn !=null and searchScmNtsUseYn !=''">
+            AND SCM_NTS_USE_YN = #{searchScmNtsUseYn}
+        </if>        
+        <if test="searchScmNtsTopYn !=null and searchScmNtsTopYn !=''">
+            AND SCM_NTS_TOP_YN = #{searchScmNtsTopYn}
+        </if>
+        <if test="searchVdrMstIdx !=null and searchVdrMstIdx !=''">
+            AND SCM_NTS_USE_YN = 'Y'
+        </if>
+    </sql> 
+    
+    <!-- 관리자 > 입점업체관리 > 입점업체 공지사항 목록 개수 -->
+    <select id="selectVendorNoticeListCount" parameterType="HashMap" resultType="Integer">
+        /* VendorNotice.selectVendorNoticeListCount */
+        SELECT
+            COUNT(SCM_NTS_IDX)
+        FROM
+            T_SCM_NTS
+        WHERE
+            SCM_NTS_TOP_YN = #{SCM_NTS_TOP_YN}
+             <include refid="vendorNoticeWhere"/> 
+    </select>
+    
+    <!-- 관리자 > 입점업체 관리 > 입점업체 공지사항 목록 -->
+    <select id="selectVendorNoticeList" parameterType="HashMap" resultType="HashMap">
+        /* VendorNotice.selectVendorNoticeList */
+        SELECT
+            S2.*,
+            (   SELECT
+                    CMN_COM_NM 
+                FROM
+                    T_CMM_COM 
+                WHERE
+                    CMN_COM_IDX = S2.SCM_CMN_COM_IDX 
+            )AS SCM_CMN_COM_NM,
+            (
+            SELECT
+                ADM_MST_NM
+            FROM
+                T_ADM_MST
+            WHERE
+                ADM_MST_ID = SCM_NTS_REG_ID
+            )
+            AS ADM_MST_NM
+        FROM
+            (   SELECT
+                    ROWNUM AS RNUM,
+                    S1.* 
+                FROM
+                    (   SELECT
+                            SCM_NTS_IDX,
+                            SCM_NTS_TITLE,
+                            SCM_NTS_CONTENTS,
+                            SCM_NTS_TOP_YN,
+                            NVL(SCM_NTS_READ_CNT, 0) AS SCM_NTS_READ_CNT,
+                            SCM_NTS_USE_YN,
+                            SCM_NTS_REG_DT,
+                            SCM_NTS_REG_IP,
+                            SCM_NTS_REG_ID,
+                            SCM_NTS_UPD_DT,
+                            SCM_NTS_UPD_IP,
+                            SCM_NTS_UPD_ID,
+                            SCM_CMN_COM_IDX
+                        FROM
+                            T_SCM_NTS 
+                        WHERE
+                            SCM_NTS_TOP_YN = #{SCM_NTS_TOP_YN}
+                            <include refid="vendorNoticeWhere"/> 
+                       ORDER BY SCM_NTS_REG_DT DESC 
+                    )
+                    S1 
+            )
+            S2
+       <if test="startNum != null and startNum != '' and endNum != null and endNum != ''">
+        WHERE
+            S2.RNUM BETWEEN #{startNum} AND #{endNum}
+        </if>
+    </select>
+    
+    <!-- 관리자 > 입점업체 관리 > 입점업체 공지사항 상세정보  -->
+    <resultMap id="resultVendorNoticeInfo" type="HashMap">
+        <result property="SCM_NTS_IDX" column="SCM_NTS_IDX"/>
+        <result property="SCM_NTS_TITLE" column="SCM_NTS_TITLE"/>
+        <result property="SCM_NTS_CONTENTS" column="SCM_NTS_CONTENTS" jdbcType="CLOB" javaType="java.lang.String"/>
+        <result property="SCM_NTS_TOP_YN" column="SCM_NTS_TOP_YN"/>
+        <result property="SCM_NTS_READ_CNT" column="SCM_NTS_READ_CNT"/>
+        <result property="SCM_NTS_USE_YN" column="SCM_NTS_USE_YN"/>
+        <result property="SCM_NTS_REG_DT" column="SCM_NTS_REG_DT"/>
+        <result property="SCM_NTS_REG_IP" column="SCM_NTS_REG_IP"/>
+        <result property="SCM_NTS_REG_ID" column="SCM_NTS_REG_ID"/>
+        <result property="SCM_NTS_UPD_DT" column="SCM_NTS_UPD_DT"/>
+        <result property="SCM_NTS_UPD_IP" column="SCM_NTS_UPD_IP"/>
+        <result property="SCM_NTS_UPD_ID" column="SCM_NTS_UPD_ID"/>
+        <result property="SCM_CMN_COM_IDX" column="SCM_CMN_COM_IDX"/>
+        <result property="ADM_MST_NM" column="ADM_MST_NM"/>
+        <result property="ADM_MST_NM_UPD" column="ADM_MST_NM_UPD"/>
+        <result property="SCM_CMN_COM_NM" column="SCM_CMN_COM_NM"/>
+    </resultMap>
+    <select id="selectVendorNoticeInfo" parameterType="HashMap" resultMap="resultVendorNoticeInfo">
+        /* VendorNotice.selectVendorNoticeInfo */
+        SELECT
+            SCM_NTS_IDX,
+            SCM_NTS_TITLE,
+            SCM_NTS_CONTENTS,
+            SCM_NTS_TOP_YN,
+            SCM_NTS_READ_CNT,
+            SCM_NTS_USE_YN,
+            SCM_NTS_REG_DT,
+            SCM_NTS_REG_IP,
+            SCM_NTS_REG_ID,
+            SCM_NTS_UPD_DT,
+            SCM_NTS_UPD_IP,
+            SCM_NTS_UPD_ID,
+            SCM_CMN_COM_IDX,            
+            (   SELECT
+                    CMN_COM_NM 
+                FROM
+                    T_CMM_COM 
+                WHERE
+                    CMN_COM_IDX = SCM_CMN_COM_IDX
+            )
+            AS SCM_CMN_COM_NM,
+            (
+            SELECT
+                ADM_MST_NM
+            FROM
+                T_ADM_MST
+            WHERE
+                ADM_MST_ID = SCM_NTS_REG_ID
+            )
+            AS ADM_MST_NM,
+             (
+            SELECT
+                ADM_MST_NM
+            FROM
+                T_ADM_MST
+            WHERE
+                ADM_MST_ID = SCM_NTS_UPD_ID
+            )
+            AS ADM_MST_NM_UPD
+        FROM
+            T_SCM_NTS
+        WHERE
+            SCM_NTS_IDX = #{SCM_NTS_IDX}
+    </select>
+    
+    <!-- 관리자 > 입점업체 관리 > 입점업체 공지사항 조회수 증가 -->
+    <update id="updateReadCnt" parameterType="HashMap">
+        /* VendorNotice.updateReadCnt */
+        UPDATE
+            T_SCM_NTS
+        SET
+            SCM_NTS_READ_CNT = NVL(SCM_NTS_READ_CNT,0) + 1
+        WHERE
+            SCM_NTS_IDX = #{SCM_NTS_IDX}
+            
+    </update>
+    <!-- 관리자 > 입점업체 관리 > 입점업체 공지사항 등록 -->
+    <insert id="insertVendorNotice" parameterType="HashMap">
+        <selectKey keyProperty="SCM_NTS_IDX" resultType="Integer" order="BEFORE">
+            SELECT SEQ_SCM_NTS_IDX.NEXTVAL FROM DUAL
+        </selectKey>
+        /* VendorNotice.insertVendorNotice */
+        INSERT INTO
+            T_SCM_NTS
+            (
+                SCM_NTS_IDX,
+                SCM_NTS_TITLE,
+                SCM_NTS_CONTENTS,
+                SCM_NTS_TOP_YN,
+                SCM_NTS_READ_CNT,
+                SCM_NTS_USE_YN,
+                SCM_NTS_REG_DT,
+                SCM_NTS_REG_IP,
+                SCM_NTS_REG_ID,
+                SCM_CMN_COM_IDX
+            )
+        VALUES
+            (
+                #{SCM_NTS_IDX},
+                #{SCM_NTS_TITLE},
+                #{SCM_NTS_CONTENTS},
+                NVL(#{SCM_NTS_TOP_YN}, 'N'),
+                0,
+                NVL(#{SCM_NTS_USE_YN}, 'N'),
+                TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+                #{SCM_NTS_REG_IP},
+                #{SCM_NTS_REG_ID},
+                #{SCM_CMN_COM_IDX}
+            )
+    </insert>
+    
+    <!-- 관리자 > 입점업체 관리 > 입점업체 공지사항 수정 -->
+    <update id="updateVendorNotice" parameterType="HashMap">
+        /* VendorNotice.updateVendorNotice */
+        UPDATE
+            T_SCM_NTS 
+        SET
+            SCM_NTS_TITLE = #{SCM_NTS_TITLE},
+            SCM_NTS_CONTENTS = #{SCM_NTS_CONTENTS},
+            SCM_NTS_TOP_YN = NVL(#{SCM_NTS_TOP_YN}, 'N'),
+            SCM_NTS_USE_YN = NVL(#{SCM_NTS_USE_YN}, 'N'),
+            SCM_NTS_UPD_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+            SCM_NTS_UPD_IP = #{SCM_NTS_UPD_IP},
+            SCM_NTS_UPD_ID = #{SCM_NTS_UPD_ID},
+            SCM_CMN_COM_IDX = #{SCM_CMN_COM_IDX}
+        WHERE
+            SCM_NTS_IDX = #{SCM_NTS_IDX}
+    </update>
+    
+    <!-- 관리자 > 입점업체 관리 > 입점업체 공지사항 상단공지 개수 -->
+    <select id="selectVendorNoticeTopCount" parameterType="HashMap" resultType="Integer">
+        /* VendorNotice.selectVendorNoticeTopCount */
+        SELECT
+            COUNT(1)
+        FROM
+            T_SCM_NTS
+        WHERE
+            SCM_NTS_TOP_YN = 'Y'
+        AND
+            SCM_NTS_USE_YN = 'Y'
+    </select>
+    
+</mapper>

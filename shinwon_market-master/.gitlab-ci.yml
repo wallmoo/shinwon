@@ -1,0 +1,115 @@
+stages:
+#  - database copy
+  - build & deploy
+  - apidoc
+  - deploy_was1
+  - deploy_was2
+#
+#job_dbcopy:
+#    stage: database copy
+#    tags: 
+#    - ubuntu
+#    script:     
+#    - sudo rm /mnt/data/docker_images/oracle_lastest.tar
+#    - sudo docker save deok_oracle_1:latest -o /mnt/data/docker_images/oracle_lastest.tar
+#    - sudo docker load -i /mnt/data/docker_images/oracle_lastest.tar
+#    - sudo cp /home/deok/docker-compose.yml .
+#    - sudo docker-compose up -d
+#    only:
+#    - master    
+job_apidoc:
+    stage: apidoc
+    tags: 
+    - ubuntu
+    script:     
+    - apidoc -i ./src/ -o apidoc -e nas
+    - sudo rm -rf /var/www/html/shinwon
+    - sudo mv apidoc /var/www/html/shinwon
+    only:
+    - master    
+job_build:
+    stage: build & deploy
+    tags: 
+    - shinwon
+    script:   
+    - sudo cp /ojdbc/ojdbc.jar ./src/main/webapp/WEB-INF/lib/ojdbc7.jar
+    - mvn install -Dmaven.test.skip=true
+    - jar xvf ./target/marketA-3.5.0.war
+    - sudo rm -rf /usr/local/tomcat7/webapps/ROOT
+    - sudo mv ./target/marketA-3.5.0 /usr/local/tomcat7/webapps/ROOT
+    - sudo rm -rf /usr/local/tomcat7/webapps/ROOT/nas
+    - sudo ln -s /home/monkey/nas /usr/local/tomcat7/webapps/ROOT/nas
+    - sudo cp -rf ./src/main/java/com/market/mall/email /usr/local/tomcat7/webapps/ROOT/WEB-INF/classes/com/market/mall/email
+    - sudo chmod 777 -R /usr/local/tomcat7
+    - sh /usr/local/tomcat7/bin/restart.sh
+    only:
+    - master
+job_deploy:
+    stage: deploy_was1
+    tags: 
+    - deploy_was1
+    script:     
+    - export JAVA_HOME=/app/jdk
+    - sh /app/maven/bin/mvn install -Dmaven.test.skip=true
+    - jar xvf ./target/marketA-3.5.0.war
+    - sudo rm -rf /app/tomcat/webapps/ROOT
+    - sudo rm -rf /app/tomcat2/webapps/STAGE
+    - sudo cp -rf ./target/marketA-3.5.0 /app/tomcat/webapps/ROOT
+    - sudo cp -rf ./target/marketA-3.5.0 /app/tomcat2/webapps/STAGE
+    - sudo rm -rf /app/tomcat/webapps/ROOT/nas
+    - sudo rm -rf /app/tomcat2/webapps/STAGE/nas
+    - sudo mkdir /app/tomcat/webapps/ROOT/nas
+    - sudo mkdir /app/tomcat2/webapps/STAGE/nas
+    - sudo ln -s /shared_data/cdn /app/tomcat/webapps/ROOT/nas/cdn
+    - sudo ln -s /shared_data/cache /app/tomcat/webapps/ROOT/nas/cache
+    - sudo ln -s /shared_data/editor /app/tomcat/webapps/ROOT/nas/editor
+    - sudo ln -s /shared_data/cdn2 /app/tomcat2/webapps/STAGE/nas/cdn
+    - sudo ln -s /shared_data/cache2 /app/tomcat2/webapps/STAGE/nas/cache
+    - sudo ln -s /shared_data/editor2 /app/tomcat2/webapps/STAGE/nas/editor
+    - sudo mv /app/tomcat2/webapps/STAGE/WEB-INF/classes/egovframework/properties/stg_shinwon.properties /app/tomcat2/webapps/STAGE/WEB-INF/classes/egovframework/properties/jdbc.properties 
+    - sudo mv /app/tomcat2/webapps/STAGE/WEB-INF/classes/egovframework/properties/stg.properties /app/tomcat2/webapps/STAGE/WEB-INF/classes/egovframework/properties/resource.properties 
+    - sudo cp /shared_data/mall.conf /app/tomcat/webapps/ROOT/WEB-INF/config/lgdacom/conf/mall.conf
+    - sudo cp /shared_data/mall.conf /app/tomcat2/webapps/STAGE/WEB-INF/config/lgdacom/conf/mall.conf
+    - sudo cp -rf ./src/main/java/com/market/mall/email /app/tomcat/webapps/ROOT/WEB-INF/classes/com/market/mall/email
+    - sudo cp -rf ./src/main/java/com/market/mall/email /app/tomcat2/webapps/STAGE/WEB-INF/classes/com/market/mall/email
+    - sudo chmod 777 -R /app/tomcat/.
+    - sh /app/tomcat/bin/restart.sh
+    - sh /app/tomcat2/bin/restart.sh
+    only:
+    - shinwon
+    
+job_deploy2:
+    stage: deploy_was2
+    tags: 
+    - deploy_was2
+    script:     
+    - export JAVA_HOME=/app/jdk
+    - sh /app/maven/bin/mvn install -Dmaven.test.skip=true
+    - jar xvf ./target/marketA-3.5.0.war
+    - sudo rm -rf /app/tomcat/webapps/ROOT
+    - sudo rm -rf /app/tomcat2/webapps/STAGE
+    - sudo cp -rf ./target/marketA-3.5.0 /app/tomcat/webapps/ROOT
+    - sudo cp -rf ./target/marketA-3.5.0 /app/tomcat2/webapps/STAGE
+    - sudo rm -rf /app/tomcat/webapps/ROOT/nas
+    - sudo rm -rf /app/tomcat2/webapps/STAGE/nas
+    - sudo mkdir /app/tomcat/webapps/ROOT/nas
+    - sudo mkdir /app/tomcat2/webapps/STAGE/nas
+    - sudo ln -s /shared_data/cdn /app/tomcat/webapps/ROOT/nas/cdn
+    - sudo ln -s /shared_data/cache /app/tomcat/webapps/ROOT/nas/cache
+    - sudo ln -s /shared_data/editor /app/tomcat/webapps/ROOT/nas/editor
+    - sudo ln -s /shared_data/cdn2 /app/tomcat2/webapps/STAGE/nas/cdn
+    - sudo ln -s /shared_data/cache2 /app/tomcat2/webapps/STAGE/nas/cache
+    - sudo ln -s /shared_data/editor2 /app/tomcat2/webapps/STAGE/nas/editor
+    - sudo mv /app/tomcat2/webapps/STAGE/WEB-INF/classes/egovframework/properties/stg_shinwon.properties /app/tomcat2/webapps/STAGE/WEB-INF/classes/egovframework/properties/jdbc.properties 
+    - sudo mv /app/tomcat2/webapps/STAGE/WEB-INF/classes/egovframework/properties/stg.properties /app/tomcat2/webapps/STAGE/WEB-INF/classes/egovframework/properties/resource.properties 
+    - sudo cp /shared_data/mall.conf /app/tomcat/webapps/ROOT/WEB-INF/config/lgdacom/conf/mall.conf
+    - sudo cp /shared_data/mall.conf /app/tomcat2/webapps/STAGE/WEB-INF/config/lgdacom/conf/mall.conf
+    - sudo cp -rf ./src/main/java/com/market/mall/email /app/tomcat/webapps/ROOT/WEB-INF/classes/com/market/mall/email
+    - sudo cp -rf ./src/main/java/com/market/mall/email /app/tomcat2/webapps/STAGE/WEB-INF/classes/com/market/mall/email
+    - sudo chmod 777 -R /app/tomcat/.
+    - sh /app/tomcat/bin/restart.sh
+    - sh /app/tomcat2/bin/restart.sh
+    only:
+    - shinwon
+
+ 

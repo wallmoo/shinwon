@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="PcGroupInquiry">
+    
+    <!-- 프론트 > 고객센터 > 단체주문 등록 -->
+    <insert id="insertGroupInquiry" parameterType="HashMap">
+        <selectKey keyProperty="GRP_INQ_IDX" resultType="Integer" order="BEFORE">
+            SELECT SEQ_GRP_INQ_IDX.NEXTVAL AS GRP_INQ_IDX FROM DUAL
+        </selectKey>
+        /* PcGroupInquiry.insertGroupInquiry */
+        INSERT INTO
+            T_GRP_INQ
+            (
+                 GRP_INQ_IDX,   
+                 GRP_INQ_BRAND_CD,  
+                 GRP_PRD_MST_CD,     
+                 GRP_INQ_WANT_CNT,        
+                 GRP_INQ_GRP_NM, 
+                 GRP_INQ_CUSTOMER_NM,   
+                 GRP_INQ_CUSTOMER_TEL,  
+                 GRP_INQ_CUSTOMER_EMAIL, 
+                 GRP_INQ_AVAIL_STIME, 
+                 GRP_INQ_AVAIL_ETIME, 
+                 GRP_INQ_CONTENTS,  
+                 GRP_INQ_REG_DT,    
+                 GRP_INQ_REG_ID,    
+                 GRP_INQ_REG_IP 
+            )
+        VALUES
+            (
+                 #{GRP_INQ_IDX},
+                 #{BRAND_CD},
+                 #{GRP_PRD_MST_CD},                 
+                 #{GRP_INQ_WANT_CNT},                  
+                 #{GRP_INQ_GRP_NM}, 
+                 #{GRP_INQ_CUSTOMER_NM}, 
+                 UTL_RAW.CAST_TO_RAW(#{GRP_INQ_CUSTOMER_TEL}), 
+                 UTL_RAW.CAST_TO_RAW(#{GRP_INQ_CUSTOMER_EMAIL}), 
+                 #{GRP_INQ_AVAIL_STIME}, 
+                 #{GRP_INQ_AVAIL_ETIME},
+                 #{GRP_INQ_CONTENTS},
+                 TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+                 #{GRP_INQ_REG_ID},
+                 #{GRP_INQ_REG_IP}
+            )
+    </insert>
+    
+    <!-- 프론트 > 고객센터 > 단체주문 상품코드 체크 -->
+    <select id="selectProductInfo" parameterType="HashMap" resultType="HashMap">
+        SELECT 
+            PRD_MST_CD, PRD_MST_NM 
+        FROM T_PRD_MST 
+        WHERE PRD_MST_CD = #{PRD_MST_CD}
+    </select>
+    
+</mapper>

@@ -1,0 +1,266 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="CardDiv">
+    
+    <!-- 관리자 > 마케팅관리 > 기획전관리 조건절 -->
+    <sql id="cardWhere">
+        <if test="searchStartDate != null and searchStartDate != '' and searchEndDate != null and searchEndDate != ''">
+            <![CDATA[
+                AND CRD.CRD_DIV_ST_DT >= REPLACE(#{searchStartDate}, '-', '')
+                AND CRD.CRD_DIV_ED_DT < = REPLACE(#{searchEndDate}, '-', '')
+            ]]>        
+        </if>
+        <if test="searchCrdDivGbn != null and searchCrdDivGbn != ''">
+            AND CRD.CRD_DIV_GBN = #{searchCrdDivGbn}
+        </if>
+        <if test="searchCrdDivNm != null and searchCrdDivNm != ''">
+            AND CRD.CRD_DIV_NM LIKE '%' || #{searchCrdDivNm} || '%'
+        </if>
+        <if test="searchCrdDivUseYn != null and searchCrdDivUseYn != ''">
+            AND CRD.CRD_DIV_USE_YN = #{searchCrdDivUseYn}
+        </if>
+    </sql>
+    
+    <!-- 관리자 > 마케팅관리 > 카드행사관리 목록 갯수 -->
+    <select id="selectCardDivListCount" parameterType="HashMap" resultType="Integer">
+        /* CardDiv.selectCardDivListCount */
+        SELECT
+            COUNT(CRD.CRD_DIV_IDX)
+        FROM
+            T_CRD_DIV CRD             
+        WHERE
+            1 = 1 
+            <include refid="cardWhere"/> 
+    </select>
+     
+    <!-- 관리자 > 마케팅관리 > 기획전관리 목록 -->
+    <select id="selectCardDivList" parameterType="HashMap" resultType="HashMap">
+        /*CardDiv.selectCardDivList*/
+        SELECT
+            S2.*            
+        FROM
+            (   SELECT
+                    ROWNUM AS RNUM,
+                    S1.* 
+                FROM
+                    (   SELECT
+                            CRD.CRD_DIV_IDX,                
+                            CRD.CRD_DIV_NM,
+                            CRD.CRD_DIV_ST_DT,
+                            CRD.CRD_DIV_ST_HH,
+                            CRD.CRD_DIV_ST_MM,
+                            CRD.CRD_DIV_ED_DT,
+                            CRD.CRD_DIV_ED_HH,
+                            CRD.CRD_DIV_ED_MM,
+                            CRD.CRD_DIV_USE_YN,
+                            CRD.CRD_DIV_REG_DT,
+                            CRD.CRD_DIV_REG_ID,
+                            (SELECT ADM_MST_NM FROM T_ADM_MST WHERE ADM_MST_ID = CRD.CRD_DIV_REG_ID) AS CRD_DIV_REG_NM
+                        FROM
+                            T_CRD_DIV CRD                             
+                        WHERE
+                            1 = 1
+                            <include refid="cardWhere"/>
+                        ORDER BY CRD.CRD_DIV_REG_DT DESC 
+                    )
+                    S1 
+            )
+            S2 
+        WHERE
+            S2.RNUM BETWEEN #{startNum} AND #{endNum}
+    </select>
+    
+    
+    <select id="selectCardDivInfo" parameterType="HashMap" resultType="HashMap">
+        /* CardDiv.selectCardDivInfo */
+        SELECT
+            (   SELECT
+                    ADM_MST_NM
+                FROM
+                    T_ADM_MST
+                WHERE
+                    ADM_MST_ID = CRD.CRD_DIV_REG_ID
+            )
+            AS CRD_DIV_REG_NM,
+            CRD.CRD_DIV_IDX,
+            CRD.CRD_DIV_NM,
+            CRD.CRD_DIV_ST_DT,
+            CRD.CRD_DIV_ED_DT,
+            CRD.CRD_DIV_ST_HH,
+            CRD.CRD_DIV_ED_HH,
+            CRD.CRD_DIV_ST_MM,
+            CRD.CRD_DIV_ED_MM,
+            CRD.CRD_DIV_USE_YN,
+            CRD.CRD_DIV_REG_DT,
+            CRD.CRD_DIV_REG_IP,
+            CRD.CRD_DIV_REG_ID,
+            CRD.CRD_DIV_UPD_DT,
+            CRD.CRD_DIV_UPD_IP,
+            CRD.CRD_DIV_UPD_ID,
+            CASE 
+				WHEN SYSDATE <![CDATA[ > ]]> TO_DATE(CRD.CRD_DIV_ED_DT||CRD.CRD_DIV_ED_HH||CRD.CRD_DIV_ED_MM||'59','yyyymmddhh24miss') THEN 'end'
+            	ELSE 'ing' 
+            END AS ING_YN
+        FROM
+            T_CRD_DIV CRD
+        WHERE
+            CRD.CRD_DIV_IDX = #{CRD_DIV_IDX}
+    </select>
+    
+    <!-- 관리자 > 마케팅관리 > 카드행사관리 상세정보 > 카드구성 목록 -->
+    <select id="selectCardDivDetailList" parameterType="HashMap" resultType="HashMap">
+    	/* CardDiv.selectCardDivDetailList */
+        SELECT
+        	  DIV_DTL_IDX
+            , CRD_DIV_IDX
+            , DIV_DTL_CD
+            , DIV_DTL_PRC
+        FROM 
+            T_DIV_DTL 
+        WHERE CRD_DIV_IDX = #{CRD_DIV_IDX}
+        ORDER BY DIV_DTL_IDX
+    </select>
+    
+    <!-- 관리자 > 마케팅관리 > 카드행사관리 상세정보 > 카드구성 무이자 목록 -->
+    <select id="selectCardDivDetailInfo" parameterType="HashMap" resultType="HashMap">
+    	/* CardDiv.selectCardDivDetailInfo */
+        SELECT
+        	  DIV_INF_IDX
+            , DIV_DTL_IDX
+            , DIV_INF_MNT
+            , DIV_INF_GBN
+            , DIV_INF_NTC
+            , DIV_INF_USE_YN
+        FROM 
+            T_DIV_INF 
+        WHERE DIV_DTL_IDX IN (SELECT DIV_DTL_IDX FROM T_DIV_DTL WHERE CRD_DIV_IDX = #{CRD_DIV_IDX})
+        ORDER BY DIV_INF_GBN,DIV_INF_MNT
+    </select>
+    
+    
+    
+    <!-- 관리자 > 마케팅관리 > 기획전관리 등록 -->
+    <insert id="insertCardDiv" parameterType="HashMap">
+        <selectKey keyProperty="CRD_DIV_IDX" resultType="Integer" order="BEFORE">
+            SELECT SEQ_CRD_DIV_IDX.NEXTVAL AS CRD_DIV_IDX FROM DUAL
+        </selectKey>
+        /* CardDiv.insertCardDiv */
+        INSERT INTO
+            T_CRD_DIV
+            (
+                CRD_DIV_IDX,                                
+                CRD_DIV_NM,
+                CRD_DIV_ST_DT,
+                CRD_DIV_ED_DT,
+                CRD_DIV_ST_HH,
+                CRD_DIV_ED_HH,
+                CRD_DIV_ST_MM,
+                CRD_DIV_ED_MM,
+                CRD_DIV_USE_YN,
+                CRD_DIV_REG_DT,
+                CRD_DIV_REG_IP,
+                CRD_DIV_REG_ID
+            )
+        VALUES
+            (
+                #{CRD_DIV_IDX},
+                #{CRD_DIV_NM},
+                REPLACE(#{CRD_DIV_ST_DT}, '-', ''),
+                REPLACE(#{CRD_DIV_ED_DT}, '-', ''),
+                #{CRD_DIV_ST_HH},
+                #{CRD_DIV_ED_HH},
+                #{CRD_DIV_ST_MM},
+                #{CRD_DIV_ED_MM},
+                NVL(#{CRD_DIV_USE_YN}, 'N'),
+                TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+                #{CRD_DIV_REG_IP},
+                #{CRD_DIV_REG_ID}
+            )
+    </insert>
+    
+    <!-- 관리자 > 마케팅관리 > 카드할부관리  수정 -->
+    <update id="updateCardDiv" parameterType="HashMap">
+        /* CardDiv.updateCardDiv */
+        UPDATE
+            T_CRD_DIV 
+        SET CRD_DIV_NM = #{CRD_DIV_NM},
+            CRD_DIV_ST_DT = REPLACE(#{CRD_DIV_ST_DT}, '-', ''),
+            CRD_DIV_ED_DT = REPLACE(#{CRD_DIV_ED_DT}, '-', ''),
+            CRD_DIV_ST_HH = #{CRD_DIV_ST_HH},
+            CRD_DIV_ED_HH = #{CRD_DIV_ED_HH},
+            CRD_DIV_ST_MM = #{CRD_DIV_ST_MM},
+            CRD_DIV_ED_MM = #{CRD_DIV_ED_MM},
+            CRD_DIV_USE_YN = NVL(#{CRD_DIV_USE_YN}, 'N'),
+            CRD_DIV_UPD_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+            CRD_DIV_UPD_IP = #{CRD_DIV_UPD_IP},
+            CRD_DIV_UPD_ID = #{CRD_DIV_UPD_ID}
+        WHERE
+            CRD_DIV_IDX = #{CRD_DIV_IDX}
+    </update>
+    
+    <!-- 관리자 > 마케팅관리 > 카드할부관리 카드구성 등록 -->
+    <insert id="insertCardDivDetail" parameterType="HashMap">
+    	<selectKey keyProperty="DIV_DTL_IDX" resultType="Integer" order="BEFORE">
+            SELECT SEQ_DIV_DTL_IDX.NEXTVAL AS DIV_DTL_IDX FROM DUAL
+        </selectKey>
+        /* CardDiv.insertCardDivDetail */
+        INSERT INTO
+            T_DIV_DTL
+            (
+                DIV_DTL_IDX,
+                CRD_DIV_IDX,   
+                DIV_DTL_CD,
+                DIV_DTL_PRC
+            )
+        VALUES
+            (
+            	#{DIV_DTL_IDX},
+                #{CRD_DIV_IDX},
+                #{DIV_DTL_CD},
+                #{DIV_DTL_PRC}             
+            )
+    </insert>
+    <!-- 관리자 > 마케팅관리 > 카드할부관리 카드무이자구성 등록 -->
+    <insert id="insertCardDivInfo" parameterType="HashMap">
+    	<selectKey keyProperty="DIV_INF_IDX" resultType="Integer" order="BEFORE">
+            SELECT SEQ_DIV_INF_IDX.NEXTVAL AS DIV_INF_IDX FROM DUAL
+        </selectKey>
+        /* CardDiv.insertCardDivInfo */
+        INSERT INTO
+            T_DIV_INF
+            (
+                DIV_INF_IDX,
+                DIV_DTL_IDX,   
+                DIV_INF_MNT,
+                DIV_INF_GBN,
+                DIV_INF_NTC,
+                DIV_INF_USE_YN
+            )
+        VALUES
+            (
+            	#{DIV_INF_IDX},
+                #{DIV_DTL_IDX},
+                #{DIV_INF_MNT},
+                #{DIV_INF_GBN},
+                #{DIV_INF_NTC},
+                #{DIV_INF_USE_YN}             
+            )
+    </insert>
+    
+    
+    <!-- 관리자 > 마케팅관리 > 카드할부관리 카드사구성 삭제 -->
+    <delete id="deleteCardDivInfo" parameterType="HashMap">
+        /* CardDiv.deleteCardDivInfo */
+        DELETE FROM T_DIV_INF 
+        WHERE DIV_DTL_IDX IN (SELECT DIV_DTL_IDX FROM T_DIV_DTL WHERE CRD_DIV_IDX = #{CRD_DIV_IDX})
+    </delete>
+    
+        <!-- 관리자 > 마케팅관리 > 카드행사관리 카드사구성 삭제 -->
+    <delete id="deleteCardDivDetail" parameterType="HashMap">
+        /* CardDiv.deleteCardDivDetail */
+        DELETE FROM T_DIV_DTL
+        WHERE CRD_DIV_IDX = #{CRD_DIV_IDX}
+    </delete>
+    
+</mapper>

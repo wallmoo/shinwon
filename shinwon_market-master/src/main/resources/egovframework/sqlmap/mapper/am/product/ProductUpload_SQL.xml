@@ -1,0 +1,160 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="ProductUpload">
+
+    <!-- 관리자 > 상품관리 > 상품업로드 엑셀관리 등록 -->
+    <insert id="insertProductExcel" parameterType="HashMap">
+        <selectKey keyProperty="PRD_EXC_IDX" resultType="Integer" order="BEFORE">
+            SELECT SEQ_PRD_EXC_IDX.NEXTVAL AS PRD_EXC_IDX FROM DUAL 
+        </selectKey>
+        /* ProductUpload.insertProductExcel */
+        INSERT INTO T_PRD_EXC
+        (
+            PRD_EXC_IDX,
+            PRD_EXC_FILE_IDX,
+            PRD_EXC_FILE,
+            PRD_EXC_SEQ,
+            PRD_EXC_NM,
+            PRD_EXC_NM_SUB,
+            PRD_EXC_DLV_FEE,
+            PRD_EXC_SEL_CNT,
+            PRD_EXC_PRC,
+            PRD_EXC_CNL,
+            PRD_EXC_SEL_STATE,
+            PRD_EXC_DPL_STATE,
+            PRD_EXC_CTG_PC,
+            PRD_EXC_CTG_MB,
+            PRD_EXC_IMG,
+            PRD_EXC_MD_ID,
+            PRD_EXC_COST,
+            PRD_EXC_NFI_IDX,
+            PRD_EXC_NFI_INF1,
+            PRD_EXC_NFI_INF2,
+            PRD_EXC_NFI_INF3,
+            PRD_EXC_NFI_INF4,
+            PRD_EXC_NFI_INF5,
+            PRD_EXC_NFI_INF6,
+            PRD_EXC_NFI_INF7,
+            PRD_EXC_NFI_INF8,
+            PRD_EXC_NFI_INF9,
+            PRD_EXC_NFI_INF10,
+            PRD_EXC_NFI_INF11,
+            PRD_EXC_NFI_INF12,
+            PRD_EXC_NFI_INF13,
+            PRD_EXC_NFI_INF14,
+            PRD_EXC_RESULT,
+            PRD_EXC_REG_IP,
+            PRD_EXC_REG_DT,
+            PRD_EXC_REG_ID
+        )VALUES
+        (
+            #{PRD_EXC_IDX},
+            #{PRD_EXC_FILE_IDX},
+            TRIM(#{PRD_EXC_FILE}),
+            TRIM(#{PRD_EXC_SEQ}),
+            TRIM(#{PRD_EXC_NM}),
+            TRIM(#{PRD_EXC_NM_SUB}),
+            TRIM(#{PRD_EXC_DLV_FEE}),
+            TRIM(#{PRD_EXC_SEL_CNT}),
+            TRIM(#{PRD_EXC_PRC}),
+            TRIM(#{PRD_EXC_CNL}),
+            TRIM(#{PRD_EXC_SEL_STATE}),
+            TRIM(#{PRD_EXC_DPL_STATE}),
+            TRIM(#{PRD_EXC_CTG_PC}),
+            TRIM(#{PRD_EXC_CTG_MB}),
+            TRIM(#{PRD_EXC_IMG}),
+            TRIM(#{PRD_EXC_MD_ID}),
+            TRIM(#{PRD_EXC_COST}),
+            TRIM(#{PRD_EXC_NFI_IDX}),
+            TRIM(#{PRD_EXC_NFI_INF1}),
+            TRIM(#{PRD_EXC_NFI_INF2}),
+            TRIM(#{PRD_EXC_NFI_INF3}),
+            TRIM(#{PRD_EXC_NFI_INF4}),
+            TRIM(#{PRD_EXC_NFI_INF5}),
+            TRIM(#{PRD_EXC_NFI_INF6}),
+            TRIM(#{PRD_EXC_NFI_INF7}),
+            TRIM(#{PRD_EXC_NFI_INF8}),
+            TRIM(#{PRD_EXC_NFI_INF9}),
+            TRIM(#{PRD_EXC_NFI_INF10}),
+            TRIM(#{PRD_EXC_NFI_INF11}),
+            TRIM(#{PRD_EXC_NFI_INF12}),
+            TRIM(#{PRD_EXC_NFI_INF13}),
+            TRIM(#{PRD_EXC_NFI_INF14}),
+            #{PRD_EXC_RESULT},
+            #{PRD_EXC_REG_IP},
+            TO_CHAR(SYSDATE,'yyyymmddhh24miss'),
+            #{PRD_EXC_REG_ID}
+        )
+    </insert>
+    
+    <!-- 관리자 > 상품관리 > 상품업로드 파일 순번 가져오기 -->
+    <select id="selectProductExcelFileIdx" parameterType="HashMap" resultType="Integer">
+        /* ProductUplad.selectProductExcelFileIdx */
+        SELECT SEQ_PRD_EXC_FILE_IDX.NEXTVAL AS PRD_EXC_FILE_IDX FROM DUAL 
+    </select>
+    <select id="spProductBatchRegist" parameterType= "java.lang.Integer" statementType="CALLABLE" resultType="HashMap">
+        { call SP_PRODUCT_BATCH_REGIST(#{PRD_EXC_FILE_IDX, mode=IN}) }
+    </select>
+    
+    <!-- 관리자 > 상품관리 > 상품업로드 결과조회 -->
+    <select id="selectProductUploadList" parameterType="HashMap" resultType="HashMap">
+        /* ProductUplad.selectProductUploadList */
+        SELECT PRD_EXC_FILE_IDX, 
+               PRD_EXC_IDX, 
+               PRD_EXC_SEQ, 
+               PRD_EXC_NM, 
+               PRD_EXC_FAIL
+        FROM T_PRD_EXC A
+        WHERE PRD_EXC_FILE_IDX = #{PRD_EXC_FILE_IDX}
+        AND PRD_EXC_RESULT = 'F'
+    </select>
+    
+    <!-- 관리자 > 상품관리 > 상품업로드 결과조회 -->
+    <select id="selectProductUploadCount" parameterType="HashMap" resultType="HashMap">
+        /* ProductUplad.selectProductUploadCount */
+        SELECT 
+            (SELECT COUNT(*) FROM T_PRD_EXC WHERE PRD_EXC_FILE_IDX = #{PRD_EXC_FILE_IDX}) AS ALL_CNT,
+            (SELECT COUNT(*) FROM T_PRD_EXC WHERE PRD_EXC_FILE_IDX = #{PRD_EXC_FILE_IDX} AND PRD_EXC_RESULT = 'Y') AS Y_CNT,
+            (SELECT COUNT(*) FROM T_PRD_EXC WHERE PRD_EXC_FILE_IDX = #{PRD_EXC_FILE_IDX} AND PRD_EXC_RESULT = 'N') AS N_CNT,
+            (SELECT COUNT(*) FROM T_PRD_EXC WHERE PRD_EXC_FILE_IDX = #{PRD_EXC_FILE_IDX} AND PRD_EXC_RESULT = 'F') AS F_CNT,
+            (SELECT COUNT(*) FROM T_PRD_EXC WHERE PRD_EXC_FILE_IDX = #{PRD_EXC_FILE_IDX} AND PRD_EXC_RESULT = 'P') AS P_CNT
+        FROM DUAL
+    </select>
+    
+     <!-- 관리자 > 상품관리 > 상품업로드 결과 이미지 업로드 대상 조회 -->
+    <select id="selectProductImageUploadList" parameterType= "java.lang.Integer" resultType="HashMap">
+        /* ProductUpload.selectProductImageUploadList */
+        SELECT PRD_EXC_IDX, 
+               PRD_EXC_IMG,
+               PRD_MST_CD 
+        FROM T_PRD_EXC A
+        WHERE PRD_EXC_FILE_IDX = #{PRD_EXC_FILE_IDX}
+        AND PRD_EXC_RESULT = 'P'
+        AND PRD_EXC_IMG IS NOT NULL
+    </select>
+    <!-- 관리자 > 상품관리 > 상품업로드 결과 이미지 업로드 결과업데이트 -->
+    <update id="updateProductImageUploadResult" parameterType= "java.lang.Integer">
+        /* ProductUpload.updateProductImageUploadResult */
+        UPDATE
+            T_PRD_EXC 
+        SET  PRD_EXC_RESULT = 'Y'
+        WHERE
+            PRD_EXC_IDX = #{PRD_EXC_IDX}
+    </update>
+    
+    
+     <!-- 관리자 > 상품관리 > 상품업로드 결과 이미지 업로드 대상 조회 -->
+    <select id="selectProductImageIndex" parameterType= "HashMap" resultType="java.lang.Integer">
+        /* ProductUpload.selectProductImageIndex */
+        SELECT MAX(PRD_IMG_IDX)
+        FROM (
+            SELECT MAX(PRD_IMG_IDX) + 1 AS PRD_IMG_IDX 
+            FROM T_PRD_IMG A
+            WHERE PRD_PRD_MST_CD = #{PRD_MST_CD}
+            UNION
+            SELECT 0 AS PRD_IMG_IDX 
+            FROM DUAL
+        )
+    </select>
+    
+</mapper>

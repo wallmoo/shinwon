@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="BatchOrderCount">
+    
+    <!-- 상품테이블 판매갯수 업데이트 -->
+    <update id="updateOrderCount" parameterType="HashMap">
+        /* BatchOrderCount.updateOrderCount */
+        <![CDATA[
+         UPDATE T_PRD_MST PM SET (PRD_MST_ORD_CNT) = ( 
+            SELECT SUM(ORD_PRD_ORD_CNT) as ORD_CNT /* 주문수량 */ 
+              FROM ( SELECT ORD_PRD_MST_CD,
+                            ORD_PRD_ORD_CNT,
+                            SUBSTR(ORD_ORD_MST_CD, 0, 8) as ORD_DT /* 주문일 */
+                       FROM T_ORD_PRD TOP
+                      WHERE ORD_PRD_SLT_YN = 'N' /* 선택옵션 제외 */
+                        AND EXISTS ( SELECT 1
+                                       FROM T_ORD_PRD_HIS HIS
+                                      WHERE ORD_PRD_ORD_STATE = 405 /* 결제완료 */
+                                        AND HIS.ORD_ORD_PRD_IDX = TOP.ORD_PRD_IDX) )
+             WHERE ORD_DT BETWEEN TO_CHAR(SYSDATE-7,'YYYYMMDD') AND TO_CHAR(SYSDATE,'YYYYMMDD')
+               AND ORD_PRD_MST_CD = PRD_MST_CD
+          GROUP BY ORD_PRD_MST_CD)
+          WHERE PRD_MST_CD IN (
+                SELECT ORD_PRD_MST_CD
+                FROM T_ORD_PRD TOP
+                 WHERE ORD_PRD_SLT_YN = 'N' /* 선택옵션 제외 */
+                   AND EXISTS ( SELECT 1
+                                FROM T_ORD_PRD_HIS HIS
+                                WHERE ORD_PRD_ORD_STATE = 405 /* 결제완료 */
+                                  AND HIS.ORD_ORD_PRD_IDX = TOP.ORD_PRD_IDX) 
+                   AND SUBSTR(ORD_ORD_MST_CD, 0, 8) BETWEEN TO_CHAR(SYSDATE-7,'YYYYMMDD') AND TO_CHAR(SYSDATE,'YYYYMMDD')             
+                )
+    
+          ]]>
+    </update>   
+            
+</mapper>

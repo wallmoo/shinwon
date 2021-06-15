@@ -1,0 +1,148 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="DelivCompany">
+    <sql id="delivCompanyWhere">
+        <if test="searchDlvCpnNm != null and searchDlvCpnNm != ''">
+            AND DLV_CPN_NM LIKE '%' || #{searchDlvCpnNm} || '%'
+        </if>
+        <if test="searchDlvCpnOnYn != null and searchDlvCpnOnYn != ''">
+            AND DLV_CPN_ON_YN = #{searchDlvCpnOnYn}
+        </if>
+    </sql>
+    <!-- 관리자 > 사이트 관리 > 배송업체 관리 목록 갯수 -->
+    <select id="selectDelivCompanyListCount" parameterType="HashMap" resultType="Integer">
+        /* DelivCompany.selectDelivCompanyListCount */
+        SELECT
+            COUNT(DLV_CPN_IDX)
+        FROM
+            T_DLV_CPN
+        WHERE
+            1=1
+            <include refid="delivCompanyWhere"/>
+    </select>
+
+    <!-- 관리자 > 사이트 관리 > 배송업체 관리 목록 -->    
+    <select id="selectDelivCompanyList" parameterType="HashMap" resultType="HashMap">
+        /* DelivCompany.selectDelivCompanyList */
+        SELECT
+            S2.* 
+        FROM
+            (   SELECT
+                    ROWNUM AS RNUM,
+                    S1.* 
+                FROM
+                    (   SELECT
+                            DLV_CPN_IDX,
+                            DLV_CPN_NM,
+                            DLV_CPN_TEL,
+                            DLV_CPN_URL,
+                            DLV_CPN_ON_YN,
+                            DLV_CPN_REG_DT,
+                            DLV_CPN_REG_IP,
+                            DLV_CPN_REG_ID,
+                            DLV_CPN_UPD_DT,
+                            DLV_CPN_UPD_IP,
+                            DLV_CPN_UPD_ID,
+                            DLV_CPN_ESC_CD 
+                        FROM
+                            T_DLV_CPN
+                        WHERE
+							1=1
+                            <include refid="delivCompanyWhere"/>
+                        ORDER BY DLV_CPN_REG_DT DESC
+                    )
+                    S1 
+            )
+            S2 
+        WHERE
+            S2.RNUM BETWEEN #{startNum} AND #{endNum}
+    </select>
+    
+    <!-- 관리자 > 사이트 관리 > 배송업체 관리 상세정보 -->
+    <select id="selectDelivCompanyInfo" parameterType="HashMap" resultType="HashMap">
+        /* DelivCompany.selectDelivCompanyInfo */
+        SELECT
+            DLV_CPN_IDX,
+            DLV_CPN_NM,
+            DLV_CPN_TEL,
+            DLV_CPN_URL,
+            DLV_CPN_ON_YN,
+            DLV_CPN_REG_DT,
+            DLV_CPN_REG_IP,
+            DLV_CPN_REG_ID,
+            DLV_CPN_UPD_DT,
+            DLV_CPN_UPD_IP,
+            DLV_CPN_UPD_ID,
+            DLV_CPN_ESC_CD 
+        FROM
+            T_DLV_CPN
+        WHERE
+            DLV_CPN_IDX = #{DLV_CPN_IDX}
+    </select>
+    
+    <!-- 관리자 > 사이트 관리 > 배송업체 관리 등록 -->
+    <insert id="insertDelivCompany" parameterType="HashMap">
+        /* DelivCompany.insertDelivCompany */
+        INSERT INTO
+            T_DLV_CPN
+            (
+                DLV_CPN_IDX,
+                DLV_CPN_NM,
+                DLV_CPN_TEL,
+                DLV_CPN_URL,
+                DLV_CPN_ON_YN,
+                DLV_CPN_REG_DT,
+                DLV_CPN_REG_IP,
+                DLV_CPN_REG_ID,
+                DLV_CPN_ESC_CD
+            )
+        VALUES
+            (
+                SEQ_DLV_CPN_IDX.NEXTVAL,
+                #{DLV_CPN_NM},
+                #{DLV_CPN_TEL},
+                #{DLV_CPN_URL},
+                NVL(#{DLV_CPN_ON_YN}, 'Y'),
+                TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+                #{DLV_CPN_REG_IP},
+                #{DLV_CPN_REG_ID},
+                UPPER(#{DLV_CPN_ESC_CD})
+            )
+    </insert>
+    
+    <!-- 관리자 > 사이트 관리 > 배송업체 관리 수정 -->
+    <update id="updateDelivCompany" parameterType="Hashmap">
+        /* DelivCompany.updateDelivCompany */
+        UPDATE
+            T_DLV_CPN 
+        SET
+            DLV_CPN_NM = #{DLV_CPN_NM},
+            DLV_CPN_TEL = #{DLV_CPN_TEL},
+            DLV_CPN_URL = #{DLV_CPN_URL},
+            DLV_CPN_ON_YN = NVL(#{DLV_CPN_ON_YN}, 'Y'),
+            DLV_CPN_UPD_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+            DLV_CPN_UPD_IP = #{DLV_CPN_UPD_IP},
+            DLV_CPN_UPD_ID = #{DLV_CPN_UPD_ID},
+            DLV_CPN_ESC_CD = UPPER(#{DLV_CPN_ESC_CD})
+        WHERE
+            DLV_CPN_IDX = #{DLV_CPN_IDX}
+    </update>
+    
+    <!-- 택배사 리스트(주문송장번호 입력 팝업에서 사용) -->
+    <select id="selectSimpleDelivCompanyList" parameterType="HashMap" resultType="HashMap">
+        /* DelivCompany.selectSimpleDelivCompanyList */
+        SELECT
+             DLV_CPN_IDX,
+             DLV_CPN_NM,
+             DLV_CPN_TEL,
+             DLV_CPN_URL,
+             DLV_CPN_ON_YN
+         FROM
+             T_DLV_CPN
+         WHERE
+         	1=1
+         ORDER BY DLV_CPN_NM
+    </select>
+    
+</mapper>

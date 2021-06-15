@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="PcShoppingGuideBoard">
+    
+    <!-- 프론트 >  쇼핑 가이드 >  쇼핑가이드 카테고리 -->
+    <select id="selectShoppingGuideBoardList" parameterType="HashMap" resultType="HashMap">
+        /* PcShoppingGuideBoard.selectShoppingGuideBoardList */
+        SELECT
+            BRD_SHG_IDX,
+            BRD_CMN_COM_IDX,
+            BRD_SHG_TITLE,           
+            BRD_SHG_USE_YN,
+            CMN_COM_NM AS BRD_CMN_COM_NM       
+        FROM
+            T_BRD_SHG SHG, T_CMM_COM COM
+        WHERE
+            SHG.BRD_CMN_COM_IDX = COM.CMN_COM_IDX
+            AND BRD_CMN_COM_IDX != #{productTechInfoIdx}
+            AND BRD_SHG_USE_YN = 'Y'
+            AND BRD_SHG_BRAND_CD = #{BRD_SHG_BRAND_CD}
+            ORDER BY CMN_COM_SORT      
+    </select>
+    
+    <!-- 프론트 >  쇼핑 가이드 >  상세정보 -->
+    <resultMap id="resultShoppingGuideBoardInfo" type="HashMap">
+        <result property="BRD_SHG_IDX" column="BRD_SHG_IDX"/>
+        <result property="BRD_CMN_COM_IDX" column="BRD_CMN_COM_IDX"/>
+        <result property="BRD_SHG_TITLE" column="BRD_SHG_TITLE"/>
+        <result property="BRD_SHG_CONTENTS" column="BRD_SHG_CONTENTS" jdbcType="CLOB" javaType="java.lang.String"/>
+        <result property="BRD_SHG_USE_YN" column="BRD_SHG_USE_YN"/>
+    </resultMap>
+    <select id="selectShoppingGuideBoardInfo" parameterType="HashMap" resultMap="resultShoppingGuideBoardInfo">
+        /* PcShoppingGuideBoard.selectShoppingGuideBoardInfo */
+        SELECT
+            BRD_SHG_IDX,
+            BRD_CMN_COM_IDX,
+            BRD_SHG_TITLE,
+            BRD_SHG_CONTENTS,
+            BRD_SHG_USE_YN
+        FROM
+            T_BRD_SHG
+        WHERE
+            BRD_SHG_IDX = #{BRD_SHG_IDX}     
+            AND BRD_SHG_USE_YN = 'Y'          
+    </select>
+
+    <!-- 프론트 >  상품 가이드 >  상세정보 -->
+    <resultMap id="resultProductGuideBoardInfo" type="HashMap">
+        <result property="BRD_SHG_IDX" column="BRD_SHG_IDX"/>
+        <result property="BRD_CMN_COM_IDX" column="BRD_CMN_COM_IDX"/>
+        <result property="BRD_CMN_COM_SUB_IDX" column="BRD_CMN_COM_SUB_IDX"/>
+        <result property="BRD_SHG_TITLE" column="BRD_SHG_TITLE"/>
+        <result property="BRD_SHG_CONTENTS" column="BRD_SHG_CONTENTS" jdbcType="CLOB" javaType="java.lang.String"/>
+        <result property="BRD_SHG_USE_YN" column="BRD_SHG_USE_YN"/>
+    </resultMap>
+    <select id="selectProductGuideBoardInfoList" parameterType="HashMap" resultMap="resultProductGuideBoardInfo">
+        /* PcShoppingGuideBoard.selectProductGuideBoardInfoList */
+        SELECT
+            BRD_SHG_IDX,
+            BRD_CMN_COM_IDX,
+            BRD_CMN_COM_SUB_IDX,
+            BRD_SHG_TITLE,
+            BRD_SHG_CONTENTS,
+            BRD_SHG_USE_YN
+        FROM
+            T_BRD_SHG
+        WHERE
+            BRD_CMN_COM_SUB_IDX = #{BRD_CMN_COM_SUB_IDX}
+            AND BRD_SHG_USE_YN = 'Y'
+        ORDER BY BRD_SHG_IDX ASC            
+    </select>
+
+</mapper>

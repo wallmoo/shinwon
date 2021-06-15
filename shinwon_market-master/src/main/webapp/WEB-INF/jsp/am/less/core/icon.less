@@ -1,0 +1,173 @@
+/* icon : mixins ============================================================== */
+.background-image(@file, @type: png) {
+    background-image: url('@{path-images}/@{file}.@{type}');
+}
+
+.icon-size(@x, @y, @retina: true) when (@retina = false){
+    width: @x;
+    height: @y;
+    background-size: @x @y;
+}
+
+.icon-size(@x, @y, @retina: true) when (@retina = true){
+    @width: @x / 2;
+    @height: @y / 2;
+    width: @width;
+    height: @height;
+    background-size: @width @height;
+}
+
+.icon {
+    .box-sizing(content-box);
+    min-width: 18px;
+    min-height: 18px; // 행 정렬 이슈로 최소 높이는 18px 로 제한합니다.
+    .inline-block();
+    margin: 0;
+    padding: 0;
+    .text-none();
+    background-color: transparent;
+    .background-no-repeat();
+    background-position: center center;
+    .line-height-reset();
+    .vertical-middle();
+    em {
+        .semantic();
+        text-indent: -9999px;
+        color: transparent;
+        font-size: 1px;
+    }
+    &.hover {
+        opacity: .9;
+        a:hover & {
+            opacity: 1;
+        }
+    }
+}
+
+.icon(@x, @y, @file, @retina: false, @type: png){
+    .background-image(@file, @type);
+    .icon-size(@x, @y, @retina);
+}
+
+.icon-set(@x, @y, @file, @retina: false, @type: png) {
+    .background-image(@file, @type);
+    .icon-size(@x, @y, @retina);
+}
+
+// image sprite maker
+.sprite-set(@x, @y, @width, @height, @automate: false) when (@automate = false){
+    background-position: 0-(@width * @x) 0-(@height * @y);
+}
+.sprite-set(@x, @y, @width, @height, @automate: false) when (@automate = true){
+    width: @width;
+    height: @height;
+    background-position: 0-(@width * @x) 0-(@height * @y);
+    background-repeat: no-repeat;
+}
+
+/* icon : base ============================================================== */
+span.icon,
+i.icon {
+    text-align: left;
+    &.require {
+        min-width: 10px;
+        min-height: auto;
+        em {
+            .sr-only();
+        }
+        &:after {
+            content: '*';
+            color: @brand-primary;
+            font-style: normal;
+        }
+    }
+    &.lineup {
+        .icon-set(31px, 30px, 'btn_lineup');
+    }
+    &.linedown {
+        .icon-set(31px, 30px, 'btn_linedown');
+    }
+}
+
+i.require {
+    display: inline-block;
+    em {
+        .sr-only();
+    }
+    &:after {
+        display: inline-block;
+        margin: 0px 3px;
+        content: '*';
+        color: #ee0000;
+        font-style: normal;
+    }
+}
+
+.fonti {
+    em {
+        .sr-only();
+    }
+}
+
+/* 점수 */
+i.rate {
+    .icon();
+    .background-image('module/rate_sm');
+    background-size: 265px 104px;
+    .sprite-set(0, 0, 53px, 52px, true);
+
+    &.rate-9 { .sprite-set(1, 0, 53px, 52px, false); }
+    &.rate-8 { .sprite-set(2, 0, 53px, 52px, false); }
+    &.rate-7 { .sprite-set(3, 0, 53px, 52px, false); }
+    &.rate-6 { .sprite-set(4, 0, 53px, 52px, false); }
+    &.rate-5 { .sprite-set(0, 1, 53px, 52px, false); }
+    &.rate-4 { .sprite-set(1, 1, 53px, 52px, false); }
+    &.rate-3 { .sprite-set(2, 1, 53px, 52px, false); }
+    &.rate-2 { .sprite-set(3, 1, 53px, 52px, false); }
+    &.rate-1 { .sprite-set(4, 1, 53px, 52px, false); }
+
+}
+
+/* star point */
+span.star {
+    .icon();
+    width: 79px;
+    height: 18px;
+    overflow: hidden;
+    .background-image('common/star');
+    background-position: left top;
+    background-repeat: no-repeat;
+    background-size: 79px 100px;
+    &.star-5 { background-position: 0 0; }
+    &.star-4 { background-position: 0 -20px; }
+    &.star-3 { background-position: 0 -40px; }
+    &.star-2 { background-position: 0 -60px; }
+    &.star-1 { background-position: 0 -80px; }
+    em {
+        text-indent: -9999px;
+        color: transparent;
+        font-size: 1px;
+    }
+    label & {
+        cursor: pointer;
+    }
+}
+
+span.card {
+    .icon();
+    .icon-set(136px, 88px, 'common/card_family');
+}
+
+/* icon : sticker =============================================================================== */
+span.sticker {
+    .pos-absolute();
+    display: inline-block;
+    z-index: 10;
+    top: 0;
+    &.going {
+        font-size: 15px;
+        color: #fff;
+        background-color: @brand-warning;
+        padding: 5px 10px;
+    }
+}

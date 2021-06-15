@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="Discount">
+    <!-- 관리자 > 상품관리 > 임직원/제휴사 할인관리 > 조건절  -->
+    <sql id="DiscountWhere">
+        <if test="searchSeason != null and searchSeason != ''">
+            AND TDM.DSC_MST_SEASON = #{searchSeason}
+        </if>
+        
+        <if test="searchItemType != null and searchItemType != ''">
+            AND TDM.DSC_MST_NM = #{searchItemType}
+        </if>
+
+    <if test="searchYear != null and searchYear != ''">
+        <choose>
+            <when test="searchType != null and searchType.equals('S_ALL'.toString())">
+                AND TDM.DSC_MST_YEAR BETWEEN EXTRACT(YEAR FROM SYSDATE) AND EXTRACT(YEAR FROM SYSDATE) + 2
+            </when>
+    
+            <when test="searchType != null and searchType.equals('S_YEAR'.toString())">
+                AND TDM.DSC_MST_YEAR = #{searchYear}
+            </when>
+        </choose>
+    </if>
+
+    </sql>
+    
+    <!-- 관리자 > 상품관리 > 할인관리 -->
+    <insert id="insertDiscountInfo" parameterType="HashMap">
+        <selectKey resultType="Integer" keyProperty="DSC_MST_IDX" order="BEFORE">
+            SELECT SEQ_DSC_MST_IDX.NEXTVAL AS DSC_MST_IDX FROM DUAL
+        </selectKey>
+        /* Discount.insertDiscountInfo */
+        INSERT INTO
+            T_DSC_MST
+            (
+                DSC_MST_IDX,
+                DSC_MST_TYPE,
+                DSC_MST_SEASON,
+                DSC_MST_YEAR,
+                DSC_MST_NM,
+                BND_MST_IDX,
+                DSC_MST_RATE,
+                DSC_MST_REG_DT,
+                DSC_MST_REG_IP,
+                DSC_MST_REG_ID
+            )
+            VALUES
+            (
+                #{DSC_MST_IDX},
+                #{DSC_MST_TYPE},
+                #{DSC_MST_SEASON},
+                #{DSC_MST_YEAR},
+                #{DSC_MST_NM},
+                #{BND_MST_IDX},
+                NVL(#{DSC_MST_RATE},0),
+                TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+                #{DSC_MST_REG_IP},
+                #{DSC_MST_REG_ID}
+            )
+    </insert>
+    
+    <!-- 관리자 > 상품관리 > 할인관리 -->
+    <select id="selectDiscountList" parameterType="hashMap" resultType="hashMap">
+       /* Discount.selectDiscountList */
+        SELECT 
+            TBM.BND_MST_IDX
+            , TDM.DSC_MST_IDX
+            , NVL(TDM.DSC_MST_RATE,0) AS DSC_MST_RATE
+            , TDM.DSC_MST_YEAR
+            , TDM.DSC_MST_SEASON
+            , TCC.CMN_COM_NM 
+        FROM T_CMM_COM TCC, T_BND_MST TBM
+        LEFT OUTER JOIN T_DSC_MST TDM ON TBM.BND_MST_IDX = TDM.BND_MST_IDX AND TDM.DSC_MST_TYPE = #{DSC_MST_TYPE}
+        <include refid="DiscountWhere"/>
+        WHERE 
+            TBM.BND_MST_USE_YN = 'Y'
+            AND TBM.BND_MST_BRAND_TYPE = 'I'
+            AND TCC.CMN_COM_UP_IDX = '3005'
+            AND TCC.CMN_COM_IDX <![CDATA[ <> ]]> '3006'
+        ORDER BY TDM.DSC_MST_YEAR DESC, TCC.CMN_COM_NM ASC, TBM.BND_MST_BRAND_NM ASC
+    </select>
+    
+    <!-- 관리자 > 상품관리 > 할인 수정  -->
+    <update id="updateDiscountInfo" parameterType="hashmap" >
+        /* Discount.updateDiscountInfo */
+        UPDATE 
+            T_DSC_MST
+        SET
+            DSC_MST_RATE = NVL(#{DSC_MST_RATE},0)
+            , DSC_MST_UPD_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS')
+            , DSC_MST_UPD_IP = #{DSC_MST_UPD_IP}
+            , DSC_MST_UPD_ID = #{DSC_MST_UPD_ID}
+        WHERE
+            DSC_MST_IDX = #{DSC_MST_IDX}
+    </update>
+
+    <delete id="deleteDiscountInfo" parameterType="hashmap" >
+        /* Discount.deleteDiscountInfo */
+        DELETE FROM T_DSC_MST WHERE DSC_MST_IDX = #{DSC_MST_IDX}
+    </delete>
+    
+</mapper>

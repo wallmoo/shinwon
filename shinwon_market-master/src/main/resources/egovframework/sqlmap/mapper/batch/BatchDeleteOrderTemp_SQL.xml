@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="BatchDeleteOrderTemp">
+    
+    <delete id="deleteProductTemp" parameterType="HashMap">
+        /* BatchDeleteOrderTemp.deleteProductTemp   */
+    <![CDATA[
+        DELETE FROM T_PRD_TMP PT
+         WHERE EXISTS ( SELECT 1
+                          FROM T_ORD_TMP OT
+                         WHERE ORD_TMP_REG_DT < TO_CHAR(SYSDATE-3, 'YYYYMMDDHH24MISS')
+                           AND OT.ORD_TMP_MST_CD = PT.ORD_TMP_MST_CD)         
+    ]]>
+    </delete>
+    
+    <delete id="deleteOrderTemp" parameterType="HashMap">
+        /* BatchDeleteOrderTemp.deleteOrderTemp */
+    <![CDATA[
+        DELETE FROM T_ORD_TMP
+         WHERE ORD_TMP_REG_DT < TO_CHAR(SYSDATE-3, 'YYYYMMDDHH24MISS')
+              
+    ]]>
+    </delete>       
+            
+</mapper>

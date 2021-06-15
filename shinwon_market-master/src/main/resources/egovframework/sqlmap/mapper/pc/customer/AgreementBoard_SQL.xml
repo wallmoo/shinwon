@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="PcAgreementBoard">
+    <select id="selectAgreementInfo" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+        SELECT 
+            BRD_AGR_IDX                  
+            , BRD_AGR_CONTENTS                  
+            , BRD_AGR_REG_DT
+        FROM T_BRD_AGR
+        WHERE BRD_AGR_TYPE = #{BRD_AGR_TYPE}       
+    </select>
+    <select id="selectAgreementInfoByAgreementSiblingIndex" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+    	SELECT BRD_AGR_IDX                  
+            , BRD_AGR_CONTENTS                  
+            , BRD_AGR_REG_DT 
+            , TCC.CMN_COM_NM
+          FROM T_BRD_AGR TBA 
+    INNER JOIN T_CMM_COM TCC ON TCC.CMN_COM_IDX = TBA.BRD_AGR_TYPE  
+         WHERE CMN_COM_IDX IN (SELECT CMN_COM_IDX FROM T_CMM_COM tcc2 WHERE tcc2.CMN_COM_ETC1 = #{CMN_COM_IDX} )
+      ORDER BY TCC.CMN_COM_SORT ASC
+    </select>
+    <select id="selectAgreementInfoByAgreementTypeName" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+        SELECT 
+            BRD_AGR_IDX                  
+            , BRD_AGR_CONTENTS                  
+            , BRD_AGR_REG_DT
+        FROM T_BRD_AGR A 
+        INNER JOIN T_CMM_COM B
+        ON A.BRD_AGR_TYPE = B.CMN_COM_IDX
+        WHERE B.CMN_COM_NM = #{CMN_COM_NM}       
+    </select>
+    
+    <select id="selectAgreementInfoByMemberId" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+        /* PcAgreementBoard.selectAgreementInfoByMemberId */
+        SELECT
+			MEM_AGR_TRM_CD ,
+			MEM_AGR_TRM_YN ,
+			MEM_AGR_REG_DT
+		FROM
+			T_MEM_AGR 
+		WHERE 
+		    MEM_AGR_MEM_ID = #{MEM_AGR_REG_ID}
+		AND
+		    MEM_AGR_TRM_CD IN ('0001','0002','0003','0004','0005','0006')
+    </select>
+</mapper>

@@ -1,0 +1,162 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="ThemeProduct">
+    
+    <!-- 전시상품관리 리스트 갯수 -->
+    <select id="selectThemeProductListCount" parameterType="hashMap" resultType="integer">
+        /* ThemeProduct.selectThemeProductListCount */
+        SELECT
+            COUNT(0)
+        FROM
+            T_DSP_MST
+        WHERE
+            CMN_COM_IDX = #{CMN_COM_IDX}
+            AND DSP_MST_ENV = #{DSP_MST_ENV}
+    </select> 
+    
+    <!-- 전시상품관리 리스트 조회 -->
+    <select id="selectThemeProductList" parameterType="hashMap" resultType="hashMap">
+        /* ThemeProduct.selectThemeProductList */
+        SELECT IV1.*
+          FROM ( SELECT ROWNUM RNUM
+                      , A.*
+                   FROM (SELECT DSP.DSP_MST_IDX
+                              , DSP.CMN_COM_IDX
+                              , DSP.PRD_MST_CD
+                              , DSP.DSP_MST_REG_DT
+                              , DSP.DSP_MST_SRT 
+                              , DSP.DSP_MST_TXT
+                              , PRD.PRD_MST_SEL_STATE
+                              , PRD.PRD_MST_DPL_STATE
+                              , FN_PRODUCT_IMG(PRD.PRD_MST_CD, #{PRODUCT_THUMBNAIL_IMAGE_WIDTH}) AS PRD_IMAGE
+                           FROM T_DSP_MST DSP
+                              , T_PRD_MST PRD
+                          WHERE DSP.PRD_MST_CD = PRD.PRD_MST_CD  
+                            AND CMN_COM_IDX = #{CMN_COM_IDX}
+                            AND DSP_MST_ENV = #{DSP_MST_ENV}
+                          ORDER BY DSP_MST_SRT ASC,DSP_MST_REG_DT DESC, PRD_MST_CD ASC
+                        ) A
+                ) IV1
+         WHERE RNUM BETWEEN #{startNum} AND #{endNum} 
+         ORDER BY RNUM      
+    </select>
+
+    <!-- 전시상품관리 상세 조회 -->
+    <select id="selectThemeProductInfo" parameterType="hashMap" resultType="hashMap">
+        <![CDATA[
+        /* ThemeProduct.selectThemeProductInfo */
+        SELECT
+            DSP_MST_IDX, DSP_MST_TITLE, CMN_COM_IDX, DSP_MST_ST_DT, DSP_MST_ST_HH, DSP_MST_ST_MI, DSP_MST_ED_DT, DSP_MST_ED_HH, DSP_MST_ED_MI, DSP_MST_USE_YN
+        FROM
+            T_DSP_MST
+        WHERE
+            DSP_MST_IDX = #{DSP_MST_IDX}
+            AND DSP_MST_ENV = #{DSP_MST_ENV}
+        ]]>
+    </select>
+
+    <!-- 전시상품관리 등록 -->
+    <insert id="insertThemeProduct" parameterType="hashMap">
+        <selectKey keyProperty="DSP_MST_IDX" resultType="Integer" order="BEFORE">
+            SELECT SEQ_DSP_MST_IDX.NEXTVAL AS DSP_MST_IDX  FROM DUAL
+        </selectKey>
+        /* ThemeProduct.insertThemeProduct */
+        INSERT INTO T_DSP_MST (
+            DSP_MST_IDX
+            , CMN_COM_IDX
+            , PRD_MST_CD
+            , DSP_MST_TXT
+            , DSP_MST_REG_DT
+            , DSP_MST_REG_IP
+            , DSP_MST_REG_ID
+            , DSP_MST_SRT
+            , DSP_MST_ENV
+        ) VALUES (
+            #{DSP_MST_IDX}
+            , #{CMN_COM_IDX}
+            , #{PRD_MST_CD}
+            , #{DSP_MST_TXT}
+            , TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS')
+            , #{DSP_MST_REG_IP}
+            , #{DSP_MST_REG_ID}
+            , ( SELECT NVL(COUNT(0),0)+1
+                    FROM T_DSP_MST
+                    WHERE CMN_COM_IDX = #{CMN_COM_IDX}
+                    AND DSP_MST_ENV = #{DSP_MST_ENV}
+                )
+            , #{DSP_MST_ENV}
+        )
+    </insert>
+
+    <!-- 전시상품관리 수정 -->
+    <delete id="deleteThemeProduct" parameterType="hashMap">
+        /* ThemeProduct.deleteThemeProduct */
+        DELETE FROM T_DSP_MST 
+        WHERE DSP_MST_IDX IN        
+        <foreach collection="arrDSP_MST_IDX" item="DSP_MST_IDX" open="(" close=")" separator=",">
+            #{DSP_MST_IDX}
+        </foreach>
+       AND DSP_MST_ENV = #{DSP_MST_ENV}
+    </delete>        
+    
+    
+    <!-- 공통코드 현재 포함 하위 코드 조회 -->
+    <select id="selectProductCatCodeList" parameterType="hashMap" resultType="hashMap">
+        /* ThemeProduct.selectProductCatCodeList */
+        SELECT CMN_COM_LEVEL, CMN_COM_NM TITLE , CMN_COM_ETC1, CMN_COM_ETC2, CMN_COM_ETC3
+        FROM (
+            SELECT 
+                CMN_COM_LEVEL, CMN_COM_NM , CMN_COM_ETC1, CMN_COM_ETC2, CMN_COM_ETC3
+            FROM 
+                T_CMM_COM
+            WHERE
+                CMN_COM_USE_YN = 'Y'
+            START WITH CMN_COM_IDX = #{CMN_COM_IDX}
+            CONNECT BY PRIOR CMN_COM_UP_IDX = CMN_COM_IDX and CMN_COM_USE_YN = 'Y'
+            ORDER SIBLINGS BY CMN_COM_LEVEL ASC
+        ) ORDER BY CMN_COM_LEVEL DESC          
+    </select>    
+    
+    
+    <!-- 공통코드 현재 포함 하위 코드 조회 -->
+    <select id="selectSubCodeList" parameterType="hashMap" resultType="hashMap">
+        /* ThemeProduct.selectSubCodeList */
+        SELECT 
+            CMN_COM_IDX,
+            CMN_COM_NM,
+            CMN_COM_LEVEL,
+            CMN_COM_UP_IDX,
+            CMN_COM_TOP_IDX,
+            CMN_COM_ETC1,
+            CMN_COM_ETC2,
+            CMN_COM_ETC3,
+            CMN_COM_SORT,
+            CMN_COM_USE_YN,
+            CMN_COM_REG_DT,
+            CMN_COM_REG_IP,
+            CMN_COM_REG_ID,
+            CMN_COM_UPD_DT,
+            CMN_COM_UPD_IP,
+            CMN_COM_UPD_ID 
+        FROM 
+            T_CMM_COM
+        WHERE
+            CMN_COM_USE_YN = 'Y'
+        START WITH CMN_COM_UP_IDX = #{CODE}
+        CONNECT BY PRIOR CMN_COM_IDX = CMN_COM_UP_IDX
+        ORDER SIBLINGS BY CMN_COM_LEVEL, CMN_COM_SORT ASC
+    </select>
+    
+    <!-- 상품관리 정렬 순서 변경 -->
+    <update id="updateThemeProductOrder" parameterType="hashMap">
+        /* ThemeProduct.updateThemeProductOrder */
+        UPDATE 
+            T_DSP_MST
+        SET
+            DSP_MST_SRT = #{DSP_MST_SRT},
+            DSP_MST_USE_YN = #{DSP_MST_USE_YN}            
+        WHERE
+            DSP_MST_IDX = #{DSP_MST_IDX}
+    </update>
+</mapper>

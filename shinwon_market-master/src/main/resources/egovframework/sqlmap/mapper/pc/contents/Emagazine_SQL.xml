@@ -1,0 +1,527 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="pcEmagazine">
+    
+    
+    <select id="selectEmagazineManyRead" parameterType="hashMap" resultType="hashMap">
+        /* pcEmagazine.selectEmagazineManyRead */
+    SELECT S2.* 
+         , DECODE(S2.MGZ_MST_CTG, '2279', '테마', S2.MGZ_MST_CTG_NM) MGZ_MST_CTG_NM2
+         , CASE
+                WHEN MGZ_MST_KID = 'T' AND VSIZE(MGZ_MST_CPY) > 90 THEN SUBSTRB(MGZ_MST_CPY, 0, 88)||'..'
+                WHEN MGZ_MST_KID = 'S' AND VSIZE(MGZ_MST_CPY) > 70 THEN SUBSTRB(MGZ_MST_CPY, 0, 68)||'..'
+                WHEN MGZ_MST_KID = 'M' AND VSIZE(MGZ_MST_CPY) > 70 THEN SUBSTRB(MGZ_MST_CPY, 0, 68)||'..'
+                ELSE MGZ_MST_CPY
+            END SUBSTR_MGZ_MST_CPY  
+          FROM(     
+                SELECT ROWNUM AS RNUM
+                     , S1.* 
+                  FROM(   
+                    SELECT MGZ_MST_TITLE, MGZ_MST_CPY,
+                        (SELECT CMN_COM_NM FROM T_CMM_COM WHERE CMN_COM_IDX = M.MGZ_MST_CTG) AS MGZ_MST_CTG_NM,
+                        M.MGZ_MST_CTG,
+                        (SELECT CMN_COM_ETC1 FROM T_CMM_COM WHERE CMN_COM_IDX = M.MGZ_MST_CTG) AS MGZ_MST_CTG_CLR,
+                        (SELECT CMM_FLE_ATT_PATH||CMM_FLE_SYS_NM FROM T_CMM_FLE WHERE CMM_FLE_TB_NM = 'T_MGZ_MST' AND CMM_FLE_TB_PK = MGZ_MST_IDX AND CMM_FLE_TB_TYPE = 'P' AND CMM_FLE_USE_YN = 'Y' AND ROWNUM = 1) IMG_PATH_PC,
+                        (SELECT CMM_FLE_ATT_PATH||CMM_FLE_SYS_NM FROM T_CMM_FLE WHERE CMM_FLE_TB_NM = 'T_MGZ_MST' AND CMM_FLE_TB_PK = MGZ_MST_IDX AND CMM_FLE_TB_TYPE = 'M' AND CMM_FLE_USE_YN = 'Y' AND ROWNUM = 1) IMG_PATH_MB,
+                        (SELECT CMN_FLE_ALT_TXT FROM T_CMM_FLE WHERE CMM_FLE_TB_NM = 'T_MGZ_MST' AND CMM_FLE_TB_PK = MGZ_MST_IDX AND CMM_FLE_TB_TYPE = 'P' AND CMM_FLE_USE_YN = 'Y' AND ROWNUM = 1) IMG_PATH_PC_ALT,
+                        (SELECT CMN_FLE_ALT_TXT FROM T_CMM_FLE WHERE CMM_FLE_TB_NM = 'T_MGZ_MST' AND CMM_FLE_TB_PK = MGZ_MST_IDX AND CMM_FLE_TB_TYPE = 'M' AND CMM_FLE_USE_YN = 'Y' AND ROWNUM = 1) IMG_PATH_MB_ALT,
+                        MGZ_MST_KID,
+                        MGZ_MST_IDX
+                    FROM T_MGZ_MST M
+                    WHERE TO_DATE(MGZ_MST_REG_DT,'yyyymmddhh24miss') &gt; SYSDATE - 30
+                    <if test="searchMgzMstCtg != null and searchMgzMstCtg != ''">
+                        AND M.MGZ_MST_CTG = #{searchMgzMstCtg}
+                    </if>
+                    AND MGZ_MST_YN      = 'Y'
+                    ORDER BY MGZ_MST_CNT DESC, MGZ_MST_REG_DT DESC) S1 
+                ) S2 
+         WHERE S2.RNUM &lt; 5
+     
+    </select>
+    
+    <select id="selectEmagazineMainCount" parameterType="hashMap" resultType="Integer">
+        /* pcEmagazine.selectEmagazineMainCount */
+        SELECT  COUNT(*)
+        FROM T_MGZ_MST M
+        WHERE MGZ_MST_YN    = 'Y'
+        <if test="searchMgzMstCtg != null and searchMgzMstCtg != ''">
+            AND M.MGZ_MST_CTG = #{searchMgzMstCtg}
+        </if>
+        <if test="MGZ_MST_CTG != null and MGZ_MST_CTG != ''">
+            AND M.MGZ_MST_CTG = #{MGZ_MST_CTG}
+        </if>
+        <if test="searchMgzMstGbn != null and searchMgzMstGbn != ''">
+            AND M.MGZ_MST_GBN = #{searchMgzMstGbn}
+        </if>
+        <if test="searchMgzMstThmCtg1 != null and searchMgzMstThmCtg1 != ''">
+            AND M.MGZ_MST_THM_CTG1 = #{searchMgzMstThmCtg1}
+        </if>
+        <if test="searchMgzMstThmCtg2 != null and searchMgzMstThmCtg2 != ''">
+            AND M.MGZ_MST_THM_CTG2 = #{searchMgzMstThmCtg2}
+        </if>
+        <if test="searchMgzMstThmCtg3 != null and searchMgzMstThmCtg3 != ''">
+            AND M.MGZ_MST_THM_CTG3 = #{searchMgzMstThmCtg3}
+        </if>
+        <if test="MGZ_MST_GBN != null and MGZ_MST_GBN != ''">
+            AND M.MGZ_MST_GBN = #{MGZ_MST_GBN}
+        </if>
+        <if test="MGZ_MST_THM_CTG1 != null and MGZ_MST_THM_CTG1 != ''">
+            AND M.MGZ_MST_THM_CTG1 = #{MGZ_MST_THM_CTG1}
+        </if>
+        <if test="MGZ_MST_THM_CTG2 != null and MGZ_MST_THM_CTG2 != ''">
+            AND M.MGZ_MST_THM_CTG2 = #{MGZ_MST_THM_CTG2}
+        </if>
+        <if test="MGZ_MST_THM_CTG3 != null and MGZ_MST_THM_CTG3 != ''">
+            AND M.MGZ_MST_THM_CTG3 = #{MGZ_MST_THM_CTG3}
+        </if>
+    </select>
+    
+    <select id="selectEmagazineCtgName" parameterType="String" resultType="String">
+        /* pcEmagazine.selectEmagazineCtgName */
+        SELECT CMN_COM_NM 
+        FROM T_CMM_COM 
+        WHERE CMN_COM_IDX = #{MGX_MST_CTG}
+    </select>
+    
+    <select id="selectEmagazineMain" parameterType="hashMap" resultType="hashMap">
+        /* pcEmagazine.selectEmagazineMain */
+    SELECT S2.* 
+         , DECODE(S2.MGZ_MST_CTG, '2279', '테마', S2.MGZ_MST_CTG_NM) MGZ_MST_CTG_NM2
+         , CASE
+                WHEN MGZ_MST_KID = 'T' AND VSIZE(MGZ_MST_CPY) > 90 THEN SUBSTRB(MGZ_MST_CPY, 0, 88)||'..'
+                WHEN MGZ_MST_KID = 'S' AND VSIZE(MGZ_MST_CPY) > 70 THEN SUBSTRB(MGZ_MST_CPY, 0, 68)||'..'
+                WHEN MGZ_MST_KID = 'M' AND VSIZE(MGZ_MST_CPY) > 70 THEN SUBSTRB(MGZ_MST_CPY, 0, 68)||'..'
+                ELSE MGZ_MST_CPY
+            END SUBSTR_MGZ_MST_CPY  
+          FROM(     
+                SELECT ROWNUM AS RNUM
+                     , S1.* 
+                  FROM(   
+                    SELECT MGZ_MST_TITLE, MGZ_MST_CPY,
+                        (SELECT CMN_COM_NM FROM T_CMM_COM WHERE CMN_COM_IDX = M.MGZ_MST_CTG) AS MGZ_MST_CTG_NM,
+                        M.MGZ_MST_CTG,
+                        (SELECT CMN_COM_ETC1 FROM T_CMM_COM WHERE CMN_COM_IDX = M.MGZ_MST_CTG) AS MGZ_MST_CTG_CLR,
+                        (SELECT CMM_FLE_ATT_PATH||CMM_FLE_SYS_NM FROM T_CMM_FLE WHERE CMM_FLE_TB_NM = 'T_MGZ_MST' AND CMM_FLE_TB_PK = MGZ_MST_IDX AND CMM_FLE_TB_TYPE = 'P' AND CMM_FLE_USE_YN = 'Y' AND ROWNUM = 1) IMG_PATH_PC,
+                        (SELECT CMM_FLE_ATT_PATH||CMM_FLE_SYS_NM FROM T_CMM_FLE WHERE CMM_FLE_TB_NM = 'T_MGZ_MST' AND CMM_FLE_TB_PK = MGZ_MST_IDX AND CMM_FLE_TB_TYPE = 'M' AND CMM_FLE_USE_YN = 'Y' AND ROWNUM = 1) IMG_PATH_MB,
+                        (SELECT CMN_FLE_ALT_TXT FROM T_CMM_FLE WHERE CMM_FLE_TB_NM = 'T_MGZ_MST' AND CMM_FLE_TB_PK = MGZ_MST_IDX AND CMM_FLE_TB_TYPE = 'P' AND CMM_FLE_USE_YN = 'Y' AND ROWNUM = 1) IMG_PATH_PC_ALT,
+                        (SELECT CMN_FLE_ALT_TXT FROM T_CMM_FLE WHERE CMM_FLE_TB_NM = 'T_MGZ_MST' AND CMM_FLE_TB_PK = MGZ_MST_IDX AND CMM_FLE_TB_TYPE = 'M' AND CMM_FLE_USE_YN = 'Y' AND ROWNUM = 1) IMG_PATH_MB_ALT,
+                        MGZ_MST_KID,
+                        MGZ_MST_IDX
+                    FROM T_MGZ_MST M
+                    WHERE MGZ_MST_YN        = 'Y'
+                    <if test="MGZ_MST_CTG != null and MGZ_MST_CTG != ''">
+                        AND M.MGZ_MST_CTG = #{MGZ_MST_CTG}
+                    </if>
+                    <if test="searchMgzMstCtg != null and searchMgzMstCtg != ''">
+                        AND M.MGZ_MST_CTG = #{searchMgzMstCtg}
+                    </if>
+                    <if test="searchMgzMstGbn != null and searchMgzMstGbn != ''">
+                        AND M.MGZ_MST_GBN = #{searchMgzMstGbn}
+                    </if>
+                    <if test="searchMgzMstThmCtg1 != null and searchMgzMstThmCtg1 != ''">
+                        AND M.MGZ_MST_THM_CTG1 = #{searchMgzMstThmCtg1}
+                    </if>
+                    <if test="searchMgzMstThmCtg2 != null and searchMgzMstThmCtg2 != ''">
+                        AND M.MGZ_MST_THM_CTG2 = #{searchMgzMstThmCtg2}
+                    </if>
+                    <if test="searchMgzMstThmCtg3 != null and searchMgzMstThmCtg3 != ''">
+                        AND M.MGZ_MST_THM_CTG3 = #{searchMgzMstThmCtg3}
+                    </if>
+                    <if test="MGZ_MST_GBN != null and MGZ_MST_GBN != ''">
+                        AND M.MGZ_MST_GBN = #{MGZ_MST_GBN}
+                    </if>
+                    <if test="MGZ_MST_THM_CTG1 != null and MGZ_MST_THM_CTG1 != ''">
+                        AND M.MGZ_MST_THM_CTG1 = #{MGZ_MST_THM_CTG1}
+                    </if>
+                    <if test="MGZ_MST_THM_CTG2 != null and MGZ_MST_THM_CTG2 != ''">
+                        AND M.MGZ_MST_THM_CTG2 = #{MGZ_MST_THM_CTG2}
+                    </if>
+                    <if test="MGZ_MST_THM_CTG3 != null and MGZ_MST_THM_CTG3 != ''">
+                        AND M.MGZ_MST_THM_CTG3 = #{MGZ_MST_THM_CTG3}
+                    </if>
+                    <if test="searchGb != null and searchGb.equals('N'.toString())">
+                        ORDER BY MGZ_MST_REG_DT DESC
+                    </if>
+                    <if test="searchGb != null and searchGb.equals('R'.toString())">
+                        ORDER BY MGZ_MST_CNT DESC
+                    </if>
+                    ) S1 
+                ) S2 
+         WHERE S2.RNUM BETWEEN #{startNum} AND #{endNum}
+     
+    </select>
+         
+    <resultMap id="resultPcEmagazineInfo" type="HashMap">
+        <result property="MGZ_MST_IDX" column="MGZ_MST_IDX"/>
+        <result property="MGZ_MST_CTG" column="MGZ_MST_CTG"/>
+        <result property="MGZ_MST_CTG_NM" column="MGZ_MST_CTG_NM"/>  
+        <result property="MGZ_MST_GBN" column="MGZ_MST_GBN"/>
+        <result property="MGZ_MST_GBN_NM" column="MGZ_MST_GBN_NM"/>
+        <result property="MGZ_MST_KID" column="MGZ_MST_KID"/>
+        <result property="MGZ_MST_SRS" column="MGZ_MST_SRS"/>
+        <result property="MGZ_MST_TITLE" column="MGZ_MST_TITLE"/>
+        <result property="MGZ_MST_CPY" column="MGZ_MST_CPY"/>
+        <result property="MGZ_MST_CTS" column="MGZ_MST_CTS" jdbcType="CLOB" javaType="java.lang.String"/>           
+        <result property="MGZ_MST_YN" column="MGZ_MST_YN"/>
+        <result property="MGZ_MST_REG_DT" column="MGZ_MST_REG_DT"/>
+        <result property="MGZ_MST_REG_IP" column="MGZ_MST_REG_IP"/>
+        <result property="MGZ_MST_REG_ID" column="MGZ_MST_REG_ID"/>
+        <result property="MGZ_MST_UPD_DT" column="MGZ_MST_UPD_DT"/>
+        <result property="MGZ_MST_UPD_IP" column="MGZ_MST_UPD_IP"/>
+        <result property="MGZ_MST_UPD_ID" column="MGZ_MST_UPD_ID"/>
+        <result property="MGZ_MST_REG_NM" column="MGZ_MST_REG_NM"/>
+        <result property="MGZ_MST_UPD_NM" column="MGZ_MST_UPD_NM"/>
+        <result property="MGZ_MST_THM_CTG1" column="MGZ_MST_THM_CTG1"/>
+        <result property="MGZ_MST_THM_CTG2" column="MGZ_MST_THM_CTG2"/>
+        <result property="MGZ_MST_THM_CTG3" column="MGZ_MST_THM_CTG3"/>
+        <result property="MGZ_MST_DSP_YN" column="MGZ_MST_DSP_YN"/>
+        <result property="MGZ_MST_THM_CTG1_NM" column="MGZ_MST_THM_CTG1_NM"/>
+        <result property="MGZ_MST_THM_CTG2_NM" column="MGZ_MST_THM_CTG2_NM"/>
+        <result property="MGZ_MST_THM_CTG3_NM" column="MGZ_MST_THM_CTG3_NM"/>
+        <result property="NEXT_MGZ_MST_IDX" column="NEXT_MGZ_MST_IDX"/>
+        <result property="BEF_MGZ_MST_IDX" column="BEF_MGZ_MST_IDX"/>
+        
+    </resultMap>
+    
+    <select id="selectEmagazineView" parameterType="hashMap" resultMap="resultPcEmagazineInfo">
+        /* pcEmagazine.selectEmagazineView */
+        
+        SELECT 
+            MGZ.MGZ_MST_IDX,
+            MGZ.MGZ_MST_CTG,
+            (SELECT CMN_COM_NM FROM T_CMM_COM WHERE CMN_COM_IDX = MGZ.MGZ_MST_CTG) AS MGZ_MST_CTG_NM,
+            MGZ.MGZ_MST_GBN,
+            (SELECT CMN_COM_NM FROM T_CMM_COM WHERE CMN_COM_IDX = MGZ.MGZ_MST_GBN) AS MGZ_MST_GBN_NM,
+            MGZ.MGZ_MST_KID,
+            MGZ.MGZ_MST_SRS,
+            MGZ.MGZ_MST_TITLE,
+            MGZ.MGZ_MST_CPY,
+            MGZ.MGZ_MST_CTS,
+            MGZ.MGZ_MST_YN,
+            MGZ.MGZ_MST_REG_DT,
+            MGZ.MGZ_MST_REG_IP,
+            MGZ.MGZ_MST_REG_ID,
+            MGZ.MGZ_MST_UPD_DT,
+            MGZ.MGZ_MST_UPD_IP,
+            MGZ.MGZ_MST_UPD_ID,
+            (   SELECT
+                    ADM_MST_NM
+                FROM
+                    T_ADM_MST
+                WHERE
+                    ADM_MST_ID = MGZ.MGZ_MST_REG_ID
+            )
+            AS MGZ_MST_REG_NM,
+            (   SELECT
+                    ADM_MST_NM
+                FROM
+                    T_ADM_MST
+                WHERE
+                    ADM_MST_ID = MGZ.MGZ_MST_UPD_ID
+            )
+            AS MGZ_MST_UPD_NM,
+            MGZ.MGZ_MST_THM_CTG1,
+            MGZ.MGZ_MST_THM_CTG2,
+            MGZ.MGZ_MST_THM_CTG3,
+            (SELECT CMN_COM_NM FROM T_CMM_COM WHERE CMN_COM_IDX = MGZ.MGZ_MST_THM_CTG1) AS MGZ_MST_THM_CTG1_NM,
+            (SELECT CMN_COM_NM FROM T_CMM_COM WHERE CMN_COM_IDX = MGZ.MGZ_MST_THM_CTG2) AS MGZ_MST_THM_CTG2_NM,
+            (SELECT CMN_COM_NM FROM T_CMM_COM WHERE CMN_COM_IDX = MGZ.MGZ_MST_THM_CTG3) AS MGZ_MST_THM_CTG3_NM,
+            MGZ_MST_DSP_YN,
+            (SELECT MIN(MGZ_MST_IDX) FROM T_MGZ_MST WHERE MGZ_MST_CTG = MGZ.MGZ_MST_CTG AND MGZ_MST_IDX &gt; MGZ.MGZ_MST_IDX ) AS NEXT_MGZ_MST_IDX,
+            (SELECT MAX(MGZ_MST_IDX) FROM T_MGZ_MST WHERE MGZ_MST_CTG = MGZ.MGZ_MST_CTG AND MGZ_MST_IDX &lt; MGZ.MGZ_MST_IDX ) AS BEF_MGZ_MST_IDX
+        FROM
+            T_MGZ_MST MGZ
+        WHERE
+            MGZ.MGZ_MST_IDX = #{MGZ_MST_IDX}
+            
+    </select>
+    <select id="selectPcEmagazineQnaCount" parameterType="hashMap" resultType="Integer">
+        /* pcEmagazine.selectPcEmagazineQnaCount */
+        SELECT COUNT(*) 
+        FROM
+            T_MGZ_QNA MGZ
+        WHERE
+             MGZ.MGZ_MST_IDX = #{MGZ_MST_IDX}
+             <if test="MGZ_QNA_REG_ID != null and MGZ_QNA_REG_ID != ''">
+                AND MGZ.MGZ_QNA_REG_ID = #{MGZ_QNA_REG_ID}
+             </if>
+    </select>
+    
+         <!-- 관리자 > 게시판관리 > 이매거진관리 상세정보 > 기본정보-->
+    <resultMap id="resultPcEmagazineQnaInfo" type="HashMap">
+        <result property="RNUM" column="RNUM"/>
+        <result property="MGZ_QNA_IDX" column="MGZ_QNA_IDX"/>
+        <result property="MGZ_MST_IDX" column="MGZ_MST_IDX"/>
+        <result property="MGZ_QNA_QST" column="MGZ_QNA_QST" jdbcType="CLOB" javaType="java.lang.String"/>
+        <result property="MGZ_QNA_ANR" column="MGZ_QNA_ANR" jdbcType="CLOB" javaType="java.lang.String"/>
+        <result property="MGZ_QNA_ANR_YN" column="MGZ_QNA_ANR_YN"/>
+        <result property="MGZ_QNA_REG_ID_DSP" column="MGZ_QNA_REG_ID_DSP"/>
+        <result property="MGZ_QNA_REG_ID" column="MGZ_QNA_REG_ID"/>
+        <result property="MGZ_QNA_REG_DT_DSP" column="MGZ_QNA_REG_DT_DSP"/>
+        <result property="MGZ_QNA_REG_DT" column="MGZ_QNA_REG_DT"/>
+    </resultMap>
+    
+    <select id="selectPcEmagazineQnaList" parameterType="HashMap" resultMap="resultPcEmagazineQnaInfo">
+        /* Emagazine.selectPcEmagazineQnaList */
+        SELECT S2.* 
+          FROM(     
+                SELECT ROWNUM AS RNUM
+                     , S1.* 
+                  FROM(   
+                        SELECT
+                            MGZ.MGZ_QNA_IDX,
+                            MGZ.MGZ_MST_IDX,
+                            MGZ.MGZ_QNA_QST,
+                            MGZ.MGZ_QNA_ANR,
+                            MGZ.MGZ_QNA_ANR_YN,
+                            SUBSTR(MGZ.MGZ_QNA_REG_ID, 0, length(MGZ.MGZ_QNA_REG_ID) -3)||'***' as MGZ_QNA_REG_ID_DSP,
+                            MGZ.MGZ_QNA_REG_ID,
+                            TO_CHAR(TO_DATE(MGZ.MGZ_QNA_REG_DT,'yyyymmddhh24miss'),'yyyy.mm.dd') AS MGZ_QNA_REG_DT_DSP,
+                            MGZ_QNA_REG_DT
+                        FROM
+                            T_MGZ_QNA MGZ
+                        WHERE
+                            MGZ.MGZ_MST_IDX = #{MGZ_MST_IDX}
+                            <if test="MGZ_QNA_REG_ID != null and MGZ_QNA_REG_ID != ''">
+                                AND MGZ.MGZ_QNA_REG_ID = #{MGZ_QNA_REG_ID}
+                            </if>
+                            AND MGZ_QNA_YN = 'Y'
+                        ORDER BY MGZ_QNA_REG_DT DESC
+                    ) S1 
+                ) S2 
+         WHERE S2.RNUM BETWEEN #{startNum} AND #{endNum}
+    </select>
+    
+    <!--이매거진 상세 > 이매거진관리 qna 등록 -->
+    <insert id="insertEmagazineQna" parameterType="HashMap">
+        <selectKey keyProperty="MGZ_QNA_IDX" resultType="Integer" order="BEFORE">
+            SELECT SEQ_MGZ_QNA_IDX.NEXTVAL AS MGZ_QNA_IDX FROM DUAL
+        </selectKey>
+        /* Emagazine.insertEmagazineQna */
+        INSERT INTO
+            T_MGZ_QNA
+            (
+                MGZ_QNA_IDX,
+                MGZ_MST_IDX,
+                MGZ_QNA_QST,
+                MGZ_QNA_ANR_YN,
+                MGZ_QNA_YN,
+                MGZ_QNA_REG_ID,
+                MGZ_QNA_REG_IP,
+                MGZ_QNA_REG_DT
+               
+            )
+        VALUES
+            (
+                #{MGZ_QNA_IDX},
+                #{MGZ_MST_IDX},             
+                #{MGZ_QNA_QST},   
+                'N',
+                'Y',
+                #{MGZ_QNA_REG_ID},
+                #{MGZ_QNA_REG_IP},
+                TO_CHAR(SYSDATE,'yyyymmddhh24miss')
+            )
+    </insert>
+    
+    <update id="deleteEmagazineQna" parameterType="HashMap">
+        UPDATE T_MGZ_QNA 
+        SET MGZ_QNA_YN = 'N',
+            MGZ_QNA_UPD_ID = #{MGZ_QNA_UPD_ID},
+            MGZ_QNA_UPD_IP = #{MGZ_QNA_UPD_IP},
+            MGZ_QNA_UPD_DT = TO_CHAR(SYSDATE,'yyyymmddhh24miss')
+        WHERE MGZ_QNA_IDX = #{MGZ_QNA_IDX}
+    </update>
+    
+    <update id="updateEmagazineReadCount" parameterType="HashMap">
+        UPDATE T_MGZ_MST
+        SET MGZ_MST_CNT = NVL(MGZ_MST_CNT,0) + 1
+        WHERE MGZ_MST_IDX = #{MGZ_MST_IDX}
+    </update>
+    
+    <select id="selectMobileEmagazineProductList" parameterType="HashMap" resultType="HashMap">
+        SELECT A.*, 
+               DECODE(MOD(ROWNUM,2),1,'a','b') AS RNK_GB,
+               ROUND(((PRD_MST_PRC - MGZ_PRD_PRICE) / PRD_MST_PRC) * 100,1) AS PRD_SALE_RATE
+        FROM (
+                SELECT P.PRD_MST_CD,
+                       P.PRD_MST_NM,
+                       FN_PRODUCT_IMG(E.PRD_MST_CD,'198') IMG_THUMBNAIL,
+                       P.PRD_MST_PRC,
+                       FN_PRODUCT_LIST_PRICE(E.PRD_MST_CD , 'M', #{MEM_MST_MEM_ID}) MGZ_PRD_PRICE
+                FROM T_PRD_MGZ E, T_PRD_MST P 
+                WHERE E.PRD_MST_CD = P.PRD_MST_CD
+                AND E.MGZ_MST_IDX = #{MGZ_MST_IDX}
+                ORDER BY E.PRD_MGZ_SEQ
+            ) A
+    </select>
+    
+    <!-- 상품목록  -->
+    <select id="selectEmagazineProductList" parameterType="HashMap" resultType="HashMap">
+        /* Emagazine.selectProductList */
+        SELECT 
+            PRD_MST_CD
+            , PRD_MST_NM
+            , PRD_MST_PRC
+            , PRD_IMAGE
+            , PRD_IMAGE_ALT
+            , ERP_MST_SELL_PRC
+            , PRD_MST_PRICE
+            , PRD_MST_PC_CPN_PRC
+            , PRD_MST_DLV_FEE
+            , PRD_MST_O2O_YN
+            , PRD_MST_COU_CNT
+            , PRD_MST_GFT_CNT
+            , PRD_MST_CRD_CNT
+            , REP_POINT
+            , REP_CNT
+            , REP_POINT_GRD
+            , PRD_NEW_ICO
+            , PRD_MST_OPT_EST_CNT
+            , PRD_MST_ICON_LIST
+            , PRD_MST_SIKR_ICON
+        FROM ( 
+            SELECT 
+                ROWNUM RNUM
+                , PRD_MST_CD
+                , PRD_MST_NM, PRD_MST_PRC
+                , PRD_IMAGE
+                , PRD_IMAGE_ALT
+                , ERP_MST_SELL_PRC
+                , PRD_MST_PRICE
+                , PRD_MST_PC_CPN_PRC
+                , PRD_MST_DLV_FEE
+                , PRD_MST_O2O_YN
+                , PRD_MST_COU_CNT
+                , PRD_MST_GFT_CNT
+                , PRD_MST_CRD_CNT
+                , FN_GET_PRODUCT_REQ_POINT(REP_POINT) AS REP_POINT
+                , REP_CNT
+                , FN_GET_PRODUCT_REQ(REP_POINT) AS REP_POINT_GRD
+                , PRD_NEW_ICO
+                , PRD_MST_OPT_EST_CNT
+                , PRD_MST_REG_DT
+                , PRD_MST_ORD_CNT
+                , PRD_MST_ONLINE_HIT
+                , PRD_MST_ICON_LIST
+                , NVL(PRD_MST_SIKR_ICON, '') AS PRD_MST_SIKR_ICON
+            FROM 
+            (   
+                SELECT PM.PRD_MST_CD
+                     , FN_GET_PRODUCT_NM(PM.PRD_MST_CD,34) AS PRD_MST_NM
+                     , PM.PRD_MST_PRC
+                     , FN_PRODUCT_IMG(PRD_MST_CD, #{THUMBNAIL_SIZE}) PRD_IMAGE
+                     , FN_PRODUCT_IMG_ALT(PRD_MST_CD, #THUMBNAIL_SIZE#) PRD_IMAGE_ALT
+                     , 0 AS ERP_MST_SELL_PRC
+                     , FN_PRODUCT_LIST_PRICE(PM.PRD_MST_CD,#{USER_ENV_TYPE}, #{MEM_MST_MEM_ID}) AS PRD_MST_PRICE
+                     , NVL(PM.PRD_MST_PC_CPN_PRC,0) AS PRD_MST_PC_CPN_PRC
+                     , PM.PRD_MST_DLV_FEE
+                     , PM.PRD_MST_O2O_YN
+                     , (
+                            SELECT COUNT(*)
+                            FROM T_CPN_MST AS CMT
+                            INNER JOIN T_CPN_TGT CTT ON CMT.CPN_MST_IDX = CTT.CPN_MST_IDX
+                            WHERE CTT.CPN_TGT_CD = PM.PRD_MST_CD
+                            AND CMT.CPN_MST_YN = 'Y'    --사용여부
+                            AND TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS') BETWEEN CMT.CPN_MST_ISU_ST_DT ||CMT.CPN_MST_ISU_ST_HH||CMT.CPN_MST_ISU_ST_MM AND CMT.CPN_MST_ISU_ED_DT ||CMT.CPN_MST_ISU_ED_HH||CMT.CPN_MST_ISU_ED_MM
+                            AND CMT.CPN_MST_ISU_CNT > 0 --발급수량
+                        ) AS PRD_MST_COU_CNT
+                     , (
+                            SELECT COUNT(*)
+                            FROM T_GFT_MST AS GMT
+                            INNER JOIN T_PRD_GFT PGT ON GMT.GFT_MST_IDX = PGT.GFT_MST_IDX
+                            WHERE PGT.PRD_PRD_MST_CD = PM.PRD_MST_CD
+                            AND GMT.GFT_MST_USE_YN = 'Y'
+                            AND GMT.GFT_MST_STOCK_CNT > 0
+                            AND TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS') BETWEEN GMT.GFT_MST_ST_DT||'000000' AND GMT.GFT_MST_ED_DT||'235959'
+                        ) AS PRD_MST_GFT_CNT
+                     , (
+                            SELECT COUNT(*)
+                            FROM T_CRD_PMT AS CPT
+                            INNER JOIN T_PMT_CRD PCD ON CPT.CRD_PMT_IDX = PCD.PMT_CRD_PMT_IDX
+                            WHERE CRD_PMT_USE_YN = 'Y'
+                            AND TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS') BETWEEN CRD_PMT_ST_DT ||CRD_PMT_ST_HH||CRD_PMT_ST_MM AND CRD_PMT_ED_DT ||CRD_PMT_ED_HH||CRD_PMT_ED_MM
+                            AND PCD.PMT_CRD_SML_PRC <![CDATA[<=]]> (
+                                                            SELECT 
+                                                                 CASE WHEN PRD_MST_PC_CPN_PRC > 0 THEN 
+                                                                    CASE WHEN PRD_MST_PC_CPN_UNT = 'R' THEN
+                                                                        PRD_MST_PRC - (PRD_MST_PRC * (PRD_MST_PC_CPN_PRC/100))
+                                                                    ELSE PRD_MST_PRC - PRD_MST_PC_CPN_PRC END
+                                                                  END AS PRD_MST_DCT_PRC
+                                                            FROM T_PRD_MST
+                                                            WHERE PRD_MST_CD = PM.PRD_MST_CD
+                                                        )
+                        ) AS PRD_MST_CRD_CNT
+                     , (SELECT NVL(ROUND( ((SUM(PRD_REV_FNC_STAR) + SUM(PRD_REV_PRC_STAR) + SUM(PRD_REV_SCORE_STAR)) / 3) / COUNT(0) ,1),0) FROM T_PRD_REV WHERE T_PRD_REV.PRD_PRD_MST_CD = PM.PRD_MST_CD) AS REP_POINT
+                     , (SELECT COUNT(0) FROM T_PRD_REV WHERE T_PRD_REV.PRD_PRD_MST_CD = PM.PRD_MST_CD) AS REP_CNT
+                     , TO_DATE(TO_CHAR(SYSDATE, 'YYYYMMDD')) +1 - TO_DATE(TO_CHAR(TO_DATE(PM.PRD_MST_REG_DT,'YYYYMMDDHH24MISS'),'YYYYMMDD'),'YYYYMMDD') AS PRD_NEW_ICO
+                     , (
+                            SELECT COUNT(0) 
+                            FROM T_PRD_OPT PRP
+                            WHERE PRP.PRD_MST_CD = PM.PRD_MST_CD 
+                            AND PRP.PRD_OPT_EST_YN = 'Y' 
+                            AND EXISTS (
+                                SELECT COUNT(*)
+                                FROM T_OPT_DTL OPD
+                                WHERE OPD.PRD_OPT_IDX = PRP.PRD_OPT_IDX
+                                AND OPD.OPT_DTL_USE_YN = 'Y'
+                                AND TO_CHAR(SYSDATE,'YYYYMMDDHH24MI') BETWEEN OPD.OPT_DTL_ST_DT||'000000' AND OPD.OPT_DTL_ED_DT||'235959' 
+                            )
+                        ) AS PRD_MST_OPT_EST_CNT
+                     , PM.PRD_MST_REG_DT
+                     , NVL(PM.PRD_MST_ORD_CNT,0) AS PRD_MST_ORD_CNT
+                     , NVL(PRD_MST_ORD_CNT,0) + NVL(PRD_MST_RED_CNT,0) AS PRD_MST_ONLINE_HIT
+                     , FN_GET_PRODUCT_ICON(PM.PRD_MST_CD,#{USER_ENV_TYPE}) AS PRD_MST_ICON_LIST
+                     , FN_GET_PRODUCT_STICKER_ICON(PM.PRD_MST_CD,'P') AS PRD_MST_SIKR_ICON
+                FROM T_PRD_MST PM 
+                WHERE PM.PRD_MST_CD IN  (SELECT PRD_MST_CD FROM T_PRD_MGZ WHERE MGZ_MST_IDX = #{MGZ_MST_IDX})
+            )PR
+        ) A
+    </select>
+    <!-- 프론트 > 장바구니 > 관심 상품 중복 체크 -->
+    <select id="selectInterestContentsCheckCount" parameterType="HashMap" resultType="Integer">
+        /* pcEmagazine.selectInterestProductCheckCount */
+        SELECT
+            COUNT(1)
+        FROM
+            T_MEM_CTS
+        WHERE MEM_MST_MEM_ID = #{MEM_MST_MEM_ID}
+            AND MEM_CTS_GBN = #{MEM_CTS_GBN}
+            AND MEM_CTS_GBN_IDX = #{MEM_CTS_GBN_IDX}
+    </select>
+    
+    <!-- 프론트 > 장바구니 > 관심 상품 등록 -->
+    <insert id="insertInterestContents" parameterType="HashMap">
+        /* pcEmagazine.insertInterestContents */
+        INSERT INTO
+            T_MEM_CTS
+            (
+                MEM_CTS_IDX,
+                MEM_MST_MEM_ID,
+                MEM_CTS_GBN,
+                MEM_CTS_GBN_IDX,
+                MEM_CTS_REG_DT,
+                MEM_CTS_REG_IP
+            )
+        VALUES
+            (
+                SEQ_MEM_CTS_IDX.NEXTVAL,
+                #{MEM_MST_MEM_ID},
+                #{MEM_CTS_GBN},
+                #{MEM_CTS_GBN_IDX},
+                TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+                #{MEM_CTS_REG_IP}
+            )
+    </insert>
+    
+    <select id="selectEmagazineMyReqCnt" parameterType="HashMap" resultType="Integer">
+        /* pcEmagazine.selectEmagazineMyReqCnt */
+        
+            SELECT COUNT(*) 
+              FROM T_MGZ_QNA MGZ
+             WHERE MGZ.MGZ_MST_IDX = #{MGZ_MST_IDX}
+               AND MGZ_QNA_YN = 'Y'
+               AND MGZ_QNA_REG_ID   = #{MEM_MST_MEM_ID}           
+    </select>
+</mapper>

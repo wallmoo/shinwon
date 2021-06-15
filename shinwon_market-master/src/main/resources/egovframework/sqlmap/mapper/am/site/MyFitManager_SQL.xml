@@ -1,0 +1,249 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="MyFitManager">
+	<!-- 관리자 > 시스템 관리 > 마이핏 관리 > 조건절  -->
+    <sql id="MyFitManagerWhere">
+        <!-- 중분류 검색 -->
+        <if test="searchSubCategory != null and searchSubCategory != ''">
+            AND TFM.CMN_COM_IDX = #{searchSubCategory}
+        </if>
+        <if test="searchMyFitUseYn != null and searchMyFitUseYn != ''">
+            AND FIT_MST_USE_YN = #{searchMyFitUseYn}
+        </if>
+    </sql>
+    
+	<!-- 관리자 > 시스템 관리 > 마이핏 관리 목록 갯수 -->
+	<select id="selectMyFitManagerListCount" parameterType="HashMap" resultType="Integer">
+		/* MyFitManager.selectMyFitManagerListCount */
+		SELECT
+			COUNT(1)
+		FROM
+			T_FIT_MST TFM
+            , T_CMM_COM TCC
+                <if test="searchInfoIdx != null and searchInfoIdx != '' ">
+                    , T_FIT_INFO TFI
+                </if>
+		WHERE 	
+			1=1
+            AND TFM.CMN_COM_IDX = TCC.CMN_COM_IDX
+            <if test="searchInfoIdx != null and searchInfoIdx != '' ">
+                AND TFM.FIT_MST_IDX = TFI.FIT_MST_IDX
+                AND TFI.CMN_COM_IDX = #{searchInfoIdx}
+            </if>
+			<include refid="MyFitManagerWhere"/>
+	</select>
+	
+	<!-- 관리자 > 사이트 관리 > 마이핏 관리 목록 -->
+	<select id="selectMyFitManagerList" parameterType="HashMap" resultType="HashMap">
+		/* MyFitManager.selectMyFitManagerList */
+        SELECT
+        	S2.*
+        FROM
+        (
+        	SELECT 
+        		ROWNUM AS RNUM
+        		, S1.*
+        	FROM
+        		(
+        			SELECT
+        				FIT_MST_IDX,
+        				(SELECT TCC.CMN_COM_NM FROM T_CMM_COM TCC WHERE TCC.CMN_COM_IDX = MAIN_CTG ) AS MAIN_CTG,
+        				SUB_CTG,
+        				FIT_MST_USE_YN,
+        				FIT_MST_REG_DT
+        			FROM
+        				(
+        					SELECT
+        						TFM.FIT_MST_IDX,
+        						TCC.CMN_COM_UP_IDX AS MAIN_CTG, /* 항목 대분류 */
+        						TCC.CMN_COM_NM AS SUB_CTG, /*항목 중분류*/
+        						TFM.FIT_MST_USE_YN,
+        						TFM.FIT_MST_REG_DT
+        					FROM
+        						T_FIT_MST TFM, T_CMM_COM TCC
+                                <if test="searchInfoIdx != null and searchInfoIdx != '' ">
+                                    , T_FIT_INFO TFI
+                                </if>
+        					WHERE TFM.CMN_COM_IDX = TCC.CMN_COM_IDX    
+                                <if test="searchInfoIdx != null and searchInfoIdx != '' ">
+                                    AND TFM.FIT_MST_IDX = TFI.FIT_MST_IDX
+                                    AND TFI.CMN_COM_IDX = #{searchInfoIdx}
+                                </if>
+                        )
+        			WHERE 1=1 
+        				<include refid="MyFitManagerWhere"/>
+        			ORDER BY FIT_MST_REG_DT DESC
+        		) S1
+        ) S2
+        <if test="startNum != null and startNum != '' and endNum != null and endNum != ''">
+            WHERE 
+                S2.RNUM BETWEEN #{startNum} AND #{endNum}
+        </if>
+	</select>
+	
+	<!-- 관리자 > 시스템관리 > 마이핏 관리 등록 -->
+	<insert id="insertMyFitManager" parameterType="HashMap">
+        <selectKey resultType="Integer" keyProperty="FIT_MST_IDX" order="BEFORE">
+            SELECT SEQ_FIT_MST_IDX.NEXTVAL AS FIT_MST_IDX FROM DUAL
+        </selectKey>
+		/* MyFitManager.insertMyFitManager */
+		INSERT INTO
+			T_FIT_MST
+			(
+                FIT_MST_IDX,
+                FIT_MST_CTG,
+                CMN_COM_IDX,
+				FIT_MST_USE_YN,
+				FIT_MST_REG_DT,
+				FIT_MST_REG_ID,
+				FIT_MST_REG_IP
+			)
+		VALUES
+			(
+				#{FIT_MST_IDX},
+                #{FIT_MST_CTG},
+                #{CMN_COM_IDX},
+				#{FIT_MST_USE_YN},
+                TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+                #{FIT_MST_REG_ID},
+                #{FIT_MST_REG_IP}
+			)
+	</insert>
+    
+    <!-- 관리자 > 시스템관리 > 마이핏 입력정보 등록 -->
+    <insert id="insertMyFitInfoManager" parameterType="HashMap">
+        /* MyFitManager.insertMyFitInfoManager */
+        INSERT INTO
+            T_FIT_INFO
+            (
+                FIT_MST_IDX,
+                CMN_COM_IDX
+            )
+        VALUES
+            (
+                #{FIT_MST_IDX},
+                #{CMN_COM_IDX}
+            )
+    </insert>
+    
+    
+    <!-- 관리자 > 시스템 관리 > 마이핏 기본정보-->
+    <select id="selectMyFitManagerInfo" parameterType="HashMap" resultType="HashMap">
+        /* MyFitManager.selectMyFitManagerInfo */
+        SELECT 
+            TFM.FIT_MST_IDX,
+            (SELECT TCC.CMN_COM_UP_IDX FROM T_CMM_COM TCC WHERE TCC.CMN_COM_IDX = TFM.CMN_COM_IDX) AS CMN_COM_UP_IDX,
+            TFM.CMN_COM_IDX,
+            TFM.FIT_MST_CTG,
+            TFM.FIT_MST_USE_YN,
+            TFM.FIT_MST_REG_DT,
+            TFM.FIT_MST_REG_IP,
+            TFM.FIT_MST_REG_ID,
+            TFM.FIT_MST_UPD_DT,
+            TFM.FIT_MST_UPD_IP,
+            TFM.FIT_MST_UPD_ID
+        FROM 
+            T_FIT_MST TFM
+        WHERE 
+            TFM.FIT_MST_IDX = #{FIT_MST_IDX}
+    </select>
+    
+    <!-- 관리자 > 시스템 관리 > 마이핏 카테고리 목록-->
+    <select id="selectMyFitCategory" parameterType="HashMap" resultType="HashMap">
+        
+        /* MyFitManager.selectMyFitCategory */
+        SELECT
+            PC.PRD_CTG_IDX,
+            PC.PRD_CTG_NM,
+            PC.PRD_CTG_LEVEL,
+            PC.PRD_CTG_TOP_IDX,
+            PC.PRD_CTG_ENV
+        FROM
+            T_PRD_CTG PC
+        WHERE
+            1 = 1
+            <if test = "PRD_CTG_ENV != null and PRD_CTG_ENV != ''">
+                AND PRD_CTG_ENV = #{PRD_CTG_ENV}
+            </if>
+            AND PRD_CTG_DSP_YN = 'Y'
+            AND PRD_CTG_USE_YN = 'Y' 
+            AND PRD_CTG_DEL_YN <![CDATA[ <> ]]> 'Y'
+        START WITH PC.PRD_CTG_IDX = #{FIT_MST_CTG} AND PRD_CTG_USE_YN = 'Y' AND PRD_CTG_DEL_YN <![CDATA[ <> ]]> 'Y'
+        CONNECT BY PRIOR PC.PRD_CTG_UP_IDX = PC.PRD_CTG_IDX AND PRD_CTG_DSP_YN = 'Y' AND PRD_CTG_USE_YN = 'Y' AND PRD_CTG_DEL_YN != 'Y'
+    </select>
+    
+    <!-- 관리자 > 시스템 관리 > 마이핏 입력정보 목록-->
+    <select id="selectMyFitInputList" parameterType="HashMap" resultType="HashMap">
+        /* MyFitManager.selectMyFitInputList */
+        SELECT
+            TFM.FIT_MST_IDX ,
+            TFI.CMN_COM_IDX,
+            TCC.CMN_COM_NM 
+        FROM 
+            T_FIT_INFO TFI, T_FIT_MST TFM, T_CMM_COM TCC
+        WHERE 1=1
+            <if test="FIT_MST_IDX != null and FIT_MST_IDX !='' ">
+                AND TFM.FIT_MST_IDX = #{FIT_MST_IDX}
+            </if> 
+            AND TFI.FIT_MST_IDX = TFM.FIT_MST_IDX
+            AND TFI.CMN_COM_IDX = TCC.CMN_COM_IDX
+        ORDER BY TFM.FIT_MST_IDX DESC
+    </select>
+    
+    <!-- 관리자 > 시스템 관리 > 등록한 마이핏 입력정보 체크 목록-->
+    <select id="selectMyFitInputCheckList" parameterType="HashMap" resultType="HashMap">
+        /* MyFitManager.selectMyFitInputCheckList */
+        SELECT
+        	TCC.CMN_COM_IDX
+        	, TCC.CMN_COM_NM
+        	, 
+        	(
+        		SELECT CASE WHEN COUNT(0) > 0 THEN 'Y' ELSE 'N' END 
+        		FROM T_FIT_INFO TFI
+        		WHERE TFI.FIT_MST_IDX = #{FIT_MST_IDX}
+        		AND TFI.CMN_COM_IDX = TCC.CMN_COM_IDX
+        	) AS FIT_INFO_CHECH_YN
+        FROM T_CMM_COM TCC
+        WHERE TCC.CMN_COM_UP_IDX = #{CMN_COM_UP_IDX}
+        AND CMN_COM_USE_YN = 'Y'
+    </select>
+	
+	<!-- 관리자 > 시스템 관리 > 마이핏 정보 수정-->
+	<update id="updateMyFitInfoManager" parameterType="HashMap">
+		/* MyFitManager.updateMyFitInfoManager */
+		UPDATE 
+			T_FIT_MST
+		SET
+            CMN_COM_IDX = #{CMN_COM_IDX} ,
+            FIT_MST_CTG = #{FIT_MST_CTG} ,
+            FIT_MST_USE_YN = #{FIT_MST_USE_YN},
+            FIT_MST_UPD_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+            FIT_MST_UPD_IP = #{FIT_MST_UPD_IP},
+            FIT_MST_UPD_ID = #{FIT_MST_UPD_ID}
+		WHERE 
+			FIT_MST_IDX = #{FIT_MST_IDX}
+	</update>
+    
+    <!-- 관리자 > 시스템관리 > 마이핏 입력정보 삭제 -->
+    <delete id="deleteMyFitInputList" parameterType="HashMap">
+        /* MyFitManager.deleteMyFitInputList */
+        DELETE FROM T_FIT_INFO WHERE FIT_MST_IDX = #{FIT_MST_IDX}
+    </delete>
+	
+	<!-- 마이핏 하위 항목 분류 리스트 조회 -->
+    <select id="selectMyFitSubCategoryList" parameterType="hashMap" resultType="hashMap">
+        /* MyFitManager.selectMyFitSubCategoryList */
+        SELECT
+            CMN_COM_IDX
+            , CMN_COM_NM
+            , CMN_COM_USE_YN
+        FROM
+            T_CMM_COM
+        WHERE
+            CMN_COM_UP_IDX = #{CMN_COM_IDX}
+            AND CMN_COM_USE_YN = 'Y'
+        ORDER BY CMN_COM_IDX ASC
+    </select>
+	
+</mapper>

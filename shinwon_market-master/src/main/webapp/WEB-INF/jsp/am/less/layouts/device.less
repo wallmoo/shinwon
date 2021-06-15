@@ -1,0 +1,23 @@
+html {
+    &.no-touch {
+        .mobile {
+            display: none;
+        }
+    }
+    &.touch {
+        .desktop {
+            display: none;
+        }
+    }
+    @media only screen and (min-width: @screen-phone) and (max-width: @screen-tablet-max) { 
+        .desktop {
+            display: none;
+        }
+    }
+    // @media only screen and (min-width: @screen-desktop) { 
+    &.is-lg {
+        .mobile {
+            display: none;
+        }
+    }
+}

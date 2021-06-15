@@ -1,0 +1,155 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="pcBrandStoreIntro">
+	
+	<!-- 사용자 > 매장 > 매장 지역 목록 -->
+	<select id="selectStoreAreaList" parameterType="HashMap" resultType="HashMap">
+		/* pcBrandStoreIntro.selectStoreAreaList */
+		SELECT 
+			CMON_CD AS AREA_CD
+         	,CMON_CD_NM AS AREA_NM 
+  		FROM 
+  			US_COM.TCT_CMON_CD_D
+		WHERE 
+			COMP_CD = #COMP_CD#
+	    AND CD_ID = #AREA_CD#
+	    AND USE_YN = 'Y'
+	    AND REFR_VAL_1 = '1'
+		ORDER BY SORT_ORD
+	</select>
+	
+	<!-- 사용자 > 매장 > 마모트 > 매장 목록 갯수 -->
+	<select id="selectMarmotStoreCount" parameterType="HashMap" resultType="Integer">
+		/*pcBrandStoreIntro.selectMarmotStoreCount*/
+		SELECT 
+			COUNT(0)
+	    FROM 
+	    	US_YAK.V_TCT_BCNC
+		WHERE 
+			COMP_CD=#COMP_CD#
+	    AND BCNC_DIV='A'
+	    AND DEAL_STAT='DEAL'  /* 거래상태(CM211) */
+	    AND OPEN_STAT='30'   /* 개설상태(CM212) */
+	    AND BUSI_DIV='OMM'  /* 매장_사업구분(CM213) */
+	    AND BUSI_PART='501'   /* 매장_사업부(CM214) */
+	    AND AREA_CD = #searchAreaCd#
+	</select>
+	
+	<!-- 사용자 > 매장 > 마모트 > 매장 목록 -->
+	<select id="selectMarmotStoreList" parameterType="HashMap" resultType="HashMap">
+		/*pcBrandStoreIntro.selectMarmotStoreList*/
+		SELECT
+			S1.*
+		FROM
+		(
+			SELECT
+				ROWNUM AS RNUM,
+				S2.*
+			FROM
+			(
+				SELECT 
+				 BCNC_CD   /* 매장코드 */
+		         ,  BCNC_NM  /*  매장명 */
+		         ,  BPLC_ZIP_CD   /* 사업장 우편번호 */
+		         ,  BPLC_ROAD_ADDR      /*  사업장 도로명 주소 */
+		         ,  BPLC_ROAD_ADDR_DETL     /*  사업장 도로명 주소상세 */
+		         ,  BPLC_ADDR     /* 사업장 지번 주소 */
+		         ,  BPLC_ADDR_DETL     /*   사업장 지번 주소상세 */
+		         , TEL_EXCH_NO   /* 전화번호 1 */
+		         , TEL_OFFC_NO  /* 전화번호 2 */
+		         , TEL_LAST_NO   /* 전화번호 3 */
+		         , DECODE(TEL_OFFC_NO,'','',(TEL_EXCH_NO || '-' || TEL_OFFC_NO || '-' || TEL_LAST_NO)) AS TEL
+		         , NVL((BPLC_ROAD_ADDR || '' || BPLC_ROAD_ADDR_DETL), (BPLC_ADDR || '' || BPLC_ADDR_DETL)) AS ADDR 
+		         , NVL((BPLC_ROAD_ADDR), (BPLC_ADDR)) AS API_ADDR
+		         , AREA_CD        /*  지역구분  */ 
+				FROM 
+					US_YAK.V_TCT_BCNC
+				WHERE 
+					COMP_CD=#COMP_CD#
+			    AND BCNC_DIV='A'
+			    AND DEAL_STAT='DEAL'  /* 거래상태(CM211)*/
+			    AND OPEN_STAT='30'   /* 개설상태(CM212) */
+			    AND BUSI_DIV='OMM'  /* 매장_사업구분(CM213) */
+			    AND BUSI_PART='501'   /* 매장_사업부(CM214) */
+			    AND AREA_CD = #searchAreaCd#
+			) S2
+		)S1
+		WHERE S1.RNUM BETWEEN #startNum# AND #endNum#
+	</select>
+	
+	<!-- 사용자 > 매장 > 지역 이름 가져오기 -->
+	<select id="selectStoreAreaNm" parameterType="HashMap" resultType="String">
+		/* pcBrandStoreIntro.selectStoreAreaNm */
+		SELECT 
+         	CMON_CD_NM AS AREA_NM 
+  		FROM 
+  			US_COM.TCT_CMON_CD_D
+		WHERE 
+			COMP_CD = #COMP_CD#
+	    AND CD_ID = #AREA_CD#
+	    AND USE_YN = 'Y'
+	    AND REFR_VAL_1 = '1'
+	    AND CMON_CD = #searchAreaCd#
+	</select>
+	
+	<!-- 사용자 > 매장 > 마운티아 > 매장 목록 갯수 -->
+	<select id="selectMountiaStoreCount" parameterType="HashMap" resultType="Integer">
+		/*pcBrandStoreIntro.selectMountiaStoreCount*/
+		SELECT 
+			COUNT(0)
+	    FROM 
+	    	US_DJN.V_TCT_BCNC
+		WHERE 
+			COMP_CD=#COMP_CD#
+	    AND BCNC_DIV='A'
+	    AND DEAL_STAT='DEAL' 
+	    AND OPEN_STAT='30'   
+	    AND BUSI_DIV='OMQ'  
+		AND BUSI_PART IN ('201','202') 
+	    AND AREA_CD = #searchAreaCd#
+	</select>
+	
+	<!-- 사용자 > 매장 > 마운티아 > 매장 목록 -->			
+	<select id="selectMountiaStoreList" parameterType="HashMap" resultType="HashMap">
+		/*pcBrandStoreIntro.selectMountiaStoreList*/
+		SELECT
+			S1.*
+		FROM
+		(
+			SELECT
+				ROWNUM AS RNUM,
+				S2.*
+			FROM
+			(
+				SELECT 
+				 BCNC_CD   
+		         ,  BCNC_NM 
+		         ,  BPLC_ZIP_CD
+		         ,  BPLC_ROAD_ADDR  
+		         ,  BPLC_ROAD_ADDR_DETL
+		         ,  BPLC_ADDR     
+		         ,  BPLC_ADDR_DETL 
+		         , TEL_EXCH_NO   
+		         , TEL_OFFC_NO  
+		         , TEL_LAST_NO   
+		         , DECODE(TEL_OFFC_NO,'','',(TEL_EXCH_NO || '-' || TEL_OFFC_NO || '-' || TEL_LAST_NO)) AS TEL
+		         , NVL((BPLC_ROAD_ADDR || '' || BPLC_ROAD_ADDR_DETL), (BPLC_ADDR || '' || BPLC_ADDR_DETL)) AS ADDR 
+		         , NVL((BPLC_ROAD_ADDR), (BPLC_ADDR)) AS API_ADDR
+		         , AREA_CD        
+				FROM 
+					US_DJN.V_TCT_BCNC
+				WHERE 
+					COMP_CD=#COMP_CD#
+			    AND BCNC_DIV='A'
+			    AND DEAL_STAT='DEAL'  
+			    AND OPEN_STAT='30'   
+			    AND BUSI_DIV='OMQ'  
+			    AND BUSI_PART IN ('201','202') 
+			    AND AREA_CD = #searchAreaCd#
+			) S2
+		)S1
+		WHERE S1.RNUM BETWEEN #startNum# AND #endNum#
+	</select>
+	
+</mapper>

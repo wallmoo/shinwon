@@ -1,0 +1,53 @@
+/* detector  **************************************************************************/
+.detector-sm { display: none; }
+.detector-lg { display: block; }
+
+@media only screen and (min-width: @screen-phone) and (max-width: @screen-tablet-max) { 
+    .detector-sm { display: block; }
+    .detector-lg { display: none; }
+}
+@media only screen and (min-width: @screen-desktop) { 
+    .detector-sm { display: none; }
+    .detector-lg { display: block; }
+}
+
+// 기본 (구간 포함)  **************************************************************************/
+
+// 스마트폰 ~ 타블렛 */
+@media only screen and (min-width: @screen-phone) and (max-width: @screen-tablet-max) { 
+
+} 
+
+// PC */
+@media only screen and (min-width: @screen-desktop) { 
+
+}
+
+// 구간 구분 **************************************************************************/
+
+// 스마트폰 */
+@media only screen and (min-width: @screen-phone) and (max-width: @screen-phone-max) { 
+
+}
+
+// 타블렛 */
+@media only screen and (min-width: @screen-tablet) and (max-width: @screen-tablet-max) { 
+
+}
+
+// PC */
+@media only screen and (min-width: @screen-desktop) { 
+
+}
+
+// default **************************************************************************/
+
+// display
+.lt-ie8  {
+    .sm {
+        display: none;
+    }
+    .lg {
+        display: block;
+    }
+}

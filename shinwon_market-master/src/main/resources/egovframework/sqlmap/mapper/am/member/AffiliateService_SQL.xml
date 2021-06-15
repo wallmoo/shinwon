@@ -1,0 +1,243 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="Affiliate">
+
+    <!-- 회원 검색 조건 -->
+    <sql id="AffiliateWhere">
+    	<if test="searchCocMstUseYn != null and searchCocMstUseYn != ''">
+           AND COC_USE_YN = #{searchCocMstUseYn}
+        </if>
+        <if test="searchCocMstSearchType != null and searchCocMstSearchType == 'ALL' and searchCocMstTitle!=''">
+           AND (COC_NM like  '%'||#{searchCocMstTitle} ||'%' OR COC_DES like '%'||#{searchCocMstTitle}||'%')
+        </if> 
+        <if test="searchCocMstSearchType != null and searchCocMstSearchType == 'DESC' and searchCocMstTitle!=''">
+           AND (COC_DES like '%'||#{searchCocMstTitle}||'%')
+        </if>
+        <if test="searchCocMstSearchType != null and searchCocMstSearchType == 'NAME' and searchCocMstTitle!=''">
+           AND (COC_NM like '%'||#{searchCocMstTitle}||'%')
+        </if>
+        <if test="searchCocSpcCD != null and searchCocSpcCD != ''">
+           AND COC_SPC_CD like '%'||#{searchCocSpcCD}||'%'
+        </if>
+		<if test="COC_IDX != null and COC_IDX != ''">
+           AND COC_IDX = #{COC_IDX}
+        </if>		
+        <if test="searchCocMstStDt !=null and searchCocMstStDt!=''">
+         <![CDATA[
+           AND TRUNC(TO_DATE(COC_REG_DT,'YYYYMMDDHH24MISS')) < TO_DATE(#{searchCocMstStDt},'YYYY-MM-DD')
+         ]]>
+        </if>
+        <if test="searchCocMstEdDt !=null and searchCocMstEdDt!=''">
+         <![CDATA[
+           AND TRUNC(TO_DATE(COC_REG_DT,'YYYYMMDDHH24MISS')) > TO_DATE(#{searchCocMstEdDt},'YYYY-MM-DD')
+         ]]>
+        </if>
+    </sql>
+    
+    
+    <!-- 관리자 > 회원관리 > 회원정보관리 목록 갯수 -->
+    <select id="selectInfoAffiliateListCount" parameterType="hashMap" resultType="integer">
+        /* Affiliate.selectInfoAffiliateListCount */
+        SELECT
+            COUNT(0)
+        FROM
+            T_COC_MST TCM
+        WHERE
+        	1=1
+            <include refid="AffiliateWhere"/>
+    </select>
+    
+    <!-- 관리자 > 회원관리 > 회원정보관리 목록 -->
+    <select id="selectAffiliateList" parameterType="hashMap" resultType="hashMap">
+        /* Affiliate.selectAffiliateList */
+        SELECT
+            S2.*     
+        FROM 
+        (
+            SELECT
+                ROWNUM RNUM, 
+                S1.*                              
+            FROM 
+            (
+                SELECT
+                    COC_IDX,
+	                COC_NM,
+	                COC_DES,
+	                COC_USE_YN,
+	                COC_REG_DT,
+	                COC_REG_ID,
+	                COC_REG_IP,
+	                COC_UDP_DT,
+	                COC_UDP_ID,
+	                COC_UDP_IP,
+	                COC_SPC_CD,
+	                (SELECT COUNT(0) FROM T_COC_SPC_EPT TCSE WHERE TCSE.COC_IDX = TCM.COC_IDX)  AS COC_SPC_LMT,
+	                (SELECT COUNT(0) FROM T_COC_SPC_EPT TCSE WHERE TCSE.COC_IDX = TCM.COC_IDX AND COC_SPC_USE_ID IS NOT NULL ) AS COC_COUNT
+                FROM T_COC_MST TCM
+                WHERE 
+                    1=1    
+                    <include refid="AffiliateWhere"/>
+                ORDER BY COC_REG_DT DESC
+            ) S1
+        ) S2
+        <if test="startNum != null and startNum != '' and endNum != null and endNum != '' and excelDown == null or !excelDown.equals('Y'.toString())">
+            WHERE S2.RNUM BETWEEN #{startNum} AND #{endNum}
+        </if>
+    </select>
+    
+    <select id="selectInfoAffiliateDetail" parameterType="hashMap" resultType="hashMap">
+   	 /* Affiliate.selectInfoAffiliateDetail */
+    	 SELECT
+            COC_IDX,
+            COC_NM,
+            COC_DES,
+            COC_USE_YN,
+            COC_REG_DT,
+            COC_REG_ID,
+            COC_REG_IP,
+            COC_UDP_DT,
+            COC_UDP_ID,
+            COC_UDP_IP,
+            COC_SPC_CD,
+            (SELECT COUNT(COC_SPC_USE_ID) FROM T_COC_SPC_EPT TCSE WHERE TCSE.COC_IDX = COC_IDX ) AS COC_COUNT
+        FROM T_COC_MST TCM
+        WHERE 
+            1=1    
+        <include refid="AffiliateWhere"/>
+    </select>
+    
+    <!-- 관리자 > 회원관리 > 회원정보관리 목록 -->
+    <insert id="insertAffiliate" parameterType="hashMap">
+        /* Affiliate.insertAffiliate */
+        INSERT INTO
+            T_COC_MST
+            (
+                COC_IDX,
+                COC_NM,
+                COC_DES,
+                COC_USE_YN,
+                COC_REG_DT,
+                COC_REG_ID,
+                COC_REG_IP,
+                COC_UDP_DT,
+                COC_UDP_ID,
+                COC_UDP_IP,
+                COC_SPC_CD
+            )
+        VALUES
+            (
+                SEQ_COC_IDX.NEXTVAL,
+                #{COC_NM},
+                #{COC_DES},
+                NVL(#{COC_USE_YN},'Y'),
+                TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+                #{COC_REG_ID},
+                #{COC_REG_IP},
+                TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+                #{COC_UDP_ID},
+                #{COC_UDP_IP},
+                #{COC_SPC_CD}
+            )
+    </insert>
+    <select id="selectAffiliateNameCount" parameterType="hashMap"  resultType="int">
+     /* Affiliate.selectAffiliateNameCount */
+    	SELECT COUNT(0)
+    	  FROM T_COC_MST TCM
+    	 WHERE TCM.COC_NM = #{COC_NM}
+    </select>
+    
+    <update id="updateAffiliate" parameterType="hashMap">
+    /* Affiliate.updateAffiliate */
+    	UPDATE T_COC_MST
+    	   SET COC_USE_YN = #{COC_USE_YN} 
+    	     , COC_DES = #{COC_DES}
+    	     , COC_UDP_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS')
+    	     , COC_UDP_ID = #{COC_UDP_ID}
+    	     , COC_UDP_IP = #{COC_UDP_IP}
+    	 WHERE COC_IDX = #{COC_IDX}
+    </update>
+    
+    <select id="selectAffiliatePointList" parameterType="hashMap"  resultType="hashMap">
+     /* Affiliate.selectAffiliatePointList */
+    	SELECT
+			COC_SPC_PRV_CD,
+			COC_SPC_PRV_PT,
+			TO_CHAR(TO_DATE(COC_SPC_USE_DT,'YYYYMMDDHH24MISS'),'YYYY-MM-DD HH24:MI:SS') AS COC_SPC_USE_DT,
+			COC_SPC_USE_ID,
+			TMV.MEM_MST_MEM_NM ,
+			TO_CHAR(TO_DATE(TMV.MEM_MST_REG_DT,'YYYYMMDDHH24MISS'),'YYYY-MM-DD HH24:MI:SS') AS MEM_MST_REG_DT
+		FROM
+			T_COC_SPC_EPT TCSE
+		LEFT OUTER JOIN T_MEM_VIEW TMV ON
+			TCSE.COC_SPC_USE_ID = TMV.MEM_MST_MEM_ID
+		WHERE TCSE.COC_IDX  = #{COC_IDX}
+    </select>
+    
+    <insert id="insertAffiliatePoint" parameterType="hashMap">
+        /* Affiliate.insertAffiliatePoint */
+        <foreach collection="COC_SPC_LIST" item="item" separator=" " open="INSERT ALL" close="SELECT * FROM DUAL">
+        INTO T_COC_SPC_EPT
+            (
+            	COC_IDX
+				,COC_SPC_PRV_CD
+				,COC_SPC_PRV_PT
+				,COC_SPC_REG_DT
+				,COC_SPC_REG_IP
+				,COC_SPC_REG_ID
+				,COC_SPC_UDP_DT
+				,COC_SPC_UDP_ID
+				,COC_SPC_UDP_IP
+            )
+        VALUES (
+                #{COC_IDX}
+				,#{item.COC_SPC_PRV_CD}
+				,#{COC_SPC_PRV_PT}
+				,TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS')
+				,#{COC_SPC_REG_IP}
+				,#{COC_SPC_REG_ID}
+				,TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS')
+				,#{COC_SPC_UDP_ID}
+				,#{COC_SPC_UDP_IP}
+            )
+        </foreach>
+    </insert>
+    
+    <select id="selectInfoAffiliatePointList" parameterType="hashMap"  resultType="hashMap">
+     /* Affiliate.selectInfoAffiliatePointList */
+    	SELECT
+			COC_SPC_PRV_CD,
+			COC_SPC_PRV_PT,
+			TO_CHAR(TO_DATE(COC_SPC_USE_DT,'YYYYMMDDHH24MISS'),'YYYY-MM-DD HH24:MI:SS') AS COC_SPC_USE_DT
+		FROM
+			T_COC_SPC_EPT TCSE
+		WHERE TCSE.COC_SPC_PRV_CD  IN
+		<foreach collection="COC_SPC_LIST" item="item" index="index" separator="," open="(" close=")">
+            #{item.COC_SPC_PRV_CD}
+	    </foreach>
+    </select>
+    <select id="selectInfoAffiliatePointCount" parameterType="hashMap"  resultType="hashMap">
+     	/* Affiliate.selectInfoAffiliatePointCount */
+    	SELECT
+			(SELECT COUNT(0) FROM T_COC_SPC_EPT TCSE WHERE TCSE.COC_IDX = ${COC_IDX}) AS CURRENT_COUNT,
+			(SELECT COUNT(0) FROM T_COC_SPC_EPT TCM WHERE TCM.COC_IDX = ${COC_IDX}) AS LIMIT_COUNT
+		FROM DUAL
+    </select>
+    <update id="updateInfoAffiliatePointList" parameterType="hashMap">
+    	<foreach collection="LIST" item="item" index="index" separator=";" open="DECLARE BEGIN" close="; END;">
+            UPDATE T_COC_SPC_EPT 
+               SET COC_SPC_PRV_PT = #{item.COC_SPC_PRV_PT}
+             WHERE COC_SPC_PRV_CD = #{item.COC_SPC_PRV_CD}
+               AND COC_IDX = #{COC_IDX}
+	    </foreach>
+    </update>
+    
+    <delete id="deleteInfoAffiliatePointList" parameterType="hashMap">
+    	DELETE FROM T_COC_SPC_EPT 
+    	WHERE COC_IDX  = #{COC_IDX}
+    	  AND COC_SPC_PRV_CD IN 
+    	<foreach collection="COC_SPC_PRV_CD_LIST" item="item" index="index" separator="," open="(" close=")">
+            #{item}
+	    </foreach>
+    </delete>
+</mapper>

@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="ko" dir="ltr">
+    <head>
+        <meta charset="utf-8">
+        <title></title>
+		<link href="http://bo.marketplanta.epasscni.com:8080/am/css/font-awesome.css" rel="stylesheet">
+		<link rel="stylesheet" href="http://bo.marketplanta.epasscni.com:8080/am/css/import.css">
+        <link rel="stylesheet" href="style.css">
+		<script src="http://bo.marketplanta.epasscni.com:8080/am/js/vendor/modernizr-2.6.2-respond-1.1.0.min.js"></script>
+		<script src="http://bo.marketplanta.epasscni.com:8080/am/js/vendor/jquery-1.11.2.min.js"></script>
+        <style media="screen">
+            .btnAdd, .btnRemove{width:21px;height:21px;background:none;border:1px solid #ccc;}
+        </style>
+    </head>
+    <body><!-- body class, 중요 -->
+
+    <div id="header"><!-- header -->
+        <div id="top" class="container" style="background: #414547 url('/am/img/bg_head.png') no-repeat center top;"><!-- top -->
+            <div class="wrap">
+                <div class="menu"><!-- menu -->
+                    <div id="togglerAside" class="toggler left">
+                        <a href="#!" class="js-toggle-nav" data-class="is-aside-in" data-lg-class="is-aside-out">
+                            <i class="fonti um-fog on"><em>메뉴 펼치기</em></i>
+                            <i class="fonti um-fog off"><em>메뉴 접기</em></i>
+                        </a>
+                    </div>
+                </div><!-- // menu -->
+                <h1 class="logo">
+                    <a href="http://bo.marketplanta.epasscni.com"><img src="http://bo.marketplanta.epasscni.com/nas/cdn/logo/2c679ea5-27f8-4d4b-a2ee-0bd2e4aa2bef.png" alt="HOME" /></a>
+                </h1>
+                <div class="util"><!-- util -->
+                    <div class="col">
+                        <a href="javascript:;"><i class="fonti um-gears"><em>환경설정</em></i></a>
+                    </div>
+                    <div class="col">
+                        <a href="http://bo.marketplanta.epasscni.com/am/manager/logout.do"><i class="fonti um-sign-out"><em>로그아웃</em></i></a>
+                    </div>
+                    <div class="col">
+                        <div id="togglerQuick" class="toggler left">
+                            <a href="#!" class="js-toggle-nav" data-class="is-quick-in" data-lg-class="is-quick-out">
+                                <i class="fonti um-ellipsis-h on"><em>사용자 메뉴 펼치기</em></i>
+                                <i class="fonti um-ellipsis-v off"><em>사용자 메뉴 접기</em></i>
+                            </a>
+                        </div>
+                    </div>
+                </div><!-- // util -->
+            </div>
+        </div><!-- // top -->
+
+        <div id="gnb" class="container">
+            <div class="wrap core"></div><!-- // gnb -->
+            <div class="spacer"></div>
+        </div>
+    </div><!-- // header -->
+
+    <div id="container"><!-- container -->
+
+        <div id="aside" class="aside left"><!-- aside -->
+            <div class="holder"><!-- holder -->
+                <div id="lnb" class="container">
+                    <div class="wrap modules"><!-- modules -->
+                        <div class="title">
+
+                        </div>
+                        <div class="core"></div>
+                    </div><!-- // modules -->
+                </div>
+            </div><!-- // holder --></div><!-- // aside -->
+
+        <div id="wrapper"><!-- wrapper -->
+
+            <div id="breadcrumb"></div><!-- breadcrumb -->
+
+            <div id="contents"><!-- contents -->
+
+                <div class="container">
+
+                    <h2 class="title"><span>O2O매장 상세</span></h2>
+
+                    <h3 class="title"><span>상세</span></h3>
+
+                    <form id="frmProductPlanPopup" name="frmProductPlanPopup" method="post">
+    						<input type="hidden" id="searchPrdMstCd" name="searchPrdMstCd" />
+    				</form>
+                    <form name="frm" id="frm" enctype="multipart/form-data">
+                    <div class="section-form"><!-- section-form-a -->
+                        <input type="hidden" name="PLN_PRD_CTG_TOP_NM" id="PLN_PRD_CTG_TOP_NM" value="" />
+
+    			  		<table cellspacing="0" class="table-row table-a"><!-- table -->
+    	                    <colgroup>
+    	                        <col style="width: 15%;" />
+    	                        <col style="width: auto;" />
+    	                    </colgroup>
+    	                    <tbody>
+                                <tr>
+                                    <th><span>매장명</span></th>
+    	                            <td>엔터식스 동탄</td>
+                                </tr>
+    	                    	<tr>
+                                    <th><label class="label"><span>지역</span></label></th>
+    	                    		<td>경기도</td>
+    	                        </tr>
+                                <tr>
+    	                    		<th><label class="label"><span>전화번호</span></label></th>
+    	                    		<td>02-1234-5678</td>
+    	                        </tr>
+                                <tr>
+    	                    		<th><label class="label"><span>매장주소</span></label></th>
+    	                    		<td>06654<br/>서울 영등포구 여의도동 56-9 나이키빌딩 1122호</td>
+    	                        </tr>
+                                <tr>
+    	                    		<th><label class="label"><span>구글지도 URL</span></label></th>
+                                    <td>https://goo.gl/maps/rDinLX73CrBvDZyF8 <a href="#none" id="productCopy" class="button small"><span>지도보기</span></a>
+                                    </td>
+    	                        </tr>
+                                <tr>
+                                    <th><label class="label"><span>매장 운영시간</span></label></th>
+                                    <td>11:00 ~ 20:00</td>
+                                </tr>
+                                <tr>
+                                    <th><label class="label"><span>방문 가능시간</span></label></th>
+                                    <td>2019-12-25 14:23:23</td>
+                                </tr>
+    	                    </tbody>
+                    	</table><!-- // table -->
+                    </div>
+
+                    <div class="section-button"><!-- section-button -->
+                        <div class="wrap text-center">
+                            <a href="#none" id="goList" class="button large"><span>목록</span></a>
+                        </div>
+                    </div><!-- // section-button -->
+
+                    </form>
+
+                </div>
+            </div><!-- // contents -->
+
+        </div><!-- // wrapper -->
+
+        <div id="quickmenu" class="aside right"><!-- quickmenu-->
+            <div class="holder"><!-- holder -->
+
+                <div id="quick" class="container">
+
+                    <div class="wrap modules"><!-- modules -->
+                        <ul class="core">
+                            <li class="d2 active">
+                                <a href="javascript:;" class="d2"><span>admin 님</span></a>
+                                <div class="d3 show"><!-- d3 -->
+                                    <ul class="d3">
+                                        <li class="d3">
+                                            <a href="http://bo.marketplanta.epasscni.com/am/manager/logout.do" class="d3"><span>로그아웃</span></a>
+                                        </li>
+                                    </ul>
+                                </div><!-- // d3 -->
+                            </li>
+                        </ul>
+                    </div><!-- // modules -->
+
+                </div>
+
+            </div><!-- // holder --></div><!-- // quickmenu -->
+
+
+    </div><!-- // container -->
+
+<div id="footer">
+    <div id="copyrights"><!-- copyrights -->
+        <div class="container">
+            <p>
+                Copyrights &copy; MarketPlant, co.ltd. All rights Reserved.
+            </p>
+        </div>
+    </div><!-- // copyrights --></div>
+
+<script src="/am/js/epass.base-0.3.js"></script>
+<script src="/am/js/plugins.js"></script>
+<script src="/am/js/plugins/jquery.menu-aim.js"></script>
+<script src="/am/js/plugins/nanobar.js"></script>
+<script src="/am/js/plugins/alertify.custom-0.3.11.js"></script>
+<script src="/am/js/plugins/Chart.bundle.js"></script>
+<script src="/am/js/common/jquery.cookie.js"></script>
+<script src="/am/js/epass.helper.notify-0.1.js"></script>
+<script src="/am/js/epass.modalr-0.1.js"></script>
+<!-- run -->
+<script src="/am/js/ui.nav.js"></script>
+<script src="/am/js/ui.js"></script>
+<script src="/am/js/admin.js"></script>
+<script src="/am/js/common.js"></script>
+<script src="/am/js/common/jquery.validate.js"></script>
+
+</script>
+
+</body>
+	</html>

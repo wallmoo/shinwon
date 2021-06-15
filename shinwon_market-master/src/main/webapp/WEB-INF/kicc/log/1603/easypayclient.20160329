@@ -1,0 +1,8 @@
+[13:25:36] [T0002729xjfQUXLSib0] START:mall_id=[T0002729]+tr_cd=[00101000]+order_no=[2016032901854]
+[13:25:36] [T0002729xjfQUXLSib0] DATA:pay_data=common=tot_amt=320000currency=00client_ip=127.0.0.1escrow_yn=Ncomplex_yn=Ncli_ver=N8vacct=vacct_txtype=10vacct_amt=320000bank_cd=003expire_date=20160401expire_time=235959cash_yn=0order_data=order_no=2016032901854user_phone2=01011111111product_nm=일렉트로닉스동부대우전자 일반냉장고 FRB153NW 145L product_amt=320000
+[13:25:37] [T0002729xjfQUXLSib0] RESULT:res_cd=0000res_msg=계좌 채번 정상cno=16032913225423518452order_no=2016032901854amount=320000tran_date=20160329132254bank_cd=003bank_nm=기업은행account_no=T8201372597587deposit_nm=epasscniexpire_date=20160401235959escrow_yn=Ncomplex_yn=Nstat_cd=TS07stat_msg=입금대기pay_type=22memb_id=T0002729memb_gubun=2bk_pay_yn=N
+[13:25:37] [T0002729xjfQUXLSib0] ENDED :mall_id=[T0002729]+tr_cd=[00101000]+order_no=[2016032901854]
+[15:55:51] [T5102001cOAxVMpO4zE] START:mall_id=[T5102001]+tr_cd=[00201000]+order_no=[2016032501821]
+[15:55:51] [T5102001cOAxVMpO4zE] DATA:mgr_data=mgr_txtype=40org_cno=16032513062811514475req_ip=127.0.0.1
+[15:55:51] [T5102001cOAxVMpO4zE] RESULT:res_cd=0000res_msg=EDI 취소 매입처리로 취소처리됨cno=16032513062811514475tran_date=20160329155309escrow_yn=Ncanc_date=20160329155309stat_cd=TS05stat_msg=매입취소memb_id=T5102001bk_pay_yn=N
+[15:55:51] [T5102001cOAxVMpO4zE] ENDED :mall_id=[T5102001]+tr_cd=[00201000]+order_no=[2016032501821]

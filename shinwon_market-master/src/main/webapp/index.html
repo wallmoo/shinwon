@@ -1,0 +1,17 @@
+<html>
+<head>
+<script>
+    var hostName = location.hostname; 
+    
+    if(hostName.indexOf("pc.") > -1){
+        location.href = "/pc/main/index.do";
+    }else if(hostName.indexOf("mobile.") > -1){
+        location.href = "/mobile/main/index.do";
+    }else{
+        location.href = "/am/manager/login.do";
+    }
+</script>
+</head>
+<body>
+</body>
+</html>

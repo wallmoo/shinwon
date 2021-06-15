@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="LoginManager">
+
+    <!-- 관리자 정보 조회 -->
+    <select id="selectLoginManagerInfo" parameterType="com.market.mall.model.Admin" resultType="HashMap">
+        /* LoginManager.selectLoginManagerInfo */
+            SELECT
+                ADM_MST_ID,
+                ADM_MST_NM,
+                ADM_MST_PWD,
+                ADM_MST_HP1,
+                ADM_MST_HP2,
+                ADM_MST_HP3,
+                ADM_MST_TEL1,
+                ADM_MST_TEL2,
+                ADM_MST_TEL3,
+                ADM_MST_EMAIL_ID,
+                ADM_MST_EMAIL_DOMAIN,
+                AM.AUT_MST_IDX,
+                ADM_MST_STATE,
+                ADM_MST_REG_DT,
+                ADM_MST_REG_IP,
+                ADM_MST_REG_ID,
+                ADM_MST_UPD_DT,
+                ADM_MST_UPD_IP,
+                ADM_MST_UPD_ID,
+                ADM_MST_SUB_IDX,
+                ADM_MST_ERP_NO
+            FROM
+                T_ADM_MST AM, T_AUT_MST AUT
+            WHERE
+                ADM_MST_ID = #{ADM_MST_ID}
+            AND AM.AUT_MST_IDX = AUT.AUT_MST_IDX 
+    </select>
+    
+    <!-- 관리자 로그인 이력 등록 -->
+    <insert id="insertLoginManagerHistroy" parameterType="HashMap">
+        /* LoginManager.insertLoginManagerHistroy */
+        INSERT INTO
+            T_ADM_MST_HISTORY
+            (
+                ADM_MST_HISTORY_IDX,
+                ADM_ADM_MST_ID,
+                ADM_MST_LOGIN_YN,
+                ADM_MST_REG_DT,
+                ADM_MST_REG_IP
+            )
+        VALUES
+            (
+                SEQ_ADM_MST_HISTORY_IDX.NEXTVAL,
+                #{ADM_ADM_MST_ID},
+                #{ADM_MST_LOGIN_YN},
+                TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+                #{ADM_MST_REG_IP}
+            )
+    </insert>
+</mapper>

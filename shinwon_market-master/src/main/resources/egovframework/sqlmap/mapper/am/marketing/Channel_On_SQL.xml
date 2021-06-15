@@ -1,0 +1,460 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="ChannelOn">
+
+    <sql id="channelOnWhere">
+        <if test="searchCntMstShopType != null and searchCntMstShopType != ''">
+            <choose>
+                <when test="searchCntMstShopType.equals('PC'.toString())">
+                    AND TCM.CNT_MST_CHANNEL_PC_YN = 'Y'
+                </when>
+                <when test="searchCntMstShopType.equals('MOBILE'.toString())">
+                    AND TCM.CNT_MST_CHANNEL_MOBILE_YN = 'Y'
+                </when>            
+            </choose>
+        </if>
+        <if test="searchCntMstTitle != null and searchCntMstTitle != ''">
+            AND TCM.CNT_MST_TITLE LIKE '%' || #{searchCntMstTitle} || '%'    
+        </if>
+        <if test="searchCntMstStDt != null and searchCntMstStDt != '' and searchCntMstEdDt != null and searchCntMstEdDt != ''">
+            <![CDATA[
+                AND TCM.CNT_MST_ST_DT <= REPLACE(#{searchCntMstEdDt}, '-', '')
+                AND TCM.CNT_MST_ED_DT > = REPLACE(#{searchCntMstStDt}, '-', '')
+            ]]>
+        </if>
+        <if test="searchChnMstStatus != null and searchChnMstStatus != ''">
+            <choose>
+                <when test="searchChnMstStatus.equals('before'.toString())">
+                    <![CDATA[
+                        AND TCM.CNT_MST_ST_DT > TO_CHAR(SYSDATE, 'YYYYMMDD')
+                    ]]>    
+                </when>
+                <when test="searchChnMstStatus.equals('ing'.toString())">
+                    <![CDATA[
+                        AND TCM.CNT_MST_ST_DT <= TO_CHAR(SYSDATE, 'YYYYMMDD')
+                        AND TCM.CNT_MST_ED_DT >= TO_CHAR(SYSDATE, 'YYYYMMDD')
+                    ]]>
+                </when>
+                <when test="searchChnMstStatus.equals('end'.toString())">
+                    <![CDATA[
+                        AND TCM.CNT_MST_ED_DT < TO_CHAR(SYSDATE, 'YYYYMMDD')
+                    ]]>
+                </when>
+            </choose>
+        </if>
+        <if test="searchCntMstUseYn != null and searchCntMstUseYn != ''">
+            AND TCM.CNT_MST_USE_YN = #{searchCntMstUseYn}
+        </if>
+        <if test = "searchPRD_CTG_IDX != null and searchPRD_CTG_IDX !='' " >
+            AND TCM.PRD_CTG_IDX = #{searchPRD_CTG_IDX}
+        </if>
+        <if test = "searchSeason != null and searchSeason !='' " >
+            AND TCM.CNT_MST_SEASON = #{searchSeason}
+        </if>
+                
+    </sql>
+
+	<insert id="insertChannelOn" parameterType="HashMap">
+        /* ChannelOn.insertChannelOn */
+        INSERT INTO
+            T_CNT_MST
+            (
+                CNT_MST_IDX,                                
+                CNT_MST_CHANNEL_PC_YN,
+                CNT_MST_CHANNEL_MOBILE_YN,
+                CNT_MST_TITLE,
+                CNT_MST_ST_DT,
+                CNT_MST_ED_DT,
+                CNT_MST_ST_HH,
+                CNT_MST_ED_HH,
+                CNT_MST_ST_MI,
+                CNT_MST_ED_MI,
+                CNT_MST_USE_YN,
+                CNT_MST_REG_DT,
+                CNT_MST_REG_IP,
+                CNT_MST_REG_ID,
+                CNT_MST_PC_BANNER,
+            	CNT_MST_MOBILE_BANNER,
+            	CNT_MST_TYPE,
+                CNT_MST_DETAIL_TYPE,
+                CNT_MST_PC_SCRIPT,
+                CNT_MST_MOBILE_SCRIPT,
+                CNT_MST_URL,
+                CNT_MST_DESC,
+                CNT_MST_SEASON,
+                PRD_CTG_IDX,
+                VDR_MST_IDX
+            )
+        VALUES
+            (
+                #{CNT_MST_IDX},
+                #{CNT_MST_CHANNEL_PC_YN},
+                #{CNT_MST_CHANNEL_MOBILE_YN},               
+                #{CNT_MST_TITLE},
+                REPLACE(#{CNT_MST_ST_DT}, '-', ''),
+                REPLACE(#{CNT_MST_ED_DT}, '-', ''),
+                #{CNT_MST_ST_HH},
+                #{CNT_MST_ED_HH},
+                #{CNT_MST_ST_MI},
+                #{CNT_MST_ED_MI},
+                NVL(#{CNT_MST_USE_YN}, 'Y'),
+                TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+                #{CNT_MST_REG_IP},
+                #{CNT_MST_REG_ID},
+                #{CNT_MST_PC_BANNER:CLOB},
+           		#{CNT_MST_MOBILE_BANNER:CLOB},
+           		#{CNT_MST_TYPE},
+                #{CNT_MST_DETAIL_TYPE},
+                #{CNT_MST_PC_SCRIPT:CLOB},
+                #{CNT_MST_MOBILE_SCRIPT:CLOB},
+                #{CNT_MST_URL},
+                #{CNT_MST_DESC},
+                #{CNT_MST_SEASON},
+                #{PRD_CTG_IDX},
+                #{VDR_MST_IDX}
+            )
+    </insert>
+
+    <!-- 관리자 > 채널ON관리 > 채널ON관리 목록 갯수 -->
+    <select id="selectChannelOnListCount" parameterType="HashMap" resultType="Integer">
+        /* ChannelOn.selectChannelOnListCount */
+        SELECT
+            COUNT(TCM.CNT_MST_IDX)
+        FROM
+            T_CNT_MST TCM             
+        WHERE
+            1 = 1
+            AND TCM.CNT_MST_TYPE = 'TYPE_CHANNEL_ON' 
+            <include refid="channelOnWhere"/> 
+    </select>
+
+    <select id="selectChannelOnList" parameterType="HashMap" resultType="HashMap">
+        /* ChannelOn.selectChannelOnList */
+        SELECT
+            S2.*            
+        FROM
+            (   SELECT
+                    ROWNUM AS RNUM,
+                    S1.* 
+                FROM
+                    (   SELECT
+                            TCM.CNT_MST_IDX,                     
+                            TCM.CNT_MST_CHANNEL_PC_YN, 
+                            TCM.CNT_MST_CHANNEL_MOBILE_YN, 
+                            TCM.CNT_MST_TITLE,
+                            TCM.CNT_MST_ST_DT,
+                            TCM.CNT_MST_ED_DT,
+                            TCM.CNT_MST_USE_YN,
+                            TCM.CNT_MST_REG_DT,
+                            (SELECT TPC.PRD_CTG_NM FROM T_PRD_CTG TPC WHERE TCM.PRD_CTG_IDX = TPC.PRD_CTG_IDX) CTG_TYPE,
+                            TCM.CNT_MST_SEASON,
+                            (SELECT COUNT(1) FROM T_CNT_DTL WHERE CNT_MST_IDX = TCM.CNT_MST_IDX) AS CNT_DTL_CNT
+                        FROM
+                            T_CNT_MST TCM                             
+                        WHERE
+                            1 = 1
+                            AND TCM.CNT_MST_TYPE = 'TYPE_CHANNEL_ON'
+                            <include refid="channelOnWhere"/>
+                        ORDER BY TCM.CNT_MST_REG_DT DESC 
+                    )
+                    S1 
+            )
+            S2 
+        WHERE
+            S2.RNUM BETWEEN #{startNum} AND #{endNum}
+    </select>
+    
+    <!-- 관리자 > 프로모션 관리 > 채널ON관리 상세정보 > 기본정보-->
+    <resultMap id="resultChannelOnInfo" type="HashMap">
+        <result property="CNT_MST_REG_NM" column="CNT_MST_REG_NM"/>
+        <result property="CNT_MST_IDX" column="CNT_MST_IDX"/>
+        <result property="CNT_MST_CHANNEL_PC_YN" column="CNT_MST_CHANNEL_PC_YN"/>  
+        <result property="CNT_MST_CHANNEL_MOBILE_YN" column="CNT_MST_CHANNEL_MOBILE_YN"/>           
+        <result property="CNT_MST_TITLE" column="CNT_MST_TITLE"/>
+        <result property="CNT_MST_ST_DT" column="CNT_MST_ST_DT"/>
+        <result property="CNT_MST_ED_DT" column="CNT_MST_ED_DT"/>
+        <result property="CNT_MST_ST_HH" column="CNT_MST_ST_HH"/>
+        <result property="CNT_MST_ED_HH" column="CNT_MST_ED_HH"/>
+        <result property="CNT_MST_ST_MI" column="CNT_MST_ST_MI"/>
+        <result property="CNT_MST_ED_MI" column="CNT_MST_ED_MI"/>
+        <result property="CNT_MST_USE_YN" column="CNT_MST_USE_YN"/>
+        <result property="CNT_MST_REG_DT" column="CNT_MST_REG_DT"/>
+        <result property="CNT_MST_REG_IP" column="CNT_MST_REG_IP"/>
+        <result property="CNT_MST_REG_ID" column="CNT_MST_REG_ID"/>
+        <result property="CNT_MST_UPD_DT" column="CNT_MST_UPD_DT"/>
+        <result property="CNT_MST_UPD_IP" column="CNT_MST_UPD_IP"/>
+        <result property="CNT_MST_UPD_ID" column="CNT_MST_UPD_ID"/>
+        <result property="CNT_MST_DESC" column="CNT_MST_DESC"/>
+        <result property="CNT_MST_URL" column="CNT_MST_URL"/>
+        <result property="CNT_MST_SEASON" column="CNT_MST_SEASON"/>
+        <result property="PRD_CTG_IDX" column="PRD_CTG_IDX"/>
+        <result property="CNT_MST_DETAIL_TYPE" column="CNT_MST_DETAIL_TYPE"/>
+        <result property="CNT_MST_PC_BANNER" column="CNT_MST_PC_BANNER" jdbcType="CLOB" javaType="java.lang.String"/>
+        <result property="CNT_MST_MOBILE_BANNER" column="CNT_MST_MOBILE_BANNER" jdbcType="CLOB" javaType="java.lang.String"/>
+        <result property="CNT_MST_PC_SCRIPT" column="CNT_MST_PC_SCRIPT" jdbcType="CLOB" javaType="java.lang.String"/>
+        <result property="CNT_MST_MOBILE_SCRIPT" column="CNT_MST_MOBILE_SCRIPT" jdbcType="CLOB" javaType="java.lang.String"/>
+    </resultMap>
+    <select id="selectChannelOnInfo" parameterType="HashMap" resultMap="resultChannelOnInfo">
+        /* ChannelOn.selectChannelOnInfo */
+        SELECT
+            (   SELECT
+                    ADM_MST_NM
+                FROM
+                    T_ADM_MST
+                WHERE
+                    ADM_MST_ID = TCM.CNT_MST_REG_ID
+            ) AS CNT_MST_REG_NM,
+            TCM.CNT_MST_IDX,
+            TCM.CNT_MST_CHANNEL_PC_YN,
+            TCM.CNT_MST_CHANNEL_MOBILE_YN,            
+            TCM.CNT_MST_TITLE,
+            TCM.CNT_MST_ST_DT,
+            TCM.CNT_MST_ED_DT,
+            TCM.CNT_MST_ST_HH,
+            TCM.CNT_MST_ED_HH,
+            TCM.CNT_MST_ST_MI,
+            TCM.CNT_MST_ED_MI,
+            TCM.CNT_MST_USE_YN,
+            TCM.CNT_MST_REG_DT,
+            TCM.CNT_MST_REG_IP,
+            TCM.CNT_MST_REG_ID,
+            TCM.CNT_MST_UPD_DT,
+            TCM.CNT_MST_UPD_IP,
+            TCM.CNT_MST_UPD_ID,
+            TCM.CNT_MST_PC_BANNER,
+            TCM.CNT_MST_MOBILE_BANNER,
+            TCM.CNT_MST_DESC,
+            TCM.CNT_MST_TYPE,
+            TCM.CNT_MST_DETAIL_TYPE,
+            TCM.CNT_MST_PC_SCRIPT,
+            TCM.CNT_MST_MOBILE_SCRIPT,
+            (SELECT TPC.PRD_CTG_NM FROM T_PRD_CTG TPC WHERE TCM.PRD_CTG_IDX = TPC.PRD_CTG_IDX) CTG_TYPE,
+            TCM.CNT_MST_SEASON,
+            TCC.CMN_COM_NM,
+            TCM.CNT_MST_URL,
+            TCM.VDR_MST_IDX
+        FROM
+            T_CNT_MST TCM, T_CMM_COM TCC
+        WHERE
+            TCM.CNT_MST_IDX = #{CNT_MST_IDX}
+            AND TCM.CNT_MST_TYPE = 'TYPE_CHANNEL_ON'
+            AND TCC.CMN_COM_IDX = TCM.CNT_MST_SEASON
+    </select>
+    
+    <!-- 관리자 > 프로모션 관리 > 채널ON관리 상세정보 > 상단 영상 썸네일 목록-->
+    <select id="selectThumbnailFileList" parameterType="HashMap" resultType="HashMap">
+        /* ChannelOn.selectThumbnailFileList */
+        SELECT
+            CMM_FLE_IDX,
+            CMM_FLE_TB_NM,
+            CMM_FLE_TB_PK,
+            CMM_FLE_TB_TYPE,
+            CMM_FLE_SYS_PATH,
+            CMM_FLE_ATT_PATH,
+            CMM_FLE_ORG_NM,
+            CMM_FLE_SYS_NM,
+            CMM_FLE_ATT_SIZE,
+            CMM_FLE_ATT_EXT,
+            CMM_FLE_DW_CNT,
+            CMM_FLE_SORT,
+            CMM_FLE_USE_YN,
+            CMM_FLE_REG_DT,
+            CMM_FLE_REG_ID,
+            CMN_FLE_ALT_TXT,
+            CMM_FLE_SYS_PATH || CMM_FLE_ATT_PATH || CMM_FLE_SYS_NM AS CMM_FLE_SAVE_PATH
+        FROM
+            T_CMM_FLE
+        WHERE
+            CMM_FLE_TB_NM = #{CMM_FLE_TB_NM}
+            AND CMM_FLE_USE_YN = 'Y'
+            AND CMM_FLE_SORT = '3'
+            <if test="CMM_FLE_TB_PK != null and CMM_FLE_TB_PK != ''">
+                AND CMM_FLE_TB_PK = #{CMM_FLE_TB_PK}
+            </if>
+            <if test="CMM_FLE_TB_TYPE != null and CMM_FLE_TB_TYPE != ''">
+                AND CMM_FLE_TB_TYPE = #{CMM_FLE_TB_TYPE}
+            </if>
+    </select>
+    
+    
+    <!-- 관리자 > 프로모션 관리 > 채널ON관리 상세정보 > 상품구성 그룹 목록-->
+    <select id="selectChannelOnDetailGroupList" parameterType="HashMap" resultType="HashMap">
+        /* ChannelOn.selectChannelOnDetailGroupList */
+       SELECT
+            CNT_GRP_IDX,
+            CNT_MST_IDX,
+            CNT_GRP_TITLE,
+            CNT_GRP_COL,
+            CNT_GRP_SORT,
+            CNT_GRP_TYPE
+        FROM
+            T_CNT_GRP G
+        WHERE
+            G.CNT_MST_IDX = #{CNT_MST_IDX}
+        ORDER BY CNT_GRP_IDX ASC
+    </select>
+    
+    <!-- 관리자 > 프로모션 관리 > 채널ON관리 상세정보 > 상품구성 목록-->
+    <select id="selectChannelOnDetailList" parameterType="HashMap" resultType="HashMap">
+        /* ChannelOn.selectChannelOnDetailList */
+        SELECT
+            RANK() OVER (ORDER BY PD.CNT_DTL_ORDER ASC) AS RNK 
+            , PD.CNT_GRP_IDX 
+            , PD.CNT_DTL_ORDER 
+            , PD.CNT_PRD_MST_CD 
+            , PM.PRD_MST_NM
+            , FN_PRODUCT_IMG(PM.PRD_MST_CD, #{THUMBNAIL_SIZE}) AS PRD_IMAGE
+            , FN_PRODUCT_IMG_ALT(PM.PRD_MST_CD, #{THUMBNAIL_SIZE}) PRD_IMAGE_ALT
+            , PM.PRD_MST_CNL_PC_YN
+            , PM.PRD_MST_CNL_MB_YN
+            , PM.PRD_MST_SEL_STATE
+            , PM.PRD_MST_PRC
+            , (SELECT FN_PRODUCT_DETAIL_PRICE(PM.PRD_MST_CD, #{USER_ENV_TYPE}, #{MEM_MST_ID},'N',null) FROM DUAL) AS PRD_NOW_DST_PRICE
+            , PM.PRD_MST_DLV_FEE
+            , PM.PRD_MST_DPL_STATE 
+            , FN_PRODUCT_PLAN_CNT(PD.CNT_PRD_MST_CD) AS PLAN_CNT
+            , V.VDR_MST_NM
+            , (SELECT TBM.BND_MST_BRAND_NM FROM T_BND_MST TBM WHERE TBM.VDR_MST_IDX = V.VDR_MST_IDX ) AS BND_MST_BRAND_NM
+        FROM 
+            T_CNT_DTL PD, T_PRD_MST PM, T_VDR_MST V
+        WHERE
+            PD.CNT_PRD_MST_CD = PM.PRD_MST_CD
+            AND PM.PRD_MST_VDR_IDX = V.VDR_MST_IDX(+)
+            AND CNT_MST_IDX = #{CNT_MST_IDX}
+    </select>
+    
+    <!-- 관리자 > 프로모션 관리 > 채널ON관리 수정 -->
+    <update id="updateChannelOn" parameterType="HashMap">
+        /* ChannelOn.updateChannelOn */
+        UPDATE
+            T_CNT_MST 
+        SET
+            CNT_MST_CHANNEL_PC_YN = NVL(#{CNT_MST_CHANNEL_PC_YN},'N'),
+            CNT_MST_CHANNEL_MOBILE_YN = NVL(#{CNT_MST_CHANNEL_MOBILE_YN},'N'),  
+            CNT_MST_TITLE = #{CNT_MST_TITLE},
+            CNT_MST_ST_DT = REPLACE(#{CNT_MST_ST_DT}, '-', ''),
+            CNT_MST_ED_DT = REPLACE(#{CNT_MST_ED_DT}, '-', ''),
+            CNT_MST_ST_HH = #{CNT_MST_ST_HH},
+            CNT_MST_ED_HH = #{CNT_MST_ED_HH},
+            CNT_MST_ST_MI = #{CNT_MST_ST_MI},
+            CNT_MST_ED_MI = #{CNT_MST_ED_MI},
+            CNT_MST_USE_YN = NVL(#{CNT_MST_USE_YN}, 'N'),
+            CNT_MST_UPD_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+            CNT_MST_UPD_IP = #{CNT_MST_UPD_IP},
+            CNT_MST_UPD_ID = #{CNT_MST_UPD_ID},
+            CNT_MST_DESC = #{CNT_MST_DESC},
+            CNT_MST_PC_BANNER = #{CNT_MST_PC_BANNER:CLOB},
+            CNT_MST_MOBILE_BANNER = #{CNT_MST_MOBILE_BANNER:CLOB},
+            CNT_MST_TYPE = #{CNT_MST_TYPE},
+            CNT_MST_DETAIL_TYPE = #{CNT_MST_DETAIL_TYPE},
+            CNT_MST_PC_SCRIPT = #{CNT_MST_PC_SCRIPT:CLOB},
+            CNT_MST_MOBILE_SCRIPT = #{CNT_MST_MOBILE_SCRIPT:CLOB},
+            CNT_MST_SEASON = #{CNT_MST_SEASON},
+            CNT_MST_URL = #{CNT_MST_URL},
+            PRD_CTG_IDX = #{PRD_CTG_IDX},
+            VDR_MST_IDX = #{VDR_MST_IDX}
+        WHERE
+            CNT_MST_IDX = #{CNT_MST_IDX}
+    </update>
+    
+    <!-- 관리자 > 프로모션 관리 > 채널ON관리 상품구성 삭제 -->
+    <delete id="deleteChannelOnDetail" parameterType="HashMap">
+        /* ChannelOn.deleteChannelOnDetail */
+        DELETE FROM T_CNT_DTL WHERE CNT_MST_IDX = #{CNT_MST_IDX}
+    </delete>
+    
+    <!-- 관리자 > 프로모션 관리 > 채널ON관리 그룹 갯수 -->
+    <select id="selectChannelOnGroupCount" parameterType="HashMap" resultType="Integer">
+        /* ChannelOn.selectChannelOnGroupCount */
+        SELECT
+            COUNT(TCG.CNT_GRP_IDX)
+        FROM
+            T_CNT_GRP TCG             
+        WHERE
+           CNT_GRP_IDX = #{CNT_GRP_IDX}
+    </select>
+    
+    <!-- 관리자 > 프로모션 관리 > 채널ON관리 상품구성 그룹 삭제 (단건)-->
+    <delete id="deleteChannelOnDetailGroupIdx" parameterType="HashMap">
+        /* ChannelOn.deleteChannelOnDetailGroupIdx */
+        DELETE FROM T_CNT_GRP WHERE CNT_GRP_IDX = #{CNT_GRP_IDX}
+    </delete>
+    
+    <!-- 관리자 > 프로모션 관리 > 채널ON관리 상품구성 그룹 등록 -->
+    <insert id="insertChannelOnDetailGroup" parameterType="HashMap">
+        <selectKey keyProperty="CNT_GRP_IDX" resultType="Integer" order="BEFORE">
+            SELECT SEQ_CNT_GRP_IDX.NEXTVAL AS CNT_GRP_IDX FROM DUAL
+        </selectKey>
+        /* ChannelOn.insertChannelOnDetailGroup */
+        INSERT INTO
+            T_CNT_GRP
+            (
+                CNT_GRP_IDX,
+                CNT_MST_IDX,
+                CNT_GRP_TITLE,
+                CNT_GRP_COL,
+                CNT_GRP_SORT,
+                CNT_GRP_TYPE
+            )
+        VALUES
+            (
+                #{CNT_GRP_IDX},
+                #{CNT_MST_IDX},
+                #{CNT_GRP_TITLE},
+                #{CNT_GRP_COL},
+                #{CNT_GRP_SORT},
+                #{CNT_GRP_TYPE}
+            )
+    </insert>
+    
+    <!-- 채널ON 상품구성 등록 -->
+    <insert id="insertChannelOnDetail" parameterType="HashMap">
+        /* Contents.insertChannelOnDetail */
+        INSERT INTO
+            T_CNT_DTL
+            (
+                CNT_DTL_IDX,
+                CNT_MST_IDX,   
+                CNT_GRP_IDX,             
+                CNT_PRD_MST_CD,
+                CNT_DTL_ORDER
+            )
+        VALUES
+            (
+                SEQ_CNT_DTL_IDX.NEXTVAL,
+                #{CNT_MST_IDX},             
+                #{CNT_GRP_IDX},   
+                #{CNT_PRD_MST_CD},
+                NVL(#{CNT_DTL_ORDER}, 0)
+            )
+    </insert>
+    
+    <!-- 관리자 > 프로모션 관리 > 채널ON관리 상품구성 그룹 수정 -->
+    <update id="updateChannelOnDetailGroup" parameterType="HashMap">
+        /* ChannelOn.updateChannelOnDetailGroup */
+        UPDATE 
+            T_CNT_GRP 
+        SET
+            CNT_GRP_TITLE = #{CNT_GRP_TITLE},
+            CNT_GRP_COL = #{CNT_GRP_COL},
+            CNT_GRP_SORT = #{CNT_GRP_SORT},
+            CNT_GRP_TYPE = #{CNT_GRP_TYPE}
+       WHERE CNT_GRP_IDX =  #{CNT_GRP_IDX}
+    </update>
+    
+    <!-- 관리자 > 프로모션 관리 > 채널ON관리 목록 전시여부 수정 -->
+    <update id="updateChannelOnStatus" parameterType="HashMap">
+        /* ChannelOn.updateChannelOnStatus */
+        UPDATE
+            T_CNT_MST
+        SET
+            CNT_MST_UPD_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+            CNT_MST_UPD_IP = #{CNT_MST_UPD_IP},
+            CNT_MST_UPD_ID = #{CNT_MST_UPD_ID},
+            CNT_MST_USE_YN = #{CNT_MST_USE_YN}
+        WHERE 
+            CNT_MST_IDX = #{CNT_MST_IDX}
+    </update>
+    
+</mapper>

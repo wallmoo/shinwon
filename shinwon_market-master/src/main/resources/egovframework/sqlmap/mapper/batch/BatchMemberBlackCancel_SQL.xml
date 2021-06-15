@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="BatchMemberBlackCancel">
+    
+    <!-- 배치 > 블랙리스트 종료 회원 상태값 원복 -->
+    <update id="updateMemberState" parameterType="HashMap">
+        /* BatchMemberBlackCancel.updateMemberState */
+        <![CDATA[
+        UPDATE T_MEM_MST MM 
+           SET MEM_MST_BLK_YN   = 'N',
+               MEM_MST_BLK_CD   = '3',
+               MEM_MST_BLK_ST   = '',
+               MEM_MST_BLK_ED   = '',
+               MEM_MST_BLK_RSN  = '1915',
+               MEM_MST_BLK_MEMO = '배치',
+               MEM_MST_BLK_DT   = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+               MEM_MST_BLK_ID   = #{BCH_MST_REQ_ID},
+               MEM_MST_UPD_DT   = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+               MEM_MST_UPD_ID   = #{BCH_MST_REQ_ID}
+         WHERE EXISTS(
+                  SELECT 1 
+                    FROM T_MEM_MST
+                   WHERE MEM_MST_BLK_YN = 'Y'
+                     AND MEM_MST_BLK_CD = '1'
+                     AND MEM_MST_BLK_ED = TO_CHAR(SYSDATE-1,'YYYYMMDD')
+                     AND MEM_MST_MEM_ID = MM.MEM_MST_MEM_ID
+            )
+        ]]>
+    </update>
+
+    <!-- 배치 > 블랙리스트 변경 이력  -->
+    <insert id="insertMemberHistory" parameterType="HashMap">
+        /* BatchMemberBlackCancel.insertMemberHistory */
+        <![CDATA[
+        INSERT INTO
+            T_MEM_BLK
+            (
+                MEM_BLK_IDX,
+                MEM_BLK_MEM_ID,
+                MEM_BLK_CD,
+                MEM_BLK_ST,
+                MEM_BLK_ED,
+                MEM_BLK_RSN,
+                MEM_BLK_MEMO,
+                MEM_BLK_REG_DT,
+                MEM_BLK_REG_ID
+            )
+            SELECT 
+                SEQ_MEM_BLK_IDX.NEXTVAL,
+                MEM_MST_MEM_ID,
+                '3',
+                '',
+                '',
+                '1915',
+                '배치',
+                TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+                #{BCH_MST_REQ_ID}
+            FROM T_MEM_MST
+           WHERE MEM_MST_BLK_YN = 'Y'
+             AND MEM_MST_BLK_CD = '1'
+             AND MEM_MST_BLK_ED = TO_CHAR(SYSDATE-1,'YYYYMMDD')     
+        ]]>
+    </insert>
+</mapper>

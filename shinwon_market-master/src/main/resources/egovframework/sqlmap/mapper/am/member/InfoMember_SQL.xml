@@ -1,0 +1,1927 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="InfoMember">
+
+    <!-- 회원 검색 조건 -->
+    <sql id="memberWhere">
+        <if test="searchInfoStartDate != null and searchInfoStartDate != '' and searchInfoEndDate != null and searchInfoEndDate != ''">
+            AND TMV.MEM_MST_REG_DT BETWEEN REPLACE(TRIM(#{searchInfoStartDate}),'-', '')||'000000' AND REPLACE(TRIM(#{searchInfoEndDate}),'-', '')||'235959'
+        </if>
+        <if test="searchId != null and searchId != ''">
+            AND TMV.MEM_MST_MEM_ID LIKE '%' || TRIM(#{searchId}) || '%'
+        </if>
+        <if test="searchNm != null and searchNm != ''">
+            AND TMV.MEM_MST_MEM_NM LIKE '%' || TRIM(#{searchNm}) || '%'
+        </if>
+        <if test="searchTel != null and searchTel != ''">
+            AND TMV.MEM_MST_HP3 LIKE '%' || TRIM(#{searchTel}) || '%'
+        </if>
+        <if test="searchBirth != null and searchBirth != ''">
+            AND TMV.MEM_MST_BIR_DT = TRIM(#{searchBirth})
+        </if>
+        <if test="searchMemberType != null and searchMemberType != ''">
+            AND TMV.MEM_MST_MEM_GBN = TRIM(#{searchMemberType})
+        </if>
+        <if test="searchMemGrade != null and searchMemGrade != ''">
+            AND TMV.MEM_MST_MEM_GRD = TRIM(#{searchMemGrade})
+        </if>
+        <if test="MEM_MST_HP3 != null and MEM_MST_HP3 != ''">
+            AND TMM.MEM_MST_HP3 = #{MEM_MST_HP3}
+        </if>
+        <if test="MEM_IPN_BIR != null and MEM_IPN_BIR != ''">
+            AND TMI.MEM_IPN_BIR = #{MEM_IPN_BIR}
+        </if>
+        <if test="MEM_MST_MEM_NM != null and MEM_MST_MEM_NM != ''">
+            AND TMM.MEM_MST_MEM_NM = #{MEM_MST_MEM_NM}
+        </if>
+        <if test="MEM_MST_MEM_ID != null and MEM_MST_MEM_ID != ''">
+            AND TMM.MEM_MST_MEM_ID = #{MEM_MST_MEM_ID}
+        </if>
+        
+        <if test="search3626 != null and search3626 != ''">
+            AND  EXISTS (  SELECT MEM_MST_MEM_ID FROM  T_MEM_SPC_PRV  MSP  WHERE TMV.MEM_MST_MEM_ID = MSP.mem_mst_mem_id  and MSP.CMN_COM_IDX = '3626'  AND TO_CHAR( SYSDATE , 'YYYYMMDDHH24MISS' )  BETWEEN MEM_SPC_PRV_BG_DT || '000000' AND MEM_SPC_PRV_EXP_DT || '235959')
+        </if>
+        <if test="search3627 != null and search3627 != ''">
+            AND  EXISTS (  SELECT MEM_MST_MEM_ID FROM  T_MEM_SPC_PRV  MSP  WHERE TMV.MEM_MST_MEM_ID = MSP.mem_mst_mem_id  and MSP.CMN_COM_IDX = '3627'  AND TO_CHAR( SYSDATE , 'YYYYMMDDHH24MISS' )  BETWEEN MEM_SPC_PRV_BG_DT || '000000'AND MEM_SPC_PRV_EXP_DT || '235959')
+        </if>
+        <if test="search3628 != null and search3628 != ''">
+            AND  EXISTS (  SELECT MEM_MST_MEM_ID FROM  T_MEM_SPC_PRV  MSP  WHERE TMV.MEM_MST_MEM_ID = MSP.mem_mst_mem_id  and MSP.CMN_COM_IDX = '3628'  AND TO_CHAR( SYSDATE , 'YYYYMMDDHH24MISS' )  BETWEEN MEM_SPC_PRV_BG_DT || '000000' AND MEM_SPC_PRV_EXP_DT|| '235959' )
+        </if>                
+                
+        <if test="searchMemSwType != null and searchMemSwType != ''">
+            AND MEM_MST_SW_TYPE = ${searchMemSwType} 
+        </if>  
+              
+    </sql>
+    
+    
+    <!-- 관리자 > 회원관리 > 회원정보관리 목록 갯수 -->
+    <select id="selectInfoMemberListCount" parameterType="hashMap" resultType="integer">
+        /* InfoMember.selectInfoMemberListCount */
+        SELECT
+            COUNT(0)
+        FROM
+            T_MEM_VIEW TMV
+        WHERE
+            MEM_MST_LEV_YN = 'N'
+            <include refid="memberWhere"/>
+    </select>
+    
+    <!-- 관리자 > 회원관리 > 회원정보관리 목록 -->
+    <select id="selectInfoMemberList" parameterType="hashMap" resultType="hashMap">
+        /* InfoMember.selectInfoMemberList */
+        SELECT
+            S2.*     
+        FROM 
+        (
+            SELECT
+                ROWNUM RNUM, 
+                S1.*                              
+            FROM 
+            (
+                SELECT
+                    TMV.MEM_MST_MEM_ID,
+                    TMV.MEM_MST_MEM_NM,
+                    TMI.MEM_IPN_SEX,
+                    TMI.MEM_IPN_BIR,
+                    TMV.MEM_MST_MEM_GBN,
+                    (SELECT CMN_COM_NM FROM T_CMM_COM TCC WHERE TCC.CMN_COM_IDX = TMV.MEM_MST_MEM_GBN) AS MEM_MST_MEM_GBN_NM,
+                    (SELECT CMN_COM_NM FROM T_CMM_COM TCC WHERE TCC.CMN_COM_IDX = TMV.MEM_MST_MEM_GRD) AS MEM_MST_MEM_GRD,
+                    TMV.MEM_MST_REG_DT,
+                    TMV.RST_YN,
+                    TMV.MEM_MST_MEM_NM AS MEM_MST_MEM_NM_ADD,
+                    TMV.MEM_MST_MAIL,
+                    TMV.MEM_MST_HP1,
+                    TMV.MEM_MST_HP2,
+                    TMV.MEM_MST_HP3,
+                    NVL(( SELECT MEM_PIT_TOT_PIT FROM (SELECT * FROM T_MEM_PIT     TMP ORDER BY MEM_PIT_REG_DT DESC ) TMP WHERE TMP.MEM_PIT_MEM_ID = TMV.MEM_MST_MEM_ID AND ROWNUM = 1),0) AS MEM_E_POINT  ,
+                    NVL(( SELECT MEM_PIT_TOT_PIT FROM (SELECT * FROM T_MEM_PIT_SW  TMP ORDER BY MEM_PIT_REG_DT DESC ) TMP WHERE TMP.MEM_PIT_MEM_ID = TMV.MEM_MST_MEM_ID AND ROWNUM = 1),0) AS MEM_SW_POINT ,
+                    NVL(( SELECT MEM_PIT_TOT_PIT FROM (SELECT * FROM T_MEM_PIT_TOT TMP ORDER BY MEM_PIT_REG_DT DESC ) TMP WHERE TMP.MEM_PIT_MEM_ID = TMV.MEM_MST_MEM_ID AND ROWNUM = 1),0) AS MEM_TOT_POINT,                                        
+                    TO_CHAR(TO_DATE(TMV.MEM_MST_REG_DT,'YYYYMMDDHH24MISS'),'YYYY.MM.DD') AS MEM_REG_DT
+                FROM T_MEM_VIEW TMV
+                INNER JOIN T_MEM_IPN TMI ON TMV.MEM_MST_MEM_ID = TMI.MEM_MST_MEM_ID 
+                WHERE 
+                    MEM_MST_LEV_YN = 'N'    
+                    <include refid="memberWhere"/>
+                ORDER BY MEM_MST_REG_DT DESC        
+            ) S1
+        ) S2
+        <if test="startNum != null and startNum != '' and endNum != null and endNum != ''">
+            WHERE S2.RNUM BETWEEN #{startNum} AND #{endNum}
+        </if>
+    </select>
+    
+    
+    <select id="selectInfoMemberListExcel" parameterType="hashMap" resultType="hashMap">
+        /* InfoMember.selectInfoMemberListExcel */
+        SELECT
+            S2.*     
+        FROM 
+        (
+            SELECT
+                ROWNUM RNUM, 
+				S1.EVT_COUNT_ETR + S1.EVT_COUNT_IMG + S1.EVT_COUNT_RPL + S1.EVT_COUNT_SVY AS TOT_EVT_WIN_COUNT ,
+                S1.*                              
+            FROM 
+            (
+                SELECT
+                    TMV.MEM_MST_MEM_ID,
+                    TMM.MEM_MST_ERP_ID ,
+                    TMV.MEM_MST_MEM_NM,
+                    TMI.MEM_IPN_SEX,
+                    DECODE( TMI.MEM_IPN_SEX , 'M' , '남성' , 'F' , '여성' , '') AS MEM_IPN_SEX_NM , 
+                    TMI.MEM_IPN_BIR,
+                    '양력' as BIR_TYPE, 
+                    'Y' as REAL_NAME_CHECK , 
+                    TMV.MEM_MST_MEM_GBN,
+                    (SELECT CMN_COM_NM FROM T_CMM_COM TCC WHERE TCC.CMN_COM_IDX = TMV.MEM_MST_MEM_GBN) AS MEM_MST_MEM_GBN_NM,
+                    (SELECT CMN_COM_NM FROM T_CMM_COM TCC WHERE TCC.CMN_COM_IDX = TMV.MEM_MST_MEM_GRD) AS MEM_MST_MEM_GRD,
+                    /*
+                    TMV.MEM_MST_ZIP_CDE5 ,
+                    TMV.MEM_MST_DRO_ADR1,
+                    TMV.MEM_MST_DRO_ADR2,  
+                    */
+                    MEM_DLV_ZIP_CDE5 AS MEM_MST_ZIP_CDE5 ,
+                    MEM_DLV_DRO_ADR1 AS MEM_MST_DRO_ADR1,
+                    MEM_DLV_DRO_ADR2 AS MEM_MST_DRO_ADR2,                    
+                    REPLACE( TMM.MEM_MST_TEL3 || '-' || TMM.MEM_MST_TEL3 || '-' || TMM.MEM_MST_TEL3 , '--' , '')  AS MEM_MST_TEL,
+                    REPLACE( TMV.MEM_MST_HP1 || '-' || TMV.MEM_MST_HP2 || '-' || TMV.MEM_MST_HP3 , '--' , '')  AS MEM_MST_HP,
+                    TMV.MEM_MST_MAIL,                    
+                    NVL(( SELECT MEM_PIT_TOT_PIT FROM (SELECT * FROM T_MEM_PIT     TMP ORDER BY MEM_PIT_REG_DT DESC ) TMP WHERE TMP.MEM_PIT_MEM_ID = TMV.MEM_MST_MEM_ID AND ROWNUM = 1),0) AS MEM_E_POINT  ,
+                    NVL(( SELECT MEM_PIT_TOT_PIT FROM (SELECT * FROM T_MEM_PIT_SW  TMP ORDER BY MEM_PIT_REG_DT DESC ) TMP WHERE TMP.MEM_PIT_MEM_ID = TMV.MEM_MST_MEM_ID AND ROWNUM = 1),0) AS MEM_SW_POINT ,
+                    NVL(( SELECT MEM_PIT_TOT_PIT FROM (SELECT * FROM T_MEM_PIT_TOT TMP ORDER BY MEM_PIT_REG_DT DESC ) TMP WHERE TMP.MEM_PIT_MEM_ID = TMV.MEM_MST_MEM_ID AND ROWNUM = 1),0) AS MEM_TOT_POINT,                                                            
+                    TO_CHAR(TO_DATE(TMV.MEM_MST_REG_DT,'YYYYMMDDHH24MISS'),'YYYY.MM.DD') AS MEM_REG_DT ,
+                    TO_CHAR(TO_DATE(TMV.MEM_MST_REG_DT,'YYYYMMDDHH24MISS'),'HH24:MI:SS') AS MEM_REG_TM , 
+                    NVL( TMV.MEM_MST_UPD_IP  , TMV.MEM_MST_REG_IP ) AS  MEM_MST_UPD_IP,	
+                    (SELECT MEM_AGR_TRM_YN  FROM T_MEM_AGR TMA WHERE TMV.MEM_MST_MEM_ID = TMA.MEM_AGR_MEM_ID AND TMA.MEM_AGR_TRM_CD = '0001') AS SMS_YN , 
+                    (SELECT MEM_AGR_TRM_YN  FROM T_MEM_AGR TMA WHERE TMV.MEM_MST_MEM_ID = TMA.MEM_AGR_MEM_ID AND TMA.MEM_AGR_TRM_CD = '0004') AS EMAIL_YN , 
+                    (SELECT MEM_AGR_TRM_YN  FROM T_MEM_AGR TMA WHERE TMV.MEM_MST_MEM_ID = TMA.MEM_AGR_MEM_ID AND TMA.MEM_AGR_TRM_CD = '0006') AS KAKAO_YN , 
+                    ( select count(*) as TOT_ORD_CNT from T_ORD_MST TOM where   TMV.MEM_MST_MEM_ID = TOM.ord_mst_ord_id ) AS TOT_ORD_CNT , -- 누적주문건수
+                    NVL(( select SUM( ORD_MST_PAY_PRC ) as TOT_ORD_PAY from T_ORD_MST TOM where   TMV.MEM_MST_MEM_ID = TOM.ord_mst_ord_id ),0) AS TOT_ORD_PAY , -- 누적실결제금액
+                    NVL(( select count(*) as REAL_ORD_CNT from T_ORD_MST TOM where   TMV.MEM_MST_MEM_ID = TOM.ord_mst_ord_id AND TOM.ORD_MST_PAY_TYPE = '409' ),0) AS REAL_ORD_CNT , -- 누적주문건수
+                    NVL(( select SUM( ORD_MST_PAY_PRC ) as REAL_ORD_PAY from T_ORD_MST TOM where   TMV.MEM_MST_MEM_ID = TOM.ord_mst_ord_id AND TOM.ORD_MST_PAY_TYPE = '409' ),0) AS REAL_ORD_PAY , -- 누적실결제금액                    
+                    NVL(( SELECT TO_CHAR(TO_DATE(ORD_MST_ORD_DT,'YYYYMMDDHH24MISS'),'YYYY.MM.DD')  FROM (SELECT * FROM T_ORD_MST  TOM  ORDER BY ORD_MST_ORD_DT DESC ) TMP WHERE TMV.MEM_MST_MEM_ID = TMP.ord_mst_ord_id AND ROWNUM = 1),'')  AS LAST_ORD_DT  ,
+                    DECODE( ( SELECT COUNT(*) AS TOT_CNT  FROM T_MEM_SPC_PRV  MSP  WHERE    TMV.MEM_MST_MEM_ID = MSP.mem_mst_mem_id  and MSP.CMN_COM_IDX = '3628'  )  , 0 , 'N' , 'Y' ) AS REVIEWER_TYPE ,
+                    ( SELECT COUNT( DISTINCT EVT_MST_IDX)  FROM  T_EVT_ETR TEE WHERE TEE.EVT_ETR_WIN_YN = 'Y' AND TMV.MEM_MST_MEM_ID =  TEE.EVT_ETR_REG_ID  ) AS EVT_COUNT_ETR ,
+                    ( SELECT COUNT( DISTINCT EVT_MST_IDX)  FROM  T_EVT_IMG  TEE WHERE TEE.EVT_IMG_WIN_YN = 'Y' AND TMV.MEM_MST_MEM_ID =  TEE.EVT_IMG_REG_IP  ) AS EVT_COUNT_IMG ,
+                    ( SELECT COUNT( DISTINCT EVT_MST_IDX)  FROM  T_EVT_RPL TEE WHERE TEE.EVT_RPL_WIN_YN = 'Y' AND TMV.MEM_MST_MEM_ID =  TEE.EVT_RPL_REG_IP  ) AS EVT_COUNT_RPL ,
+                    ( SELECT COUNT( DISTINCT EVT_MST_IDX )  FROM T_EVT_SVY S, T_EVT_DTL D WHERE S.EVT_SVY_WIN_YN = 'Y' AND S.EVT_DTL_IDX = D.EVT_DTL_IDX AND TMV.MEM_MST_MEM_ID =  S.EVT_SVY_REG_ID   ) AS EVT_COUNT_SVY 
+                FROM T_MEM_VIEW TMV
+                INNER JOIN T_MEM_IPN TMI ON TMV.MEM_MST_MEM_ID = TMI.MEM_MST_MEM_ID 
+                INNER JOIN T_MEM_MST TMM ON TMV.MEM_MST_MEM_ID = TMM.MEM_MST_MEM_ID 
+                LEFT OUTER  JOIN T_MEM_DLV TMD ON TMV.MEM_MST_MEM_ID = TMD.MEM_MST_MEM_ID
+                WHERE 
+                     TMM.MEM_MST_LEV_YN = 'N'    
+                    <include refid="memberWhere"/>					 
+                ORDER BY TMV.MEM_MST_REG_DT DESC   			
+            ) S1
+        ) S2
+        <if test="startNum != null and startNum != '' and endNum != null and endNum != ''">
+            WHERE S2.RNUM BETWEEN #{startNum} AND #{endNum}
+        </if>  
+    </select>    
+     
+    <select id="selectInfoExecutivesListExcel" parameterType="hashMap" resultType="hashMap">
+        /* InfoMember.selectInfoExecutivesListExcel */
+        SELECT
+            S2.*     
+        FROM 
+        (
+            SELECT
+                ROWNUM RNUM, 
+				S1.EVT_COUNT_ETR + S1.EVT_COUNT_IMG + S1.EVT_COUNT_RPL + S1.EVT_COUNT_SVY AS TOT_EVT_WIN_COUNT ,
+                S1.*                              
+            FROM 
+            (
+                SELECT
+                    TMV.MEM_MST_MEM_ID,
+                    TMM.MEM_MST_ERP_ID ,
+                    TMV.MEM_MST_MEM_NM,
+                    TMI.MEM_IPN_SEX,
+                    DECODE( TMI.MEM_IPN_SEX , 'M' , '남성' , 'F' , '여성' , '') AS MEM_IPN_SEX_NM , 
+                    TMI.MEM_IPN_BIR,
+                    '양력' as BIR_TYPE, 
+                    'Y' as REAL_NAME_CHECK , 
+                    TMV.MEM_MST_MEM_GBN,
+                    (SELECT CMN_COM_NM FROM T_CMM_COM TCC WHERE TCC.CMN_COM_IDX = TMV.MEM_MST_MEM_GBN) AS MEM_MST_MEM_GBN_NM,
+                    (SELECT CMN_COM_NM FROM T_CMM_COM TCC WHERE TCC.CMN_COM_IDX = TMV.MEM_MST_MEM_GRD) AS MEM_MST_MEM_GRD,
+                    /*
+                    TMV.MEM_MST_ZIP_CDE5 ,
+                    TMV.MEM_MST_DRO_ADR1,
+                    TMV.MEM_MST_DRO_ADR2,  
+                    */
+                    MEM_DLV_ZIP_CDE5 AS MEM_MST_ZIP_CDE5 ,
+                    MEM_DLV_DRO_ADR1 AS MEM_MST_DRO_ADR1,
+                    MEM_DLV_DRO_ADR2 AS MEM_MST_DRO_ADR2,                    
+                    REPLACE( TMM.MEM_MST_TEL3 || '-' || TMM.MEM_MST_TEL3 || '-' || TMM.MEM_MST_TEL3 , '--' , '')  AS MEM_MST_TEL,
+                    REPLACE( TMV.MEM_MST_HP1 || '-' || TMV.MEM_MST_HP2 || '-' || TMV.MEM_MST_HP3 , '--' , '')  AS MEM_MST_HP,
+                    TMV.MEM_MST_MAIL,                    
+                    NVL(( SELECT MEM_PIT_TOT_PIT FROM (SELECT * FROM T_MEM_PIT     TMP ORDER BY MEM_PIT_REG_DT DESC ) TMP WHERE TMP.MEM_PIT_MEM_ID = TMV.MEM_MST_MEM_ID AND ROWNUM = 1),0) AS MEM_E_POINT  ,
+                    NVL(( SELECT MEM_PIT_TOT_PIT FROM (SELECT * FROM T_MEM_PIT_SW  TMP ORDER BY MEM_PIT_REG_DT DESC ) TMP WHERE TMP.MEM_PIT_MEM_ID = TMV.MEM_MST_MEM_ID AND ROWNUM = 1),0) AS MEM_SW_POINT ,
+                    NVL(( SELECT MEM_PIT_TOT_PIT FROM (SELECT * FROM T_MEM_PIT_TOT TMP ORDER BY MEM_PIT_REG_DT DESC ) TMP WHERE TMP.MEM_PIT_MEM_ID = TMV.MEM_MST_MEM_ID AND ROWNUM = 1),0) AS MEM_TOT_POINT,                                                            
+                    TO_CHAR(TO_DATE(TMV.MEM_MST_REG_DT,'YYYYMMDDHH24MISS'),'YYYY.MM.DD') AS MEM_REG_DT ,
+                    TO_CHAR(TO_DATE(TMV.MEM_MST_REG_DT,'YYYYMMDDHH24MISS'),'HH24:MI:SS') AS MEM_REG_TM , 
+                    NVL( TMV.MEM_MST_UPD_IP  , TMV.MEM_MST_REG_IP ) AS  MEM_MST_UPD_IP,	
+                    (SELECT MEM_AGR_TRM_YN  FROM T_MEM_AGR TMA WHERE TMV.MEM_MST_MEM_ID = TMA.MEM_AGR_MEM_ID AND TMA.MEM_AGR_TRM_CD = '0001') AS SMS_YN , 
+                    (SELECT MEM_AGR_TRM_YN  FROM T_MEM_AGR TMA WHERE TMV.MEM_MST_MEM_ID = TMA.MEM_AGR_MEM_ID AND TMA.MEM_AGR_TRM_CD = '0004') AS EMAIL_YN , 
+                    (SELECT MEM_AGR_TRM_YN  FROM T_MEM_AGR TMA WHERE TMV.MEM_MST_MEM_ID = TMA.MEM_AGR_MEM_ID AND TMA.MEM_AGR_TRM_CD = '0006') AS KAKAO_YN , 
+                    ( select count(*) as TOT_ORD_CNT from T_ORD_MST TOM where   TMV.MEM_MST_MEM_ID = TOM.ord_mst_ord_id ) AS TOT_ORD_CNT , -- 누적주문건수
+                    NVL(( select SUM( ORD_MST_PAY_PRC ) as TOT_ORD_PAY from T_ORD_MST TOM where   TMV.MEM_MST_MEM_ID = TOM.ord_mst_ord_id ),0) AS TOT_ORD_PAY , -- 누적실결제금액
+                    NVL(( select count(*) as REAL_ORD_CNT from T_ORD_MST TOM where   TMV.MEM_MST_MEM_ID = TOM.ord_mst_ord_id AND TOM.ORD_MST_PAY_TYPE = '409' ),0) AS REAL_ORD_CNT , -- 누적주문건수
+                    NVL(( select SUM( ORD_MST_PAY_PRC ) as REAL_ORD_PAY from T_ORD_MST TOM where   TMV.MEM_MST_MEM_ID = TOM.ord_mst_ord_id AND TOM.ORD_MST_PAY_TYPE = '409' ),0) AS REAL_ORD_PAY , -- 누적실결제금액                    
+                    NVL(( SELECT TO_CHAR(TO_DATE(ORD_MST_ORD_DT,'YYYYMMDDHH24MISS'),'YYYY.MM.DD')  FROM (SELECT * FROM T_ORD_MST  TOM  ORDER BY ORD_MST_ORD_DT DESC ) TMP WHERE TMV.MEM_MST_MEM_ID = TMP.ord_mst_ord_id AND ROWNUM = 1),'')  AS LAST_ORD_DT  ,
+                    DECODE( ( SELECT COUNT(*) AS TOT_CNT  FROM T_MEM_SPC_PRV  MSP  WHERE    TMV.MEM_MST_MEM_ID = MSP.mem_mst_mem_id  and MSP.CMN_COM_IDX = '3628'  )  , 0 , 'N' , 'Y' ) AS REVIEWER_TYPE ,
+                    ( SELECT COUNT( DISTINCT EVT_MST_IDX)  FROM  T_EVT_ETR TEE WHERE TEE.EVT_ETR_WIN_YN = 'Y' AND TMV.MEM_MST_MEM_ID =  TEE.EVT_ETR_REG_ID  ) AS EVT_COUNT_ETR ,
+                    ( SELECT COUNT( DISTINCT EVT_MST_IDX)  FROM  T_EVT_IMG  TEE WHERE TEE.EVT_IMG_WIN_YN = 'Y' AND TMV.MEM_MST_MEM_ID =  TEE.EVT_IMG_REG_IP  ) AS EVT_COUNT_IMG ,
+                    ( SELECT COUNT( DISTINCT EVT_MST_IDX)  FROM  T_EVT_RPL TEE WHERE TEE.EVT_RPL_WIN_YN = 'Y' AND TMV.MEM_MST_MEM_ID =  TEE.EVT_RPL_REG_IP  ) AS EVT_COUNT_RPL ,
+                    ( SELECT COUNT( DISTINCT EVT_MST_IDX )  FROM T_EVT_SVY S, T_EVT_DTL D WHERE S.EVT_SVY_WIN_YN = 'Y' AND S.EVT_DTL_IDX = D.EVT_DTL_IDX AND TMV.MEM_MST_MEM_ID =  S.EVT_SVY_REG_ID   ) AS EVT_COUNT_SVY ,
+                    (SELECT CMN_COM_NM FROM T_CMM_COM TCC WHERE TCC.CMN_COM_IDX = TMM.MEM_MST_SW_TYPE) AS MEM_MST_SW_TYPE_NM
+                FROM T_MEM_VIEW TMV
+                INNER JOIN T_MEM_IPN TMI ON TMV.MEM_MST_MEM_ID = TMI.MEM_MST_MEM_ID 
+                INNER JOIN T_MEM_MST TMM ON TMV.MEM_MST_MEM_ID = TMM.MEM_MST_MEM_ID 
+                LEFT OUTER  JOIN T_MEM_DLV TMD ON TMV.MEM_MST_MEM_ID = TMD.MEM_MST_MEM_ID
+                WHERE 
+                     TMM.MEM_MST_LEV_YN = 'N'    
+                 AND
+                     TMM.MEM_MST_SW_ID IS NOT NULL                     
+                    <include refid="memberWhere"/>					 
+                ORDER BY TMV.MEM_MST_REG_DT DESC   			
+            ) S1
+        ) S2
+        <if test="startNum != null and startNum != '' and endNum != null and endNum != ''">
+            WHERE S2.RNUM BETWEEN #{startNum} AND #{endNum}
+        </if>
+    </select>        
+    
+    
+    <select id="selectReviewEvent" parameterType="hashMap" resultType="hashMap">
+        /* InfoMember.selectReviewEvent */
+        SELECT
+                 EXP.EXP_MST_CD,
+                 EXP.PRD_MST_CD,
+                 TPM.PRD_MST_NM,
+                 EXP.EXP_MST_NM
+             FROM
+                 T_EXP_MST EXP
+                 , T_PRD_MST TPM 
+             WHERE EXP.PRD_MST_CD = TPM.PRD_MST_CD
+              AND TO_CHAR(SYSDATE,'YYYYMMDDHH24MISS') BETWEEN EXP.EXP_MST_ATV_ST_DT AND EXP.EXP_MST_ATV_ED_DT
+             ORDER BY EXP.EXP_MST_REG_DT DESC 
+    </select>    
+    
+    <!-- 관리자 > 회원관리 > 회원관리 목록 > 검색조건 - 회원목록 조회 -->
+    <select id="selectMemberGradeList" parameterType="HashMap" resultType="HashMap">
+        /* InfoMember.selectMemberGradeList */
+        SELECT  
+            CMN_COM_IDX,
+            CMN_COM_NM,
+            CMN_COM_LEVEL,
+            CMN_COM_UP_IDX,
+            CMN_COM_TOP_IDX,
+            CMN_COM_ETC1,
+            CMN_COM_ETC2,
+            CMN_COM_ETC3,
+            CMN_COM_SORT, 
+            CMN_COM_USE_YN
+        FROM 
+         T_CMM_COM 
+        WHERE 
+            CMN_COM_UP_IDX=#{MEM_MST_MEM_GBN}
+        ORDER BY CMN_COM_SORT ASC       
+    </select>
+    
+    <!-- 관리자 > 회원관리 > 회원현황 목록에서 search클릭 시 history 저장 -->
+    <insert id="insertSearchHistory" parameterType="HashMap">
+        <selectKey keyProperty="MEM_MST_HISTORY_IDX" resultType="Integer" order="BEFORE">
+            SELECT SEQ_MEM_MST_HISTORY_IDX.NEXTVAL AS MEM_MST_HISTORY_IDX FROM DUAL
+        </selectKey>
+        /* InfoMember.insertSearchHistory */
+        INSERT INTO
+            T_MEM_MST_SEARCH_HISTORY
+            (
+                MEM_MST_HISTORY_IDX
+                ,MEM_MST_MEM_ID
+                ,MEM_MST_MEM_NM
+                ,MEM_MST_HP3
+                ,MEM_MST_MAIL
+                ,MEM_MST_SEX
+                ,MEM_MST_BIR_DT
+                ,MEM_MST_MEM_GBN
+                ,MEM_MST_MEM_GRD
+                ,MEM_MST_REG_ST_DT
+                ,MEM_MST_REG_ED_DT
+                ,MEM_MST_LEV_ST_DT
+                ,MEM_MST_LEV_ED_DT
+                ,MEM_MST_LEV_YN
+                ,MEM_MST_LEV_RSN_CD
+                ,MEM_MST_SEARCH_DT
+                ,MEM_MST_SEARCH_IP
+                ,MEM_MST_SEARCH_ID
+            )
+        VALUES
+            (
+                #{MEM_MST_HISTORY_IDX},
+                #{searchId},
+                #{searchNm},
+                #{searchTel},
+                #{searchEmail},
+                #{searchSex},
+                #{searchBirth},
+                #{searchMemberType},
+                #{searchMemGrade},
+                REPLACE(#{searchInfoStartDate}, '-', ''),
+                REPLACE(#{searchInfoEndDate}, '-', ''),
+                REPLACE(#{searchSecStartDate}, '-', ''),
+                REPLACE(#{searchSecEndDate}, '-', ''),
+                #{searchSecType},
+                #{searchSecReason},
+                TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+                #{MEM_MST_SEARCH_IP},
+                #{MEM_MST_SEARCH_ID}                
+            )
+    </insert>
+    <!-- 관리자 > 회원관리 > 회원 상세 정보 -->
+    <select id="selectMemberStyleInfo" parameterType="hashMap" resultType="hashMap">
+    	/* InfoMember.selectMemberStyleInfo */
+    	SELECT 
+    		TMM.MEM_MST_STY_JOB,
+    		TMM.MEM_MST_STY_HEIGHT,
+    		TMM.MEM_MST_STY_WEIGHT
+    	 FROM
+    	 	T_MEM_MST TMM
+    	 WHERE TMM.MEM_MST_MEM_ID = #{MEM_MST_MEM_ID}
+    </select>
+    <!-- 관리자 > 회원관리 > 회원 상세 정보 -->
+    <select id="selectMemberInfo" parameterType="hashMap" resultType="hashMap">
+        /* InfoMember.selectMemberInfo */
+        SELECT
+            TMV.MEM_MST_MEM_ID,
+        	TMV.MEM_MST_MEM_NM,
+        	TMV.MEM_MST_PW,
+			TMV.MEM_MST_MAIL,
+			TMV.MEM_MST_MEM_GBN,
+			TMV.MEM_MST_REG_DT,
+			TMV.MEM_MST_JBN_ADR1,
+			TMV.MEM_MST_JBN_ADR2,
+			TMV.MEM_MST_TEL1,
+			TMV.MEM_MST_TEL2,
+			TMV.MEM_MST_TEL3,
+			TMV.MEM_MST_HP1,
+			TMV.MEM_MST_HP2,
+			TMV.MEM_MST_HP3,
+			TMV.MEM_MST_ZIP_CDE5,
+			TMV.MEM_MST_ZIP_CDE6,
+			TMV.MEM_MST_DRO_ADR1,
+			TMV.MEM_MST_DRO_ADR2,
+			TMV.MEM_MST_UPD_ID,
+			TMV.MEM_MST_UPD_DT,
+			TMV.MEM_MST_LEV_YN ,
+			TMV.MEM_MST_LEV_DT,
+			TMV.MEM_MST_LEV_RSN,
+			TMV.RST_YN,
+			(SELECT CMN_COM_NM FROM T_CMM_COM TCC WHERE TCC.CMN_COM_IDX = TMV.MEM_MST_LEV_RSN_CD) AS MEM_MST_LEV_RSN_CD_NM,
+			AGR.SMS_YN,
+			AGR.TM_YN,
+			AGR.DM_YN,
+			AGR.EMAIL_YN,
+			AGR.AD_YN,
+			AGR.KAKAO_YN,
+			AGR.S_ELEC_YN,
+			AGR.LG_YN,
+			TMV.MEM_MST_NCK_NM,
+			TMV.MEM_MST_STY_JOB,
+          	TMV.MEM_MST_STY_HEIGHT,
+         	TMV.MEM_MST_STY_WEIGHT,
+			TMV.MEM_MST_PRF_IMG,
+			TMI.MEM_IPN_BIR, 
+			TMI.MEM_IPN_SEX,
+			TMI.MEM_IPN_SEX AS MEM_MST_SEX,
+            (SELECT CMN_COM_NM FROM T_CMM_COM TCC WHERE TCC.CMN_COM_IDX = TMV.MEM_MST_MEM_GBN) AS MEM_MST_MEM_GBN_NM,
+            (SELECT CMN_COM_NM FROM T_CMM_COM TCC WHERE TCC.CMN_COM_IDX = TMV.MEM_MST_MEM_GRD) AS MEM_MST_MEM_GRD,
+            (SELECT MAX(LGI_HIS_REG_DT) FROM T_LGI_HIS TLH WHERE MEM_MST_MEM_ID = MEM_MST_MEM_ID ) AS MEM_MST_LST_LGI_DT,
+            (SELECT MEM_MST_ERP_ID FROM T_MEM_MST TMM WHERE MEM_MST_MEM_ID = TMV.MEM_MST_MEM_ID ) AS MEM_MST_ERP_ID ,
+            (SELECT MEM_MST_RST_DT FROM T_MEM_RST TMR WHERE TMV.MEM_MST_MEM_ID = TMR.MEM_MST_MEM_ID   ) AS  MEM_MST_RST_DT
+        FROM
+            T_MEM_VIEW TMV    
+            ,
+            (
+                SELECT
+                    MEM_AGR_MEM_ID
+                    , DECODE(SMS_YN, 0, 'Y', 'N') AS SMS_YN
+                    , DECODE(TM_YN, 0, 'Y', 'N') AS TM_YN
+                    , DECODE(DM_YN, 0, 'Y', 'N') AS DM_YN
+                    , DECODE(EMAIL_YN, 0, 'Y', 'N') AS EMAIL_YN
+                    , DECODE(AD_YN, 0, 'Y', 'N') AS AD_YN
+                    , DECODE(KAKAO_YN, 0, 'Y', 'N') AS KAKAO_YN
+                    , DECODE(S_ELEC_YN, 0, 'Y', 'N') AS S_ELEC_YN
+                    , DECODE(LG_YN, 0, 'Y', 'N') AS LG_YN
+                FROM
+                (
+                    SELECT 
+                        MEM_AGR_MEM_ID
+                        , DECODE(MEM_AGR_TRM_YN, 'Y', 0, 1) AS TRM_YN_CNT
+                        , DECODE(MEM_AGR_TRM_CD, 0001, 'SMS_YN', 0002, 'TM_YN', 0003, 'DM_YN', 0004, 'EMAIL_YN', 0005, 'AD_YN', 0006, 'KAKAO_YN', 0007, 'S_ELEC_YN', 0008, 'LG_YN') AS YN
+                    FROM T_MEM_AGR
+                    WHERE
+                        MEM_AGR_MEM_ID = #{MEM_MST_MEM_ID}     
+                )
+                PIVOT 
+                (
+                    SUM(TRM_YN_CNT)
+                    FOR YN IN ('SMS_YN' SMS_YN,'TM_YN' TM_YN, 'DM_YN' DM_YN, 'EMAIL_YN' EMAIL_YN, 'AD_YN' AD_YN, 'KAKAO_YN' KAKAO_YN, 'S_ELEC_YN' S_ELEC_YN, 'LG_YN' LG_YN)
+                ) 
+            ) AGR  
+            ,
+        	T_MEM_IPN TMI
+        WHERE
+            TMV.MEM_MST_MEM_ID = AGR.MEM_AGR_MEM_ID(+)
+            AND TMV.MEM_MST_MEM_ID = TMI.MEM_MST_MEM_ID(+)
+            AND TMV.MEM_MST_MEM_ID = #{MEM_MST_MEM_ID}       
+    </select>
+    
+    <!-- 관리자 > 회원관리 > 기업회원상세 -->
+    <select id="selectCompMemberInfo" parameterType="HashMap" resultType="HashMap">
+        /* InfoMember.selectCompMemberInfo */
+        SELECT
+            TMV.MEM_MST_MEM_ID,
+            TMV.MEM_MST_MEM_NM,
+            TMV.MEM_MST_TEL1,
+            TMV.MEM_MST_TEL2,
+            MEM_MST_TEL3,
+            TMV.MEM_MST_HP1,
+            TMV.MEM_MST_HP2,
+            MEM_MST_HP3,
+            MEM_MST_MAIL,
+            TMV.MEM_MST_MEM_GBN,
+            (SELECT CMN_COM_NM FROM T_CMM_COM TCC WHERE TCC.CMN_COM_IDX = TMV.MEM_MST_MEM_GBN) AS MEM_MST_MEM_GBN_NM,
+            TMV.MEM_MST_MEM_GRD,
+            TMV.MEM_MST_REG_DT,         
+            TMV.MEM_MST_LEV_DT,
+            TMV.MEM_MST_LEV_YN,
+            TMV.MEM_MST_VST_LAT,
+            TMV.MEM_MST_LEV_RSN_CD,
+            (SELECT CMN_COM_NM FROM T_CMM_COM TCC WHERE TCC.CMN_COM_IDX = TMV.MEM_MST_LEV_RSN_CD) AS MEM_MST_LEV_RSN_CD_NM,
+            TMV.MEM_MST_LEV_RSN,
+            TMV.MEM_MST_UPD_ID,
+            (SELECT ADM_MST_NM FROM T_ADM_MST TAM WHERE TAM.ADM_MST_ID = TMV.MEM_MST_UPD_ID) AS MEM_MST_UPD_NM, 
+            TMV.MEM_MST_UPD_DT,
+            TMV.RST_YN,
+            TMC.MEM_CPR_MEM_ID,
+            TMC.MEM_CPR_NM,
+            TMC.MEM_CPR_CEO_NM,
+            TMC.MEM_CPR_NO1,
+            TMC.MEM_CPR_NO2,
+            TMC.MEM_CPR_NO3,
+            TMC.MEM_CPR_TYPE,
+            TMC.MEM_CPR_STUS,
+            TMC.MEM_CPR_TEL1,
+            TMC.MEM_CPR_TEL2,
+            MEM_CPR_TEL3,
+            TMC.MEM_CPR_FAX1,
+            TMC.MEM_CPR_FAX2,
+            MEM_CPR_FAX3,
+            TMC.MEM_CPR_ZIP_CDE6,
+            TMC.MEM_CPR_JBN_ADR1,
+            TMC.MEM_CPR_JBN_ADR2,
+            TMC.MEM_CPR_ZIP_CDE5,
+            TMC.MEM_CPR_DRO_ADR1,
+            TMC.MEM_CPR_DRO_ADR2,
+            SMS_YN,
+            TM_YN,
+            DM_YN,
+            EMAIL_YN,
+            AD_YN,
+            KAKAO_YN,
+            S_ELEC_YN,
+            LG_YN
+        FROM
+            T_MEM_VIEW TMV 
+            , T_MEM_CPR TMC
+            ,
+            (
+                SELECT
+                    MEM_AGR_MEM_ID
+                    , DECODE(SMS_YN, 0, 'Y', 'N') AS SMS_YN
+                    , DECODE(TM_YN, 0, 'Y', 'N') AS TM_YN
+                    , DECODE(DM_YN, 0, 'Y', 'N') AS DM_YN
+                    , DECODE(EMAIL_YN, 0, 'Y', 'N') AS EMAIL_YN
+                    , DECODE(AD_YN, 0, 'Y', 'N') AS AD_YN
+                    , DECODE(KAKAO_YN, 0, 'Y', 'N') AS KAKAO_YN
+                    , DECODE(S_ELEC_YN, 0, 'Y', 'N') AS S_ELEC_YN
+                    , DECODE(LG_YN, 0, 'Y', 'N') AS LG_YN
+                FROM
+                (
+                    SELECT 
+                        MEM_AGR_MEM_ID
+                        , DECODE(MEM_AGR_TRM_YN, 'Y', 0, 1) AS TRM_YN_CNT
+                        , DECODE(MEM_AGR_TRM_CD, 0001, 'SMS_YN', 0002, 'TM_YN', 0003, 'DM_YN', 0004, 'EMAIL_YN', 0005, 'AD_YN', 0006, 'KAKAO_YN', 0007, 'S_ELEC_YN', 0008, 'LG_YN') AS YN
+                    FROM T_MEM_AGR
+                    WHERE
+                        MEM_AGR_MEM_ID = #{MEM_MST_MEM_ID}
+                )
+                PIVOT 
+                (
+                    SUM(TRM_YN_CNT)
+                    FOR YN IN ('SMS_YN' SMS_YN,'TM_YN' TM_YN, 'DM_YN' DM_YN, 'EMAIL_YN' EMAIL_YN, 'AD_YN' AD_YN, 'KAKAO_YN' KAKAO_YN, 'S_ELEC_YN' S_ELEC_YN, 'LG_YN' LG_YN)
+                ) 
+            ) AGR 
+        WHERE
+            TMV.MEM_MST_MEM_ID = TMC.MEM_CPR_MEM_ID
+        AND 
+            TMV.MEM_MST_MEM_ID = AGR.MEM_AGR_MEM_ID
+        AND
+            TMV.MEM_MST_MEM_ID = #{MEM_MST_MEM_ID}
+    </select>
+    
+    <!-- 관리자 > 회원관리 > 회원정보 상세 > 간략한 회원정보 가져오기 -->
+    <select id="selectMemInfo" parameterType="HashMap" resultType="HashMap">
+        /* PcMyInfo.selectMemInfo */
+        SELECT
+            MEM_MST_MEM_GBN,              
+            DECODE(MEM_MST_MEM_GBN,#{MEMBER_TYPE_PRI},'02',#{MEMBER_TYPE_COMP},'22',#{MEMBER_TYPE_SIMPLE},'12') AS P8E1URCD4 ,
+            NVL( ( SELECT MEM_MST_ERP_ID FROM T_MEM_MST TMM WHERE TMV.MEM_MST_MEM_ID = TMM.MEM_MST_MEM_ID ) , 0) AS MEM_MST_ERP_ID
+        FROM
+            T_MEM_VIEW TMV 
+        WHERE
+            MEM_MST_MEM_ID = #{MEM_MST_MEM_ID}       
+    </select>
+    
+    <!-- 관리자 > 회원관리 > 회원정보 상세 > 회원정보 수정 -->
+    <update id="updateInfoMember" parameterType="HashMap">
+        /* InfoMember.updateInfoMember */ 
+        UPDATE 
+            T_MEM_MST 
+        SET
+            <if test="MEM_MST_MEM_GRD != null and MEM_MST_MEM_GRD != ''">
+                MEM_MST_MEM_GRD = #{MEM_MST_MEM_GRD},            
+            </if>
+            MEM_MST_UPD_IP = #{MEM_MST_UPD_IP},
+            MEM_MST_UPD_ID = #{MEM_MST_UPD_ID},
+            MEM_MST_UPD_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS')                       
+        WHERE
+            MEM_MST_MEM_ID = #{MEM_MST_MEM_ID}
+    </update>
+    
+    <!-- 관리자 > 회원관리 > 회원정보 상세 > 휴면회원정보 수정 -->
+    <update id="updateInfoRestMember" parameterType="HashMap">
+        /* InfoMember.updateInfoRestMember */ 
+        UPDATE 
+            T_MEM_RST
+        SET
+            <if test="MEM_MST_MEM_GRD != null and MEM_MST_MEM_GRD != ''">
+                MEM_MST_MEM_GRD = #{MEM_MST_MEM_GRD},            
+            </if>
+            MEM_MST_UPD_IP = #{MEM_MST_UPD_IP},
+            MEM_MST_UPD_ID = #{MEM_MST_UPD_ID},
+            MEM_MST_UPD_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS')                       
+        WHERE
+            MEM_MST_MEM_ID = #{MEM_MST_MEM_ID}
+    </update>
+    
+    <!-- 관리자 > 회원관리 > 약관동의 목록 -->
+    <select id="selectMemberAgreeList" parameterType="HashMap" resultType="HashMap">
+        /* InfoMember.selectMemberAgreeList */
+        SELECT 
+            MEM_AGR_TRM_CD,
+            MEM_AGR_TRM_YN
+        FROM
+            T_MEM_AGR TMA
+        WHERE
+            MEM_AGR_MEM_ID = #{MEM_MST_MEM_ID}
+            AND MEM_AGR_TRM_CD IN ('0001','0002','0003','0004','0005','0006') /* 0001 : SMS_YN , 0002 : TM_YN , 0003 : DM_YN , 0004 : EMAIL_YN */
+        ORDER BY MEM_AGR_TRM_CD 
+    </select>
+    
+    <!-- 관리자 > 회원관리 > 회원정보 상세 > 약관동의 수정 -->
+    <update id="updateAgreeInfo" parameterType="HashMap">
+        /* InfoMember.updateAgreeInfo */
+        UPDATE 
+            T_MEM_AGR
+        SET
+            MEM_AGR_TRM_YN = NVL(#{MEM_AGR_TRM_YN},'N'),
+            MEM_AGR_UPD_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+            MEM_AGR_UPD_ID = #{MEM_MST_UPD_ID},
+            MEM_AGR_UPD_IP = #{MEM_MST_UPD_IP}
+        WHERE
+            MEM_AGR_MEM_ID = #{MEM_MST_MEM_ID}
+        AND
+            MEM_AGR_TRM_CD = #{MEM_AGR_TRM_CD}
+    </update>
+    
+    <!-- 관리자 > 회원관리 > 회원정보 상세 > 약관동의 수정 시 수정한 관리자 정보 업데이트(휴면) -->
+    <update id="updateRstAdminInfo" parameterType="HashMap">
+        /*InfoMember.updateRstAdminInfo*/
+        UPDATE 
+            T_MEM_RST
+        SET
+            MEM_MST_UPD_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+            MEM_MST_UPD_ID = #{MEM_MST_UPD_ID},
+            MEM_MST_UPD_IP = #{MEM_MST_UPD_IP}
+        WHERE
+            MEM_MST_MEM_ID = #{MEM_MST_MEM_ID}
+    </update>
+    
+    <!-- 관리자 > 회원관리 > 회원정보 상세 > 약관동의 수정 시 수정한 관리자 정보 업데이트(마스터) -->
+    <update id="updateMstAdminInfo" parameterType="HashMap">
+        /*InfoMember.updateMstAdminInfo*/
+        UPDATE 
+            T_MEM_MST
+        SET
+            MEM_MST_UPD_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+            MEM_MST_UPD_ID = #{MEM_MST_UPD_ID},
+            MEM_MST_UPD_IP = #{MEM_MST_UPD_IP}
+        WHERE
+            MEM_MST_MEM_ID = #{MEM_MST_MEM_ID}
+    </update>
+    
+    <!-- 관리자 > 회원관리 > 회원정보 상세 > 임시 비밀번호 저장(회원)  -->
+    <update id="updateMemberTempPw" parameterType="HashMap">
+        /* InfoMember.updateMemberTempPw */ 
+        UPDATE
+            T_MEM_MST
+        SET 
+            MEM_MST_PW = #{MEM_MST_TEMP_PW},
+            MEM_MST_UPD_IP = #{MEM_MST_UPD_IP},
+            MEM_MST_UPD_ID = #{MEM_MST_UPD_ID},
+            MEM_MST_UPD_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+            MEM_MST_TMP_PW_YN = 'Y',
+            MEM_MST_TMP_PW_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS')    
+        WHERE
+            MEM_MST_MEM_ID = #{MEM_MST_MEM_ID}
+    </update>
+    
+    <!-- 관리자 > 회원관리 > 회원정보 상세 > 임시 비밀번호 저장(휴면회원)  -->
+    <update id="updateRestMemberTempPw" parameterType="HashMap">
+        /* InfoMember.updateRestMemberTempPw */ 
+        UPDATE
+            T_MEM_RST
+        SET 
+            MEM_MST_PW = #{MEM_MST_TEMP_PW},
+            MEM_MST_UPD_IP = #{MEM_MST_UPD_IP},
+            MEM_MST_UPD_ID = #{MEM_MST_UPD_ID},
+            MEM_MST_UPD_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+            MEM_MST_TMP_PW_YN = 'Y',
+            MEM_MST_TMP_PW_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS')        
+        WHERE
+            MEM_MST_MEM_ID = #{MEM_MST_MEM_ID}
+    </update>
+    
+    <!-- 관리자 > 회원관리 > 회원정보 상세 > 임시 비밀번호를 이메일 또는 LMS로 보낼 회원의 간략한 정보 조회 -->
+    <select id="selectSendMemInfo" parameterType="HashMap" resultType="HashMap">
+        /* InfoMember.selectSendMemInfo */
+        SELECT
+            MEM_MST_HP1 || MEM_MST_HP2 || MEM_MST_HP3 AS MEM_MST_HP,
+            MEM_MST_MEM_NM,
+            MEM_MST_MEM_ID,
+            MEM_MST_MAIL,
+            TO_CHAR(SYSDATE, 'YYYY-MM-DD HH24:MI:SS') AS MEM_MST_TMP_PW_DT,
+            SUBSTR(MEM_MST_MEM_ID,1,length(MEM_MST_MEM_ID)-3)||LPAD('*',3,'*') AS MASK_MEM_MST_MEM_ID       
+        FROM
+            T_MEM_VIEW TMV
+        WHERE
+            MEM_MST_MEM_ID = #{MEM_MST_MEM_ID}
+    </select>
+    
+    <!-- 관리자 > 회원관리 > 회원상세 > 직권탈퇴 > 현재 주문이 있는지 체크 -->
+    <select id="selectCheckOrderCount" parameterType="HashMap" resultType="Integer">
+        /* InfoMember.selectCheckOrderCount */
+        SELECT
+            COUNT(1)
+        FROM T_ORD_MST TOM, T_ORD_PRD TOP
+        WHERE TOM.ORD_MST_CD = TOP.ORD_ORD_MST_CD
+        AND ORD_MST_ORD_ID = #{MEM_MST_MEM_ID}
+        AND ORD_PRD_ORD_STATE NOT IN (#{OST_SEND_END}, #{OST_FIX}, #{OST_SWAP_END}, #{OST_SWAP_READY_CANCEL}) /* 배송완료,구매확정, 교환완료, 교환취소 제외*/
+    </select>
+    
+    <!-- 관리자 > 회원관리 > 계열사 이름 정보 -->
+    <select id="selectAlcoName" parameterType="hashMap" resultType="hashMap">
+        /* InfoMember.selectAlcoName */
+        SELECT
+            ALCO_CD, ALCO_NM
+        FROM
+            T_CRM_ALC_MST
+        WHERE
+            ALCO_CD = #{ALCO_CD}
+    </select>
+
+    <!-- 관리자 > 회원관리 > 회원정보 상세 > 쿠폰보유내역 목록 갯수 -->
+    <select id="selectMemberCouponListCount" parameterType="hashMap" resultType="integer">
+        /* InfoMember.selectMemberCouponListCount */
+        SELECT COUNT(0) 
+          FROM
+              (
+                /* 사용안한 쿠폰 목록 */
+                SELECT TCCD.CPON_NO 
+                     , CASE WHEN TC.CPON_DIV = '1' THEN TC.DISC_RT /* 할인율 쿠폰 */
+                            WHEN TC.CPON_DIV = '2' THEN TC.DISC_AMT /* 할인금액  쿠폰 */
+                            ELSE 0 
+                       END AS DISC
+                    , '' AS ORD_MST_CD
+                    , '' AS  USE_DE
+                    , TC.STRT_DE
+                    , TC.END_DE
+                    , TC.COND_AMT
+                 FROM TSM_CPON TC
+            INNER JOIN TSM_CPON_CODE_D TCCD
+                   ON TC.COMP_CD = TCCD.COMP_CD
+                  AND TC.EVNT_YEAR =TCCD.EVNT_YEAR
+                  AND TC.SEQ = TCCD.SEQ
+                  WHERE TC.COMP_CD = #{COMP_CD}  
+                   AND TCCD.OBJ_CUST_NO = #{CUST_NO}
+                   AND TCCD.USE_YN = 'N'
+                   AND TC.CPON_TYPE = '2' /* 전자쿠폰 */
+              UNION ALL
+              /* 사용한 쿠폰 목록 */
+              SELECT TOC.ORD_CPN_CPON_NO CPON_NO
+                   , CASE WHEN TC.CPON_DIV = '1' THEN TC.DISC_RT /* 할인율 쿠폰 */
+                          WHEN TC.CPON_DIV = '2' THEN TC.DISC_AMT /* 할인금액  쿠폰 */
+                          ELSE 0 
+                     END AS DISC
+                   , TOM.ORD_MST_CD
+                   , TO_CHAR(TO_DATE(ORD_MST_ORD_DT,'YYYYMMDDHH24MISS'),'YYYYMMDD') AS USE_DE
+                   , TC.STRT_DE
+                   , TC.END_DE
+                   , TC.COND_AMT
+                FROM T_ORD_MST TOM
+              INNER JOIN  T_ORD_CPN TOC
+                ON  TOM.ORD_MST_CD = TOC.ORD_ORD_MST_CD
+              INNER JOIN TSM_CPON TC
+                ON TOC.ORD_CPN_COMP_CD = TC.COMP_CD
+               AND TOC.ORD_CPN_EVNT_YEAR = TC.EVNT_YEAR
+               AND TOC.ORD_CPN_SEQ = TC.SEQ
+            WHERE TC.COMP_CD = #{COMP_CD} 
+              AND TOM.ORD_MST_ORD_ID = #{CUST_NO}              
+          )  C1         
+    </select>
+    
+    <!-- 관리자 > 회원관리 > 회원정보 상세 > 사용가능 쿠폰 갯수 -->
+    <select id="selectMemberUsableCouponCount" parameterType="hashMap" resultType="integer">
+        /* InfoMember.selectMemberUsableCouponCount */
+        SELECT COUNT(0)
+          FROM TSM_CPON TC
+        INNER JOIN TSM_CPON_CODE_D TCCD
+         ON TC.COMP_CD = TCCD.COMP_CD
+        AND TC.EVNT_YEAR =TCCD.EVNT_YEAR
+        AND TC.SEQ = TCCD.SEQ
+        WHERE TC.COMP_CD = #{COMP_CD}
+          AND TCCD.OBJ_CUST_NO = #{CUST_NO}
+          AND TCCD.USE_YN = 'N' /* 사용안한 */
+          AND TC.CPON_TYPE = '2' /* 전자쿠폰 */
+          AND TO_CHAR(SYSDATE,'YYYYMMDD') BETWEEN  TC.STRT_DE AND TC.END_DE
+    </select>
+    
+    <!-- 관리자 > 회원관리 > 회원정보 상세 > 쿠폰보유내역 목록 -->
+    <select id="selectMemberCouponList" parameterType="hashMap" resultType="hashMap">
+        /* InfoMember.selectMemberCouponList */
+         SELECT C2.*      
+           FROM
+               (
+                SELECT  C1.*
+                         ,   ROWNUM RNUM
+                  FROM
+                        (
+                          /* 사용안한 쿠폰 목록 */
+                          SELECT TCCD.CPON_NO 
+                               , CASE WHEN TC.CPON_DIV = '1' THEN TC.DISC_RT /* 할인율 쿠폰 */
+                                      WHEN TC.CPON_DIV = '2' THEN TC.DISC_AMT /* 할인금액  쿠폰 */
+                                      ELSE 0 
+                                 END AS DISC
+                              , '' AS ORD_MST_CD
+                              , '' AS  USE_DE
+                              , TC.STRT_DE
+                              , TC.END_DE
+                              , TC.COND_AMT
+                           FROM TSM_CPON TC
+                      INNER JOIN TSM_CPON_CODE_D TCCD
+                             ON TC.COMP_CD = TCCD.COMP_CD
+                            AND TC.EVNT_YEAR =TCCD.EVNT_YEAR
+                            AND TC.SEQ = TCCD.SEQ
+                            WHERE TC.COMP_CD = #{COMP_CD} 
+                             AND TCCD.OBJ_CUST_NO = #{CUST_NO}
+                             AND TCCD.USE_YN = 'N'
+                             AND TC.CPON_TYPE = '2' /* 전자쿠폰 */
+                        UNION ALL
+                        /* 사용한 쿠폰 목록 */
+                        SELECT TOC.ORD_CPN_CPON_NO CPON_NO
+                             , CASE WHEN TC.CPON_DIV = '1' THEN TC.DISC_RT /* 할인율 쿠폰 */
+                                    WHEN TC.CPON_DIV = '2' THEN TC.DISC_AMT /* 할인금액  쿠폰 */
+                                    ELSE 0 
+                               END AS DISC
+                             , TOM.ORD_MST_CD
+                             , TO_CHAR(TO_DATE(ORD_MST_ORD_DT,'YYYYMMDDHH24MISS'),'YYYYMMDD') AS USE_DE
+                             , TC.STRT_DE
+                             , TC.END_DE
+                             , TC.COND_AMT
+                          FROM T_ORD_MST TOM
+                        INNER JOIN  T_ORD_CPN TOC
+                          ON  TOM.ORD_MST_CD = TOC.ORD_ORD_MST_CD
+                        INNER JOIN TSM_CPON TC
+                          ON TOC.ORD_CPN_COMP_CD = TC.COMP_CD
+                         AND TOC.ORD_CPN_EVNT_YEAR = TC.EVNT_YEAR
+                         AND TOC.ORD_CPN_SEQ = TC.SEQ
+                      WHERE TC.COMP_CD = #{COMP_CD}
+                        AND TOM.ORD_MST_ORD_ID = #{CUST_NO}              
+                    )  C1    
+               ORDER BY  CPON_NO           
+               ) C2
+         WHERE RNUM BETWEEN #{startNum} AND #{endNum}   
+    </select>
+    
+    <!-- 관리자 > 회원관리 > 회원정보 상세 > 쿠폰사용내역 목록 갯수 -->
+    <select id="selectMemberCouponUseListCount" parameterType="hashMap" resultType="integer">
+        /* InfoMember.selectMemberCouponUseListCount */
+        SELECT 
+            COUNT(0)
+        FROM 
+            T_CRM_CPN_MEM CCM
+        WHERE
+            CCM.CS_ID = #{MEMBER_SEQ}
+        AND CCM.CUPO_USED = 'Y'
+    </select>
+    
+    <!-- 관리자 > 회원관리 > 회원정보 상세 > 쿠폰사용내역 목록 -->
+    <select id="selectMemberCouponUseList" parameterType="hashMap" resultType="hashMap">
+        /* InfoMember.selectMemberCouponUseList */
+        SELECT
+            RNUM, 
+            CUPO_NO, ADD_DISC, CUPO_KIND, REGI_DATE, VALD_TRM_FROM, VALD_TRM_TO,
+            ORD_ORD_MST_CD, ORD_MST_ORD_DT
+        FROM (
+            SELECT
+                ROWNUM RNUM, 
+                CUPO_NO, ADD_DISC, CUPO_KIND, REGI_DATE, VALD_TRM_FROM, VALD_TRM_TO,
+                ORD_ORD_MST_CD, ORD_MST_ORD_DT
+            FROM (
+                SELECT 
+                    CUPO_NO, ADD_DISC, DECODE(CUPO_KIND,'M','%','원') CUPO_KIND, REGI_DATE, VALD_TRM_FROM, VALD_TRM_TO,
+                    ORD_ORD_MST_CD, ORD_MST_ORD_DT
+                FROM 
+                    T_CRM_CPN_MEM CCM
+                INNER JOIN (
+                    SELECT
+                        ORD_PRD_DC_COUPON_NO, ORD_ORD_MST_CD, ORD_MST_ORD_DT
+                    FROM
+                        T_ORD_MST OM, T_ORD_PRD OP 
+                    WHERE
+                        ORD_MST_MEMBER_NO = #{MEMBER_SEQ}
+                    AND ORD_MST_CD = ORD_ORD_MST_CD
+                    GROUP BY  
+                        ORD_PRD_DC_COUPON_NO, ORD_ORD_MST_CD, ORD_MST_ORD_DT
+                    ) OP
+                ON  OP.ORD_PRD_DC_COUPON_NO = CCM.CUPO_NO
+                WHERE
+                    CCM.CS_ID = #{MEMBER_SEQ}
+                AND CCM.CUPO_USED = 'Y'
+                ORDER BY ORD_MST_ORD_DT DESC, CUPO_NO
+            )
+        )
+        WHERE RNUM BETWEEN #{startNum} AND #{endNum} 
+        ORDER BY 
+            ORD_MST_ORD_DT DESC, CUPO_NO
+    </select>
+    
+    <!-- 관리자 > 회원관리 > 회원정보 상세 > 포인트탭-->
+    <select id="selectMemberGBNInfo" parameterType="hashMap" resultType="hashMap">
+        /* PcMyPoint.selectMyInfo */
+ 		SELECT TMM.MEM_MST_MEM_ID 
+			 , TMM.MEM_MST_MEM_NM
+			 , TMM.MEM_MST_SW_ID
+			 , TMM.MEM_MST_SW_TYPE
+		FROM T_MEM_MST TMM
+		WHERE 1=1
+		AND TMM.MEM_MST_MEM_ID = #{MEM_MST_MEM_ID}
+    </select>
+    
+    <!-- 관리자 > 회원관리 > 회원정보 상세 > 포인트 거래내역 목록 갯수 -->
+    <select id="selectMemberPointListCount" parameterType="hashMap" resultType="integer">
+        /* InfoMember.selectMemberPointListCount */
+        SELECT COUNT(0)
+         FROM (
+                SELECT TS.SELL_DE
+                     , TB.BCNC_NM SHOP_NM
+                     , '구매' AS MEMO
+                     , TS.RL_SELL_TAMT 
+                     , TS.ACCU_PNT
+                     , 0 AS ADJU_PNT 
+                     , TS.USE_PNT
+                     , TS.REGI_DT
+                     , '' AS ETC
+                FROM TSW_SELL TS
+     LEFT OUTER JOIN V_TCT_BCNC TB
+                  ON TS.COMP_CD = TB.COMP_CD
+                 AND TS.MULTI_SHOP_CD = TB.BCNC_CD
+                WHERE TS.COMP_CD= #COMP_CD#
+                  AND TS.CUST_NO= #CUST_NO#
+                  AND TS.DELT_YN='N'
+                  AND TS.SELL_DE BETWEEN  TO_CHAR(ADD_MONTHS(SYSDATE,-6),'YYYYMMDD')  AND TO_CHAR(SYSDATE,'YYYYMMDD')   
+                UNION ALL
+                SELECT TPAL.ADJU_DE
+                    , '' SHOP_NM
+                    , FN_CM_GET_CMONCD_NM(TPAL.COMP_CD, #ADJU_RSN_CD_ID#,TPAL.ADJU_RSN_CD) MEMO
+                    , 0 AS RL_SELL_TAMT 
+                    , 0 AS ACCU_PNT
+                    , TPAL.ADJU_PNT
+                    , 0 AS USE_PNT
+                    , TPAL.REGI_DT
+                    , TPAL.ADJU_RSN_CNTN AS ETC
+                FROM TSM_PNT_ADJU_L TPAL
+                WHERE TPAL.COMP_CD= #{COMP_CD} 
+                  AND TPAL.CUST_NO= #{CUST_NO}
+                  AND TPAL.ADJU_DE BETWEEN  TO_CHAR(ADD_MONTHS(SYSDATE,-6),'YYYYMMDD')  AND TO_CHAR(SYSDATE,'YYYYMMDD')    
+                  AND TPAL.DELT_YN ='N'
+            ) POINT
+            <include refid="memberWhere"/>
+    </select>
+    
+    <!-- 관리자 > 회원관리 > 회원정보 상세 > 포인트 거래내역 목록 -->
+    <select id="selectMemberPointList" parameterType="hashMap" resultType="hashMap">
+        /* InfoMember.selectMemberPointList */
+       SELECT
+            S2.* 
+        FROM
+            (   SELECT
+                    ROWNUM AS RNUM,
+                    S1.* 
+                FROM
+                    (
+                        SELECT 
+                               SELL_DE
+                             , NVL(SHOP_NM,ETC) SHOP_NM
+                             , MEMO
+                             , RL_SELL_TAMT
+                             , ACCU_PNT
+                             , ADJU_PNT
+                             , USE_PNT
+                             , REGI_DT
+                             , ETC
+                         FROM (
+                                SELECT TS.SELL_DE
+                                     , TB.BCNC_NM SHOP_NM
+                                     , '구매' AS MEMO
+                                     , TS.RL_SELL_TAMT 
+                                     , TS.ACCU_PNT
+                                     , 0 AS ADJU_PNT 
+                                     , TS.USE_PNT
+                                     , TS.REGI_DT
+                                     , '' AS ETC
+                                FROM TSW_SELL TS
+                     LEFT OUTER JOIN V_TCT_BCNC TB
+                                  ON TS.COMP_CD = TB.COMP_CD
+                                 AND TS.MULTI_SHOP_CD = TB.BCNC_CD
+                                WHERE TS.COMP_CD= #{COMP_CD}
+                                  AND TS.CUST_NO= #{CUST_NO}                                  
+                                  AND TS.DELT_YN='N'
+                                  AND TS.SELL_DE BETWEEN  TO_CHAR(ADD_MONTHS(SYSDATE,-6),'YYYYMMDD')  AND TO_CHAR(SYSDATE,'YYYYMMDD')   
+                                UNION ALL
+                                SELECT TPAL.ADJU_DE
+                                    , '' SHOP_NM
+                                    , FN_CM_GET_CMONCD_NM(TPAL.COMP_CD, #{ADJU_RSN_CD_ID},TPAL.ADJU_RSN_CD) MEMO
+                                    , 0 AS RL_SELL_TAMT 
+                                    , 0 AS ACCU_PNT
+                                    , TPAL.ADJU_PNT
+                                    , 0 AS USE_PNT
+                                    , TPAL.REGI_DT
+                                    , TPAL.ADJU_RSN_CNTN AS ETC
+                                FROM TSM_PNT_ADJU_L TPAL
+                                WHERE TPAL.COMP_CD= #{COMP_CD} 
+                                  AND TPAL.CUST_NO= #{CUST_NO}
+                                  AND TPAL.ADJU_DE BETWEEN  TO_CHAR(ADD_MONTHS(SYSDATE,-6),'YYYYMMDD')  AND TO_CHAR(SYSDATE,'YYYYMMDD')    
+                                  AND TPAL.DELT_YN ='N'
+                            ) POINT
+                       ORDER BY SELL_DE DESC                
+                    )
+                    S1 
+            )
+            S2
+        WHERE RNUM BETWEEN #{startNum} AND #{endNum}
+    </select>
+    
+    
+    <sql id="sellerInquiryWhere">
+        <if test="searchStartDate != null and searchStartDate != '' and searchEndDate != null and searchEndDate != ''">
+            AND TBI.BRD_INQ_REG_DT BETWEEN REPLACE(TRIM(#{searchStartDate}),'-', '')||'000000' AND REPLACE(TRIM(#{searchEndDate}),'-', '')||'235959'
+        </if>
+        <if test="searchVdrMstIdx != null and searchVdrMstIdx != ''  ">
+            AND TBI.VDR_MST_IDX = #{searchVdrMstIdx} 
+        </if>
+        <if test="searchBrdInqTitle != null and searchBrdInqTitle != ''   ">
+            AND TBI.BRD_INQ_TITLE LIKE '%' || TRIM(#{searchBrdInqTitle}) || '%'
+        </if>
+        <if test="searchBrdInqReplyCd != null and searchBrdInqReplyCd != ''   ">
+            AND TBI.BRD_INQ_REPLY_CD = #{searchBrdInqReplyCd}
+        </if>
+    </sql>    
+    
+        
+    <select id="selectInfoMemberVendorList" parameterType="hashMap" resultType="hashMap">
+    SELECT 
+            VDR_MST_IDX , 
+            VDR_MST_NM  
+     FROM   T_VDR_MST 
+    ORDER BY 
+            VDR_MST_NM ASC
+    </select>    
+    
+    
+    <select id="selectInfoMemberVendorInquiryListCount" parameterType="hashMap" resultType="Integer">
+        /* InfoMember.selectInfoMemberVendorInquiryListCount */
+        SELECT
+            COUNT(BRD_INQ_IDX) 
+        FROM
+            T_BRD_INQ TBI
+        INNER JOIN T_VDR_MST TVM ON TBI.VDR_MST_IDX = TVM.VDR_MST_IDX 
+        WHERE
+            BRD_INQ_TYPE = 'S' 
+            AND TVM.VDR_MST_IDX IS NOT NULL
+            AND BRD_INQ_REG_ID = #{MEM_MST_MEM_ID}
+        <include refid="sellerInquiryWhere"/>            
+       
+    </select>
+    <!-- 관리자 > 회원관리 > 회원정보 상세 > 1:1문의 내역 목록 갯수 -->
+    <select id="selectInfoMemberVendorInquiryList" parameterType="hashMap" resultType="hashMap">
+        
+        /* InfoMember.selectInfoMemberVendorInquiryList */
+        SELECT
+            S2.* ,
+            (   SELECT
+                    CMN_COM_NM 
+                FROM
+                    T_CMM_COM 
+                WHERE
+                    CMN_COM_IDX = S2.BRD_CMN_COM_IDX 
+            )
+            AS BRD_CMN_COM_NM 
+        FROM
+            (   SELECT
+                    ROWNUM AS RNUM,
+                    S1.* 
+                FROM
+                    (   SELECT
+                            TBI.BRD_INQ_IDX,
+                            TBI.BRD_INQ_TYPE,
+                            TBI.BRD_CMN_COM_IDX,
+                            TBI.BRD_PRD_MST_CD,
+                            TBI.BRD_INQ_TITLE,
+                            TBI.BRD_INQ_REPLY_CD,
+                            TBI.BRD_INQ_REG_ID,
+                            TBI.BRD_INQ_REG_NM,
+                            TBI.BRD_INQ_REG_IP,
+                            TBI.BRD_INQ_REG_DT,
+                            TBI.BRD_INQ_REPLY_ID,
+                            TBI.BRD_INQ_REPLY_NM,
+                            TBI.BRD_INQ_REPLY_DT,
+                            TBI.BRD_INQ_REPLY_IP,
+                            TO_CHAR( TO_DATE ( TBI.BRD_INQ_REG_DT   , 'YYYYMMDDHH24MISS' ) , 'YYYY-MM-DD HH24:MI:SS') AS BRD_INQ_REG_DT_CHAR   ,
+                            TO_CHAR( TO_DATE ( TBI.BRD_INQ_REPLY_DT , 'YYYYMMDDHH24MISS' ) , 'YYYY-MM-DD HH24:MI:SS') AS BRD_INQ_REPLY_DT_CHAR ,
+                            DECODE(  TBI.BRD_INQ_REPLY_CD , 'Y' , '답변완료' , 'N' ,'답변대기' , '' ) AS BRD_INQ_REPLY_CD_NM,
+                            TVM.VDR_MST_IDX,
+                            TVM.VDR_MST_NM  
+                        FROM
+                            T_BRD_INQ  TBI
+                        INNER JOIN T_VDR_MST TVM ON TBI.VDR_MST_IDX = TVM.VDR_MST_IDX 
+                        WHERE
+                            BRD_INQ_TYPE = 'S' 
+                            AND TVM.VDR_MST_IDX IS NOT NULL
+                            AND BRD_INQ_REG_ID = #{MEM_MST_MEM_ID}
+                            <include refid="sellerInquiryWhere"/>
+                        ORDER BY BRD_INQ_REG_DT DESC 
+                    )
+                    S1 
+            )
+            S2
+        <if test="startNum != null and startNum != '' and endNum != null and endNum != ''">
+        WHERE RNUM BETWEEN #{startNum} AND #{endNum}
+        </if>
+    </select>
+    
+    <select id="selectInfoMemberVendorInquiryDetail" parameterType="hashMap" resultType="hashMap">
+        
+        /* InfoMember.selectInfoMemberVendorInquiryDetail */
+        SELECT
+            A.BRD_INQ_IDX,
+            A.BRD_INQ_TYPE,
+            A.BRD_CMN_COM_IDX,
+            A.BRD_PRD_MST_CD,
+            A.BRD_INQ_TITLE,
+            A.BRD_INQ_REPLY_CD,
+            A.BRD_INQ_REG_ID,
+            A.BRD_INQ_REG_NM,
+            A.BRD_INQ_REG_IP,
+            A.BRD_INQ_REG_DT,
+            A.BRD_INQ_REPLY_ID,
+            A.BRD_INQ_REPLY_NM,
+            A.BRD_INQ_REPLY_DT,
+            A.BRD_INQ_REPLY_IP,
+            A.BRD_INQ_CONTENTS,
+            A.BRD_INQ_REPLY_CONTENTS ,
+            A.VDR_MST_IDX,
+            ( SELECT TVM.VDR_MST_NM FROM T_VDR_MST TVM WHERE A.VDR_MST_IDX = TVM.VDR_MST_IDX AND ROWNUM = 1 ) AS VDR_MST_NM
+        FROM
+            T_BRD_INQ A
+        WHERE
+            A.BRD_INQ_TYPE = 'S' 
+            AND A.VDR_MST_IDX IS NOT NULL
+        	AND A.BRD_INQ_IDX = #{BRD_INQ_IDX}
+        	AND A.BRD_INQ_REG_ID = #{MEM_MST_MEM_ID}
+    </select>
+   
+    <!-- 관리자 > 회원관리 > 회원정보 상세 > 1:1문의 내역 목록 갯수 -->
+    <select id="selectInfoMemberInquiryListCount" parameterType="hashMap" resultType="Integer">
+        /* InfoMember.selectInfoMemberInquiryListCount */
+        SELECT
+            COUNT(BRD_INQ_IDX) 
+        FROM
+            T_BRD_INQ 
+        WHERE
+            BRD_INQ_TYPE = 'I' 
+            AND BRD_INQ_REG_ID = NVL((SELECT CUST_ID DFROM TSM_CUST_SCRT WHERE CUST_ID = #{MEM_MST_MEM_ID}),'')
+            <if test="searchInfoStartDate != null and searchInfoStartDate != ''">
+            	<![CDATA[ AND TO_DATE(#{BRD_INQ_REG_DT},'YYYYMMDDHH24MISS') <= SYSDATE ]]>
+	        </if>
+	        <if test="searchInfoEndDate != null and searchInfoEndDate != ''">
+	           <![CDATA[ AND TO_DATE(#{BRD_INQ_REG_DT},'YYYYMMDDHH24MISS') >= SYSDATE ]]>
+	        </if>
+    </select>
+    
+    <!-- 관리자 > 회원관리 > 회원정보 상세 > 1:1문의 내역 목록 -->
+    <select id="selectInfoMemberInquiryList" parameterType="hashMap" resultType="hashMap">
+        /* InfoMember.selectInfoMemberInquiryList */
+        SELECT
+            S2.* ,
+            (   SELECT
+                    CMN_COM_NM 
+                FROM
+                    T_CMM_COM 
+                WHERE
+                    CMN_COM_IDX = S2.BRD_CMN_COM_IDX 
+            )
+            AS BRD_CMN_COM_NM 
+        FROM
+            (   SELECT
+                    ROWNUM AS RNUM,
+                    S1.* 
+                FROM
+                    (   SELECT
+                            BRD_INQ_IDX,
+                            BRD_INQ_TYPE,
+                            BRD_CMN_COM_IDX,
+                            BRD_PRD_MST_CD,
+                            BRD_INQ_TITLE,
+                            BRD_INQ_REPLY_CD,
+                            BRD_INQ_REG_ID,
+                            BRD_INQ_REG_NM,
+                            BRD_INQ_REG_IP,
+                            BRD_INQ_REG_DT,
+                            BRD_INQ_REPLY_ID,
+                            BRD_INQ_REPLY_NM,
+                            BRD_INQ_REPLY_DT,
+                            BRD_INQ_REPLY_IP 
+                        FROM
+                            T_BRD_INQ 
+                        WHERE
+                            BRD_INQ_TYPE = 'I' 
+                            AND BRD_INQ_REG_ID = NVL((SELECT CUST_ID FROM TSM_CUST_SCRT WHERE CUST_ID = #{MEM_MST_MEM_ID}),'') 
+                            <if test="searchInfoStartDate != null and searchInfoStartDate != ''">
+				            	<![CDATA[ AND TO_DATE(#{BRD_INQ_REG_DT},'YYYYMMDDHH24MISS') <= SYSDATE ]]>
+					        </if>
+					        <if test="searchInfoEndDate != null and searchInfoEndDate != ''">
+					            <![CDATA[ AND TO_DATE(#{BRD_INQ_REG_DT},'YYYYMMDDHH24MISS') >= SYSDATE ]]>
+					        </if>
+                        ORDER BY BRD_INQ_REG_DT DESC 
+                    )
+                    S1 
+            )
+            S2
+        WHERE RNUM BETWEEN #{startNum} AND #{endNum}
+    </select>
+    
+    
+    <!-- 관리자 > 회원관리 > 회원정보 상세 > 1:1문의 내역 상세정보 -->
+    <resultMap id="resultInfoMemberInquiryInfo" type="hashMap">
+        <result property="BRD_CMN_COM_NM" column="BRD_CMN_COM_NM"/>
+        <result property="BRD_PRD_MST_NM" column="BRD_PRD_MST_NM"/>
+        <result property="BRD_INQ_IDX" column="BRD_INQ_IDX"/>
+        <result property="BRD_INQ_TYPE" column="BRD_INQ_TYPE"/>
+        <result property="BRD_CMN_COM_IDX" column="BRD_CMN_COM_IDX"/>
+        <result property="BRD_PRD_MST_CD" column="BRD_PRD_MST_CD"/>
+        <result property="BRD_INQ_TITLE" column="BRD_INQ_TITLE"/>
+        <result property="BRD_INQ_CONTENTS" column="BRD_INQ_CONTENTS" jdbcType="CLOB" javaType="java.lang.String"/>
+        <result property="BRD_INQ_REPLY_CD" column="BRD_INQ_REPLY_CD"/>
+        <result property="BRD_INQ_REPLY_CONTENTS" column="BRD_INQ_REPLY_CONTENTS" jdbcType="CLOB" javaType="java.lang.String"/>
+        <result property="BRD_INQ_REG_ID" column="BRD_INQ_REG_ID"/>
+        <result property="BRD_INQ_REG_NM" column="BRD_INQ_REG_NM"/>
+        <result property="BRD_INQ_REG_IP" column="BRD_INQ_REG_IP"/>
+        <result property="BRD_INQ_REG_DT" column="BRD_INQ_REG_DT"/>
+        <result property="BRD_INQ_REPLY_ID" column="BRD_INQ_REPLY_ID"/>
+        <result property="BRD_INQ_REPLY_NM" column="BRD_INQ_REPLY_NM"/>
+        <result property="BRD_INQ_REPLY_DT" column="BRD_INQ_REPLY_DT"/>
+        <result property="BRD_INQ_REPLY_IP" column="BRD_INQ_REPLY_IP"/>
+        <result property="PRD_MST_IMG_URL_PATH" column="PRD_MST_IMG_URL_PATH" />
+    </resultMap>
+    <select id="selectInfoMemberInquiryInfo" parameterType="hashMap" resultMap="resultInfoMemberInquiryInfo">
+        /* InfoMember.selectInfoMemberInquiryInfo */
+        SELECT
+            (   SELECT
+                    CMN_COM_NM 
+                FROM
+                    T_CMM_COM 
+                WHERE
+                    CMN_COM_IDX = BRD_CMN_COM_IDX 
+            )
+            AS BRD_CMN_COM_NM,
+            (   SELECT
+                    PRD_MST_NM 
+                FROM
+                    T_PRD_MST 
+                WHERE
+                    PRD_MST_CD = BRD_PRD_MST_CD 
+            )
+            AS BRD_PRD_MST_NM,
+            BRD_INQ_IDX,
+            BRD_INQ_TYPE,
+            BRD_CMN_COM_IDX,
+            BRD_PRD_MST_CD,
+            BRD_INQ_TITLE,
+            BRD_INQ_CONTENTS,
+            BRD_INQ_REPLY_CD,
+            BRD_INQ_REPLY_CONTENTS,
+            BRD_INQ_REG_ID,
+            BRD_INQ_REG_NM,
+            BRD_INQ_REG_IP,
+            BRD_INQ_REG_DT,
+            BRD_INQ_REPLY_ID,
+            BRD_INQ_REPLY_NM,
+            BRD_INQ_REPLY_DT,
+            BRD_INQ_REPLY_IP,
+            FN_PRODUCT_IMG (BRD_PRD_MST_CD, #{THUMBNAIL_SIZE}) AS PRD_MST_IMG_URL_PATH
+        FROM
+            T_BRD_INQ 
+        WHERE
+            BRD_INQ_IDX = #{BRD_INQ_IDX}
+            AND BRD_INQ_REG_ID = NVL((SELECT CUST_ID FROM TSM_CUST_SCRT WHERE CUST_ID = #{MEM_MST_MEM_ID} ),'')
+    </select>
+    
+    <!-- 관리자 > 회원관리 > 회원정보 상세 > 장바구니 내역 목록 개수-->
+    <select id="selectInfoMemberCartListCount" parameterType="hashMap" resultType="Integer">
+        /* InfoMember.selectInfoMemberCartListCount */
+        SELECT
+            COUNT(1)
+        FROM
+        (
+        SELECT 
+            TPM.PRD_MST_CD /* 상품코드 */
+            , PRD_MST_NM /* 상품명 */
+            , TMC.MEM_CRT_CNT /* 수량 */
+            , TPM.PRD_MST_PRC /* 상품가격 */    
+            , TMC.MEM_CRT_REG_DT /* 등록일 */
+            , TMC.MEM_PRD_OPT_DTL_IDX /* 옵션상세 IDX */
+        FROM T_MEM_CRT TMC, T_PRD_MST TPM
+        WHERE TMC.MEM_PRD_MST_CD = TPM.PRD_MST_CD
+        AND TMC.MEM_MST_MEM_ID = #{MEM_MST_MEM_ID}
+        AND MEM_CRT_SLT_YN = 'N' /* 선택옵션은 제외 */
+        AND MEM_CRT_DRT_SAL_YN = 'N' /* 바로구매는 제외 */
+        AND MEM_CRT_REG_DT BETWEEN REPLACE(#{searchStartDate},'-', '')||'000000' AND REPLACE(#{searchEndDate},'-', '')||'235959'
+        <if test="searchPrdMstCd != null and searchPrdMstCd != ''">
+            AND MEM_PRD_MST_CD LIKE '%'||UPPER(#{searchPrdMstCd})||'%'
+        </if>
+        <if test="searchPrdMstNm != null and searchPrdMstNm != ''">
+            AND TPM.PRD_MST_NM LIKE '%'||#{searchPrdMstNm}||'%'
+        </if>
+        ) T1
+    </select> 
+    
+    <!-- 관리자 > 회원관리 > 회원정보 상세 > 장바구니 내역 목록 -->
+    <select id="selectInfoMemberCartList" parameterType="hashMap" resultType="hashMap">
+        /* InfoMember.selectInfoMemberCartList */
+        SELECT
+            T2.*
+        FROM
+        (
+        SELECT
+            ROWNUM RNUM, 
+            T1.*
+        FROM
+        (
+        SELECT 
+            TPM.PRD_MST_CD /* 상품코드 */
+            , PRD_MST_NM /* 상품명 */
+            , TMC.MEM_CRT_CNT /* 수량 */
+            , TPM.PRD_MST_PRC /* 상품가격 */    
+            , TMC.MEM_CRT_IDX
+            , TMC.MEM_CRT_REG_DT /* 등록일 */
+            , TMC.MEM_PRD_OPT_DTL_IDX /* 옵션상세 IDX */
+            , (SELECT COUNT(1) FROM T_MEM_CRT WHERE MEM_CRT_UP_IDX = TMC.MEM_CRT_IDX) as SUB_OPTION_CNT /* 서브 옵션 개수 */
+            , DTL.PRD_OPT_IDX
+            , DTL.OPT_DTL_NM
+        FROM T_MEM_CRT TMC, T_PRD_MST TPM, T_OPT_DTL DTL
+        WHERE TMC.MEM_PRD_MST_CD = TPM.PRD_MST_CD
+        AND TMC.MEM_PRD_OPT_DTL_IDX = DTL.OPT_DTL_IDX(+)
+        AND TMC.MEM_MST_MEM_ID = #{MEM_MST_MEM_ID}
+        AND MEM_CRT_SLT_YN = 'N' /* 선택옵션은 제외 */
+        AND MEM_CRT_DRT_SAL_YN = 'N' /* 바로구매는 제외 */
+        AND MEM_CRT_REG_DT BETWEEN REPLACE(#{searchStartDate},'-', '')||'000000' AND REPLACE(#{searchEndDate},'-', '')||'235959'
+        <if test="searchPrdMstCd != null and searchPrdMstCd != ''">
+            AND MEM_PRD_MST_CD LIKE '%'||UPPER(#{searchPrdMstCd})||'%'
+        </if>
+        <if test="searchPrdMstNm != null and searchPrdMstNm != ''">
+            AND TPM.PRD_MST_NM LIKE '%'||#{searchPrdMstNm}||'%'
+        </if>
+        ORDER BY MEM_CRT_IDX DESC
+        ) T1
+        ) T2
+        WHERE
+            T2.RNUM BETWEEN #{startNum} AND #{endNum}
+    </select> 
+    
+    <!-- 관리자 > 회원관리 > 회원정보 상세 > 키핑상품 내역 목록 개수-->
+    <select id="selectInfoMemberKeepingListCount" parameterType="hashMap" resultType="Integer">
+        /* InfoMember.selectInfoMemberKeepingListCount */
+        SELECT
+            COUNT(1)
+        FROM
+        (
+        SELECT
+            TPM.PRD_MST_CD /* 상품코드 */
+            , TPM.PRD_MST_NM /* 상품명 */
+            , TPM.PRD_MST_PRC /* 상품가격 */    
+            , TMK.MEM_KEP_REG_DT /* 등록일 */
+        FROM T_MEM_KEP TMK, T_PRD_MST TPM
+        WHERE TMK.PRD_MST_CD = TPM.PRD_MST_CD
+        AND TMK.MEM_MST_MEM_ID = #{MEM_MST_MEM_ID}
+        AND MEM_KEP_REG_DT BETWEEN REPLACE(#{searchStartDate},'-', '')||'000000' AND REPLACE(#{searchEndDate},'-', '')||'235959'
+        <if test="searchPrdMstCd != null and searchPrdMstCd != ''">
+            AND TMK.PRD_MST_CD LIKE '%'||UPPER(#{searchPrdMstCd})||'%'
+        </if>
+        <if test="searchPrdMstNm != null and searchPrdMstNm != ''">
+            AND TPM.PRD_MST_NM LIKE '%'||#{searchPrdMstNm}||'%'
+        </if>        
+        ) T1
+    </select> 
+    
+    <!-- 관리자 > 회원관리 > 회원정보 상세 > 키핑상품 내역 목록 -->
+    <select id="selectInfoMemberKeepingList" parameterType="hashMap" resultType="hashMap">
+        /* InfoMember.selectInfoMemberKeepingList */
+        SELECT
+            T2.*
+        FROM
+        (
+        SELECT
+            ROWNUM RNUM, 
+            T1.*
+        FROM
+        (
+        SELECT
+            TPM.PRD_MST_CD /* 상품코드 */
+            , TPM.PRD_MST_NM /* 상품명 */
+            , TPM.PRD_MST_PRC /* 상품가격 */    
+            , TMK.MEM_KEP_REG_DT /* 등록일 */
+        FROM T_MEM_KEP TMK, T_PRD_MST TPM
+        WHERE TMK.PRD_MST_CD = TPM.PRD_MST_CD
+        AND TMK.MEM_MST_MEM_ID = #{MEM_MST_MEM_ID}
+        AND MEM_KEP_REG_DT BETWEEN REPLACE(#{searchStartDate},'-', '')||'000000' AND REPLACE(#{searchEndDate},'-', '')||'235959'
+        <if test="searchPrdMstCd != null and searchPrdMstCd != ''">
+            AND TMK.PRD_MST_CD LIKE '%'||UPPER(#{searchPrdMstCd})||'%'
+        </if>
+        <if test="searchPrdMstNm != null and searchPrdMstNm != ''">
+            AND TPM.PRD_MST_NM LIKE '%'||#{searchPrdMstNm}||'%'
+        </if>
+        ORDER BY MEM_KEP_REG_DT DESC
+        ) T1
+        ) T2
+        WHERE
+            T2.RNUM BETWEEN #{startNum} AND #{endNum}
+    </select> 
+    <select id="selectInfoMemberPrivilegeList" parameterType="hashMap" resultType="hashMap">
+    	 <![CDATA[
+    	SELECT TCC.CMN_COM_NM ,
+    		   TCC.CMN_COM_IDX ,
+    	       TMS.MEM_SPC_PRV_BG_DT ,
+    	       TMS.MEM_SPC_PRV_EXP_DT,
+    	       TMS.MEM_SPC_PRV_IDX
+    	  FROM T_MEM_SPC_PRV TMS
+    	 INNER JOIN T_CMM_COM TCC ON TMS.CMN_COM_IDX  = TCC.CMN_COM_IDX 
+    	 WHERE TMS.MEM_MST_MEM_ID = #{MEM_MST_MEM_ID}
+    	   AND TMS.MEM_SPC_PRV_BG_DT  <= TO_CHAR(SYSDATE,'YYYYMMDD') 
+    	   AND TMS.MEM_SPC_PRV_EXP_DT >= TO_CHAR(SYSDATE,'YYYYMMDD')
+      ORDER BY TCC.CMN_COM_IDX ASC
+    	 ]]> 
+    </select>
+    
+    <select id="selectInfoMemberPrivilegeChild" parameterType="hashMap" resultType="hashMap">
+    	 <![CDATA[
+    	    SELECT 
+				TMSPB.EVT_MST_IDX,
+				TMSPB.PRD_MST_CD,
+				TPM.PRD_MST_NM 
+    	    FROM T_MEM_SPC_PRV_BND TMSPB
+		    LEFT OUTER JOIN T_PRD_MST TPM 
+			  ON TMSPB.PRD_MST_CD = TPM.PRD_MST_CD 
+    	   WHERE TMSPB.MEM_SPC_PRV_IDX = #{MEM_SPC_PRV_IDX} 
+    	 ]]> 
+    </select>
+    
+    <select id="selectMemberPrivilegeInfo" parameterType="hashMap" resultType="hashMap">
+            /* selectMemberPrivilegeInfo */
+			SELECT 
+			       MAX( DECODE ( CMN_COM_IDX , '3627' , MSP.MEM_SPC_PRV_IDX     , ''   ) ) AS IDX_REVIE ,
+			       MAX( DECODE ( CMN_COM_IDX , '3627' , MSP.MEM_SPC_PRV_BG_DT   , '' ) ) AS MEM_SPC_PRV_BG_DT_REVIE ,
+			       MAX( DECODE ( CMN_COM_IDX , '3627' , MSP.MEM_SPC_PRV_EXP_DT  , '' ) ) AS MEM_SPC_PRV_EXP_DT_REVIE ,
+			       MAX( DECODE ( CMN_COM_IDX , '3628' , MSP.MEM_SPC_PRV_IDX     , ''   ) ) AS IDX_OOTD ,
+			       MAX( DECODE ( CMN_COM_IDX , '3628' , MSP.MEM_SPC_PRV_BG_DT   , '' ) ) AS MEM_SPC_PRV_BG_DT_OOTD ,
+			       MAX( DECODE ( CMN_COM_IDX , '3628' , MSP.MEM_SPC_PRV_EXP_DT  , '' ) ) AS MEM_SPC_PRV_EXP_DT_OOTD 
+			 FROM  T_MEM_SPC_PRV  MSP
+			WHERE  MSP.MEM_MST_MEM_ID = #{MEM_MST_MEM_ID}
+    </select>
+    
+    <select id="selectMemberPrivilegeList" parameterType="hashMap" resultType="hashMap">
+            /* selectMemberPrivilegeList */
+			SELECT 
+			        MSP.MEM_SPC_PRV_IDX, 
+			        MSP.MEM_SPC_PRV_BG_DT,
+			        MSP.MEM_SPC_PRV_EXP_DT ,
+			        MSP.CMN_COM_IDX , 
+			        SPB.EVT_MST_IDX ,
+			        SPB.PRD_MST_CD  ,
+			        ( SELECT TPM.PRD_MST_NM FROM T_PRD_MST TPM WHERE SPB.PRD_MST_CD = TPM.PRD_MST_CD AND ROWNUM = 1  ) AS PRD_MST_NM
+			 FROM   T_MEM_SPC_PRV MSP 
+			          INNER JOIN 
+			        T_MEM_SPC_PRV_BND SPB 
+			          ON MSP.MEM_SPC_PRV_IDX = SPB.MEM_SPC_PRV_IDX
+			WHERE   MSP.CMN_COM_IDX    = #{CMN_COM_IDX_REVIEW}
+			 AND    MSP.MEM_MST_MEM_ID = #{MEM_MST_MEM_ID}
+    </select>
+
+    <insert id="insertInfoMemberPrivilegeOOTD" parameterType="hashMap">
+            /* InfoMember.insertInfoMemberPrivilegeOOTD */
+    		INSERT INTO T_MEM_SPC_PRV (
+	    		MEM_SPC_PRV_IDX    , 
+	    		MEM_MST_MEM_ID     , 
+	    		CMN_COM_IDX        ,
+	    		MEM_SPC_PRV_REG_DT ,
+	    		MEM_SPC_PRV_REG_ID ,
+	    		MEM_SPC_PRV_BG_DT  ,
+	    		MEM_SPC_PRV_EXP_DT
+    		) 
+    		VALUES ( 
+	    		SEQ_PRV_MST_IDX.NEXTVAL,
+	    		#{MEM_MST_MEM_ID}      ,
+	    		#{CMN_COM_IDX}         ,
+	    		TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS') ,
+	    		#{MEM_SPC_PRV_REG_ID} ,
+	    		REPLACE( #{MEM_SPC_PRV_BG_DT} ,  '-' , '')  ,
+	    		REPLACE( #{MEM_SPC_PRV_EXP_DT} ,  '-' , '') 
+    		)
+    </insert>    
+    
+    <update id="updateInfoMemberPrivilegeOOTD" parameterType="hashMap">
+            /*updateInfoMemberPrivilegeOOTD*/
+    		UPDATE T_MEM_SPC_PRV SET  
+    		    MEM_SPC_PRV_UDP_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS')         ,
+    		    MEM_SPC_PRV_UDP_ID = #{MEM_SPC_PRV_UDP_ID}                        ,
+	    		MEM_SPC_PRV_BG_DT  = REPLACE( #{MEM_SPC_PRV_BG_DT}  ,  '-' , '')  ,
+	    		MEM_SPC_PRV_EXP_DT = REPLACE( #{MEM_SPC_PRV_EXP_DT} ,  '-' , '')
+    		WHERE MEM_SPC_PRV_IDX  = #{MEM_SPC_PRV_IDX}
+    		 AND  CMN_COM_IDX      = #{CMN_COM_IDX}
+    		 AND  MEM_MST_MEM_ID   = #{MEM_MST_MEM_ID}
+    </update>       
+    
+    <delete id="deleteInfoMemberPrivilegeOOTD" parameterType="hashMap">
+        /*deleteInfoMemberPrivilegeOOTD */
+    	 DELETE
+    	  FROM T_MEM_SPC_PRV
+    	 WHERE MEM_SPC_PRV_IDX = #{MEM_SPC_PRV_IDX}
+    	  AND  CMN_COM_IDX     = #{CMN_COM_IDX}
+    	  AND  MEM_MST_MEM_ID  = #{MEM_MST_MEM_ID}
+    </delete>
+    
+    
+    <select id="selectPrivilegeSequence" parameterType="hashMap" resultType="Integer">
+      /*selectPrivilegeSequence */
+      SELECT SEQ_PRV_MST_IDX.NEXTVAL AS SEQ_PRV_MST_IDX  FROM DUAL 
+    </select>    
+     
+
+    
+    <insert id="insertInfoMemberPrivilege" parameterType="hashMap">
+            /* insertInfoMemberPrivilege */
+    		INSERT INTO T_MEM_SPC_PRV (
+	    		MEM_SPC_PRV_IDX, 
+	    		MEM_MST_MEM_ID, 
+	    		CMN_COM_IDX,
+	    		MEM_SPC_PRV_REG_DT ,
+	    		MEM_SPC_PRV_REG_ID ,
+	    		MEM_SPC_PRV_BG_DT  ,
+	    		MEM_SPC_PRV_EXP_DT
+    		) 
+    		VALUES ( 
+	    		#{MEM_SPC_PRV_IDX},
+	    		#{MEM_MST_MEM_ID},
+	    		#{CMN_COM_IDX},
+	    		TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS') ,
+	    		#{MEM_SPC_PRV_REG_ID},
+	    		REPLACE( #{MEM_SPC_PRV_BG_DT}  ,  '-' , '') ,
+	    		REPLACE( #{MEM_SPC_PRV_EXP_DT} ,  '-' , '')
+    		)
+    </insert>
+
+    
+    <update id="updateInfoMemberPrivilege" parameterType="hashMap">
+            /* updateInfoMemberPrivilege */
+            UPDATE T_MEM_SPC_PRV SET 
+	    		   MEM_SPC_PRV_UDP_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS') ,
+	    		   MEM_SPC_PRV_UDP_ID = #{MEM_SPC_PRV_REG_ID}                ,
+	    		   MEM_SPC_PRV_BG_DT  = REPLACE( #{MEM_SPC_PRV_BG_DT}  ,  '-' , '') ,
+	    		   MEM_SPC_PRV_EXP_DT = REPLACE( #{MEM_SPC_PRV_EXP_DT} ,  '-' , '')
+	    	WHERE  MEM_MST_MEM_ID  = #{MEM_MST_MEM_ID}
+	    	 AND   MEM_SPC_PRV_IDX = #{MEM_SPC_PRV_IDX}
+	    	 AND   CMN_COM_IDX     = #{CMN_COM_IDX}
+    </update>    
+    
+    
+    <delete id="deleteInfoMemberPrivilege" parameterType="hashMap">
+            /* deleteInfoMemberPrivilege */
+            DELETE FROM  T_MEM_SPC_PRV 
+	    	 WHERE MEM_MST_MEM_ID  = #{MEM_MST_MEM_ID}
+	    	  AND  MEM_SPC_PRV_IDX = #{MEM_SPC_PRV_IDX}
+	    	  AND  CMN_COM_IDX     = #{CMN_COM_IDX}
+    </delete>
+        
+    
+    
+    <insert id="insertInfoMemberPrivilegeBrand" parameterType="hashMap">
+            /* insertInfoMemberPrivilegeBrand */
+    		INSERT INTO T_MEM_SPC_PRV_BND (
+	    		MEM_SPC_PRV_IDX, 
+	    		EVT_MST_IDX, 
+	    		PRD_MST_CD,
+	    		MEM_SPC_PRV_BND_REG_DT,
+	    		MEM_SPC_PRV_BND_REG_ID
+    		) 
+    		VALUES ( 
+	    		#{MEM_SPC_PRV_IDX},
+	    		#{EVT_MST_IDX},
+	    		#{PRD_MST_CD},
+	    		SYSDATE      ,
+	    		#{MEM_SPC_PRV_BND_REG_ID}
+    		)
+    </insert>
+
+
+    <update id="updateInfoMemberPrivilegeBrand" parameterType="hashMap">
+            /* updateInfoMemberPrivilegeBrand */
+            UPDATE T_MEM_SPC_PRV_BND SET 
+	    		   EVT_MST_IDX = #{EVT_MST_IDX},
+	    		   PRD_MST_CD  = #{PRD_MST_CD} ,
+	    		   MEM_SPC_PRV_BND_UPD_DT = SYSDATE , 
+	    		   MEM_SPC_PRV_BND_UPD_ID = #{MEM_SPC_PRV_REG_ID} 
+	    	WHERE  MEM_SPC_PRV_IDX = #{MEM_SPC_PRV_IDX}
+    </update>    
+        
+
+    <delete id="deleteInfoMemberPrivilegeBrand" parameterType="hashMap">
+            /* deleteInfoMemberPrivilegeBrand */
+            DELETE FROM  T_MEM_SPC_PRV_BND 
+	    	 WHERE MEM_SPC_PRV_IDX = #{MEM_SPC_PRV_IDX}
+    </delete>
+    
+
+
+        
+    
+    <select id="infoExecutivesList" parameterType="hashMap" resultType="hashMap">
+     	/* InfoMember.infoExecutivesList */
+     	SELECT
+            S2.*     
+        FROM 
+        (
+            SELECT
+                ROWNUM RNUM, 
+                S1.*                              
+            FROM 
+            (
+                
+	    	    SELECT 
+					 TMV.MEM_MST_MEM_ID,
+					 TMV.MEM_MST_MEM_NM,
+					 TMI.MEM_IPN_SEX,
+					 TO_CHAR(TO_DATE(TMI.MEM_IPN_BIR, 'YYYYMMDD'),'YYYY.MM.DD')  AS MEM_IPN_BIR,
+					 (SELECT TCC.CMN_COM_NM FROM T_CMM_COM TCC WHERE TCC.CMN_COM_IDX = MEM_MST_MEM_GBN) AS MEM_MST_MEM_GBN,
+					 (SELECT TCC.CMN_COM_NM FROM T_CMM_COM TCC WHERE TCC.CMN_COM_IDX = MEM_MST_MEM_GRD) AS MEM_MST_MEM_GRD,
+					 (SELECT TCC.CMN_COM_NM FROM T_CMM_COM TCC WHERE TCC.CMN_COM_IDX = MEM_MST_SW_TYPE) AS MEM_MST_SW_TYPE,
+					 TO_CHAR(TO_DATE(TMV.MEM_MST_REG_DT,'YYYYMMDDHH24MISS'),'YYYY.MM.DD') AS MEM_MST_REG_DT,
+					 TMV.MEM_MST_SW_ID,
+					 NVL(( SELECT MEM_PIT_TOT_PIT FROM (SELECT * FROM T_MEM_PIT_SW  TMP ORDER BY MEM_PIT_REG_DT DESC ) TMP WHERE TMP.MEM_PIT_MEM_ID = TMV.MEM_MST_MEM_ID AND ROWNUM = 1),0) AS MEM_SW_POINT 
+				FROM T_MEM_MST TMV
+				       INNER JOIN 
+				     T_MEM_IPN TMI
+				       ON TMV.MEM_MST_MEM_ID = TMI.MEM_MST_MEM_ID
+                WHERE 
+                     MEM_MST_LEV_YN = 'N'    
+                 AND
+                     MEM_MST_SW_ID IS NOT NULL
+                    <include refid="memberWhere"/>
+                ORDER BY MEM_MST_REG_DT DESC        
+            ) S1
+        ) S2
+        
+        <if test="startNum != null and startNum != '' and endNum != null and endNum != ''">
+            WHERE S2.RNUM BETWEEN #{startNum} AND #{endNum}
+        </if>
+    </select>
+    
+    <select id="infoExecutivesCount" parameterType="hashMap" resultType="int">
+     	 <![CDATA[
+     	 	/* InfoMember.infoExecutivesCount */
+	    	SELECT 
+				COUNT(0)
+			FROM T_MEM_MST TMV
+			INNER JOIN T_MEM_IPN TMI
+			  ON TMV.MEM_MST_MEM_ID = TMI.MEM_MST_MEM_ID
+			WHERE MEM_MST_SW_ID IS NOT NULL     	 	
+
+    	 ]]> 
+    	 <include refid="memberWhere"/>
+    </select>
+    <delete id="deleteInfoMemberPrivilegeList" parameterType="hashMap">
+    	 DELTE
+    	  FROM T_MEM_SPC_PRV
+    	 WHERE MEM_SPC_PRV_IDX = #{MEM_SPC_PRV_IDX}
+    </delete>
+    <update id="changeNormalMember" parameterType="hashMap">
+    	UPDATE T_MEM_MST 
+    	   SET MEM_MST_SW_ID = NULL,
+    	       MEM_MST_SW_TYPE = NULL
+    	 WHERE MEM_MST_MEM_ID IN
+    	 <foreach collection="MEMBER_LIST" item="item" index="index" separator="," open="(" close=")">
+		    #{item}
+		 </foreach>
+    </update>
+    
+    <update id="changeEmployeeMember" parameterType="hashMap">
+        /*changeEmployeeMember*/
+    	UPDATE T_MEM_MST 
+    	   SET MEM_MST_SW_ID   = #{MEM_MST_SW_ID},
+    	       MEM_MST_SW_TYPE = #{MEM_MST_SW_TYPE}
+    	 WHERE MEM_MST_MEM_ID  = #{MEM_MST_MEM_ID}
+    	   AND MEM_MST_MEM_NM  = #{MEM_MST_MEM_NM}
+    </update>
+      <select id="selectMemberDeliveryInfo" parameterType="hashMap" resultType="hashMap">
+ 	 	/* InfoMember.selectMemberDeliveryInfo */
+	    SELECT 
+			MEM_MST_MEM_ID
+			MEM_DLV_NM,
+			MEM_DLV_RCV_NM,
+			MEM_DLV_TEL1,
+			MEM_DLV_TEL2,
+			MEM_DLV_TEL3,
+			MEM_DLV_HP1,
+			MEM_DLV_HP2,
+			MEM_DLV_HP3,
+			MEM_DLV_ZIP_CDE5,
+			MEM_DLV_DRO_ADR1,
+			MEM_DLV_DRO_ADR2,
+			MEM_DLV_USE_YN,
+			MEM_DLV_BSC_YN
+		FROM T_MEM_DLV TMD
+		WHERE MEM_MST_MEM_ID = #{MEM_MST_MEM_ID}
+		<if test="MEM_DLV_BSC_YN != null and MEM_DLV_BSC_YN != ''">
+            AND TMD.MEM_DLV_BSC_YN = #{MEM_DLV_BSC_YN}
+        </if>
+    </select>    
+    <select id="selectMemberEshopList" parameterType="hashMap" resultType="hashMap">
+    	SELECT MEM_MST_MEM_ID, 
+    			MEM_MST_ERP_ID
+    	  FROM T_MEM_MST 
+    	  WHERE 1=1
+    	  AND MEM_MST_MEM_ID in  
+    	  <foreach collection="MEM_MST_MEM_ID" item="item" index="index" separator="," open="(" close=")">
+		    #{item}
+		 </foreach>
+    </select>
+    
+    
+
+
+
+
+    <!-- 관리자 > 회원관리 > OOTD 조회 조건 -->    
+    <sql id="memberOOTDWhere">
+        <if test="searchStartDate != null and searchStartDate != '' and searchEndDate != null and searchEndDate != ''">
+            AND TCM.CNT_MST_REG_DT BETWEEN REPLACE(TRIM(#{searchStartDate}),'-', '')||'000000' AND REPLACE(TRIM(#{searchEndDate}),'-', '')||'235959'
+        </if>
+        <if test="searchCntMstTitle != null and searchCntMstTitle != ''">
+            AND TCM.CNT_MST_TITLE LIKE '%' || TRIM(#{searchCntMstTitle}) || '%'
+        </if>
+        <if test="searchCntMstUseYn != null and searchCntMstUseYn != ''">
+            AND TCM.CNT_MST_USE_YN = TRIM(#{searchCntMstUseYn})
+        </if>
+        
+    </sql>    
+    
+    
+    <!-- 관리자 > 회원관리 > OOTD 목록 갯수 -->
+    <select id="selectInfoMemberOOTDCount" parameterType="hashMap" resultType="integer">
+        /* InfoMember.selectInfoMemberOOTDCount */
+        SELECT
+               COUNT(*) AS TOT_CNT
+         FROM
+               T_CNT_MST TCM
+             , T_MEM_MST TMM
+        WHERE 
+     	       TCM.CNT_MST_TYPE = 'TYPE_OOTD' 
+      	 AND   TCM.CNT_MST_REG_ID = TMM.MEM_MST_MEM_ID
+         AND   TCM.CNT_MST_REG_ID = #{MEM_MST_MEM_ID}
+         <include refid="memberOOTDWhere"/>
+    </select> 
+    <select id="selectInfoMemberOOTDList" parameterType="hashMap" resultType="hashMap">
+    /* infoMember.selectInfoMemberOOTDList  */
+	WITH V_CNT_MST AS 
+	(
+	SELECT
+	        TCM.CNT_MST_IDX
+	 FROM   T_CNT_MST TCM
+	      , T_MEM_MST TMM
+	WHERE   TCM.CNT_MST_TYPE = 'TYPE_OOTD'
+	 AND    TCM.CNT_MST_REG_ID = TMM.MEM_MST_MEM_ID	
+     AND    TCM.CNT_MST_REG_ID = #{MEM_MST_MEM_ID}
+	<include refid="memberOOTDWhere"/>	
+	)
+	SELECT
+	        S2.*
+	 FROM
+	        (
+	        SELECT
+	                ROWNUM AS RNUM
+	                , S1.*
+	         FROM 
+	                (
+					SELECT
+	                         TCM.CNT_MST_IDX
+	                         ,TCM.CNT_MST_TITLE
+	                         ,TCM.CNT_MST_REG_ID
+	                         ,TCM.CNT_MST_REG_DT
+	                         ,(SELECT COUNT(*) FROM T_OTD_RPL TOR WHERE TOR.CNT_OTD_ID = TCM.CNT_MST_IDX AND TOR.OTD_RPL_USE_YN = 'Y'  ) COMMENT_COUNT
+	                         ,TCM.CNT_MST_USE_YN
+	                         ,DECODE(  TCM.CNT_MST_USE_YN , 'Y' , '사용' , 'N' , '미사용' , '' ) AS CNT_MST_USE_YN_NM
+	                         ,TO_CHAR( TO_DATE(TCM.CNT_MST_REG_DT , 'YYYYMMDDHH24MISS' ) , 'YYYY-MM-DD HH24:MI:SS') AS CNT_MST_REG_DT_CHAR
+	                         ,FLE.CMM_FLE_IDX
+	                         ,FLE.CMM_FLE_ATT_PATH
+	                         ,FLE.CMM_FLE_SYS_NM
+	                         ,FLE.CMN_FLE_ALT_TXT
+	                 FROM    V_CNT_MST VCM 
+	                           INNER JOIN 
+	                         T_CNT_MST TCM
+	                           ON VCM.CNT_MST_IDX = TCM.CNT_MST_IDX
+	                           LEFT OUTER JOIN 
+	                         (
+	                         SELECT
+	                                 ROW_NUMBER() OVER( PARTITION BY CMM_FLE_TB_PK   ORDER BY CMF.CMM_FLE_IDX ASC) NUM , 
+	                                 CMF.CMM_FLE_TB_PK,
+	                                 CMF.CMM_FLE_IDX,
+	                                 CMF.CMM_FLE_ATT_PATH,
+	                                 CMF.CMM_FLE_SYS_NM,
+	                                 CMF.CMN_FLE_ALT_TXT
+	                          FROM   V_CNT_MST VCM 
+	                                   INNER JOIN 
+	                                 T_CMM_FLE CMF
+	                                   ON VCM.CNT_MST_IDX     =  CMF.CMM_FLE_TB_PK 
+	                                   AND CMF.CMM_FLE_TB_NM  = 'T_CNT_MST'
+	                                   AND CMF.CMM_FLE_USE_YN = 'Y'
+	                         ) FLE
+	                           ON VCM.CNT_MST_IDX = FLE.CMM_FLE_TB_PK
+	                           AND FLE.NUM = 1
+	                ORDER BY TCM.CNT_MST_REG_DT DESC
+	                ) S1
+	        ) S2
+       <if test="startNum != null and startNum != '' and endNum != null and endNum != ''">
+       WHERE S2.RNUM BETWEEN #{startNum} AND #{endNum}
+       </if>
+    </select>    
+    
+    
+    <!-- 관리자 > 회원관리 > OOTD 조회 조건 -->    
+    <sql id="memberCommentWhere">
+        <if test="searchStartDate != null and searchStartDate != '' and searchEndDate != null and searchEndDate != ''">
+            AND TCM.CNT_MST_REG_DT BETWEEN REPLACE(TRIM(#{searchStartDate}),'-', '')||'000000' AND REPLACE(TRIM(#{searchEndDate}),'-', '')||'235959'
+        </if>
+        <if test="searchCommentType != null and searchCommentType != ''  and  searchCommentType.equals('TIT')  and  searchContent != null and searchContent != ''    ">
+            AND TCM.CNT_MST_TITLE LIKE '%' || TRIM(#{searchContent}) || '%'
+        </if>
+        <if test="searchCommentType != null and searchCommentType != ''  and  searchCommentType.equals('RPL')  and  searchContent != null and searchContent != ''    ">
+            AND TOR.OTD_RPL_CTS LIKE '%' || TRIM(#{searchContent}) || '%'
+        </if>
+        
+    </sql>    
+    
+    
+    <!-- 관리자 > 회원관리 > OOTD 목록 갯수 -->
+    <select id="selectMemberCommentListCount" parameterType="hashMap" resultType="integer">
+        /* InfoMember.selectMemberCommentListCount */
+		WITH V_OTD_RPL AS 
+		(
+		SELECT 
+		        TOR.OTD_RPL_ID , 
+		        TOR.CNT_OTD_ID , 
+		        TOR.OTD_RPL_CTS , 
+		        TOR.OTD_RPL_REG_DT ,
+		        TO_CHAR( TO_DATE ( TOR.OTD_RPL_REG_DT , 'YYYYMMDDHH24MISS') , 'YYYY-MM-DD HH24:MI:SS') AS OTD_RPL_REG_DT_CHAR , 
+		        TCM.CNT_MST_IDX   , 
+		        TCM.CNT_MST_TITLE , 
+		        TCM.CNT_MST_DESC  
+		 FROM   T_OTD_RPL TOR 
+		          INNER JOIN 
+		        T_CNT_MST TCM 
+		          ON  TOR.CNT_OTD_ID   = TCM.CNT_MST_IDX
+		          AND TCM.CNT_MST_TYPE = 'TYPE_OOTD'
+		          AND TCM.CNT_MST_USE_YN = 'Y' 
+		          AND TOR.OTD_RPL_USE_YN = 'Y'
+		          INNER JOIN 
+		        T_MEM_MST TMM 
+		          ON TCM.CNT_MST_REG_ID = TMM.MEM_MST_MEM_ID
+		WHERE   TOR.OTD_RPL_REG_ID =  #{MEM_MST_MEM_ID}
+        <include refid="memberCommentWhere"/>		
+		)
+		SELECT 
+		        COUNT(*) AS TOT_CNT 
+		 FROM   V_OTD_RPL VOR 
+    </select>
+    
+     
+    <select id="selectMemberCommentList" parameterType="hashMap" resultType="hashMap">
+    /* infoMember.selectMemberCommentList  */
+		WITH V_OTD_RPL AS 
+		(
+		SELECT 
+		        TOR.OTD_RPL_ID , 
+		        TOR.CNT_OTD_ID , 
+		        TOR.OTD_RPL_CTS , 
+		        TOR.OTD_RPL_REG_DT ,
+		        TO_CHAR( TO_DATE ( TOR.OTD_RPL_REG_DT , 'YYYYMMDDHH24MISS') , 'YYYY-MM-DD HH24:MI:SS') AS OTD_RPL_REG_DT_CHAR , 
+		        TCM.CNT_MST_IDX   , 
+		        TCM.CNT_MST_TITLE , 
+		        TCM.CNT_MST_DESC  
+		 FROM   T_OTD_RPL TOR 
+		          INNER JOIN 
+		        T_CNT_MST TCM 
+		          ON  TOR.CNT_OTD_ID   = TCM.CNT_MST_IDX
+		          AND TCM.CNT_MST_TYPE = 'TYPE_OOTD'
+		          AND TCM.CNT_MST_USE_YN = 'Y' 
+		          AND TOR.OTD_RPL_USE_YN = 'Y'
+		          INNER JOIN 
+		        T_MEM_MST TMM 
+		          ON TCM.CNT_MST_REG_ID = TMM.MEM_MST_MEM_ID
+		WHERE   TOR.OTD_RPL_REG_ID =  #{MEM_MST_MEM_ID}
+		<include refid="memberCommentWhere"/>
+		)
+		SELECT
+		        S2.*
+		 FROM
+		        (
+		        SELECT
+		                ROWNUM AS RNUM
+		                , S1.*
+		         FROM 
+		                (
+		        SELECT 
+		                VOR.OTD_RPL_ID          , 
+		                VOR.CNT_OTD_ID          , 
+		                VOR.OTD_RPL_CTS         , 
+		                VOR.OTD_RPL_REG_DT      ,
+		                VOR.OTD_RPL_REG_DT_CHAR , 
+		                VOR.CNT_MST_IDX         , 
+		                VOR.CNT_MST_TITLE       , 
+		                VOR.CNT_MST_DESC        ,
+		                FLE.CMM_FLE_TB_PK       ,
+		                FLE.CMM_FLE_IDX         ,
+		                FLE.CMM_FLE_ATT_PATH    ,
+		                FLE.CMM_FLE_SYS_NM      ,
+		                FLE.CMN_FLE_ALT_TXT       
+		         FROM   V_OTD_RPL VOR
+		                  LEFT OUTER JOIN 
+		                (
+		                SELECT
+		                        ROW_NUMBER() OVER( PARTITION BY CMM_FLE_TB_PK   ORDER BY CMF.CMM_FLE_IDX ASC) NUM , 
+		                        CMF.CMM_FLE_TB_PK,
+		                        CMF.CMM_FLE_IDX,
+		                        CMF.CMM_FLE_ATT_PATH,
+		                        CMF.CMM_FLE_SYS_NM,
+		                        CMF.CMN_FLE_ALT_TXT
+		                 FROM   V_OTD_RPL VCM 
+		                          INNER JOIN 
+		                        T_CMM_FLE CMF
+		                          ON VCM.CNT_MST_IDX     =  CMF.CMM_FLE_TB_PK 
+		                          AND CMF.CMM_FLE_TB_NM  = 'T_CNT_MST'
+		                          AND CMF.CMM_FLE_USE_YN = 'Y'  
+		                ) FLE 
+		                  ON  VOR.CNT_MST_IDX = FLE.CMM_FLE_TB_PK
+		                  AND FLE.NUM = 1
+		        ORDER BY 
+		                VOR.OTD_RPL_REG_DT DESC        
+		        ) S1
+		    ) S2
+		<if test="startNum != null and startNum != '' and endNum != null and endNum != ''">
+		WHERE S2.RNUM BETWEEN #{startNum} AND #{endNum}
+		</if>    
+    </select>     
+</mapper>

@@ -1,0 +1,4 @@
+[16:36:14] [VqxSM0si6RVhl19KD7u] START:mall_id=[]+tr_cd=[00101000]+order_no=[]
+[16:36:14] [VqxSM0si6RVhl19KD7u] DATA:pay_data=common=client_ip=127.0.0.1card=card_txtype=20noint=00wcc=@order_data=user_id=sosoworld2user_nm=쏘쏘
+[16:36:14] [VqxSM0si6RVhl19KD7u] RESULT:res_cd=E901res_msg=결제총금액 없음
+[16:36:14] [VqxSM0si6RVhl19KD7u] ENDED :mall_id=[]+tr_cd=[00101000]+order_no=[]

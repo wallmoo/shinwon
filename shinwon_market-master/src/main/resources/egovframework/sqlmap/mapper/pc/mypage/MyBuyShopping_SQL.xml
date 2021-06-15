@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="PcMyBuyShopping">
+	<!-- 주문 상품 갯수  -->
+	<select id="selectProductListCount" parameterType="hashMap" resultType="integer">
+		/* PcMyBuyShopping.selectProductListCount */
+		SELECT
+			COUNT(1)
+		FROM T_ORD_MST TOM, T_ORD_PRD TOP, T_PRD_MST TPM
+		WHERE TOM.ORD_MST_CD = TOP.ORD_ORD_MST_CD
+		AND TOP.ORD_PRD_MST_CD = TPM.PRD_MST_CD
+		AND TOP.ORD_PRD_ORD_STATE IN (#{OST_SEND_END}, #{OST_FIX}) /* 배송완료 구매확정만 */
+        AND TOM.ORD_MST_ORD_ID = #{MEM_MST_MEM_ID}
+        AND TOM.ORD_MST_ORD_DT BETWEEN REPLACE(#{searchStartDate},'-', '') || '000000' AND REPLACE(#{searchEndDate},'-', '') || '235959'
+        AND TOP.ORD_PRD_SLT_YN = 'N' /* 선택옵션은 나오지 않음 */
+        AND TOP.ORD_PRD_ORG_IDX IS NULL /* 교환상품은 나오지 않음 */
+	</select>
+	
+	<!-- 주문 상품 목록  -->
+	<select id="selectProductList" parameterType="HashMap" resultType="HashMap">
+		/* PcMyBuyShopping.selectProductList */
+		SELECT
+			T1.*
+			, ERP_MST_DSP_PRC
+		FROM
+		(
+		SELECT
+			ROW_NUMBER() OVER(ORDER BY TOM.ORD_MST_ORD_DT DESC) as PRD_RNUM /* 주문상품 순번 */
+			, TOM.ORD_MST_CD
+			, TOM.ORD_MST_ORD_DT
+			, TOP.ORD_PRD_IDX
+			, (SELECT PRD_OPT_IDX FROM T_OPT_DTL WHERE OPT_DTL_IDX = TOP.ORD_PRD_OPT_DTL_IDX) as PRD_OPT_IDX
+			, (SELECT OPT_DTL_NM FROM T_OPT_DTL WHERE OPT_DTL_IDX = TOP.ORD_PRD_OPT_DTL_IDX) as OPT_DTL_NM
+			, FN_GET_PRODUCT_NM(TPM.PRD_MST_CD,30) PRD_MST_NM
+			, FN_PRODUCT_IMG(ORD_PRD_MST_CD, #{THUMBNAIL_SIZE}) PRD_IMAGE
+			, FN_PRODUCT_IMG_ALT(ORD_PRD_MST_CD, #{THUMBNAIL_SIZE}) PRD_IMAGE_ALT
+			, FN_PRODUCT_LIST_PRICE(TPM.PRD_MST_CD,#{USER_ENV_TYPE},#{MEM_MST_MEM_ID}) AS PRD_MST_PRICE
+			, (SELECT COUNT(1) FROM T_ORD_PRD OP WHERE OP.ORD_PRD_UP_IDX = TOP.ORD_PRD_IDX) as SUB_OPTION_CNT /* 서브 옵션 개수 */
+			, TPM.PRD_MST_CD
+			, (
+	         		SELECT COUNT(0) 
+	         		FROM T_PRD_OPT PRP
+	         		WHERE PRP.PRD_MST_CD = TPM.PRD_MST_CD 
+	         		AND PRP.PRD_OPT_EST_YN = 'Y' 
+	         		AND EXISTS (
+						SELECT COUNT(*)
+						FROM T_OPT_DTL OPD
+						WHERE OPD.PRD_OPT_IDX = PRP.PRD_OPT_IDX
+						AND OPD.OPT_DTL_USE_YN = 'Y'
+						AND TO_CHAR(SYSDATE,'YYYYMMDDHH24MI') BETWEEN OPD.OPT_DTL_ST_DT||'000000' AND OPD.OPT_DTL_ED_DT||'235959' 
+					)
+	         	) AS PRD_MST_OPT_EST_CNT 
+	         , TPM.PRD_MST_IVB_YN
+	         , 0 AS ERP_MST_DSP_PRC
+	         , (SELECT FN_PRODUCT_DETAIL_PRICE(TPM.PRD_MST_CD,#{USER_ENV_TYPE},#{MEM_MST_MEM_ID},'N',null) FROM DUAL) AS PRD_NOW_DST_PRICE
+		FROM T_ORD_MST TOM, T_ORD_PRD TOP, T_PRD_MST TPM 
+		WHERE TOM.ORD_MST_CD = TOP.ORD_ORD_MST_CD
+		AND TOP.ORD_PRD_MST_CD = TPM.PRD_MST_CD
+		AND TOP.ORD_PRD_ORD_STATE IN (#{OST_SEND_END}, #{OST_FIX}) /* 배송완료 구매확정만 */
+        AND TOM.ORD_MST_ORD_ID = #{MEM_MST_MEM_ID}
+        AND TOM.ORD_MST_ORD_DT BETWEEN REPLACE(#{searchStartDate},'-', '') || '000000' AND REPLACE(#{searchEndDate},'-', '') || '235959'
+        AND TOP.ORD_PRD_SLT_YN = 'N' /* 선택옵션은 나오지 않음 */
+        AND TOP.ORD_PRD_ORG_IDX IS NULL /* 교환상품은 나오지 않음 */
+		) T1
+        <if test="startNum != null and startNum != '' and endNum != null and endNum != ''">
+            WHERE PRD_RNUM BETWEEN #{startNum} AND #{endNum}
+        </if>
+		ORDER BY PRD_RNUM
+	</select>
+</mapper>

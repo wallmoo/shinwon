@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="ko" dir="ltr">
+    <head>
+        <meta charset="utf-8">
+        <title></title>
+		<link href="http://bo.marketplanta.epasscni.com:8080/am/css/font-awesome.css" rel="stylesheet">
+		<link rel="stylesheet" href="http://bo.marketplanta.epasscni.com:8080/am/css/import.css">
+        <link rel="stylesheet" href="style.css">
+		<script src="http://bo.marketplanta.epasscni.com:8080/am/js/vendor/modernizr-2.6.2-respond-1.1.0.min.js"></script>
+		<script src="http://bo.marketplanta.epasscni.com:8080/am/js/vendor/jquery-1.11.2.min.js"></script>
+        <style media="screen">
+            .btnAdd, .btnRemove{width:21px;height:21px;background:none;border:1px solid #ccc;}
+        </style>
+    </head>
+    <body><!-- body class, 중요 -->
+
+    <div id="header"><!-- header -->
+        <div id="top" class="container" style="background: #414547 url('/am/img/bg_head.png') no-repeat center top;"><!-- top -->
+            <div class="wrap">
+                <div class="menu"><!-- menu -->
+                    <div id="togglerAside" class="toggler left">
+                        <a href="#!" class="js-toggle-nav" data-class="is-aside-in" data-lg-class="is-aside-out">
+                            <i class="fonti um-fog on"><em>메뉴 펼치기</em></i>
+                            <i class="fonti um-fog off"><em>메뉴 접기</em></i>
+                        </a>
+                    </div>
+                </div><!-- // menu -->
+                <h1 class="logo">
+                    <a href="http://bo.marketplanta.epasscni.com"><img src="http://bo.marketplanta.epasscni.com/nas/cdn/logo/2c679ea5-27f8-4d4b-a2ee-0bd2e4aa2bef.png" alt="HOME" /></a>
+                </h1>
+                <div class="util"><!-- util -->
+                    <div class="col">
+                        <a href="javascript:;"><i class="fonti um-gears"><em>환경설정</em></i></a>
+                    </div>
+                    <div class="col">
+                        <a href="http://bo.marketplanta.epasscni.com/am/manager/logout.do"><i class="fonti um-sign-out"><em>로그아웃</em></i></a>
+                    </div>
+                    <div class="col">
+                        <div id="togglerQuick" class="toggler left">
+                            <a href="#!" class="js-toggle-nav" data-class="is-quick-in" data-lg-class="is-quick-out">
+                                <i class="fonti um-ellipsis-h on"><em>사용자 메뉴 펼치기</em></i>
+                                <i class="fonti um-ellipsis-v off"><em>사용자 메뉴 접기</em></i>
+                            </a>
+                        </div>
+                    </div>
+                </div><!-- // util -->
+            </div>
+        </div><!-- // top -->
+
+        <div id="gnb" class="container">
+            <div class="wrap core"></div><!-- // gnb -->
+            <div class="spacer"></div>
+        </div>
+    </div><!-- // header -->
+
+    <div id="container"><!-- container -->
+
+        <div id="aside" class="aside left"><!-- aside -->
+            <div class="holder"><!-- holder -->
+                <div id="lnb" class="container">
+                    <div class="wrap modules"><!-- modules -->
+                        <div class="title">
+
+                        </div>
+                        <div class="core"></div>
+                    </div><!-- // modules -->
+                </div>
+            </div><!-- // holder --></div><!-- // aside -->
+
+        <div id="wrapper"><!-- wrapper -->
+
+            <div id="breadcrumb"></div><!-- breadcrumb -->
+
+            <div id="contents"><!-- contents -->
+
+                <div class="container">
+
+                    <h2 class="title"><span>펀딩</span></h2>
+
+                    <div class="tab-list"><!-- tab -->
+                        <ul class="tab">
+                            <li class="in"><a href="#none">정보관리</a></li>
+                            <li><a href="javascript:;" id="goEntryList">일정관리</a></li>
+                        </ul>
+                    </div><!-- // tab -->
+
+                    <h3 class="title"><span>기본정보</span></h3>
+                    <p>
+                       <span><i class="require"><em>필수입력</em></i></span> 표시된 항목은 필수 입력 사항입니다.
+                    </p>
+                    <form id="frmProductPlanPopup" name="frmProductPlanPopup" method="post">
+    						<input type="hidden" id="searchPrdMstCd" name="searchPrdMstCd" />
+    				</form>
+                    <form name="frm" id="frm" enctype="multipart/form-data">
+                    <div class="section-form"><!-- section-form-a -->
+                        <input type="hidden" name="PLN_PRD_CTG_TOP_NM" id="PLN_PRD_CTG_TOP_NM" value="" />
+
+    			  		<table cellspacing="0" class="table-row table-a"><!-- table -->
+    	                    <colgroup>
+    	                        <col style="width: 15%;" />
+    	                        <col style="width: auto;" />
+    	                    </colgroup>
+    	                    <tbody>
+    	                    	<tr>
+    	                    		<th><label class="label"><span>펀딩 상품<i class="require"><em>필수입력</em></i></span></label></th>
+                                    <td>
+    	                    			<input type="text" class="text" id="PRD_MST_CD" name="PRD_MST_CD" readonly="">&nbsp;
+    									<input type="text" class="text large" id="PRD_MST_NM" name="PRD_MST_NM" readonly="">
+    									<a href="#none" class="button small search-product-popup" title="새 창 으로 열립니다."><span>상품검색</span></a>
+	                    	    	</td>
+    	                        </tr>
+                                <tr>
+    	                    		<th><label class="label"><span>펀딩상품명<i class="require"><em>필수입력</em></i></span></label></th>
+    	                    		<td>
+                                        <input type="text" class="text large" style="width:35%" name="" value="" maxlength="20"> (20자 이내)
+    	                    		</td>
+    	                        </tr>
+                                <tr>
+    	                    		<th><label class="label"><span>펀딩설명<i class="require"><em>필수입력</em></i></span></label></th>
+    	                    		<td>
+                                        <input type="text " class="text large" name="" value="" maxlength="50" style="width:50%"> (50자 이내)
+    	                    		</td>
+    	                        </tr>
+                                <tr>
+    	                    		<th><label class="label"><span>목표수량<i class="require"><em>필수입력</em></i></span></label></th>
+    	                    		<td>
+                                        <input type="text" name="" value=""> 개
+    	                    		</td>
+    	                        </tr>
+                                <tr>
+    	                    		<th><label class="label"><span>최대수량<i class="require"><em>필수입력</em></i></span></label></th>
+    	                    		<td>
+                                        <input type="text" name="" value=""> 개
+    	                    		</td>
+    	                        </tr>
+                                <tr>
+    	                    		<th><label class="label"><span>사용여부<i class="require"><em>필수입력</em></i></span></label></th>
+    	                    		<td>
+                                        <input type="radio"	id="stateB" name="" class="radio"  value="Y" />
+                                        <label for="stateB">사용</label>
+                                        <input type="radio" id="stateC" name="" class="radio"  value="N" />
+                                        <label for="stateC">미사용</label>
+    	                    		</td>
+    	                        </tr>
+    	                    </tbody>
+                    	</table><!-- // table -->
+                    </div>
+                    </form>
+
+                    <h3 class="title"><span>펀딩가격</span></h3>
+                    <form name="frmProductPlanPopup" method="post">
+    						<input type="hidden" name="searchPrdMstCd" />
+    				</form>
+
+                    <form name="frm" enctype="multipart/form-data">
+                    <div class="section-form"><!-- section-form-a -->
+                        <input type="hidden" name="PLN_PRD_CTG_TOP_NM" value="" />
+
+    			  		<table cellspacing="0" class="table-row table-a"><!-- table -->
+    	                    <colgroup>
+    	                        <col style="width: 15%;" />
+    	                        <col style="width: auto;" />
+                                <col style="width: 15%;" />
+    	                        <col style="width: auto;" />
+    	                    </colgroup>
+    	                    <tbody>
+    	                    	<tr>
+    	                    		<th><label class="label"><span>일반가<i class="require"><em>필수입력</em></i></span></label></th>
+    	                    		<td>
+                                        <input type="text" name="" value="" disabled>
+    	                    		</td>
+    	                    		<th><label class="label"><span>할인율<i class="require"><em>필수입력</em></i></span></label></th>
+    	                    		<td>
+                                        <select class="select">
+                                            <option value="">정율(%)</option>
+                                        </select>
+                                        <input type="text" name="" value="">
+    	                    		</td>
+    	                        </tr>
+                                <tr>
+    	                    		<th><label class="label"><span>판매가</span></label></th>
+    	                    		<td colspan="3">
+                                        <input type="text" name="" value="" disabled>
+    	                    		</td>
+    	                        </tr>
+    	                    </tbody>
+                    	</table><!-- // table -->
+                    </div>
+                    </form>
+
+                    <h3 class="title"><span>태그설정</span></h3>
+
+                    <form name="frm" enctype="multipart/form-data">
+                    <div class="section-form"><!-- section-form-a -->
+                        <input type="hidden" name="PLN_PRD_CTG_TOP_NM" value="" />
+
+    			  		<table cellspacing="0" class="table-row table-a"><!-- table -->
+    	                    <colgroup>
+    	                        <col style="width: 15%;" />
+    	                        <col style="width: auto;" />
+    	                    </colgroup>
+    	                    <tbody>
+    	                    	<tr>
+    	                    		<th><label class="label"><span>일반 TAG<i class="require"><em>필수입력</em></i></span></label></th>
+    	                    		<td>
+                                        <ul class="tag_list tag_box">
+                                            <li>#오버핏<button type="button" class="btn_del">X</button></li>
+                                            <li>#신상품<button type="button" class="btn_del">X</button></li>
+                                            <li>#빈티지<button type="button" class="btn_del">X</button></li>
+                                            <li>#거울셀카<button type="button" class="btn_del">X</button></li>
+                                            <li>#streetstyle<button type="button" class="btn_del">X</button></li>
+                                            <li>#루즈핏<button type="button" class="btn_del">X</button></li>
+                                            <li>#고상한<button type="button" class="btn_del">X</button></li>
+                                            <li>#신상품1<button type="button" class="btn_del">X</button></li>
+                                            <li>#가을신상<button type="button" class="btn_del">X</button></li>
+                                            <li>#데일리룩<button type="button" class="btn_del">X</button></li>
+                                            <li>#ootd<button type="button" class="btn_del">X</button></li>
+                                            <li>#비오는날<button type="button" class="btn_del">X</button></li>
+                                            <li>#상큼한<button type="button" class="btn_del">X</button></li>
+                                            <li>#가을여행<button type="button" class="btn_del">X</button></li>
+                                            <li>#오버핏1<button type="button" class="btn_del">X</button></li>
+                                            <li>#신상품2<button type="button" class="btn_del">X</button></li>
+                                            <li>#빈티지1<button type="button" class="btn_del">X</button></li>
+                                            <li>#거울셀카1<button type="button" class="btn_del">X</button></li>
+                                            <li>#streetstyle1<button type="button" class="btn_del">X</button></li>
+                                            <li>#루즈핏1<button type="button" class="btn_del">X</button></li>
+                                            <li>#고상한1<button type="button" class="btn_del">X</button></li>
+                                            <li>#신상품3<button type="button" class="btn_del">X</button></li>
+                                            <li>#가을신상<button type="button" class="btn_del">X</button></li>
+                                            <li>#데일리룩1<button type="button" class="btn_del">X</button></li>
+                                            <li>#ootd<button type="button" class="btn_del">X</button></li>
+                                            <li>#비오는날1<button type="button" class="btn_del">X</button></li>
+                                            <li>#상큼한<button type="button" class="btn_del">X</button></li>
+                                            <li>#가을여행<button type="button" class="btn_del">X</button></li>
+                                        </ul>
+                                        <div class="section-button btn_Regist"><!-- section button -->
+                                            <a href="#none" id="goRegist" class="button button-b"><span>선택</span></a>
+                                        </div><!-- // section button -->
+    	                    		</td>
+    	                        </tr>
+                                <tr>
+    	                    		<th><label class="label"><span>대표 TAG<i class="require"><em>필수입력</em></i></span></label></th>
+    	                    		<td>
+                                        <select class="select">
+                                            <option value="">선택</option>
+                                        </select>
+    	                    		</td>
+    	                        </tr>
+    	                    </tbody>
+                    	</table><!-- // table -->
+                    </div>
+                    </form>
+
+	                <h3 class="title"><span>추가옵션</span></h3>
+
+                    <table cellspacing="0" class="table-row table-a"><!-- table -->
+	                    <colgroup>
+	                        <col style="width: 15%; min-width:180px;">
+	                        <col style="width: auto;">
+	                    </colgroup>
+	                    <tbody>
+	                        <tr>
+	                            <th>추가옵션</th>
+	                            <td class="left">
+	                                <div id="divCategory"><!-- 옵션 -->
+                                        <!-- section button -->
+	                                    <!-- <div class="grid section-button-search">
+                                            <a href="#none" id="goSpcCategoryDelete_P" class="button button-a small"><span>선택삭제</span></a>
+	                                        <a id="goProductOption" class="button button-b small" title="옵션추가"><span>옵션추가</span></a>
+	                                    </div> -->
+                                        <!-- // section button -->
+
+                                        <table class="table-row table-a" id="tableCategory">
+                                            <colgroup>
+                                                <col style="width: auto;">
+                                                <col style="width: auto;">
+                                            </colgroup>
+                                            <thead>
+                                                <tr>
+                                                    <th>옵션명</th>
+                                                    <th>사용</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="applyproductOptionList">
+                                                <tr>
+                                                    <td><input type="text" class="text xlarge"></td>
+                                                    <td>
+                                                        <select class="select small" name="">
+                                                            <option>사용</option>
+                                                            <option>미사용</option>
+                                                        </select>
+                                                    </td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+	                                </div><!-- // 옵션 -->
+	                            </td>
+	                        </tr>
+	                    </tbody>
+	                </table>
+
+                    <h3 class="title"><span>펀딩기간</span></h3>
+                    <form id="searchForm2" name="searchForm">
+                        <input type="hidden" name="pageSize" value="">
+    	                <table cellspacing="0" class="table-row table-a" style="margin-bottom: 0;"><!-- table -->
+    	                    <colgroup>
+    	                        <col style="width: 15%;">
+    	                        <col style="width: auto;">
+    	                    </colgroup>
+    	                    <tbody>
+    	                        <tr>
+    	                            <th><span>기간<i class="require"><em>필수입력</em></i></span></th>
+    	                            <td>
+                                       <a href="javascript:;" class="js-datepickr"><span class="icon datepickr"><em>날짜선택</em></span></a>
+                                       <input type="text" class="text" name="searchPlnMstStDt" value="2020-01-21" readonly="readonly" data-target-end="#searchPlnMstEdDt"> ~
+                                       <a href="javascript:;" class="js-datepickr"><span class="icon datepickr"><em>날짜선택</em></span></a>
+                                       <input type="text" class="text" name="searchPlnMstEdDt" value="2020-01-21" readonly="readonly" data-target-start="#searchPlnMstStDt">
+    	                            </td>
+    	                        </tr>
+    	                    </tbody>
+    	                </table><!-- // table -->
+                    </form>
+
+                    <h3 class="title"><span>함께 매치하기 좋은 상품</span></h3>
+
+                    <table cellspacing="0" class="table-row table-a"><!-- table -->
+	                    <colgroup>
+	                        <col style="width: 15%; min-width:180px;">
+	                        <col style="width: auto;">
+	                    </colgroup>
+	                    <tbody>
+	                        <tr>
+	                            <th>함께 매치하기 좋은 상품</th>
+	                            <td class="left">
+	                                <div>
+                                        <input type="text" class="text" id="PRD_MST_NM" name="PRD_MST_NM" style="width:50%" readonly="">
+    									<a href="#none" class="button small search-product-popup" title="새 창 으로 열립니다."><span>상품찾기</span></a> <a href="#none" class="button primary goCategoryMbAdd"><span>+</span></a> <a href="#none" class="button goCategoryPcDelete"><span>상품지우기</span></a>
+	                                </div>
+                                    <div class="mt10">
+                                        <input type="text" class="text" id="PRD_MST_NM" name="PRD_MST_NM" style="width:50%" readonly="">
+    									<a href="#none" class="button small search-product-popup" title="새 창 으로 열립니다."><span>상품찾기</span></a> <a href="#none" class="button goCategoryPcDelete"><span>-</span></a>
+	                                </div>
+                                    <div class="mt10">
+                                        <input type="text" class="text" id="PRD_MST_NM" name="PRD_MST_NM" style="width:50%" readonly="">
+    									<a href="#none" class="button small search-product-popup" title="새 창 으로 열립니다."><span>상품찾기</span></a> <a href="#none" class="button goCategoryPcDelete"><span>-</span></a>
+	                                </div>
+	                            </td>
+	                        </tr>
+	                    </tbody>
+	                </table>
+                    </form>
+
+                    <div class="section-button"><!-- section-button -->
+                        <div class="wrap text-center">
+                            <a href="#none" id="goRegist" class="button large primary"><span>저장</span></a>
+                            <a href="#none" id="goList" class="button large"><span>목록</span></a>
+                        </div>
+                    </div><!-- // section-button -->
+
+                </div>
+
+            </div><!-- // contents -->
+
+        </div><!-- // wrapper -->
+
+        <div id="quickmenu" class="aside right"><!-- quickmenu-->
+            <div class="holder"><!-- holder -->
+
+                <div id="quick" class="container">
+
+                    <div class="wrap modules"><!-- modules -->
+                        <ul class="core">
+                            <li class="d2 active">
+                                <a href="javascript:;" class="d2"><span>admin 님</span></a>
+                                <div class="d3 show"><!-- d3 -->
+                                    <ul class="d3">
+                                        <li class="d3">
+                                            <a href="http://bo.marketplanta.epasscni.com/am/manager/logout.do" class="d3"><span>로그아웃</span></a>
+                                        </li>
+                                    </ul>
+                                </div><!-- // d3 -->
+                            </li>
+                        </ul>
+                    </div><!-- // modules -->
+
+                </div>
+
+            </div><!-- // holder --></div><!-- // quickmenu -->
+
+    </div><!-- // container -->
+
+<div id="footer">
+    <div id="copyrights"><!-- copyrights -->
+        <div class="container">
+            <p>
+                Copyrights &copy; MarketPlant, co.ltd. All rights Reserved.
+            </p>
+        </div>
+    </div><!-- // copyrights --></div>
+
+<script src="/am/js/epass.base-0.3.js"></script>
+<script src="/am/js/plugins.js"></script>
+<script src="/am/js/plugins/jquery.menu-aim.js"></script>
+<script src="/am/js/plugins/nanobar.js"></script>
+<script src="/am/js/plugins/alertify.custom-0.3.11.js"></script>
+<script src="/am/js/plugins/Chart.bundle.js"></script>
+<script src="/am/js/common/jquery.cookie.js"></script>
+<script src="/am/js/epass.helper.notify-0.1.js"></script>
+<script src="/am/js/epass.modalr-0.1.js"></script>
+<!-- run -->
+<script src="/am/js/ui.nav.js"></script>
+<script src="/am/js/ui.js"></script>
+<script src="/am/js/admin.js"></script>
+<script src="/am/js/common.js"></script>
+<script src="/am/js/common/jquery.validate.js"></script>
+
+</script>
+
+</body>
+	</html>

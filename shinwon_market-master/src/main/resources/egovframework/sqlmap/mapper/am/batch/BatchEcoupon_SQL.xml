@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="Ecoupon">
+    
+    <!-- 배치 > 회원등급별 자동발급 쿠폰 조회 -->
+    <select id="selectGrdCoupon" parameterType="HashMap" resultType="HashMap">
+        /*BatchEcoupon.selectGrdCoupon*/
+        SELECT 
+        	CPN_MST_IDX
+        FROM T_CPN_MST CPN
+        WHERE
+        <![CDATA[
+        	CPN_MST_GBN = 'D'
+        	AND CPN_MST_YN = 'Y'
+        	AND CPN_MST_MEM_GRD = #{CPN_MST_MEM_GRD}
+        	AND TO_CHAR(SYSDATE,'YYYYMMDDHH24MISS')
+	        	BETWEEN 
+	        		CPN_MST_ISU_ST_DT || CPN_MST_ISU_ST_HH || CPN_MST_ISU_ST_MM 
+	        	AND CPN_MST_ISU_ED_DT || CPN_MST_ISU_ED_HH || CPN_MST_ISU_ED_MM
+        ]]>
+    </select>
+    
+    <!-- 배치 > 회원등급별 쿠폰 발급 -->
+	<insert id="insertGrdCoupon" parameterType="hashmap" >
+        /* BatchEcoupon.insertGrdCoupon */
+        INSERT INTO T_CPN_MEM (
+	   		CPN_MEM_IDX, CPN_MST_IDX, CPN_MEM_ID, CPN_MEM_ISU_DT, CPN_MEM_USE_DT, CPN_MEM_USE_YN
+		)VALUES (
+			SEQ_CPN_MEM_IDX.NEXTVAL, #{CPN_MST_IDX}, #{MEM_MST_MEM_ID} ,TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'), NULL, 'N'
+		)     			
+    </insert>
+    
+</mapper>

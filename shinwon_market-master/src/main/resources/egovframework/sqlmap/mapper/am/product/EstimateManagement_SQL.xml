@@ -1,0 +1,569 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="EstimateManagement">
+    <!-- 관리자 > 상품관리 > 견적관리 조건절 -->
+    <sql id="estimateListWhere">
+        <if test="searchUseYn != null and searchUseYn != ''">
+            AND ESM.ESM_MST_USE_YN = #{searchUseYn}
+        </if>
+        <if test="searchEsmMstType != null and searchEsmMstType != ''">
+            AND ESM.ESM_MST_TYPE = #{searchEsmMstType}
+        </if>
+        <if test="searchEsmMstMemNm != null and searchEsmMstMemNm != ''">
+            AND ESM.ESM_MST_MEM_NM LIKE '%' || #{searchEsmMstMemNm} || '%'
+        </if>
+        <if test="searchEsmMstMemId != null and searchEsmMstMemId != ''">
+            AND ESM.ESM_MST_MEM_ID = #{searchEsmMstMemId}
+        </if>
+        <if test="searchEsmMstHp1 != null and searchEsmMstHp1 != ''">
+            AND ESM.ESM_MST_HP1 = #{searchEsmMstHp1}
+        </if>
+        <if test="searchEsmMstHp2 != null and searchEsmMstHp2 != ''">
+            AND ESM.ESM_MST_HP2 = #{searchEsmMstHp2}
+        </if>
+        <if test="searchEsmMstHp3 != null and searchEsmMstHp3 != ''">
+            AND ESM.ESM_MST_HP3 = #{searchEsmMstHp3}
+        </if>
+        <if test="searchStartDate != null and searchStartDate != '' and searchEndDate != null and searchEndDate != ''">
+            AND ESM.ESM_MST_REG_DT BETWEEN REPLACE(#{searchStartDate},'-', '')||'000000' AND REPLACE(#{searchEndDate},'-', '')||'235959'
+        </if>
+    </sql>
+    
+    <!-- 관리자 > 상품관리 > 사은품관리 목록 갯수 -->
+    <select id="selectEstimateManagementListCount" parameterType="HashMap" resultType="Integer">
+        /* EstimateManagement.selectEstimateManagementListCount */
+        SELECT
+            COUNT(ESM.ESM_MST_IDX)
+        FROM
+            T_ESM_MST ESM
+        WHERE
+            1=1
+            <include refid="estimateListWhere"/>
+    </select>
+    
+    <!-- 관리자 > 상품관리 > 견적 목록 -->
+    <select id="selectEstimateManagementList" parameterType="HashMap" resultType="HashMap">
+        /* EstimateManagement.selectEstimateManagementList */
+        
+        SELECT
+               S2.*
+         FROM
+            (  SELECT
+                     ROWNUM AS RNUM
+                     , S1.* 
+                FROM
+                    (  
+                       SELECT 
+                            ESM.ESM_MST_IDX,
+                            ESM.ESM_MST_CD,
+                            ESM.ESM_MST_TYPE,
+                            (SELECT CMN_COM_NM FROM T_CMM_COM WHERE CMN_COM_IDX = ESM.ESM_MST_TYPE) AS ESM_MST_TYPE_NM,
+                            NVL(ESM.ESM_MST_MEM_ID,'') AS ESM_MST_MEM_ID,
+                            ESM.ESM_MST_MEM_NM,
+                            ESM.ESM_MST_HP1,
+                            ESM.ESM_MST_HP2,
+                            ESM.ESM_MST_HP3,
+                            ESM.ESM_MST_CALL_YN,
+                            ESM_MST_WSH_TOT_PRICE,
+                            ESM.ESM_MST_SHOP,
+                            ESM.ESM_MST_REG_DT,
+                            ESM.ESM_MST_UPD_ID,
+                            ESM.ESM_MST_USE_YN,
+                            (SELECT COUNT(*) FROM T_ESM_PCH WHERE ESM_PCH_MEM_BUY_YN = 'Y' AND ESM_PCH_MST_IDX = ESM.ESM_MST_IDX AND ESM_PCH_MST_CD = ESM.ESM_MST_CD) AS MEM_USE_BUY_CNT,
+                            (SELECT COUNT(*) FROM T_ESM_PCH WHERE ESM_PCH_MD_BUY_YN = 'Y' AND ESM_PCH_MST_IDX = ESM.ESM_MST_IDX AND ESM_PCH_MST_CD = ESM.ESM_MST_CD) AS MEM_MD_BUY_CNT,
+                            (SELECT COUNT(*) FROM T_ESM_PCH WHERE ESM_PCH_MST_IDX = ESM.ESM_MST_IDX AND ESM_PCH_MST_CD = ESM.ESM_MST_CD) AS MEM_MD_CNT,
+                            (SELECT CMN_COM_NM FROM T_CMM_COM WHERE CMN_COM_IDX = ESM.ESM_MST_ADV_TYPE) AS ESM_MST_ADV_TYPE_NM,
+                            (SELECT COUNT(0) FROM T_ESM_REP WHERE ESM_MST_IDX = ESM.ESM_MST_IDX AND ESM_REP_REG_DT > TO_CHAR(SYSDATE -7,'YYYYMMDDHH24MISS')) AS ESM_REP_CNT
+                        FROM 
+                             T_ESM_MST ESM
+                       WHERE 1=1
+                            <include refid="estimateListWhere"/>
+                       ORDER BY ESM.ESM_MST_IDX DESC 
+                    )
+                    S1 
+            )
+            S2
+        WHERE S2.RNUM BETWEEN #{startNum} AND #{endNum}
+        ORDER BY RNUM
+        
+    </select>
+    
+    <!-- 견적코드 자동 생성 -->
+    <select id="selectEstimateManagementMasterCd" parameterType="hashMap" resultType="String">
+        /* EstimateManagement.selectEstimateManagementList */
+        SELECT TO_CHAR(SYSDATE, 'YYYYMMDDHH24') || LPAD(SEQ_ESM_MST_CD.NEXTVAL ,6,'0') FROM DUAL
+    </select> 
+    
+    <!-- MD견적 직접 등록 -->
+    <insert id="insertEstimateManagement" parameterType="hashmap" >
+        <selectKey keyProperty="ESM_MST_IDX" resultType="integer" order="BEFORE"> 
+            SELECT SEQ_ESM_MST_IDX.NEXTVAL FROM DUAL 
+        </selectKey> 
+        <![CDATA[
+        /* EstimateManagement.insertEstimateManagement */
+        INSERT INTO T_ESM_MST (
+            ESM_MST_IDX,
+            ESM_MST_CD,
+            ESM_MST_TYPE,
+            ESM_MST_MEM_ID,
+            ESM_MST_MEM_NM,
+            ESM_MST_HP1,
+            ESM_MST_HP2,
+            ESM_MST_HP3,
+            ESM_MST_MAIL,
+            ESM_MST_QST_TYPE,
+            ESM_MST_QST,
+            ESM_MST_WSH_TOT_PRICE,
+            ESM_MST_ESM_TOT_PRICE,
+            ESM_MST_ADV_TYPE,
+            ESM_MST_OPN_YN,
+            ESM_MST_REG_DT,
+            ESM_MST_REG_ID,
+            ESM_MST_REG_IP,
+            ESM_MST_USE_YN,
+            ESM_MST_PRD_CHANGE_YN
+        )VALUES (
+            #{ESM_MST_IDX},
+            #{ESM_MST_CD},
+            #{ESM_MST_TYPE},
+            #{ESM_MST_MEM_ID},
+            #{ESM_MST_MEM_NM},
+            #{ESM_MST_HP1},
+            #{ESM_MST_HP2},
+            #{ESM_MST_HP3},
+            #{ESM_MST_MAIL},
+            #{ESM_MST_QST_TYPE},
+            #{ESM_MST_QST},
+            #{ESM_MST_WSH_TOT_PRICE},
+            #{ESM_MST_ESM_TOT_PRICE},
+            #{ESM_MST_ADV_TYPE},
+            #{ESM_MST_OPN_YN},
+            TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+            #{ESM_MST_REG_ID},
+            #{ESM_MST_REG_IP},
+            #{ESM_MST_USE_YN},
+            #{ESM_MST_PRD_CHANGE_YN}
+        )
+        ]]>
+    </insert>
+    
+    <!-- 관리자 > 상품관리 > 견적관리 상세정보  -->
+    <select id="selectestimateManagementInfo" parameterType="HashMap" resultType="HashMap">
+        /* EstimateManagement.selectestimateManagementInfo */
+        SELECT 
+            ESM.ESM_MST_IDX,
+            ESM.ESM_MST_CD,
+            ESM.ESM_MST_TYPE,
+            (SELECT CMN_COM_NM FROM T_CMM_COM WHERE CMN_COM_IDX = ESM.ESM_MST_TYPE) AS ESM_MST_TYPE_NM,
+            ESM.ESM_MST_MEM_ID,
+            ESM.ESM_MST_MEM_NM,
+            ESM.ESM_MST_HP1,
+            ESM.ESM_MST_HP2,
+            ESM.ESM_MST_HP3,
+            ESM.ESM_MST_MAIL,
+            ESM.ESM_MST_DLV_DT,
+            ESM.ESM_MST_QST_TYPE,
+            ESM.ESM_MST_WSH_TOT_PRICE,
+            ESM.ESM_MST_ESM_TOT_PRICE,
+            ESM.ESM_MST_ADV_TYPE,
+            (SELECT CMN_COM_NM FROM T_CMM_COM WHERE CMN_COM_IDX = ESM.ESM_MST_ADV_TYPE) AS ESM_MST_ADV_TYPE_NM,
+            ESM.ESM_MST_CALL_YN,
+            ESM.ESM_MST_SHOP,
+            ESM.ESM_MST_STATE,
+            ESM.ESM_MST_OPN_YN,
+            ESM.ESM_MST_PW,
+            ESM.ESM_MST_REG_DT,
+            ESM.ESM_MST_REG_ID,
+            ESM.ESM_MST_REG_IP,
+            ESM.ESM_MST_UPD_DT,
+            ESM.ESM_MST_UPD_ID,
+            ESM.ESM_MST_UPD_IP,
+            ESM.ESM_MST_USE_YN,
+            ESM.ESM_MST_SMS_SEND_YN,
+            ESM.ESM_MST_PRD_CHANGE_YN,
+            ESM.ESM_MST_CALL_HI,
+            ESM.ESM_MST_CALL_MM,
+            ESM.ESM_MST_QST,
+            ROUND((((ESM.ESM_MST_ESM_TOT_PRICE - ESM.ESM_MST_WSH_TOT_PRICE) / ESM.ESM_MST_ESM_TOT_PRICE) * 100 ),2) AS ESM_MST_TOT_PRICE,
+            (SELECT MAX(PRD_MST_CD) FROM T_ESM_PRD WHERE ESM_PRD_MST_IDX = ESM.ESM_MST_IDX) AS PRD_MST_CD,
+            FN_GET_PRODUCT_NM((SELECT MAX(PRD_MST_CD) FROM T_ESM_PRD WHERE ESM_PRD_MST_IDX = ESM.ESM_MST_IDX), 50) AS PRD_MST_NM,
+            TO_CHAR(TO_DATE(ESM.ESM_MST_REG_DT,'YYYYMMDDHH24MISS'),'YYYY-MM-DD') AS ESM_MST_REG_DT_2,
+            (SELECT MAX(TO_CHAR(TO_DATE(ESM.ESM_MST_REG_DT,'YYYYMMDDHH24MISS'),'YYYY-MM-DD')) FROM T_ESM_PCH WHERE ESM_PCH_MST_IDX = ESM.ESM_MST_IDX) AS ESM_PCH_REG_DT
+         FROM 
+              T_ESM_MST ESM
+         WHERE
+              ESM.ESM_MST_IDX = #{ESM_MST_IDX}
+    </select>
+    
+    
+    <!-- 관리자 > 상품관리 > 견적상품 목록 -->
+    <select id="selectEstimateProductList" parameterType="HashMap" resultType="HashMap">
+        /* EstimateManagement.selectEstimateProductList */
+        SELECT
+            ROWNUM AS RNUM
+            , S1.* 
+        FROM
+               (
+                SELECT
+                    EPD.ESM_PRD_IDX,
+                    EPD.ESM_PRD_MST_IDX,
+                    EPD.ESM_PRD_MST_CD,
+                    EPD.ESM_PRD_PCH_IDX,
+                    EPD.PRD_MST_CD,
+                    EPD.ESM_PRD_WSH_PRICE,
+                    EPD.ESM_PRD_ESM_PRICE ,
+                    PMT.PRD_MST_NM,
+                    EPD.ESM_PRD_CNT,
+                    POT.PRD_OPT_NM,
+                    ODL.OPT_DTL_NM,
+                    ODL.OPT_DTL_ADD_PRC,
+                    NVL(ODL.OPT_DTL_IDX,0) AS OPT_DTL_IDX,
+                    PMT.PRD_MST_PRC,
+                    NVL(EPD.ESM_PRD_UP_IDX,0) AS ESM_PRD_UP_IDX,
+                    NVL((SELECT COUNT(0) + 1 FROM T_ESM_PRD WHERE ESM_PRD_UP_IDX = EPD.ESM_PRD_IDX),0) ESM_PRD_UP_CNT ,
+                    NVL(POT.PRD_OPT_EST_YN,'N') AS PRD_OPT_EST_YN ,
+                    <![CDATA[CASE POT.PRD_OPT_EST_YN
+                        WHEN 'Y' THEN 1
+                        ELSE 0 
+                    END]]> AS OPT_EST_CNT
+                FROM
+                    T_ESM_PRD EPD
+                    INNER JOIN T_PRD_MST PMT ON EPD.PRD_MST_CD = PMT.PRD_MST_CD
+                    LEFT OUTER JOIN T_OPT_DTL ODL ON EPD.OPT_DTL_IDX = ODL.OPT_DTL_IDX
+                    LEFT OUTER JOIN T_PRD_OPT POT ON ODL.PRD_OPT_IDX = POT.PRD_OPT_IDX
+                WHERE
+                    EPD.ESM_PRD_MST_IDX = #{ESM_MST_IDX}
+                AND
+                    EPD.ESM_PRD_MST_CD = #{ESM_MST_CD}
+                AND
+                    EPD.ESM_PRD_PCH_IDX = -1
+                ORDER BY EPD.ESM_PRD_IDX ASC
+                ) S1
+    </select>
+    
+    <!-- 관리자 > 상품관리 > 사은품관리 문의사항 항목 가져오기 -->
+    <select id="selectestimateManagementQstNm" parameterType="HashMap" resultType="String">
+        /* EstimateManagement.selectestimateManagementQstNm */
+        SELECT
+        	WM_CONCAT(CMN_COM_NM) AS CMN_COM_NM
+        FROM
+            T_CMM_COM
+        WHERE
+            CMN_COM_IDX IN
+            <foreach collection="arrCMN_COM_IDX" item="CMN_COM_IDX" open="(" close=")" separator=",">#{CMN_COM_IDX}</foreach>
+    </select>
+    
+    <insert id="insertEstimatePurchase" parameterType="hashmap" >
+        <selectKey keyProperty="ESM_PCH_IDX" resultType="integer" order="BEFORE"> 
+            SELECT SEQ_ESM_PCH_IDX.NEXTVAL FROM DUAL 
+        </selectKey> 
+        /* EstimateManagement.insertEstimatePurchase */
+        INSERT INTO T_ESM_PCH (
+            ESM_PCH_IDX,
+            ESM_PCH_MST_IDX,
+            ESM_PCH_MST_CD,
+            <if test="ESM_PCH_MD_BUY_YN != null and ESM_PCH_MD_BUY_YN.equals('Y'.toString())">
+                ESM_PCH_EPT_ST_DT,
+                ESM_PCH_EPT_ED_DT,
+            </if>
+            ESM_PCH_MEM_BUY_YN,
+            ESM_PCH_MD_BUY_YN,
+            ESM_PCH_REG_DT,
+            ESM_PCH_REG_ID,
+            ESM_PCH_REG_IP
+        )VALUES (
+            #{ESM_PCH_IDX},
+            #{ESM_PCH_MST_IDX},
+            #{ESM_PCH_MST_CD},
+            <if test="ESM_PCH_MD_BUY_YN != null and ESM_PCH_MD_BUY_YN.equals('Y'.toString())">
+                REPLACE(#{StartDate},'-', '')||'000000',
+                REPLACE(#{EndDate},'-', '')||'235959',
+            </if>
+            #{ESM_PCH_MEM_BUY_YN},
+            #{ESM_PCH_MD_BUY_YN},
+            TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+            #{ESM_PCH_REG_ID},
+            #{ESM_PCH_REG_IP}
+        )
+    </insert>
+    
+    <insert id="insertEstimateProduct" parameterType="hashmap" >
+        <selectKey keyProperty="ESM_PRD_IDX" resultType="integer" order="BEFORE"> 
+            SELECT SEQ_ESM_PRD_IDX.NEXTVAL FROM DUAL 
+        </selectKey> 
+        /* EstimateManagement.insertEstimateProduct */
+        INSERT INTO T_ESM_PRD (
+            ESM_PRD_IDX,
+            ESM_PRD_MST_IDX,
+            ESM_PRD_MST_CD,
+            ESM_PRD_PCH_IDX,
+            PRD_MST_CD,
+            ESM_PRD_WSH_PRICE,
+            ESM_PRD_ESM_PRICE,
+            OPT_DTL_IDX,
+            ESM_PRD_CNT,
+            ESM_PRD_UP_IDX
+        )VALUES (
+            #{ESM_PRD_IDX},
+            #{ESM_PRD_MST_IDX},
+            #{ESM_PRD_MST_CD},
+            #{ESM_PRD_PCH_IDX},
+            #{PRD_MST_CD},
+            #{ESM_PRD_WSH_PRICE},
+            #{ESM_PRD_ESM_PRICE},
+            #{OPT_DTL_IDX},
+            #{ESM_PRD_CNT},
+            #{ESM_PRD_UP_IDX}
+        )
+    </insert>
+    
+    <!-- 관리자 > 상품관리 > MD견적상품 목록 -->
+    <select id="selectEstimateMdPchList" parameterType="HashMap" resultType="HashMap">
+        /* EstimateManagement.selectEstimateMdPchList */
+        
+            SELECT S1.*
+                ,ROUND((((S1.ESM_MST_ESM_TOT_PRICE - S1.ESM_PRD_ESM_TOTO_PRICE) / S1.ESM_MST_ESM_TOT_PRICE) * 100 ),2) AS ESM_PRD_PCH_TOT_PRICE
+                , ROWNUM AS RNUM
+                , (SELECT COUNT(0) FROM T_ESM_PRD WHERE ESM_PRD_PCH_IDX = S1.ESM_PCH_IDX) AS ESM_PRD_TOT_CNT
+            FROM (
+                    SELECT
+                        ESP.ESM_PCH_IDX,
+                        ESP.ESM_PCH_MST_IDX,
+                        ESP.ESM_PCH_MST_CD,
+                        ESP.ESM_PCH_EPT_ST_DT,
+                        ESP.ESM_PCH_EPT_ED_DT,
+                        ESP.ESM_PCH_MEM_BUY_YN,
+                        ESP.ESM_PCH_MD_BUY_YN,
+                        (SELECT SUM(ESM_PRD_ESM_PRICE) FROM T_ESM_PRD WHERE ESM_PRD_MST_IDX = ESP.ESM_PCH_MST_IDX AND ESM_PRD_MST_CD = ESP.ESM_PCH_MST_CD AND ESM_PRD_PCH_IDX = ESP.ESM_PCH_IDX) AS ESM_PRD_ESM_TOTO_PRICE,
+                        ESM.ESM_MST_ESM_TOT_PRICE
+                    FROM
+                        T_ESM_PCH ESP
+                        INNER JOIN T_ESM_MST ESM ON ESP.ESM_PCH_MST_IDX = ESM.ESM_MST_IDX AND ESP.ESM_PCH_MST_CD  = ESM.ESM_MST_CD
+                    WHERE
+                        ESM_PCH_MST_IDX = #{ESM_MST_IDX}
+                    AND
+                        ESM_PCH_MST_CD = #{ESM_MST_CD}
+                        <if test="ESM_PRD_PCH_IDX != null and ESM_PRD_PCH_IDX != ''">
+                            AND ESM_PCH_IDX = #{ESM_PRD_PCH_IDX}
+                        </if>
+                ) S1
+            ORDER BY S1.ESM_PCH_IDX ASC
+    </select>
+    
+    <!-- 관리자 > 상품관리 > 견적상품 목록 -->
+    <select id="selectEstimateMdProductList" parameterType="HashMap" resultType="HashMap">
+        /* EstimateManagement.selectEstimateMdProductList */
+        SELECT
+            ROWNUM AS RNUM
+            , S1.* 
+        FROM
+               (
+                SELECT
+                    EPD.ESM_PRD_IDX,
+                    EPD.ESM_PRD_MST_IDX,
+                    EPD.ESM_PRD_MST_CD,
+                    EPD.ESM_PRD_PCH_IDX,
+                    EPD.PRD_MST_CD,
+                    EPD.ESM_PRD_WSH_PRICE,
+                    EPD.ESM_PRD_ESM_PRICE ,
+                    PMT.PRD_MST_NM,
+                    EPD.ESM_PRD_CNT,
+                    POT.PRD_OPT_NM,
+                    ODL.OPT_DTL_NM,
+                    ODL.OPT_DTL_ADD_PRC,
+                    ODL.OPT_DTL_IDX,
+                    PMT.PRD_MST_PRC,
+                    NVL(EPD.ESM_PRD_UP_IDX,0) AS ESM_PRD_UP_IDX ,
+                    NVL((SELECT COUNT(0) + 1 FROM T_ESM_PRD WHERE ESM_PRD_UP_IDX = EPD.ESM_PRD_IDX),0) ESM_PRD_UP_CNT ,
+                    NVL(POT.PRD_OPT_EST_YN,'N') AS PRD_OPT_EST_YN ,
+                    <![CDATA[CASE POT.PRD_OPT_EST_YN
+                        WHEN 'Y' THEN 1
+                        ELSE 0 
+                    END]]> AS OPT_EST_CNT
+                FROM
+                    T_ESM_PRD EPD
+                    INNER JOIN T_PRD_MST PMT ON EPD.PRD_MST_CD = PMT.PRD_MST_CD
+                    LEFT OUTER JOIN T_OPT_DTL ODL ON EPD.OPT_DTL_IDX = ODL.OPT_DTL_IDX
+                    LEFT OUTER JOIN T_PRD_OPT POT ON ODL.PRD_OPT_IDX = POT.PRD_OPT_IDX
+                WHERE
+                    EPD.ESM_PRD_MST_IDX = #{ESM_MST_IDX}
+                AND
+                    EPD.ESM_PRD_MST_CD = #{ESM_MST_CD}
+                AND 
+                    EPD.ESM_PRD_PCH_IDX > -1
+                ORDER BY EPD.ESM_PRD_IDX ASC
+                ) S1
+        ORDER BY ESM_PRD_IDX ASC
+    </select>
+    
+    <!-- 관리자 > 상품관리 > 견적상품 목록 -->
+    <select id="selectEstimateMdProductListReSend" parameterType="HashMap" resultType="HashMap">
+        /* EstimateManagement.selectEstimateMdProductListReSend */
+        SELECT
+            ROWNUM AS RNUM
+            , S1.* 
+        FROM
+               (
+                SELECT
+                    EPD.ESM_PRD_IDX,
+                    EPD.ESM_PRD_MST_IDX,
+                    EPD.ESM_PRD_MST_CD,
+                    EPD.ESM_PRD_PCH_IDX,
+                    EPD.PRD_MST_CD,
+                    EPD.ESM_PRD_WSH_PRICE,
+                    EPD.ESM_PRD_ESM_PRICE ,
+                    PMT.PRD_MST_NM,
+                    EPD.ESM_PRD_CNT,
+                    POT.PRD_OPT_NM,
+                    ODL.OPT_DTL_NM,
+                    ODL.OPT_DTL_ADD_PRC,
+                    ODL.OPT_DTL_IDX,
+                    PMT.PRD_MST_PRC,
+                    NVL(EPD.ESM_PRD_UP_IDX,0) AS ESM_PRD_UP_IDX ,
+                    NVL((SELECT COUNT(0) + 1 FROM T_ESM_PRD WHERE ESM_PRD_UP_IDX = EPD.ESM_PRD_IDX),0) ESM_PRD_UP_CNT ,
+                    NVL(POT.PRD_OPT_EST_YN,'N') AS PRD_OPT_EST_YN ,
+                    <![CDATA[CASE POT.PRD_OPT_EST_YN
+                        WHEN 'Y' THEN 1
+                        ELSE 0 
+                    END]]> AS OPT_EST_CNT
+                FROM
+                    T_ESM_PRD EPD
+                    INNER JOIN T_PRD_MST PMT ON EPD.PRD_MST_CD = PMT.PRD_MST_CD
+                    LEFT OUTER JOIN T_OPT_DTL ODL ON EPD.OPT_DTL_IDX = ODL.OPT_DTL_IDX
+                    LEFT OUTER JOIN T_PRD_OPT POT ON ODL.PRD_OPT_IDX = POT.PRD_OPT_IDX
+                WHERE
+                    EPD.ESM_PRD_MST_IDX = #{ESM_MST_IDX}
+                AND
+                    EPD.ESM_PRD_MST_CD = #{ESM_MST_CD}
+                AND 
+                    EPD.ESM_PRD_PCH_IDX = #{ESM_PRD_PCH_IDX}
+                ) S1
+        ORDER BY S1.ESM_PRD_IDX ASC
+    </select>
+    
+    <!-- 관리자 > 상품관리 > 견적상품 승인여부수정 -->
+    <update id="updateEstimatePurchase" parameterType="hashmap" >
+        /* EstimateManagement.updateEstimatePurchase */
+        UPDATE
+            T_ESM_PCH
+        SET 
+            ESM_PCH_MEM_BUY_YN = #{UP_ESM_PCH_MEM_BUY_YN}
+            , ESM_PCH_MD_BUY_YN = #{UP_ESM_PCH_MD_BUY_YN}
+            <if test="UP_ESM_PCH_EPT_ST_DT != null and UP_ESM_PCH_EPT_ST_DT != ''">
+                , ESM_PCH_EPT_ST_DT = REPLACE(#{UP_ESM_PCH_EPT_ST_DT},'-', '')||'000000'
+            </if>
+            <if test="UP_ESM_PCH_EPT_ED_DT != null and UP_ESM_PCH_EPT_ED_DT != ''">
+                , ESM_PCH_EPT_ED_DT = REPLACE(#{UP_ESM_PCH_EPT_ED_DT},'-', '')||'235959'
+            </if>
+            , ESM_PCH_UPD_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS')
+            , ESM_PCH_UPD_ID = #{ESM_PCH_UPD_ID}
+            , ESM_PCH_UPD_IP = #{ESM_PCH_UPD_IP}
+        WHERE
+            ESM_PCH_IDX = #{UP_EMS_PCH_IDX}
+        AND
+            ESM_PCH_MST_IDX = #{ESM_MST_IDX}
+        AND
+            ESM_PCH_MST_CD = #{ESM_MST_CD}
+            
+    </update>
+    
+    <!-- 관리자 > 상품관리 > 견적사용여부 수정 -->
+    <update id="updateEstimateManagement" parameterType="hashmap" >
+        /* EstimateManagement.updateEstimateManagement */
+        UPDATE
+            T_ESM_MST
+        SET 
+            ESM_MST_USE_YN = #{ESM_MST_USE_YN}
+            , ESM_MST_UPD_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS')
+            , ESM_MST_UPD_ID = #{ESM_MST_UPD_ID}
+            , ESM_MST_UPD_IP = #{ESM_MST_UPD_IP} 
+        WHERE
+            ESM_MST_IDX = #{ESM_MST_IDX}
+        AND
+            ESM_MST_CD = #{ESM_MST_CD}
+    </update>
+    
+    <!-- 견적관리 댓글 등록 -->
+    <insert id="insertEstimateManagementRepAjax" parameterType="hashmap" >
+        <![CDATA[
+        /* EstimateManagement.insertEstimateManagementRepAjax */
+        INSERT INTO T_ESM_REP (
+            ESM_REP_IDX,
+            ESM_MST_IDX,
+            ESM_REP_GBN,
+            ESM_REP_CTS,            
+            ESM_REP_REG_DT,
+            ESM_REP_REG_ID,
+            ESM_REP_REG_IP
+        )VALUES (
+            SEQ_ESM_REP_IDX.NEXTVAL,
+            #{ESM_MST_IDX},
+            #{ESM_REP_GBN},
+            #{ESM_REP_CTS},         
+            TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+            #{ESM_REP_REG_ID},
+            #{ESM_REP_REG_IP}
+        )
+        ]]>
+    </insert>
+    
+    <!-- 견적관리 댓글 목록 -->
+    <select id="estimateManagementRepListAjax" parameterType="HashMap" resultType="HashMap">
+        /* EstimateManagement.estimateManagementRepListAjax */
+        SELECT 
+              ESR.ESM_REP_IDX
+            , ESR.ESM_MST_IDX
+            , ESR.ESM_REP_GBN
+            , ESR.ESM_REP_CTS
+            , ESR.ESM_REP_REG_DT
+            , ESR.ESM_REP_REG_ID
+            , CASE ESR.ESM_REP_GBN 
+                WHEN 'A' THEN
+                    (
+                    SELECT
+                        ADM_MST_NM
+                    FROM
+                        T_ADM_MST
+                    WHERE
+                        ADM_MST_ID = ESR.ESM_REP_REG_ID
+                    ) 
+                ELSE
+                    (
+                    SELECT
+                        MEM_MST_MEM_NM
+                    FROM
+                        T_MEM_VIEW
+                    WHERE
+                        MEM_MST_MEM_ID = ESR.ESM_REP_REG_ID             
+                    )
+                END AS ESM_REP_REG_NM
+        FROM
+            T_ESM_REP ESR
+        WHERE 
+            ESR.ESM_MST_IDX = #{ESM_MST_IDX}            
+        ORDER BY ESR.ESM_REP_IDX ASC
+    </select>
+    
+    <select id="selectEstimateMdProductCount" parameterType="hashMap" resultType="HashMap">
+        SELECT 
+            COUNT(0)  AS TOT_CNT , MAX(ESM_PRD_PCH_IDX) AS ESM_PRD_PCH_IDX
+        FROM(
+                SELECT
+                    EPD.ESM_PRD_PCH_IDX
+                FROM
+                    T_ESM_PRD EPD
+                    INNER JOIN T_PRD_MST PMT ON EPD.PRD_MST_CD = PMT.PRD_MST_CD
+                    LEFT OUTER JOIN T_OPT_DTL ODL ON EPD.OPT_DTL_IDX = ODL.OPT_DTL_IDX
+                    LEFT OUTER JOIN T_PRD_OPT POT ON ODL.PRD_OPT_IDX = POT.PRD_OPT_IDX
+                WHERE
+                    EPD.ESM_PRD_MST_IDX = #{ESM_MST_IDX}
+                AND
+                    EPD.ESM_PRD_MST_CD = #{ESM_MST_CD}
+                AND 
+                    EPD.ESM_PRD_PCH_IDX > -1
+                GROUP BY EPD.ESM_PRD_PCH_IDX
+            )
+    </select>
+    
+</mapper>

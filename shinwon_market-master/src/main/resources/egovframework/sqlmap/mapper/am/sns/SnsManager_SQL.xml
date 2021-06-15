@@ -1,0 +1,202 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="SnsManager">
+
+    <!-- 관리자 > SNS관리 > SNS목록 조건절 -->
+    <sql id="snsManagerWhere">     
+        <if test="searchStartDate != null and searchStartDate != '' and searchEndDate != null and searchEndDate != ''">
+            AND S1.SNS_MST_REG_DT BETWEEN REPLACE(#{searchStartDate},'-', '')||'000000' AND REPLACE(#{searchEndDate},'-', '')||'235959'
+        </if>
+        <if test="searchSnsUseYn != null and searchSnsUseYn != ''">
+            AND S1.SNS_MST_USE_YN = #{searchSnsUseYn}
+        </if>
+        <if test="searchSnsType != null and searchSnsType != ''">
+            AND S1.SNS_MST_TYPE = #{searchSnsType}
+        </if>  
+    </sql>  
+     
+    <!-- 관리자 > SNS관리 > SNS목록 갯수 -->
+    <select id="selectSnsManagerListCount" parameterType="HashMap" resultType="Integer">
+        /* SnsManager.selectSnsManagerListCount */
+        SELECT
+            COUNT(0)
+        FROM
+            (
+            SELECT 
+                S2.*
+            FROM
+            (
+                SELECT  
+                    S1.*   
+                FROM
+                    (
+                    SELECT        
+                        (
+                        SELECT
+                            CMN_COM_NM
+                        FROM
+                            T_CMM_COM
+                        WHERE
+                            CMN_COM_IDX = SNS_MST_TYPE
+                        ) AS SNS_MST_TYPE_NM,
+                        SNS_MST_IDX,
+                        SNS_MST_TYPE,
+                        SNS_MST_API_KEY,  
+                        SNS_MST_USE_YN,
+                        SNS_MST_REG_DT,
+                        SNS_MST_REG_IP,
+                        SNS_MST_REG_ID,
+                        SNS_MST_UPD_DT,
+                        SNS_MST_UPD_IP,
+                        SNS_MST_UPD_ID
+                    FROM
+                        T_SNS_MST
+                    )S1
+                WHERE   
+                    1=1
+                    <include refid="snsManagerWhere"/>
+                )S2
+            )
+    </select>
+    
+    <!-- 관리자 > SNS관리 > SNS목록 -->
+    <select id="selectSnsManagerList" parameterType="HashMap" resultType="HashMap">
+        /* SnsManager.selectSnsManagerList */
+        SELECT
+            S2.*,
+            (
+            SELECT
+                ADM_MST_NM
+            FROM
+                T_ADM_MST
+            WHERE
+                ADM_MST_ID = SNS_MST_REG_ID
+            )
+            AS ADM_MST_NM
+        FROM
+            (   SELECT  
+                    ROWNUM AS RNUM,     
+                    S1.*   
+                FROM
+                    (   SELECT                                  
+                            (
+                            SELECT
+                                CMN_COM_NM
+                            FROM
+                                T_CMM_COM
+                            WHERE
+                                CMN_COM_IDX = SNS_MST_TYPE
+                            ) AS SNS_MST_TYPE_NM,
+                            SNS_MST_IDX,
+                            SNS_MST_TYPE,
+                            SNS_MST_API_KEY,  
+                            SNS_MST_USE_YN,
+                            SNS_MST_REG_DT,
+                            SNS_MST_REG_IP,
+                            SNS_MST_REG_ID,
+                            SNS_MST_UPD_DT,
+                            SNS_MST_UPD_IP,
+                            SNS_MST_UPD_ID
+                        FROM
+                            T_SNS_MST 
+                        ORDER BY
+                            SNS_MST_REG_DT DESC
+                    )
+                    S1 
+                WHERE 
+                    1=1
+                    <include refid="snsManagerWhere"/>
+            )
+            S2
+            WHERE  
+                S2.RNUM BETWEEN #{startNum} AND #{endNum}
+    </select>
+  
+    <!-- 관리자 > SNS관리 > SNS등록 --> 
+    <insert id="insertSnsManager" parameterType="HashMap">
+        /* SnsManager.insertSnsManager */
+        INSERT INTO
+            T_SNS_MST
+            (
+                SNS_MST_IDX,
+                SNS_MST_TYPE,
+                SNS_MST_API_KEY,  
+                SNS_MST_USE_YN,
+                SNS_MST_REG_DT,
+                SNS_MST_REG_IP,
+                SNS_MST_REG_ID
+            )
+        VALUES
+            (
+                SEQ_SNS_MST_IDX.NEXTVAL,
+                #{SNS_MST_TYPE},
+                #{SNS_MST_API_KEY},
+                NVL(#{SNS_MST_USE_YN}, 'N'),
+                TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+                #{SNS_MST_REG_IP},
+                #{SNS_MST_REG_ID}
+            )  
+    </insert>
+    
+    <!-- 관리자 > SNS관리 > SNS 상세정보 --> 
+    <select id="selectSnsManagerInfo" parameterType="HashMap" resultType="HashMap">
+        /* SnsManager.selectSnsManagerInfo */  
+        SELECT                         
+            (SELECT CMN_COM_NM FROM T_CMM_COM WHERE CMN_COM_IDX = SNS_MST_TYPE) AS SNS_MST_TYPE_NM,
+            (SELECT ADM_MST_NM FROM T_ADM_MST TAM WHERE TAM.ADM_MST_ID = SNS_MST_REG_ID ) AS SNS_MST_REG_NM,
+            SNS_MST_IDX,   
+            SNS_MST_TYPE,
+            SNS_MST_API_KEY,  
+            SNS_MST_USE_YN,
+            SNS_MST_REG_DT,
+            SNS_MST_REG_IP,
+            SNS_MST_REG_ID,
+            SNS_MST_UPD_DT,
+            SNS_MST_UPD_IP,
+            SNS_MST_UPD_ID
+        FROM
+            T_SNS_MST
+        WHERE  
+            SNS_MST_IDX = #{SNS_MST_IDX}
+    </select>
+    
+    <!-- 관리자 > SNS관리 > SNS 수정 -->
+    <update id="updateSnsManager" parameterType="HashMap">
+        /* SnsManager.updateSnsManager */
+        UPDATE
+            T_SNS_MST   
+        SET
+            SNS_MST_API_KEY = #{SNS_MST_API_KEY},  
+            SNS_MST_USE_YN = NVL(#{SNS_MST_USE_YN}, 'N'),
+            SNS_MST_UPD_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+            SNS_MST_UPD_IP = #{SNS_MST_UPD_IP},
+            SNS_MST_UPD_ID = #{SNS_MST_UPD_ID}
+        WHERE
+            SNS_MST_IDX = #{SNS_MST_IDX}
+    </update>
+      
+    <!-- 프론트 > SNS관리 > SNS 사용목록 -->
+    <select id="selectSnsUseList" parameterType="HashMap" resultType="HashMap">
+        /* SnsManager.selectSnsUseList */
+        SELECT     
+            CMN_COM_NM AS SNS_MST_TYPE_NM,
+            SNS_MST_IDX,
+            SNS_MST_TYPE,
+            SNS_MST_API_KEY,  
+            SNS_MST_USE_YN,
+            SNS_MST_REG_DT,
+            SNS_MST_REG_IP,
+            SNS_MST_REG_ID,
+            SNS_MST_UPD_DT,
+            SNS_MST_UPD_IP,
+            SNS_MST_UPD_ID
+        FROM
+            T_SNS_MST TSM
+        INNER JOIN T_CMM_COM TCC ON TCC.CMN_COM_IDX =  TSM.SNS_MST_TYPE
+        WHERE 
+            SNS_MST_USE_YN = 'Y'
+        ORDER BY
+            SNS_MST_REG_DT DESC
+    </select>
+    
+</mapper>

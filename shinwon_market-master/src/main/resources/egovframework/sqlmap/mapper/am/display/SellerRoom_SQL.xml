@@ -1,0 +1,871 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="SellerRoom">
+
+    <sql id = "sellerRoomMediaWhere">
+        <if test="searchSellerRoomMediaMstTitle != null and searchSellerRoomMediaMstTitle != ''">
+            AND UPPER(TCM.CNT_MST_TITLE) LIKE '%'||UPPER(#{searchSellerRoomMediaMstTitle})||'%'
+        </if>
+        <if test="searchDisplayUseYn != null and searchDisplayUseYn != ''">
+            AND TCM.CNT_MST_USE_YN = #{searchDisplayUseYn}
+        </if>
+        <if test="searchStartDate != null and searchStartDate != '' and searchEndDate != null and searchEndDate != ''">
+            AND TCM.CNT_MST_REG_DT BETWEEN REPLACE(#{searchStartDate},'-', '')||'000000' AND REPLACE(#{searchEndDate},'-', '')||'235959'
+        </if>
+        <if test="VDR_MST_IDX != null and VDR_MST_IDX != ''">
+            AND TCM.VDR_MST_IDX = #{VDR_MST_IDX}
+        </if>
+
+        <if test="searchPopMstTyp != null and searchPopMstTyp != ''">
+            AND TCM.CNT_MST_USE_YN = #{searchPopMstTyp}
+        </if>
+        
+        <if test="searchTxt != null and searchTxt != ''">
+            AND TCM.CNT_MST_TITLE = #{searchTxt}
+        </if> 
+        
+               
+        
+    </sql>
+
+	<sql id="sellerStoreWhere">
+		<if test="searchKeyword != null and searchKeyword != ''">
+		    <choose>
+		        <when test="searchKeywordType != null and searchKeywordType.equals('storeNm'.toString())">
+		            AND TSS.SEL_SHP_NM LIKE '%' || UPPER(#{searchKeyword}) || '%'
+		        </when>
+		        <when test="searchKeywordType != null and searchKeywordType.equals('storeTel3'.toString())">
+		            AND TSS.SEL_SHP_TEL3=#{searchKeyword}
+		        </when>
+		    </choose>
+		</if>
+        <if test="searchAreaCode != null and searchAreaCode != ''">
+            AND TSS.SEL_SHP_STATE = #{searchAreaCode}
+        </if>
+        <if test="searchStoreUseYN != null and searchStoreUseYN != ''">
+            AND TSS.SEL_SHP_USE_YN = #{searchStoreUseYN}
+        </if>
+    </sql>
+
+   <select id="selectSellerRoomLayoutInfo" parameterType="hashMap" resultType="hashMap">
+       	/* SellerRoom.selectSellerRoomLayoutInfo */
+       	SELECT BND_MST_LAY_TPY, BND_MST_LAY_DSP_YN FROM T_BND_MST WHERE VDR_MST_IDX = #{VDR_MST_IDX}
+   </select>
+   
+   <update id="updateSellerRoomLayoutInfo" parameterType="hashMap" >
+       	/* SellerRoom.updateSellerRoomLayoutInfo */
+       	UPDATE T_BND_MST SET BND_MST_LAY_TPY = #{BND_MST_LAY_TPY}, BND_MST_LAY_DSP_YN = #{BND_MST_LAY_DSP_YN} 
+       	WHERE VDR_MST_IDX = #{VDR_MST_IDX}
+   </update>
+   
+    <!-- 관리자 > 셀러룸 > 미디어관리 > 미디어관리 목록 갯수 -->
+    <select id="selectSellerMediaCount" parameterType="HashMap" resultType="Integer">
+        /* SellerRoom.selectSellerMediaCount */
+        SELECT
+            COUNT(TCM.CNT_MST_IDX)
+        FROM
+            T_CNT_MST TCM             
+        WHERE
+            1 = 1
+            AND TCM.CNT_MST_TYPE = #{CNT_MST_TYPE}
+            <include refid="sellerRoomMediaWhere"/> 
+    </select>
+   
+   <!-- 관리자 > 셀러룸 > 미디어관리 > 미디어관리 목록 -->
+    <select id="selectSellerMediaList" parameterType="HashMap" resultType="HashMap">
+        /*SellerRoom.selectSellerMediaList*/
+        SELECT
+            S2.*            
+        FROM
+            (   SELECT
+                    ROWNUM AS RNUM,
+                    S1.* 
+                FROM
+                    (   SELECT
+                            TCM.CNT_MST_IDX,                     
+                            TCM.CNT_MST_TITLE,
+                            TCM.CNT_MST_USE_YN,
+                            TO_CHAR(TO_DATE(SUBSTR(TCM.CNT_MST_REG_DT,1,8),'YYYYMMDD'),'YYYY-MM-DD') AS CNT_MST_REG_DT,/* 최초 등록일 */
+                            TCM.CNT_MST_REG_IP,
+                            TCM.CNT_MST_REG_ID,
+                            TO_CHAR(TO_DATE(SUBSTR(TCM.CNT_MST_UPD_DT,1,8),'YYYYMMDD'),'YYYY-MM-DD') AS CNT_MST_UPD_DT,/* 최초 수정일 */
+                            TCM.CNT_MST_UPD_IP,
+                            TCM.CNT_MST_UPD_ID
+                        FROM
+                            T_CNT_MST TCM                             
+                        WHERE
+                            1 = 1
+                            AND TCM.CNT_MST_TYPE = #{CNT_MST_TYPE}
+                            <include refid="sellerRoomMediaWhere"/>
+                        ORDER BY TCM.CNT_MST_REG_DT DESC 
+                    )
+                    S1 
+            )
+            S2 
+        WHERE
+            S2.RNUM BETWEEN #{startNum} AND #{endNum}
+    </select>
+   
+    <!-- 미디어 등록 -->
+    <insert id="insertSellerMedia" parameterType="hashMap">
+        <selectKey keyProperty="CNT_MST_IDX" resultType="Integer" order="BEFORE">
+            SELECT SEQ_CNT_MST_IDX.NEXTVAL AS CNT_MST_IDX FROM DUAL
+        </selectKey>
+        /* SellerRoom.insertSellerMedia */
+        INSERT INTO T_CNT_MST (
+            CNT_MST_IDX
+            , VDR_MST_IDX
+            , CNT_MST_TYPE
+            , CNT_MST_TITLE
+            , CNT_MST_URL
+            , CNT_MST_USE_YN
+            , CNT_MST_REG_DT
+            , CNT_MST_REG_IP
+            , CNT_MST_REG_ID
+            
+        ) VALUES (
+            #{CNT_MST_IDX}
+            , #{VDR_MST_IDX}
+            , #{CNT_MST_TYPE}
+            , #{CNT_MST_TITLE}
+            , #{CNT_MST_URL}
+            , #{CNT_MST_USE_YN}
+            , TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS')
+            , #{CNT_MST_REG_IP}
+            , #{CNT_MST_REG_ID}
+        )
+    </insert>
+    
+    <select id="selectSellerMediaInfo" parameterType="HashMap" resultType="hashMap">
+        /* SellerRoom.selectSellerMediaInfo */
+        SELECT
+            TCM.CNT_MST_IDX
+            , TCM.VDR_MST_IDX
+            , TCM.CNT_MST_TYPE
+            , TCM.CNT_MST_TITLE
+            , TCM.CNT_MST_URL
+            , TCM.CNT_MST_USE_YN
+            , TCM.CNT_MST_REG_DT
+            , TCM.CNT_MST_REG_IP
+            , TCM.CNT_MST_REG_ID
+        FROM
+            T_CNT_MST TCM
+        WHERE
+            TCM.CNT_MST_IDX = #{CNT_MST_IDX}
+            AND TCM.CNT_MST_TYPE = #{CNT_MST_TYPE}
+    </select>
+    
+    <update id="updateSellerMedia" parameterType="hashMap" >
+        /* SellerRoom.updateSellerMedia */
+        UPDATE 
+            T_CNT_MST 
+        SET 
+            CNT_MST_TITLE = #{CNT_MST_TITLE}
+            , CNT_MST_USE_YN = #{CNT_MST_USE_YN}
+            , CNT_MST_URL = #{CNT_MST_URL}
+            , CNT_MST_UPD_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS')
+            , CNT_MST_UPD_IP = #{CNT_MST_UPD_IP}
+            , CNT_MST_UPD_ID = #{CNT_MST_UPD_ID}
+        WHERE 
+            CNT_MST_IDX = #{CNT_MST_IDX}
+            AND CNT_MST_TYPE = #{CNT_MST_TYPE}
+   </update>
+   
+    <!-- 관리자 > 셀러룸 > 룩북관리 > 룩북관리 목록 갯수 -->
+    <select id="selectSellerLookBookCount" parameterType="HashMap" resultType="Integer">
+        /* SellerRoom.selectSellerLookBookCount */
+        SELECT
+            COUNT(TCM.CNT_MST_IDX)
+        FROM
+            T_CNT_MST TCM             
+        WHERE
+            1 = 1
+            AND TCM.CNT_MST_TYPE = #{CNT_MST_TYPE}
+            <include refid="sellerRoomMediaWhere"/> 
+    </select>
+
+    <!-- 관리자 > 셀러룸 > 룩북관리 > 룩북관리 목록 -->
+    <select id="selectSellerLookBookList" parameterType="HashMap" resultType="HashMap">
+        /*SellerRoom.selectSellerLookBookList*/
+        SELECT
+            S2.*            
+        FROM
+            (   SELECT
+                    ROWNUM AS RNUM,
+                    S1.* 
+                FROM
+                    (   SELECT
+                            TCM.CNT_MST_IDX,  
+                            TCC.CMN_COM_NM AS SEASON_NM,
+                            TCF.CMM_FLE_ATT_PATH || TCF.CMM_FLE_SYS_NM AS CMM_FLE_SAVE_PATH ,                   
+                            TCM.CNT_MST_TITLE,
+                            TCM.CNT_MST_USE_YN,
+                            TO_CHAR(TO_DATE(TCM.CNT_MST_REG_DT,'YYYYMMDDHH24MISS'),'YYYY-MM-DD HH:mi:SS') AS CNT_MST_REG_DT,
+                            TCM.CNT_MST_REG_IP,
+                            TCM.CNT_MST_REG_ID,
+                            TO_CHAR(TO_DATE(TCM.CNT_MST_UPD_DT,'YYYYMMDDHH24MISS'),'YYYY-MM-DD HH:mi:SS') AS CNT_MST_UPD_DT, 
+                            TCM.CNT_MST_UPD_IP,
+                            TCM.CNT_MST_UPD_ID
+                        FROM
+                            T_CNT_MST TCM INNER JOIN T_CMM_COM TCC ON TCM.CNT_MST_SEASON = TCC.CMN_COM_IDX                             
+                            LEFT OUTER JOIN T_CMM_FLE TCF ON TCM.CNT_MST_IDX = TCF.CMM_FLE_TB_PK AND TCF.CMM_FLE_TB_TYPE = 'P' AND TCF.CMM_FLE_SORT = 1 AND TCF.CMM_FLE_USE_YN = 'Y'
+                        WHERE
+                            1 = 1
+                            AND TCM.CNT_MST_TYPE = #{CNT_MST_TYPE}
+                            <include refid="sellerRoomMediaWhere"/>
+                        ORDER BY TCM.CNT_MST_REG_DT DESC 
+                    )
+                    S1 
+            )
+            S2 
+        WHERE
+            S2.RNUM BETWEEN #{startNum} AND #{endNum}
+    </select>
+
+    <!-- 관리자  > 셀러룸 > 룩북 등록 -->
+    <insert id="insertSellerLookBook" parameterType="hashMap">
+        <selectKey keyProperty="CNT_MST_IDX" resultType="Integer" order="BEFORE">
+            SELECT SEQ_CNT_MST_IDX.NEXTVAL AS CNT_MST_IDX FROM DUAL
+        </selectKey>
+        /* SellerRoom.insertSellerLookBook */
+        INSERT INTO T_CNT_MST (
+            CNT_MST_IDX
+            , VDR_MST_IDX
+            , CNT_MST_TYPE
+            , CNT_MST_TITLE /* 이미지 제목 */
+            , CNT_MST_URL
+            , CNT_MST_USE_YN
+            , CNT_MST_SEASON
+            , CNT_MST_REG_DT
+            , CNT_MST_REG_IP
+            , CNT_MST_REG_ID
+            
+        ) VALUES (
+            #{CNT_MST_IDX}
+            , #{VDR_MST_IDX}
+            , #{CNT_MST_TYPE}
+            , #{CNT_MST_TITLE}
+            , #{CNT_MST_URL}
+            , #{CNT_MST_USE_YN}
+            , #{CNT_MST_SEASON}
+            , TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS')
+            , #{CNT_MST_REG_IP}
+            , #{CNT_MST_REG_ID}
+        )
+    </insert>
+    
+    <!-- 관리자  > 셀러룸 > 룩북 상세 정보 -->
+    <select id="selectSellerLookBookInfo" parameterType="HashMap" resultType="hashMap">
+        /* SellerRoom.selectSellerLookBookInfo */
+        SELECT
+            TCM.CNT_MST_IDX
+            , TCM.VDR_MST_IDX
+            , TCM.CNT_MST_TYPE
+            , TCM.CNT_MST_TITLE
+            , TCC.CMN_COM_IDX
+            , TCC.CMN_COM_NM AS SEASON_NM
+            , TCM.CNT_MST_USE_YN
+            , TO_CHAR(TO_DATE(TCM.CNT_MST_REG_DT,'YYYYMMDDHH24MISS'),'YYYY-MM-DD HH:mi:SS') AS CNT_MST_REG_DT
+            , TCM.CNT_MST_REG_DT
+            , TCM.CNT_MST_REG_IP
+            , TCM.CNT_MST_REG_ID
+        FROM
+            T_CNT_MST TCM INNER JOIN T_CMM_COM TCC ON TCM.CNT_MST_SEASON = TCC.CMN_COM_IDX
+        WHERE
+            TCM.CNT_MST_IDX = #{CNT_MST_IDX}
+            AND TCM.CNT_MST_TYPE = #{CNT_MST_TYPE}
+    </select>
+    
+    <!-- 관리자  > 셀러룸 > 룩북 수정 -->
+    <update id="updateSellerLookBook" parameterType="hashMap" >
+        /* SellerRoom.updateSellerLookBook */
+        UPDATE 
+            T_CNT_MST 
+        SET 
+            CNT_MST_TITLE = #{CNT_MST_TITLE}
+            , CNT_MST_USE_YN = #{CNT_MST_USE_YN}
+            , CNT_MST_SEASON = #{CNT_MST_SEASON}
+            , CNT_MST_UPD_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS')
+            , CNT_MST_UPD_IP = #{CNT_MST_UPD_IP}
+            , CNT_MST_UPD_ID = #{CNT_MST_UPD_ID}
+        WHERE 
+            CNT_MST_IDX = #{CNT_MST_IDX}
+            AND CNT_MST_TYPE = #{CNT_MST_TYPE}
+   </update>
+   
+    
+    <!-- 룩북 삭제 -->
+    <delete id="deleteSellerLookBook" parameterType="hashmap" >
+        /* SellerRoom.deleteSellerLookBook */
+        DELETE FROM T_CNT_MST WHERE CNT_MST_IDX = #{CNT_MST_IDX} AND CNT_MST_TYPE = #{CNT_MST_TYPE}
+    </delete>
+    
+    <select id="selectTagDisplayCategoryList" parameterType="HashMap" resultType="HashMap">
+    	/* SellerRoom.selectTagDisplayCategoryList */
+        SELECT 
+            CMN_COM_IDX, CMN_COM_LEVEL, CMN_COM_NM , CMN_COM_ETC1, CMN_COM_ETC2, CMN_COM_ETC3, CMN_COM_ETC4
+        FROM 
+            T_CMM_COM
+        WHERE
+            CMN_COM_USE_YN = 'Y'
+        START WITH CMN_COM_UP_IDX = #{CMN_COM_IDX}
+    	CONNECT BY PRIOR CMN_COM_IDX = CMN_COM_UP_IDX
+        ORDER SIBLINGS BY CMN_COM_LEVEL ASC       
+    </select>
+    
+    <select id="selectTagDisplayCategoryCodeList" parameterType="HashMap" resultType="HashMap">
+	     /* SellerRoom.selectTagDisplayCategoryCodeList */
+	     SELECT 
+	     	CMN_COM_IDX, CMN_COM_LEVEL, CMN_COM_NM , CMN_COM_ETC1, CMN_COM_ETC2, CMN_COM_ETC3, CMN_COM_ETC4
+	     FROM 
+	        T_CMM_COM
+	     WHERE
+	        CMN_COM_USE_YN = 'Y'
+	     START WITH CMN_COM_IDX = #{CMN_COM_IDX}
+	     CONNECT BY PRIOR CMN_COM_UP_IDX = CMN_COM_IDX
+	     ORDER SIBLINGS BY CMN_COM_LEVEL ASC
+    </select>
+    
+    <select id="selectTagDisplayList" parameterType="HashMap" resultType="HashMap">
+    	/* SellerRoom.selectTagDisplayList */
+    	SELECT 
+    		TTM.TAG_MST_ID, TTM.TAG_MST_TITLE
+    	FROM T_TAG_MST TTM, T_TAG_BND TTB
+    	WHERE 
+	    	TTM.TAG_MST_ID = TTB.TAG_MST_ID
+	    	AND TTB.TAG_BND_ID = #{TAG_BND_ID}
+	    	AND TTB.TAG_BND_TYPE = #{TAG_BND_TYPE}
+	    	AND TTM.TAG_MST_STATUS = 'USE'
+    	ORDER BY TTB.TAG_BND_REG_DT ASC
+    </select>
+    
+    <delete id="deleteTagDisplay" parameterType="HashMap">
+    	/* SellerRoom.deleteTagDisplay */
+    	DELETE FROM T_TAG_BND 
+    	WHERE TAG_BND_ID = #{TAG_BND_ID}
+    	AND TAG_BND_TYPE = #{TAG_BND_TYPE}
+    </delete>
+    
+    <insert id="insertTagDisplay" parameterType="HashMap">
+    	/* SellerRoom.insertTagDisplay */
+    	INSERT ALL
+    	<foreach collection="arrTAG" item="TAG" separator=" ">
+	    	INTO T_TAG_BND (  TAG_MST_ID
+	                                ,TAG_BND_ID
+	                                ,TAG_BND_STATUS
+	                                ,TAG_BND_REG_DT
+	                                ,TAG_BND_UPD_DT
+	                                ,TAG_BND_TYPE
+	                            )
+	        VALUES          
+	        
+	    		(     #{TAG.TAG_MST_ID}
+	                  , #{TAG.TAG_BND_ID}
+	                  , 'USE'
+	                  , TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS')
+	                  , TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS')
+	                  , #{TAG.TAG_BND_TYPE}
+	        	)
+    	</foreach>
+    	SELECT * FROM DUAL
+    </insert>
+    
+    <!-- 관리자 > 셀러룸 > 매장관리 > 매장관리 목록 갯수 -->
+    <select id="selectSellerStoreListCount" parameterType="HashMap" resultType="Integer">
+        /* SellerRoom.selectSellerStoreListCount */
+		SELECT COUNT(TSS.SEL_SHP_IDX)
+		FROM T_SEL_SHP TSS
+		WHERE TSS.VDR_MST_IDX = #{VDR_MST_IDX}
+		<include refid="sellerStoreWhere"/>
+    </select>
+    
+    <!-- 관리자 > 셀러룸 > 매장관리 > 매장관리 목록 -->
+    <select id="selectSellerStoreList" parameterType="HashMap" resultType="HashMap">
+    	/* SellerRoom.selectSellerStoreList */
+		SELECT
+			S2.*
+		FROM
+		(
+	    	SELECT
+				ROWNUM AS RNUM,
+				S1.*
+	    	FROM
+	    	(
+				SELECT
+					TSS.SEL_SHP_IDX
+					, TSS.VDR_MST_IDX
+					, TSS.SEL_SHP_NM
+					, (SELECT TCC.CMN_COM_NM FROM T_CMM_COM TCC WHERE TCC.CMN_COM_IDX = TSS.SEL_SHP_STATE) AS SEL_SHP_STATE
+					, TSS.SHP_ST_HH
+					, TSS.SHP_ST_MM
+					, TSS.SHP_ED_HH
+					, TSS.SHP_ED_MM
+					, TSS.SEL_SHP_TEL1
+					, TSS.SEL_SHP_TEL2
+					, TSS.SEL_SHP_TEL3
+					, TSS.SEL_SHP_USE_YN
+				FROM T_SEL_SHP TSS
+				WHERE 
+					TSS.VDR_MST_IDX = #{VDR_MST_IDX}
+					<include refid="sellerStoreWhere"/>
+				ORDER BY SEL_SHP_REG_DT DESC
+			)  S1
+		) S2
+		<if test="startNum != null and startNum != '' and endNum != null and endNum != ''">
+            WHERE 
+                S2.RNUM BETWEEN #{startNum} AND #{endNum}
+        </if>
+    </select>
+    
+    <!-- 관리자 > 셀러룸 > 매장관리 > 매장등록 -->
+    <insert id="insertSellerStore" parameterType="hashMap">
+        <selectKey keyProperty="SEL_SHP_IDX" resultType="Integer" order="BEFORE">
+            SELECT SEQ_SEL_SHP_IDX.NEXTVAL AS SEL_SHP_IDX FROM DUAL
+        </selectKey>
+        /* SellerRoom.insertSellerStore */
+        INSERT INTO T_SEL_SHP (
+            SEL_SHP_IDX
+            , VDR_MST_IDX
+            , SEL_SHP_NM
+            , SEL_SHP_STATE
+            , SEL_SHP_TEL1
+            , SEL_SHP_TEL2
+            , SEL_SHP_TEL3
+            , SEL_SHP_ZIP_NO
+            , SEL_SHP_ADDR1
+            , SEL_SHP_ADDR2
+            , SHP_ST_HH
+            , SHP_ST_MM
+            , SHP_ED_HH
+            , SHP_ED_MM
+            , SEL_SHP_USE_YN
+            , SEL_SHP_REG_DT
+            , SEL_SHP_REG_IP
+            , SEL_SHP_REG_ID
+            
+        ) VALUES (
+            #{SEL_SHP_IDX}
+            , #{VDR_MST_IDX}
+            , #{SEL_SHP_NM}
+            , #{SEL_SHP_STATE}
+            , #{SEL_SHP_TEL1}
+            , #{SEL_SHP_TEL2}
+            , #{SEL_SHP_TEL3}
+            , #{SEL_SHP_ZIP_NO}
+            , #{SEL_SHP_ADDR1}
+            , #{SEL_SHP_ADDR2}
+            , #{SHP_ST_HH}
+            , #{SHP_ST_MM}
+            , #{SHP_ED_HH}
+            , #{SHP_ED_MM}
+            , #{SEL_SHP_USE_YN}
+            , TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS')
+            , #{SEL_SHP_REG_IP}
+            , #{SEL_SHP_REG_ID}
+        )
+    </insert>
+    
+    <select id="selectSellerStoreInfo" parameterType="HashMap" resultType="hashMap">
+        /* SellerRoom.selectSellerStoreInfo */
+		SELECT
+			TSS.SEL_SHP_IDX
+			, TSS.VDR_MST_IDX
+			, TSS.SEL_SHP_NM
+			, TSS.SEL_SHP_STATE
+			, TSS.SEL_SHP_ADDR1
+			, TSS.SEL_SHP_ADDR2
+			, TSS.SEL_SHP_ZIP_NO
+			, TSS.SHP_ST_HH
+			, TSS.SHP_ST_MM
+			, TSS.SHP_ED_HH
+			, TSS.SHP_ED_MM
+			, TSS.SEL_SHP_TEL1
+			, TSS.SEL_SHP_TEL2
+			, TSS.SEL_SHP_TEL3
+			, TSS.SEL_SHP_USE_YN
+		FROM T_SEL_SHP TSS
+		WHERE TSS.SEL_SHP_IDX = #{SEL_SHP_IDX}
+    </select>
+    
+    <update id="updateSellerStore" parameterType="hashMap" >
+        /* SellerRoom.updateSellerStore */
+        UPDATE 
+            T_SEL_SHP 
+        SET 
+            SEL_SHP_NM = #{SEL_SHP_NM}
+            , SEL_SHP_STATE = #{SEL_SHP_STATE}
+            , SEL_SHP_TEL1 = #{SEL_SHP_TEL1}
+            , SEL_SHP_TEL2 = #{SEL_SHP_TEL2}
+            , SEL_SHP_TEL3 = #{SEL_SHP_TEL3}
+            , SEL_SHP_ZIP_NO = #{SEL_SHP_ZIP_NO}
+            , SEL_SHP_ADDR1 = #{SEL_SHP_ADDR1}
+            , SEL_SHP_ADDR2 = #{SEL_SHP_ADDR2}
+            , SHP_ST_HH = #{SHP_ST_HH}
+            , SHP_ST_MM = #{SHP_ST_MM}
+            , SHP_ED_HH = #{SHP_ED_HH}
+            , SHP_ED_MM = #{SHP_ED_MM}
+            , SEL_SHP_USE_YN = NVL(#{SEL_SHP_USE_YN},'Y')
+            , SEL_SHP_UPD_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS')
+            , SEL_SHP_UPD_IP = #{SEL_SHP_UPD_IP}
+            , SEL_SHP_UPD_ID = #{SEL_SHP_UPD_ID}
+        WHERE SEL_SHP_IDX = #{SEL_SHP_IDX}
+   </update>
+   
+    <delete id="deleteSellerStore" parameterType="HashMap">
+        /* SellerRoom.deleteSellerStore */
+        DELETE FROM T_SEL_SHP
+         WHERE SEL_SHP_IDX IN
+         <foreach collection="SELLER_LIST" item="ID" open="(" close=")" separator=",">
+         #{ID}
+         </foreach>
+    </delete>   
+    
+    
+	<sql id="SallerPickWhere">
+		<if test="searchKeyWords != null and searchKeyWords != ''">
+		   AND  TCM.CNT_MST_TITLE LIKE '%' || UPPER(#{searchKeyWords}) || '%'
+		</if>
+        <if test="searchRegStartDate != null and searchRegStartDate != '' and searchRegEndDate != null and searchRegEndDate != ''">
+            AND TCM.CNT_MST_REG_DT BETWEEN REPLACE(TRIM(#{searchRegStartDate}),'-', '')||'000000' AND REPLACE(TRIM(#{searchRegEndDate}),'-', '')||'235959'
+        </if>		
+
+    </sql>    
+    
+    
+    <select id="searchSallerPickListCount" parameterType="HashMap" resultType="Integer">
+        /* SellerRoom.searchSallerPickListCount */
+        SELECT
+               COUNT(*)  
+         FROM
+            T_CNT_MST TCM
+        WHERE TCM.CNT_MST_USE_YN = 'Y'
+         AND  TCM.CNT_MST_TYPE = 'TYPE_SELLER_PICK'
+		 AND  TCM.VDR_MST_IDX  = #{VDR_MST_IDX}
+		 
+		<include refid="SallerPickWhere"/>
+    </select>    
+    
+    <select id="searchSallerPickList" parameterType="hashMap" resultType="hashMap">
+        /* SellerRoom.searchSallerPickList */
+        SELECT
+            S2.*     
+        FROM 
+        (
+            SELECT
+                ROWNUM RNUM, 
+                S1.*                              
+            FROM 
+            (
+             SELECT
+                     TCM.CNT_MST_IDX,
+                     TCM.CNT_MST_TITLE,
+                     TCM.VDR_MST_IDX ,
+                     TCM.CNT_MST_DESC,
+                     TCM.CNT_MST_TYPE,
+                     TCM.CNT_MST_REG_DT  as CNT_MST_REG_DTS, 
+                     TO_CHAR( TO_DATE ( TCM.CNT_MST_REG_DT , 'YYYYMMDDHH24MISS') , 'YYYY-MM-DD HH24:MI:SS' ) AS CNT_MST_REG_DT
+              FROM   T_CNT_MST TCM
+             WHERE   TCM.CNT_MST_USE_YN =  'Y'
+              AND    TCM.CNT_MST_TYPE   =  'TYPE_SELLER_PICK'
+              AND    TCM.VDR_MST_IDX    =  #{VDR_MST_IDX}
+             <include refid="SallerPickWhere"/>              
+             ORDER BY 
+                     TCM.CNT_MST_TITLE ASC
+            ) S1
+        ) S2
+        <if test="startNum != null and startNum != '' and endNum != null and endNum != ''">
+            WHERE S2.RNUM BETWEEN #{startNum} AND #{endNum}
+        </if>
+    </select>    
+    
+  
+    <!-- SEQ_BNR_MST_IDX 시퀀스만 조회 부분 추가   -->
+    <select id="selectBannerDisplayIdx" parameterType="HashMap" resultType="Integer">
+      SELECT SEQ_BNR_MST_IDX.NEXTVAL AS BNR_MST_IDX  FROM DUAL
+    </select>
+    
+    
+    
+    <insert id="insertBannerDisplay" parameterType="HashMap">
+        /* SellerRoom.insertBannerDisplay */
+        INSERT INTO
+            T_BNR_MST
+            (
+                BNR_MST_IDX,
+                BNR_MST_TITLE,
+                CMN_COM_IDX,
+                BNR_MST_USE_YN,
+                BNR_MST_ST_DT,
+                BNR_MST_ST_HH,
+                BNR_MST_ST_MM,
+                BNR_MST_ED_DT,                
+                BNR_MST_ED_MM,
+                BNR_MST_ED_HH,
+                BNR_MST_REG_DT,
+                BNR_MST_REG_IP,
+                BNR_MST_REG_ID,
+                BNR_MST_ENV,
+                BNR_MST_GBN,
+                BNR_MST_SRT
+                 <if test="VDR_MST_IDX != null and VDR_MST_IDX != ''">
+                 ,VDR_MST_IDX
+                 </if>
+            )
+        VALUES
+            (
+                #{BNR_MST_IDX},
+                #{BNR_MST_TITLE},
+                #{CMN_COM_IDX},
+                NVL(#{BNR_MST_USE_YN}, 'N'),
+                '20000101',
+                '00',
+                '00',
+                '30000101',
+                '00',
+                '00',
+                TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+                #{BNR_MST_REG_IP},
+                #{BNR_MST_REG_ID},
+                #{BNR_MST_ENV},
+                #{BNR_MST_GBN},
+                99
+                <if test="VDR_MST_IDX != null and VDR_MST_IDX != ''">
+                ,#{VDR_MST_IDX}
+                </if>
+            )
+    </insert>        
+
+    
+    <insert id="insertBannerContent" parameterType="HashMap">
+        /* SellerRoom.insertBannerContent */
+        INSERT INTO
+            T_BNR_CNT
+            (
+                BNR_CNT_IDX,
+                BNR_MST_IDX,
+                CNT_MST_IDX,
+                BNR_CNT_ORDER
+            )
+        VALUES
+            (
+                SEQ_BNR_CNT_IDX.NEXTVAL ,
+                #{BNR_MST_IDX},
+                #{CNT_MST_IDX},
+                #{BNR_CNT_ORDER}
+            )
+    </insert>      
+    
+    <select id="selectBannerCntList" parameterType="hashMap" resultType="hashMap">
+        /* SellerRoom.selectBannerCntList */
+        SELECT 
+		        TBC.BNR_CNT_IDX,
+                TBC.BNR_CNT_ORDER ,
+                TCM.CNT_MST_IDX,
+                TCM.CNT_MST_TITLE,
+                TCM.VDR_MST_IDX ,
+                TCM.CNT_MST_DESC,
+                TCM.CNT_MST_TYPE,
+                TCM.VDR_MST_IDX,
+                TO_CHAR( TO_DATE ( TCM.CNT_MST_REG_DT , 'YYYYMMDDHH24MISS') , 'YYYY-MM-DD HH24:MI:SS' ) AS CNT_MST_REG_DT
+         FROM   T_BNR_CNT TBC 
+		          INNER JOIN 
+                T_CNT_MST TCM
+                  ON TBC.CNT_MST_IDX = TCM.CNT_MST_IDX 
+        WHERE   TCM.CNT_MST_USE_YN = 'Y'
+         AND    TCM.CNT_MST_TYPE   = 'TYPE_SELLER_PICK'
+         AND    TBC.BNR_MST_IDX    = #{BNR_MST_IDX}
+         AND    TCM.VDR_MST_IDX    = #{VDR_MST_IDX}
+       ORDER BY 
+              TBC.BNR_CNT_ORDER ASC
+    </select>   
+        
+    <delete id="deleteBannerContent" parameterType="HashMap">
+        /* SellerRoom.deleteBannerContent */
+        DELETE FROM T_BNR_CNT
+         WHERE BNR_MST_IDX = #{BNR_MST_IDX} 
+    </delete> 
+    
+    
+    <update id="updateBannerDisplay" parameterType="HashMap">
+        /* SellerRoom.updateBannerDisplay */
+        UPDATE T_BNR_MST SET 
+               BNR_MST_TITLE  = #{BNR_MST_TITLE},
+               BNR_MST_USE_YN = NVL(#{BNR_MST_USE_YN}, 'N'),
+               BNR_MST_UPD_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+               BNR_MST_UPD_IP = #{BNR_MST_UPD_IP},
+               BNR_MST_UPD_ID = #{BNR_MST_UPD_ID},
+               BNR_MST_ENV    = #{BNR_MST_ENV}, 
+               BNR_MST_GBN    = #{BNR_MST_GBN}          
+         WHERE BNR_MST_IDX = #{BNR_MST_IDX} 
+          AND  VDR_MST_IDX = #{VDR_MST_IDX}
+    </update>        
+    
+
+    <!-- 전시상품관리 리스트 갯수 -->
+    <select id="selectSellerRommProductDisplayListCount" parameterType="hashMap" resultType="integer">
+        /* SellerRoom.selectSellerRommProductDisplayListCount */
+		SELECT 
+		        COUNT(*) 
+		 FROM   T_DSP_MST TDM 
+		          INNER JOIN 
+		        T_PRD_MST TPM
+		          ON TDM.PRD_MST_CD = TPM.PRD_MST_CD 
+		WHERE   TDM.CMN_COM_IDX = #{CMN_COM_IDX}
+		 AND    TDM.VDR_MST_IDX = #{VDR_MST_IDX}
+		 AND    TDM.DSP_MST_ENV = #{DSP_MST_ENV}
+		 AND    TDM.DSP_MST_GBN = #{DSP_MST_GBN}
+    </select> 
+	           
+    
+        
+    <select id="selectSellerRommProductDisplayList" parameterType="hashMap" resultType="hashMap">
+        /* SellerRoom.selectSellerRommProductDisplayList */
+		SELECT 
+		        S.* , 
+		        FN_PRODUCT_THUM_IMG(S.PRD_MST_CD) AS THUMBNAIL_IMG
+		 FROM   (
+		        SELECT 
+		                ROWNUM RNUM , 
+		                A.*
+		         FROM   (
+		                SELECT 
+		                        TDM.DSP_MST_IDX , 
+		                        TDM.CMN_COM_IDX ,
+		                        TDM.PRD_MST_CD  , 
+		                        TDM.DSP_MST_SRT , 
+		                        TDM.DSP_MST_USE_YN , 
+		                        TDM.VDR_MST_IDX , 
+		                        TDM.DSP_MST_ENV,
+		                        TDM.DSP_MST_GBN,
+		                        TDM.DSP_MST_REG_DT,
+		                        TPM.PRD_MST_SEL_STATE ,
+		                        TPM.PRD_MST_NM
+		                 FROM   T_DSP_MST TDM 
+		                          INNER JOIN 
+		                        T_PRD_MST TPM
+		                          ON TDM.PRD_MST_CD = TPM.PRD_MST_CD 
+		                WHERE  TDM.CMN_COM_IDX = #{CMN_COM_IDX}
+		                 AND   TDM.VDR_MST_IDX = #{VDR_MST_IDX}
+		                 AND   TDM.DSP_MST_ENV = #{DSP_MST_ENV}
+		                 AND   TDM.DSP_MST_GBN = #{DSP_MST_GBN}
+		                ORDER BY 
+		                       TDM.DSP_MST_SRT ASC , 
+		                       TDM.DSP_MST_REG_DT ASC, 
+		                       TDM.PRD_MST_CD ASC
+		                ) A 
+		        ) S
+		WHERE   S.RNUM BETWEEN #{startNum} AND #{endNum} 
+		ORDER BY 
+		        S.RNUM        
+    </select> 
+    
+    <select id="selectProductCatCodeList" parameterType="hashMap" resultType="hashMap">
+        /* SellerRoom.selectProductCatCodeList */
+        
+        SELECT * FROM T_PRD_CTG
+		WHERE 1=1
+		AND PRD_CTG_USE_YN = 'Y'
+		AND PRD_CTG_DEL_YN <![CDATA[ <> ]]> 'Y'
+		AND PRD_CTG_DSP_YN = 'Y'
+		AND PRD_CTG_LEVEL <![CDATA[ < ]]>  4
+		START WITH PRD_CTG_IDX = #{CMN_COM_IDX}
+		CONNECT BY PRIOR PRD_CTG_UP_IDX = PRD_CTG_IDX
+		ORDER BY PRD_CTG_LEVEL ASC
+    </select>   
+    
+    <select id="selectSellerProductInfo" parameterType="HashMap" resultType="hashMap">
+        /* SellerRoom.selectSellerProductInfo */
+        SELECT 
+                CMN_COM_IDX,
+                CMN_COM_NM,
+                CMN_COM_LEVEL,
+                CMN_COM_UP_IDX,
+                CMN_COM_TOP_IDX,
+                CMN_COM_ETC1,
+                CMN_COM_ETC2,
+                CMN_COM_ETC3,
+                CMN_COM_SORT,
+                CMN_COM_USE_YN,
+                CMN_COM_REG_DT,
+                CMN_COM_REG_IP,
+                CMN_COM_REG_ID,
+                CMN_COM_UPD_DT,
+                CMN_COM_UPD_IP,
+                CMN_COM_UPD_ID,
+                (  SELECT CMN_COM_NM FROM T_CMM_COM B WHERE  A.CMN_COM_UP_IDX = B.CMN_COM_IDX   ) AS UPPER_CMN_COM_NM  
+         FROM   T_CMM_COM A
+        WHERE   A.CMN_COM_USE_YN = 'Y'
+         AND    A.CMN_COM_IDX = #{CMN_COM_IDX}
+    </select>
+        
+     
+    <insert id="insertProductDisplaySellerRoom" parameterType="hashMap">
+    /* SellerRoom.insertProductDisplaySellerRoom */
+	INSERT INTO T_DSP_MST 
+	       (
+	       DSP_MST_IDX    ,
+	       CMN_COM_IDX    ,
+	       PRD_MST_CD     ,
+	       DSP_MST_TXT    ,
+	       DSP_MST_SRT    , 
+	       DSP_MST_REG_DT ,
+	       DSP_MST_REG_IP ,
+	       DSP_MST_REG_ID ,
+	       DSP_MST_ENV    ,
+	       DSP_MST_USE_YN ,
+	       DSP_MST_GBN    ,
+	       VDR_MST_IDX    
+	       )
+	VALUES (
+	       SEQ_DSP_MST_IDX.NEXTVAL    ,
+	       #{CMN_COM_IDX},
+	       #{PRD_MST_CD},
+	       #{DSP_MST_TXT},
+	       NVL( ( SELECT MAX( DSP_MST_SRT ) + 1 FROM T_DSP_MST B WHERE B.CMN_COM_IDX = #{CMN_COM_IDX} ) , 1 ) ,  
+	       TO_CHAR( SYSDATE , 'YYYYMMDDHH24MISS') ,
+	       #{DSP_MST_REG_IP},
+	       #{DSP_MST_REG_ID},
+	       #{DSP_MST_ENV},
+	       #{DSP_MST_USE_YN},
+	       #{DSP_MST_GBN},
+	       #{VDR_MST_IDX}
+	       )	    
+    
+    </insert>
+           
+    <update id="updateProductDisplaySellerRoomSort" parameterType="hashMap">
+        /* SellerRoom.updateProductDisplaySellerRoomSort */
+        UPDATE 
+            T_DSP_MST
+        SET
+            DSP_MST_SRT = DSP_MST_SRT + 1
+        WHERE
+            CMN_COM_IDX = #{CMN_COM_IDX}
+        AND
+            DSP_MST_IDX <![CDATA[ <> ]]> #{DSP_MST_IDX}
+    </update>
+            
+    
+    <delete id="deleteProductDisplaySellerRoom" parameterType="hashMap">
+        /* SellerRoom.deleteProductDisplaySellerRoom */
+        DELETE FROM T_DSP_MST
+        WHERE DSP_MST_IDX IN        
+        <foreach collection="arrDSP_MST_IDX" item="DSP_MST_IDX" open="(" close=")" separator=","> #{DSP_MST_IDX}</foreach>
+    </delete>       
+    
+    
+    <update id="updateProductDisplaySellerOrder" parameterType="hashMap">
+        /* SellerRoom.updateProductDisplaySellerOrder */
+        UPDATE 
+            T_DSP_MST
+        SET
+            DSP_MST_SRT    = #{DSP_MST_SRT},
+            DSP_MST_USE_YN = #{DSP_MST_USE_YN}            
+        WHERE
+            DSP_MST_IDX = #{DSP_MST_IDX}
+    </update>
+        
+    
+    
+</mapper>

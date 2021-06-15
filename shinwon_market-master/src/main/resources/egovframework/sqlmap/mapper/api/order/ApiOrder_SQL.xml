@@ -1,0 +1,851 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="OrderApi">
+    <select id="selectOrderdiv" parameterType="HashMap"  resultType="string">
+    /* OrderApi.selectOrderdiv */
+      SELECT 
+              CASE 
+                   WHEN BND_MST_BRAND_TYPE ='I' THEN '1'
+                   WHEN BND_MST_BRAND_TYPE ='O' THEN '2'
+                   ELSE '1'
+              END AS  DIV                              
+      FROM T_BND_MST
+      WHERE VDR_MST_IDX = (
+								SELECT ORD_PRD_VDR_IDX FROM T_ORD_PRD
+								WHERE  ORD_ORD_MST_CD =#{ORD_MST_CD}
+								AND ORD_PRD_IDX=#{ORD_PRD_IDX}
+								AND ROWNUM=1
+                            )
+    </select>
+
+    <select id="selectMemId" parameterType="HashMap"  resultType="string">
+    /* OrderApi.selectMemId */
+       SELECT DECODE(MEM_MST_ERP_ID,null,'',MEM_MST_ERP_ID) FROM T_MEM_MST
+       WHERE MEM_MST_MEM_ID=#{MEM_MST_MEM_ID}
+       AND ROWNUM=1
+    </select>
+    
+    <select id="selectOrderStat" parameterType="HashMap" resultType="HashMap">
+    /* OrderApi.selectOrderStat */
+    SELECT 
+            ORDER_SEQ
+	       ,CASE 
+	          WHEN ORD_PRD_ORD_STATE = 403 THEN 'C'  --취소완료
+	          WHEN ORD_PRD_ORD_STATE = 405 THEN 'P'  --결제완료
+	          WHEN ORD_PRD_ORD_STATE = 407 THEN 'D'  --배송중
+	          WHEN ORD_PRD_ORD_STATE = 408 THEN 'Y'  --배송완료
+	          WHEN ORD_PRD_ORD_STATE = 409 THEN 'E'  --구매확정
+	          WHEN ORD_PRD_ORD_STATE = 423 THEN 'G'  --교환완료
+			--WHEN ORD_PRD_ORD_STATE = 3828	THEN 'C'  --교환접수취소
+			--WHEN ORD_PRD_ORD_STATE = 3832	THEN 'C'  --교환완료(신규상품)
+			--WHEN ORD_PRD_ORD_STATE = 2035	THEN 'C'  --주문취소
+			--WHEN ORD_PRD_ORD_STATE = 402	THEN 'C'  --취소접수
+			--WHEN ORD_PRD_ORD_STATE = 403	THEN 'C'  --취소완료
+			--WHEN ORD_PRD_ORD_STATE = 404	THEN 'C'  --입금대기
+			--WHEN ORD_PRD_ORD_STATE = 405	THEN 'C'  --결제완료
+			  WHEN ORD_PRD_ORD_STATE = 406	THEN 'P'  --배송준비중
+			--WHEN ORD_PRD_ORD_STATE = 407	THEN 'C'  --배송중
+			--WHEN ORD_PRD_ORD_STATE = 408	THEN 'C'  --배송완료
+			--WHEN ORD_PRD_ORD_STATE = 409	THEN 'C'  --구매확정
+			--WHEN ORD_PRD_ORD_STATE = 421	THEN 'C'  --교환접수
+			--WHEN ORD_PRD_ORD_STATE = 423	THEN 'C'  --교환완료
+			--WHEN ORD_PRD_ORD_STATE = 424	THEN 'C'  --교환불가
+			--WHEN ORD_PRD_ORD_STATE = 431	THEN 'C'  --반품접수
+			--WHEN ORD_PRD_ORD_STATE = 433	THEN 'C'  --반품완료
+			--WHEN ORD_PRD_ORD_STATE = 434	THEN 'C'  --환불완료
+			--WHEN ORD_PRD_ORD_STATE = 435	THEN 'C'  --반품불가
+			--WHEN ORD_PRD_ORD_STATE = 2960	THEN 'C'  --부분취소
+			--WHEN ORD_PRD_ORD_STATE = 2783	THEN 'C'  --예약상담신청
+			--WHEN ORD_PRD_ORD_STATE = 2784	THEN 'C'  --예약상담취소
+			--WHEN ORD_PRD_ORD_STATE = 2785	THEN 'C'  --예약상담확정
+			--WHEN ORD_PRD_ORD_STATE = 1664	THEN 'C'  --교환접수승인
+			--WHEN ORD_PRD_ORD_STATE = 1665	THEN 'C'  --교환회수완료
+			--WHEN ORD_PRD_ORD_STATE = 1667	THEN 'C'  --반품대기중
+			--WHEN ORD_PRD_ORD_STATE = 1668	THEN 'C'  --반품승인
+			--WHEN ORD_PRD_ORD_STATE = 1670	THEN 'C'  --교환대기중
+			--WHEN ORD_PRD_ORD_STATE = 1671	THEN 'C'  --교환상품준비중
+			--WHEN ORD_PRD_ORD_STATE = 1672	THEN 'C'  --교환취소
+			--WHEN ORD_PRD_ORD_STATE = 3026	THEN 'C'  --교환배송중
+			--WHEN ORD_PRD_ORD_STATE = 3027	THEN 'C'  --반품승인
+			--WHEN ORD_PRD_ORD_STATE = 3028	THEN 'C'  --반품취소
+			--WHEN ORD_PRD_ORD_STATE = 1782	THEN 'C'  --(구)교환접수승인
+			--WHEN ORD_PRD_ORD_STATE = 1783	THEN 'C'  --(구)반품접수승인
+			--WHEN ORD_PRD_ORD_STATE = 1784	THEN 'C'  --환불접수
+			--WHEN ORD_PRD_ORD_STATE = 3025	THEN 'C'  --교환승인
+			--WHEN ORD_PRD_ORD_STATE = 3022	THEN 'C'  --배송보류
+			--WHEN ORD_PRD_ORD_STATE = 3023	THEN 'C'  --상품준비중
+			--WHEN ORD_PRD_ORD_STATE = 3024	THEN 'C'  --매장수령
+	            ELSE 'R'
+	       END AS ORDER_STEP   
+    FROM 
+	(
+		SELECT 
+		         ROW_NUMBER() OVER(ORDER BY ORD_PRD_HIS_IDX) AS ORDER_SEQ
+		       , ORD_PRD_HIS_IDX
+		       , ORD_PRD_ORD_STATE
+		       , ORD_PRD_DSC 
+		FROM T_ORD_PRD_HIS
+		WHERE ORD_ORD_MST_CD=#{ORD_MST_CD}
+		AND ORD_ORD_PRD_IDX=#{ORD_PRD_IDX}
+	)
+    WHERE ORD_PRD_ORD_STATE =#{ORD_PRD_ORD_STATE}
+    </select>
+    
+    <select id="selectOrderType" parameterType="HashMap" resultType="string">
+    /* OrderApi.selectOrderType */
+            SELECT 
+		      CASE 
+		           WHEN CMN_COM_IDX= 3618 THEN 'A'
+		           WHEN CMN_COM_IDX= 683 THEN 'C'
+		           WHEN CMN_COM_IDX= 3077 THEN 'E'
+		           WHEN CMN_COM_IDX= 3078 THEN 'E'
+		           WHEN CMN_COM_IDX= 0 THEN 'X'
+		           ELSE 'X'
+		      END AS ORDER_TYPE 
+            FROM 
+		    (
+		     SELECT 0 AS CMN_COM_IDX, '_GUEST_' AS CMN_COM_NM FROM dual
+		     UNION all
+		     SELECT CMN_COM_IDX, CMN_COM_NM FROM T_CMM_COM
+			 WHERE CMN_COM_UP_IDX IN (79,3076)
+			 AND  CMN_COM_USE_YN ='Y' 
+			)  
+			WHERE CMN_COM_IDX NOT IN (1961,2952)
+      		AND  CMN_COM_IDX   =(
+		                         SELECT DECODE(MEM_MST_MEM_GBN,'_GUEST_',0,NULL,3618,MEM_MST_MEM_GBN) FROM T_MEM_MST
+		                         WHERE MEM_MST_MEM_ID=#{MEM_MST_MEM_ID}
+		                         AND ROWNUM=1
+		                       )  
+            AND ROWNUM=1
+    </select>
+
+    <select id="selectOTo" parameterType="HashMap" resultType="string">
+    /* OrderApi.selectOTo*/
+       SELECT 
+               CASE   
+                    WHEN PRD_MST_O2O_YN ='Y' THEN   '1'
+                    ELSE '0'
+              END AS O2O_GB
+       FROM T_PRD_MST
+       WHERE PRD_MST_CD=#{ORD_PRD_MST_CD}    
+    </select>
+    
+    <select id="selectStyleNo" parameterType="HashMap" resultType="string">
+    /* OrderApi.selectStyleNo*/
+	SELECT PRD_MST_ERP_CD AS STYLE_NO FROM T_PRD_MST
+  		WHERE PRD_MST_CD = #{ORD_PRD_MST_CD}     
+	AND ROWNUM =1    
+    </select>
+
+    <select id="selectSeasonYear" parameterType="HashMap" resultType="string">
+    /* OrderApi.selectSeasonYear*/
+         SELECT PRD_MST_YEAR 
+         FROM T_PRD_MST
+         WHERE PRD_MST_CD=#{ORD_PRD_MST_CD}
+         AND ROWNUM=1
+    </select>
+
+    <select id="selectColor" parameterType="HashMap" resultType="string">
+    /* OrderApi.selectColor*/
+          SELECT CMN_COM_NM AS COLOR_CODE FROM  T_CMM_COM 
+          WHERE CMN_COM_IDX =#{ORD_PRD_COLOR}
+			AND ROWNUM =1
+    </select>
+
+    <select id="selectSize" parameterType="HashMap" resultType="string">
+    /* OrderApi.selectSize*/
+          SELECT CMN_COM_NM AS SIZE_CODE FROM T_CMM_COM 
+          WHERE CMN_COM_IDX =#{ORD_PRD_SIZE}
+			AND ROWNUM =1
+    </select>
+
+    <select id="selectPartDiv" parameterType="HashMap" resultType="string">
+    /* OrderApi.selectPartDiv*/
+         SELECT 
+               CASE   
+                    WHEN PRD_MST_O2O_YN ='Y' THEN   'G'
+                    ELSE 'O'
+              END AS PART_DIV  
+         FROM T_PRD_MST
+         WHERE PRD_MST_CD=#{ORD_PRD_MST_CD}
+    </select>
+
+    <select id="selectPartNo" parameterType="HashMap" resultType="string">
+    /* OrderApi.selectPartNo*/
+         SELECT DISTINCT 
+                DECODE(SHP_MST_ERP_CD,NULL,'1111', SHP_MST_ERP_CD) AS PART_NO
+         FROM T_ORD_PRD
+         WHERE ORD_PRD_MST_CD=#{ORD_PRD_MST_CD}
+         AND ROWNUM=1
+    </select>
+
+    <select id="selectBrand" parameterType="HashMap" resultType="string">
+    /* OrderApi.selectBrand*/
+      SELECT 
+            CASE 
+                  WHEN VDR_MST_NM ='BESTIBELLI' THEN 'B'
+                  WHEN VDR_MST_NM ='SI' THEN 'S'
+                  WHEN VDR_MST_NM ='VIKI' THEN 'T'
+                  WHEN VDR_MST_NM ='ISABEY' THEN 'V'
+                  WHEN VDR_MST_NM ='GINNASIX' THEN 'G'
+                  WHEN VDR_MST_NM ='SIEG' THEN 'P'
+                  WHEN VDR_MST_NM ='FAHRENHEIT' THEN 'F'
+                  WHEN VDR_MST_NM ='MARKM' THEN 'M'
+                  WHEN VDR_MST_NM ='ICONIQ' THEN 'Q'
+                 ELSE ''
+            END AS BRAND     
+      FROM T_VDR_MST 
+      WHERE VDR_MST_IDX = #{ORD_PRD_VDR_IDX}
+			AND ROWNUM =1  
+    </select>
+    
+
+    <select id="selectCouponNo" parameterType="HashMap" resultType="string">
+    /* OrderApi.selectCouponNo*/
+		    SELECT CPN_MST_IDX  AS COUPON_NO FROM T_ORD_CPN 
+		    WHERE ORD_MST_CD =#{ORD_MST_CD}
+		    AND   ORD_PRD_IDX=#{ORD_PRD_IDX}
+			AND ROWNUM =1
+    </select>
+
+    <select id="selectCouponName" parameterType="HashMap" resultType="string">
+    /* OrderApi.selectCouponName*/
+		    SELECT CPN_MST_TITLE AS COUPON_NAME FROM T_CPN_MST
+		    WHERE CPN_MST_IDX IN (
+				    SELECT CPN_MST_IDX FROM T_ORD_CPN 
+				    WHERE ORD_MST_CD =#{ORD_MST_CD}
+				    AND   ORD_PRD_IDX=#{ORD_PRD_IDX}
+			AND ROWNUM =1
+		    )    
+    </select>
+
+    <select id="selectCouponAmt" parameterType="HashMap" resultType="string">
+    /* OrderApi.selectCouponAmt*/
+			SELECT 
+			      CASE WHEN CNT > 0 THEN   (
+								              SELECT CPN_MST_SAL_PRC FROM T_CPN_MST
+										      WHERE CPN_MST_IDX IN ( SELECT CPN_MST_IDX FROM T_ORD_CPN 
+												    WHERE ORD_MST_CD =#{ORD_MST_CD} AND ORD_PRD_IDX=#{ORD_PRD_IDX} AND ROWNUM =1
+								                    )				      
+			                               )
+			           WHEN CNT = 0 THEN    0
+			           ELSE 0
+			      END  AS COUPON_AMT    
+			FROM (
+		              SELECT 
+		                      COUNT(CPN_MST_SAL_PRC) AS CNT
+				      FROM T_CPN_MST
+				      WHERE CPN_MST_IDX IN (
+						    SELECT CPN_MST_IDX FROM T_ORD_CPN 
+						    WHERE ORD_MST_CD =#{ORD_MST_CD}
+						    AND   ORD_PRD_IDX=#{ORD_PRD_IDX}
+					        AND ROWNUM =1
+		                    )			
+			     )
+    </select>
+
+    <select id="selectEmpNo" parameterType="HashMap" resultType="string">
+    /* OrderApi.selectEmpNo*/
+		    SELECT 
+		          MEM_MST_SW_ID AS  EMP_NO
+		    FROM T_MEM_MST
+		    WHERE MEM_MST_MEM_ID =#{MEM_MST_MEM_ID}
+		    AND ROWNUM =1 
+    </select>
+
+    <select id="selectCooperNm" parameterType="HashMap" resultType="string">
+    /* OrderApi.selectCooperNm*/
+          SELECT VDR_MST_NM  AS COOPER_NM FROM T_VDR_MST
+	      WHERE VDR_MST_IDX = #{ORD_PRD_VDR_IDX}
+		  AND ROWNUM =1
+    </select>
+    
+    <select id="selectCooperSaleAmt" parameterType="HashMap" resultType="string">
+    /* OrderApi.selectCooperSaleAmt*/
+	       SELECT ((PRD_MST_SALE_RATE * PRD_MST_PRC)/100) AS COOPER_SALE_AMT FROM T_PRD_MST
+	       WHERE PRD_MST_CD =#{ORD_PRD_MST_CD}
+		  AND ROWNUM =1
+    </select>
+
+    <select id="selectDelCustCode" parameterType="HashMap"  resultType="string">
+    /* OrderApi.selectDelCustCode*/
+          SELECT DLV_CPN_NM  AS DELIVERY_CUST_CODE 
+	      FROM T_DLV_CPN 
+	      WHERE DLV_CPN_IDX = #{ORD_DLV_CPN_IDX}
+    </select>
+
+    <select id="selectPayDate" parameterType="HashMap"  resultType="string">
+    /* OrderApi.selectPayDate*/
+			SELECT SUBSTR(PAY_MST_PAYDATE,1,8) AS PAY_DATE FROM T_PAY_MST
+			WHERE PAY_MST_OID = #{ORD_MST_CD}  
+			AND ROWNUM =1
+    </select>
+
+    <select id="selectFeeRate" parameterType="HashMap"  resultType="string">
+    /* OrderApi.selectFeeRate*/
+       SELECT 
+               CASE   
+                    WHEN PRD_MST_O2O_YN ='Y' THEN   (SELECT VDR_MST_FEE FROM T_VDR_MST WHERE VDR_MST_IDX =#{ORD_PRD_VDR_IDX})
+                    ELSE 0
+              END AS FEE_RATE
+       FROM T_PRD_MST
+       WHERE PRD_MST_CD=#{ORD_PRD_MST_CD}
+			AND ROWNUM =1
+    </select>
+
+    <select id="selectBrandNm" parameterType="HashMap"  resultType="string">
+    /* OrderApi.selectBrandNm*/
+      SELECT 
+            CASE 
+                 WHEN VDR_MST_NM = 'VIKY' THEN NULL 
+                 ELSE VDR_MST_NM 
+            END 
+      FROM T_VDR_MST 
+      WHERE VDR_MST_IDX = #{ORD_PRD_VDR_IDX}
+			AND ROWNUM =1
+    </select>
+
+    <select id="selectMemDlvInfo" parameterType="HashMap" resultType="HashMap">
+    /* OrderApi.selectMemDlvInfo*/
+	    SELECT 
+	             NVL(SENDER_NAME,' ') AS SENDER_NAME
+	           , NVL(SENDER_ADDR,' ') AS SENDER_ADDR
+	           , NVL(SENDER_TEL_NO,' ') AS SENDER_TEL_NO
+	           , NVL(SENDER_CELL_NO,' ') AS SENDER_CELL_NO
+	           , NVL(SENDER_MEMO,' ') AS SENDER_MEMO
+	           , NVL(RCVER_NAME,' ') AS RCVER_NAME
+	           , NVL(RCVER_ADDR,' ') AS RCVER_ADDR
+	           , NVL(RCVER_TEL_NO,' ') AS RCVER_TEL_NO
+	           , NVL(RCVER_CELL_NO,' ') AS RCVER_CELL_NO
+	    FROM 
+        (SELECT #{ORD_MST_CD} AS ORD_MST_CD
+	           ,ORD_DLV_NM  AS SENDER_NAME
+	           ,ORD_DLV_JBN_ADR1 AS SENDER_ADDR
+	           ,ORD_DLV_TEL1||ORD_DLV_TEL2||ORD_DLV_TEL3  AS SENDER_TEL_NO
+	           ,NVL(ORD_DLV_HP1,'010')||ORD_DLV_HP2||ORD_DLV_HP3 AS SENDER_CELL_NO
+	           ,ORD_DLV_MSG AS SENDER_MEMO
+	    FROM T_ORD_DLV
+	    WHERE ORD_ORD_MST_CD=#{ORD_MST_CD}
+        ) AA,(
+	    SELECT #{ORD_MST_CD} AS ORD_MST_CD
+	           ,ORD_DLV_NM  AS RCVER_NAME
+	           ,ORD_DLV_JBN_ADR1 AS RCVER_ADDR
+	           ,ORD_DLV_TEL1||ORD_DLV_TEL2||ORD_DLV_TEL3 AS RCVER_TEL_NO
+	           ,NVL(ORD_DLV_HP1,'010')||ORD_DLV_HP2||ORD_DLV_HP3 AS RCVER_CELL_NO	
+	    FROM T_ORD_DLV
+	    WHERE ORD_ORD_MST_CD=#{ORD_MST_CD}
+        ) BB
+        WHERE AA.ORD_MST_CD=BB.ORD_MST_CD
+    </select>
+
+
+    <select id="selectOrderBasicInfo" parameterType="HashMap" resultType="HashMap">
+    /* OrderApi.selectOrderBasicInfo*/
+	SELECT DISTINCT
+	    BB.ORD_PRD_MST_CD      
+      , ORD_MST_CD
+      , BB.ORD_PRD_ORD_STATE
+      , CC.ORD_PRD_ORD_STATE AS ORD_PRD_ORD_STATE_HIS
+      , ORD_PRD_OPT_DTL_IDX
+      , BB.ORD_PRD_COLOR
+      , BB.ORD_PRD_SIZE
+      , ORD_PRD_VDR_IDX
+      , ORD_PRD_ORG_IDX
+      , ORD_PRD_ORD_CNT
+      , ORD_PRD_ORD_PRC
+      , ORD_MST_ORD_ID
+      , ORD_DLV_CPN_IDX
+      , BB.ORD_PRD_IVC_NO
+      , ORD_PRD_IDX
+	  , NVL(BB.ORD_PRD_DC_TOT_PIT,0) AS ORD_PRD_DC_TOT_PIT
+	  , NVL(BB.ORD_PRD_DC_SW_PIT,0) AS ORD_PRD_DC_SW_PIT	   
+	  , NVL(BB.ORD_PRD_DC_PIT,0) AS ORD_PRD_DC_PIT      
+      , CC.ORD_PRD_REG_DT
+      , NVL(BB.ORD_PRD_DC_PRM,0) AS ORD_PRD_DC_PRM
+      , BB.ORD_PRD_UP_IDX
+      , BB.ORD_PRD_DLV_CAG
+      , CASE 
+            WHEN CC.ORD_PRD_ORD_STATE = 409 THEN NVL(SUBSTR(ORD_PRD_REG_DT,1,8),'')  --구매확정
+            ELSE ''
+        END AS BUY_CONFM_DATE
+	  , CASE 
+	            WHEN CC.ORD_PRD_ORD_STATE = 407 THEN NVL(SUBSTR(ORD_PRD_REG_DT,1,8),'')
+	            ELSE ''
+	       END AS DELI_DATE	
+	  , CASE 
+	            WHEN CC.ORD_PRD_ORD_STATE = 408 THEN NVL(SUBSTR(ORD_PRD_REG_DT,1,8),'')
+	            ELSE ''
+	       END AS DELI_END_DATE	
+	  , CASE 
+	            WHEN CC.ORD_PRD_ORD_STATE = 409 THEN NVL(SUBSTR(ORD_PRD_REG_DT,1,8),'')  --구매확정
+	            ELSE ''
+	       END AS SALE_CONFM_DATE	
+	  , CASE 
+	            WHEN CC.ORD_PRD_ORD_STATE = 403 THEN NVL(SUBSTR(ORD_PRD_REG_DT,1,8),'')  --취소완료
+	            ELSE ''
+	       END AS CANCEL_DATE	
+	  , CASE 
+	            WHEN CC.ORD_PRD_ORD_STATE = 423 THEN NVL(SUBSTR(ORD_PRD_REG_DT,1,8),'')  --취소완료
+	            ELSE ''
+	       END AS RECHANGE_DATE	
+	  , (SELECT VDR_MST_BUSI1 || VDR_MST_BUSI2 || VDR_MST_BUSI3 FROM T_VDR_MST WHERE VDR_MST_IDX = ORD_PRD_VDR_IDX) AS BUSI_NO	  
+	  , DECODE(BB.SHP_MST_ERP_CD,NULL,'1111', BB.SHP_MST_ERP_CD) AS PART_NO 
+	  , DECODE(BB.SHP_MST_ERP_CD,NULL,'O', (
+										        SELECT PART_DIV FROM T_ERP_SHP tes 
+										        WHERE PART_NO = BB.SHP_MST_ERP_CD
+										        AND ROWNUM=1        	                
+	                                         )) AS PART_DIV  	  
+	FROM 
+	       T_ORD_MST AA
+	      ,T_ORD_PRD BB
+	      ,T_ORD_PRD_HIS CC
+	WHERE 1=1
+	AND AA.ORD_MST_CD = BB.ORD_ORD_MST_CD(+)  
+	AND BB.ORD_PRD_IDX = CC.ORD_ORD_PRD_IDX(+)  
+    AND AA.ORD_MST_CD = #{ORD_MST_CD}  
+	AND BB.ORD_PRD_IDX= #{ORD_PRD_IDX}
+	AND ROWNUM = 1 
+    </select>
+    <select id="selectOrderErpInfo" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+        /* OrderApi.selectOrdErdInfo */
+    SELECT  
+      (SELECT 
+              CASE 
+                   WHEN BND_MST_BRAND_TYPE ='I' THEN '1'
+                   WHEN BND_MST_BRAND_TYPE ='O' THEN '2'
+                   ELSE '1'
+              END AS  DIV                              
+      FROM T_BND_MST
+      WHERE VDR_MST_IDX = TT.ORD_PRD_VDR_IDX
+      ) AS  DIV                                   -- 본사(1)/입점사(2)구분
+      , ORD_MST_CD AS ORDER_NO                    -- 주문번호
+      , ORD_PRD_IDX AS ORDER_DETAIL_NO            -- 주문상세번호
+      ,(
+		    SELECT 
+		            ORDER_SEQ
+		    FROM 
+			(
+				SELECT 
+				         ROW_NUMBER() OVER(ORDER BY ORD_PRD_HIS_IDX) AS ORDER_SEQ
+				       , ORD_PRD_HIS_IDX
+				       , ORD_PRD_ORD_STATE
+				       , ORD_PRD_DSC 
+				FROM T_ORD_PRD_HIS
+				WHERE ORD_ORD_MST_CD=#{ORD_MST_CD}
+				AND ORD_ORD_PRD_IDX=#{ORD_PRD_IDX}
+			)
+		    WHERE ORD_PRD_ORD_STATE =#{ORD_PRD_ORD_STATE}     
+       ) AS ORDER_SEQ
+      ,CASE 
+             WHEN ORD_MST_ORD_ID = '_GUEST_' THEN 'X'
+             WHEN (
+                   SELECT COUNT(*) FROM T_MEM_MST
+                   WHERE MEM_MST_MEM_ID = ORD_MST_ORD_ID
+                   AND MEM_MST_SW_TYPE IN (3077,3078) 
+                   ) > 0 THEN 'E'
+             WHEN (
+                   SELECT COUNT(*) FROM T_MEM_MST
+                   WHERE MEM_MST_MEM_ID = ORD_MST_ORD_ID
+                   AND MEM_MST_SW_TYPE IN (3077,3078) 
+                   ) = 0 THEN 'A'
+              ELSE 'Q'
+       END  AS ORDER_TYPE
+      ,(SELECT 
+               CASE   
+                    WHEN PRD_MST_O2O_YN ='Y' THEN   '1'
+                    ELSE '0'
+              END
+       FROM T_PRD_MST
+       WHERE PRD_MST_CD=ORD_PRD_MST_CD
+      ) AS O2O_GB
+      ,CASE 
+             WHEN (SELECT DISTINCT ORD_PRD_ORD_STATE FROM T_ORD_PRD_HIS WHERE ORD_ORD_MST_CD = #{ORD_MST_CD} AND ORD_PRD_ORD_STATE=#{ORD_PRD_ORD_STATE}) = 403 THEN 'C'  --취소완료
+            WHEN (SELECT DISTINCT ORD_PRD_ORD_STATE FROM T_ORD_PRD_HIS WHERE ORD_ORD_MST_CD = #{ORD_MST_CD} AND ORD_PRD_ORD_STATE=#{ORD_PRD_ORD_STATE}) = 405 THEN 'P'  --결제완료
+            WHEN (SELECT DISTINCT ORD_PRD_ORD_STATE FROM T_ORD_PRD_HIS WHERE ORD_ORD_MST_CD = #{ORD_MST_CD} AND ORD_PRD_ORD_STATE=#{ORD_PRD_ORD_STATE}) = 407 THEN 'D'  --배송중
+            WHEN (SELECT DISTINCT ORD_PRD_ORD_STATE FROM T_ORD_PRD_HIS WHERE ORD_ORD_MST_CD = #{ORD_MST_CD} AND ORD_PRD_ORD_STATE=#{ORD_PRD_ORD_STATE}) = 408 THEN 'Y'  --배송완료
+            WHEN (SELECT DISTINCT ORD_PRD_ORD_STATE FROM T_ORD_PRD_HIS WHERE ORD_ORD_MST_CD = #{ORD_MST_CD} AND ORD_PRD_ORD_STATE=#{ORD_PRD_ORD_STATE}) = 409 THEN 'E'  --구매확정
+            WHEN (SELECT DISTINCT ORD_PRD_ORD_STATE FROM T_ORD_PRD_HIS WHERE ORD_ORD_MST_CD = #{ORD_MST_CD} AND ORD_PRD_ORD_STATE=#{ORD_PRD_ORD_STATE}) = 3832 THEN 'G'  --교환완료
+            ELSE 'R'
+       END AS ORDER_STEP
+       ,SUBSTR(ORD_MST_CD,1,8) AS ORDER_DATE
+       , (
+			SELECT PRD_MST_CD FROM T_PRD_MST
+    		WHERE PRD_MST_CD =ORD_PRD_MST_CD       
+			AND ROWNUM =1
+         ) AS STYLE_NO
+       ,NVL((SELECT PRD_MST_SEASON 
+         FROM T_PRD_MST
+         WHERE PRD_MST_CD=ORD_PRD_MST_CD
+         AND ROWNUM=1),'2015') AS SEASON_YEAR 
+      , (
+          SELECT CMN_COM_NM FROM T_CMM_COM 
+          WHERE CMN_COM_IDX =ORD_PRD_COLOR
+			AND ROWNUM =1
+          ) AS COLOR_CODE
+      ,  (
+          SELECT CMN_COM_NM FROM T_CMM_COM 
+          WHERE CMN_COM_IDX =ORD_PRD_SIZE
+			AND ROWNUM =1
+          ) AS SIZE_CODE
+      , (
+         SELECT 
+               CASE   
+                    WHEN PRD_MST_O2O_YN ='Y' THEN   'G'
+                    ELSE 'O'
+              END
+         FROM T_PRD_MST
+         WHERE PRD_MST_CD=ORD_PRD_MST_CD
+        ) AS PART_DIV  
+      , (
+         SELECT 
+               CASE   
+                    WHEN PRD_MST_O2O_YN ='Y' THEN   ''
+                    ELSE '1111'
+              END
+         FROM T_PRD_MST
+         WHERE PRD_MST_CD=ORD_PRD_MST_CD
+        ) AS PART_NO  
+      , SUBSTR((
+			SELECT PRD_MST_CD FROM T_PRD_MST
+    		WHERE PRD_MST_CD =ORD_PRD_MST_CD       
+			AND ROWNUM =1
+         ),1,1) AS BRAND
+      ,DECODE(ORD_PRD_ORG_IDX ,NULL,'',ORD_PRD_ORG_IDX) AS LINKED_ORDER_NO
+      ,'' AS LINKED_ORDER_DETAIL_NO
+      ,NVL(ORD_PRD_ORD_CNT,0) AS ORDER_QTY
+      ,NVL(ORD_PRD_ORD_PRC/ORD_PRD_ORD_CNT,0) AS ORDER_PRICE
+      ,NVL(ORD_PRD_ORD_PRC,0) AS ORDER_AMT
+      ,NVL(ORD_PRD_ORD_PRC-ROUND((ORD_PRD_ORD_PRC/1.1)*0.1, 0),0) AS SUPPLY_AMT
+      ,NVL(ROUND((ORD_PRD_ORD_PRC/1.1)*0.1, 0),0) AS VAT_AMT
+      ,NVL((
+		    SELECT CPN_MST_IDX FROM T_ORD_CPN 
+		    WHERE ORD_MST_CD =TT.ORD_MST_CD
+		    AND   ORD_PRD_IDX=TT.ORD_PRD_MST_CD
+			AND ROWNUM =1
+        ),'') AS COUPON_NO
+      ,NVL((
+		    SELECT CPN_MST_TITLE FROM T_CPN_MST
+		    WHERE CPN_MST_IDX IN (
+				    SELECT CPN_MST_IDX FROM T_ORD_CPN 
+				    WHERE ORD_MST_CD =TT.ORD_MST_CD
+				    AND   ORD_PRD_IDX=TT.ORD_PRD_MST_CD
+			AND ROWNUM =1
+		    )    
+      )  ,'') AS COUPON_NAME
+      ,NVL((      SELECT 
+		           CPN_MST_SAL_PRC
+		      FROM T_CPN_MST
+		      WHERE CPN_MST_IDX IN (
+				    SELECT CPN_MST_IDX FROM T_ORD_CPN 
+				    WHERE ORD_MST_CD =TT.ORD_MST_CD
+				    AND   ORD_PRD_IDX=TT.ORD_PRD_MST_CD
+			AND ROWNUM =1
+		      )
+		),0) AS COUPON_AMT 
+	   , DECODE(ORD_MST_ORD_ID, '_GUEST_', '', ORD_MST_ORD_ID)	AS MEMBER_ID
+		, NVL(TT.ORD_PRD_DC_TOT_PIT,0) AS USE_POINT /* 2020.06.23 포인트 컬럼추가로 해당 포인트 ERP 전송 */
+		, NVL(TT.ORD_PRD_DC_SW_PIT,0) AS OCCUR_POINT
+		, NVL(TT.ORD_PRD_DC_PIT,0) AS USE_EPOINT
+	   , ORD_PRD_DC_TOT_PIT AS USE_POINT
+	   , ORD_PRD_DC_SW_PIT AS OCCUR_POINT	   
+	   , ORD_PRD_DC_PIT AS USE_EPOINT	
+	   ,NVL((
+			    SELECT 
+			          MEM_MST_SW_ID
+			    FROM T_MEM_MST
+			    WHERE MEM_MST_MEM_ID =ORD_MST_ORD_ID
+			    			AND ROWNUM =1
+	   ),'') AS  EMP_NO 
+	   ,0 AS EMP_SALE_AMT
+	   , (SELECT VDR_MST_NM FROM T_VDR_MST
+	      WHERE VDR_MST_IDX = TT.ORD_PRD_VDR_IDX
+			AND ROWNUM =1
+	      ) AS COOPER_NM
+	   , 0 AS COOPER_SALE_AMT
+	   , 0 AS PROMOTION_AMT
+	   , ORD_PRD_DC_PRM AS RSALE_AMT
+	   ,NVL((SELECT DLV_CPN_NM 
+	      FROM T_DLV_CPN 
+	      WHERE DLV_CPN_IDX = ORD_DLV_CPN_IDX
+	      ),'') AS DELIVERY_CUST_CODE
+       , NVL(ORD_PRD_IVC_NO,'') AS INVOICE_NO
+      ,CASE 
+            WHEN ORD_PRD_ORD_STATE_HIS = 409 THEN NVL(SUBSTR(ORD_PRD_REG_DT,1,8),'')  --구매확정
+            ELSE ''
+       END AS BUY_CONFM_DATE
+       , ORD_MST_CD AS ORDER_PAYMENT_NO
+       ,NVL( (
+			SELECT SUBSTR(PAY_MST_PAYDATE,1,8) FROM T_PAY_MST
+			WHERE PAY_MST_OID = ORD_MST_CD  
+			AND ROWNUM =1
+       ),'') AS PAY_DATE
+	,CASE 
+            WHEN ORD_PRD_ORD_STATE_HIS = 407 THEN NVL(SUBSTR(ORD_PRD_REG_DT,1,8),'')
+            ELSE ''
+       END AS DELI_DATE	
+	,CASE 
+            WHEN ORD_PRD_ORD_STATE_HIS = 408 THEN NVL(SUBSTR(ORD_PRD_REG_DT,1,8),'')
+            ELSE ''
+       END AS DELI_END_DATE	
+	,CASE 
+            WHEN ORD_PRD_ORD_STATE_HIS = 409 THEN NVL(SUBSTR(ORD_PRD_REG_DT,1,8),'')  --구매확정
+            ELSE ''
+       END AS SALE_CONFM_DATE	
+	,CASE 
+            WHEN ORD_PRD_ORD_STATE_HIS = 403 THEN NVL(SUBSTR(ORD_PRD_REG_DT,1,8),'')  --취소완료
+            ELSE ''
+       END AS CANCEL_DATE	
+	,CASE 
+            WHEN ORD_PRD_ORD_STATE_HIS = 423 THEN NVL(SUBSTR(ORD_PRD_REG_DT,1,8),'')  --취소완료
+            ELSE ''
+       END AS RECHANGE_DATE	
+	,NVL((SELECT 
+               CASE   
+                    WHEN PRD_MST_O2O_YN ='Y' THEN   (SELECT VDR_MST_FEE FROM T_VDR_MST WHERE VDR_MST_IDX =ORD_PRD_VDR_IDX)
+                    ELSE 0
+              END
+       FROM T_PRD_MST
+       WHERE PRD_MST_CD=ORD_PRD_MST_CD
+      ),0) AS FEE_RATE
+	,(
+	    SELECT ORD_DLV_NM FROM T_ORD_DLV
+	    WHERE ORD_ORD_MST_CD=ORD_MST_CD	
+	) AS SENDER_NAME	
+	,(
+	    SELECT ORD_DLV_JBN_ADR1 FROM T_ORD_DLV
+	    WHERE ORD_ORD_MST_CD=ORD_MST_CD	
+	) AS SENDER_ADDR	
+	,(
+	    SELECT ORD_DLV_TEL1||ORD_DLV_TEL2||ORD_DLV_TEL3 FROM T_ORD_DLV
+	    WHERE ORD_ORD_MST_CD=ORD_MST_CD	
+	) AS SENDER_TEL_NO	
+	,(
+	    SELECT ORD_DLV_HP1||ORD_DLV_HP2||ORD_DLV_HP3 FROM T_ORD_DLV
+	    WHERE ORD_ORD_MST_CD=ORD_MST_CD	
+	) AS SENDER_CELL_NO	
+	,(
+	    SELECT ORD_DLV_MSG FROM T_ORD_DLV
+	    WHERE ORD_ORD_MST_CD=ORD_MST_CD	
+	) AS SENDER_MEMO	
+	,(
+	    SELECT ORD_DLV_NM FROM T_ORD_DLV
+	    WHERE ORD_ORD_MST_CD=ORD_MST_CD	
+	) AS RCVER_NAME	
+	,(
+	    SELECT ORD_DLV_JBN_ADR1 FROM T_ORD_DLV
+	    WHERE ORD_ORD_MST_CD=ORD_MST_CD	
+	) AS RCVER_ADDR	
+	,(
+	    SELECT ORD_DLV_TEL1||ORD_DLV_TEL2||ORD_DLV_TEL3 FROM T_ORD_DLV
+	    WHERE ORD_ORD_MST_CD=ORD_MST_CD	
+	) AS RCVER_TEL_NO	
+	,(
+	    SELECT ORD_DLV_HP1||ORD_DLV_HP2||ORD_DLV_HP3 FROM T_ORD_DLV
+	    WHERE ORD_ORD_MST_CD=ORD_MST_CD	
+	) AS RCVER_CELL_NO	
+	,(SELECT VDR_MST_BUSI1 || VDR_MST_BUSI2 || VDR_MST_BUSI3 FROM T_VDR_MST WHERE VDR_MST_IDX = ORD_PRD_VDR_IDX) AS BUSI_NO		
+	, (SELECT 
+              CASE 
+                   WHEN BND_MST_BRAND_TYPE ='I' THEN 0
+                   WHEN BND_MST_BRAND_TYPE ='O' THEN ORD_PRD_ORD_PRC
+                   ELSE 0
+              END AS  DIV                              
+      FROM T_BND_MST
+      WHERE VDR_MST_IDX = TT.ORD_PRD_VDR_IDX
+      ) AS TAG_PRICE	
+    ,(SELECT 
+            CASE 
+                 WHEN VDR_MST_NM = 'VIKY' THEN NULL 
+                 ELSE VDR_MST_NM 
+            END 
+      FROM T_VDR_MST 
+      WHERE VDR_MST_IDX = ORD_PRD_VDR_IDX) as BRAND_NM  
+FROM      
+	(
+	SELECT DISTINCT
+	    BB.ORD_PRD_MST_CD      
+      , ORD_MST_CD
+      , BB.ORD_PRD_ORD_STATE
+      , CC.ORD_PRD_ORD_STATE AS ORD_PRD_ORD_STATE_HIS
+      , ORD_PRD_OPT_DTL_IDX
+      , BB.ORD_PRD_COLOR
+      , BB.ORD_PRD_SIZE
+      , ORD_PRD_VDR_IDX
+      , ORD_PRD_ORG_IDX
+      , ORD_PRD_ORD_CNT
+      , ORD_PRD_ORD_PRC
+      , ORD_MST_ORD_ID
+      , ORD_DLV_CPN_IDX
+      , BB.ORD_PRD_IVC_NO
+      , ORD_PRD_IDX
+	  , NVL(BB.ORD_PRD_DC_TOT_PIT,0) AS ORD_PRD_DC_TOT_PIT
+	  , NVL(BB.ORD_PRD_DC_SW_PIT,0) AS ORD_PRD_DC_SW_PIT	   
+	  , NVL(BB.ORD_PRD_DC_PIT,0) AS ORD_PRD_DC_PIT      
+      , CC.ORD_PRD_REG_DT
+      , NVL(BB.ORD_PRD_DC_PRM,0) AS ORD_PRD_DC_PRM
+      , BB.ORD_PRD_UP_IDX      
+	FROM 
+	       T_ORD_MST AA
+	      ,T_ORD_PRD BB
+	      ,T_ORD_PRD_HIS CC
+	WHERE 1=1
+	AND AA.ORD_MST_CD = BB.ORD_ORD_MST_CD(+)  
+	AND BB.ORD_PRD_IDX = CC.ORD_ORD_PRD_IDX(+)  
+    AND AA.ORD_MST_CD = #{ORD_MST_CD}  
+	AND BB.ORD_PRD_IDX=#{ORD_PRD_IDX}
+	AND ROWNUM = 1
+    ) TT
+   </select>   
+   
+   
+    <!-- ERP에 보낸 응답 인서트-->
+    <insert id="insertOrderErpResult" parameterType="HashMap">
+		INSERT INTO T_ORD_ERP_HIS
+		(
+		      ORD_ERP_HIS_IDX
+		    , ORD_PRD_ORD_STATE
+		    , ORD_ORD_MST_CD
+		    , ORD_ORD_PRD_IDX
+		    , RESULT_CODE
+		    , RESULT_ORDER_NO
+		    , RESULT_ORDER_DETAIL_NO
+		    , RESULT_ORDER_SEQ
+		    , RESULT_TEXT
+		    , ORD_PRD_REG_DT
+		    , ORD_PRD_REG_ID
+		    , ORD_PRD_REG_IP
+			, DIV
+			, ORDER_NO
+			, ORDER_DETAIL_NO
+			, ORDER_SEQ
+			, ORDER_TYPE
+			, O2O_GB
+			, ORDER_STEP
+			, ORDER_DATE
+			, STYLE_NO
+			, SEASON_YEAR
+			, COLOR_CODE
+			, SIZE_CODE
+			, PART_DIV
+			, PART_NO
+			, BRAND
+			, LINKED_ORDER_NO
+			, LINKED_ORDER_DETAIL_NO
+			, ORDER_QTY
+			, ORDER_PRICE
+			, ORDER_AMT
+			, SUPPLY_AMT
+			, VAT_AMT
+			, COUPON_NO
+			, COUPON_NAME
+			, COUPON_AMT
+			, MEMBER_ID
+			, USE_POINT
+			, OCCUR_POINT
+			, USE_EPOINT
+			, EMP_NO
+			, EMP_SALE_AMT
+			, COOPER_NM
+			, COOPER_SALE_AMT
+			, PROMOTION_AMT
+			, RSALE_AMT
+			, DELIVERY_CUST_CODE
+			, INVOICE_NO
+			, BUY_CONFM_DATE
+			, ORDER_PAYMENT_NO
+			, PAY_DATE
+			, DELI_DATE
+			, DELI_END_DATE
+			, SALE_CONFM_DATE
+			, CANCEL_DATE
+			, RECHANGE_DATE
+			, FEE_RATE
+			, SENDER_NAME
+			, SENDER_ADDR
+			, SENDER_TEL_NO
+			, SENDER_CELL_NO
+			, SENDER_MEMO
+			, RCVER_NAME
+			, RCVER_ADDR
+			, RCVER_TEL_NO
+			, RCVER_CELL_NO
+			, BUSI_NO
+			, TAG_PRICE
+			, BRAND_NM
+		    )
+		VALUES(
+		          SEQ_ORD_ERP_HIS_IDX.NEXTVAL
+		        , #{ORD_PRD_ORD_STATE} 
+		        , #{ORD_MST_CD}
+		        , #{ORD_ORD_PRD_IDX}
+		        , #{RESULT_CODE}
+		        , #{RESULT_ORDER_NO}
+		        , #{RESULT_ORDER_DETAIL_NO}
+		        , #{RESULT_ORDER_SEQ}
+		        , #{RESULT_TEXT}
+		        , TO_CHAR(sysdate ,'YYYYMMDDHH24MISS')
+		        , 'SYS_MASTER'
+		        , #{ORD_PRD_REG_IP}
+				, #{DIV}
+				, #{ORDER_NO}
+				, #{ORDER_DETAIL_NO}
+				, #{ORDER_SEQ}
+				, #{ORDER_TYPE}
+				, #{O2O_GB}
+				, #{ORDER_STEP}
+				, #{ORDER_DATE}
+				, #{STYLE_NO}
+				, #{SEASON_YEAR}
+				, #{COLOR_CODE}
+				, #{SIZE_CODE}
+				, #{PART_DIV}
+				, #{PART_NO}
+				, #{BRAND}
+				, #{LINKED_ORDER_NO}
+				, #{LINKED_ORDER_DETAIL_NO}
+				, #{ORDER_QTY}
+				, #{ORDER_PRICE}
+				, #{ORDER_AMT}
+				, #{SUPPLY_AMT}
+				, #{VAT_AMT}
+				, #{COUPON_NO}
+				, #{COUPON_NAME}
+				, #{COUPON_AMT}
+				, #{MEMBER_ID}
+				, #{USE_POINT}
+				, #{OCCUR_POINT}
+				, #{USE_EPOINT}
+				, #{EMP_NO}
+				, #{EMP_SALE_AMT}
+				, #{COOPER_NM}
+				, #{COOPER_SALE_AMT}
+				, #{PROMOTION_AMT}
+				, #{RSALE_AMT}
+				, #{DELIVERY_CUST_CODE}
+				, #{INVOICE_NO}
+				, #{BUY_CONFM_DATE}
+				, #{ORDER_PAYMENT_NO}
+				, #{PAY_DATE}
+				, #{DELI_DATE}
+				, #{DELI_END_DATE}
+				, #{SALE_CONFM_DATE}
+				, #{CANCEL_DATE}
+				, #{RECHANGE_DATE}
+				, #{FEE_RATE}
+				, #{SENDER_NAME}
+				, #{SENDER_ADDR}
+				, #{SENDER_TEL_NO}
+				, #{SENDER_CELL_NO}
+				, #{SENDER_MEMO}
+				, #{RCVER_NAME}
+				, #{RCVER_ADDR}
+				, #{RCVER_TEL_NO}
+				, #{RCVER_CELL_NO}
+				, #{BUSI_NO}
+				, #{TAG_PRICE}
+				, #{BRAND_NM}		        
+		        )    
+    </insert>   
+    
+</mapper>

@@ -1,0 +1,242 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="PcMemberDelive">
+
+    <!-- 배송지 관리 목록 갯수 -->
+    <select id="selectMemberDeliveListCount" parameterType="HashMap" resultType="Integer">
+        /* PcMemberDelive.selectMemberDeliveListCount */
+        SELECT
+            COUNT(MEM_DLV_IDX)
+        FROM
+            T_MEM_DLV 
+        WHERE
+            MEM_DLV_USE_YN = 'Y'
+            AND MEM_MST_MEM_ID = #{MEM_MST_MEM_ID}
+        ORDER BY MEM_DLV_REG_DT DESC    
+    </select>
+    
+    <!-- 배송지 관리 목록 -->
+    <select id="selectMemberDeliveList" parameterType="HashMap" resultType="HashMap">
+        /* PcMemberDelive.selectMemberDeliveList */
+        SELECT
+            S2.* 
+        FROM
+            (   SELECT
+                    ROWNUM AS RNUM,
+                    S1.* 
+                FROM
+                    (   SELECT
+                            MEM_DLV_IDX,
+                            MEM_MST_MEM_ID,
+                            MEM_DLV_NM,
+                            MEM_DLV_RCV_NM,
+                            MEM_DLV_TEL1,
+                            MEM_DLV_TEL2,
+                            MEM_DLV_TEL3,
+                            MEM_DLV_HP1,
+                            MEM_DLV_HP2,
+                            MEM_DLV_HP3,
+                            MEM_DLV_ZIP_CDE5,
+                            MEM_DLV_JBN_ADR1,
+                            MEM_DLV_JBN_ADR2,
+                            MEM_DLV_DRO_ADR1,
+                            MEM_DLV_DRO_ADR2,
+                            MEM_DLV_USE_YN,
+                            MEM_DLV_BSC_YN
+                        FROM
+                            T_MEM_DLV 
+                        WHERE
+                            MEM_DLV_USE_YN = 'Y'
+                            AND MEM_MST_MEM_ID = #{MEM_MST_MEM_ID}
+                        ORDER BY MEM_DLV_BSC_YN DESC, MEM_DLV_REG_DT DESC
+                    )
+                    S1 
+            )
+            S2
+        <if test="startNum != null and startNum != '' and endNum != null and endNum != ''">
+            WHERE S2.RNUM BETWEEN #{startNum} AND #{endNum}
+        </if>
+    </select>
+    
+    <!-- 배송지 관리 상세정보 -->
+    <select id="selectMemberDeliveInfo" parameterType="HashMap" resultType="HashMap">
+        /* PcMemberDelive.selectMemberDeliveInfo */
+        SELECT
+            MEM_DLV_IDX,
+            MEM_MST_MEM_ID,
+            MEM_DLV_NM,
+            MEM_DLV_RCV_NM,
+            MEM_DLV_TEL1,
+            MEM_DLV_TEL2,
+            MEM_DLV_TEL3,
+            MEM_DLV_HP1,
+            MEM_DLV_HP2,
+            MEM_DLV_HP3,
+            MEM_DLV_ZIP_CDE5,
+            MEM_DLV_JBN_ADR1,
+            MEM_DLV_JBN_ADR2,
+            MEM_DLV_DRO_ADR1,
+            MEM_DLV_DRO_ADR2,
+            MEM_DLV_USE_YN,
+            MEM_DLV_BSC_YN
+        FROM
+            T_MEM_DLV 
+        WHERE
+            MEM_DLV_USE_YN = 'Y'
+            AND MEM_DLV_IDX = #{MEM_DLV_IDX}
+            AND MEM_MST_MEM_ID = #{MEM_MST_MEM_ID}
+    </select>
+    
+    <!-- 기본배송지 가져오기 -->
+    <select id="selectMemberBaseDeliveInfo" parameterType="HashMap" resultType="HashMap">
+        /* PcMemberDelive.selectMemberBaseDeliveInfo */
+        SELECT
+            MEM_DLV_IDX,
+            MEM_MST_MEM_ID,
+            MEM_DLV_NM,
+            MEM_DLV_RCV_NM,
+            MEM_DLV_TEL1,
+            MEM_DLV_TEL2,
+            MEM_DLV_TEL3,
+            MEM_DLV_HP1,
+            MEM_DLV_HP2,
+            MEM_DLV_HP3,
+            MEM_DLV_ZIP_CDE5,
+            MEM_DLV_JBN_ADR1,
+            MEM_DLV_JBN_ADR2,
+            MEM_DLV_DRO_ADR1,
+            MEM_DLV_DRO_ADR2,
+            MEM_DLV_USE_YN,
+            MEM_DLV_BSC_YN
+        FROM
+            T_MEM_DLV 
+        WHERE
+            MEM_DLV_USE_YN = 'Y'
+			AND MEM_DLV_BSC_YN = 'Y'
+			AND ROWNUM = 1
+			AND MEM_MST_MEM_ID = #{MEM_MST_MEM_ID}
+    </select>
+    
+    <!-- 배송지 관리 등록 -->
+    <insert id="insertMemberDelive" parameterType="HashMap">
+    	<selectKey keyProperty="MEM_DLV_IDX" resultType="Integer" order="BEFORE">
+    		SELECT SEQ_MEM_DLV_IDX.NEXTVAL FROM DUAL
+    	</selectKey>
+        /* PcMemberDelive.insertMemberDelive */        
+        INSERT INTO
+            T_MEM_DLV
+            (
+                MEM_DLV_IDX,
+                MEM_MST_MEM_ID,
+                MEM_DLV_NM,
+                MEM_DLV_RCV_NM,
+                MEM_DLV_HP1,
+                MEM_DLV_HP2,
+                MEM_DLV_HP3,
+                MEM_DLV_TEL1,
+                MEM_DLV_TEL2,
+                MEM_DLV_TEL3,
+                MEM_DLV_ZIP_CDE5,
+                MEM_DLV_DRO_ADR1,
+                MEM_DLV_DRO_ADR2,
+                MEM_DLV_JBN_ADR1,
+                MEM_DLV_JBN_ADR2,
+                MEM_DLV_USE_YN,
+                MEM_DLV_BSC_YN,
+                MEM_DLV_REG_DT,
+                MEM_DLV_REG_IP,
+                MEM_DLV_REG_ID
+            )
+        VALUES
+            (
+                #{MEM_DLV_IDX},
+                #{MEM_MST_MEM_ID},
+                #{MEM_DLV_NM},
+                #{MEM_DLV_RCV_NM},
+                #{MEM_DLV_HP1},
+                #{MEM_DLV_HP2},
+                #{MEM_DLV_HP3},
+                #{MEM_DLV_TEL1},
+                #{MEM_DLV_TEL2},
+                #{MEM_DLV_TEL3},
+                #{MEM_DLV_ZIP_CDE5},
+                #{MEM_DLV_DRO_ADR1},
+                #{MEM_DLV_ADR2},
+                #{MEM_DLV_JBN_ADR1},
+                #{MEM_DLV_ADR2},                
+                'Y',
+                NVL(#{MEM_DLV_BSC_YN},'N'),
+                TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+                #{MEM_DLV_IP},
+                #{MEM_MST_MEM_ID}
+            )
+    </insert>
+    
+    <!-- 배송지 관리 수정 -->
+    <update id="updateMemberDelive" parameterType="HashMap">
+        /* PcMemberDelive.updateMemberDelive */
+        UPDATE
+            T_MEM_DLV 
+        SET
+            MEM_DLV_NM = #{MEM_DLV_NM},
+            MEM_DLV_RCV_NM = #{MEM_DLV_RCV_NM},
+            MEM_DLV_TEL1 = #{MEM_DLV_TEL1},
+            MEM_DLV_TEL2 = #{MEM_DLV_TEL2},
+            MEM_DLV_TEL3 = #{MEM_DLV_TEL3}, 
+            MEM_DLV_HP1 = #{MEM_DLV_HP1},
+            MEM_DLV_HP2 = #{MEM_DLV_HP2},
+            MEM_DLV_HP3 = #{MEM_DLV_HP3},
+            MEM_DLV_ZIP_CDE5 = #{MEM_DLV_ZIP_CDE5},
+            MEM_DLV_DRO_ADR1 = #{MEM_DLV_DRO_ADR1},
+            MEM_DLV_DRO_ADR2 = #{MEM_DLV_ADR2},
+            MEM_DLV_JBN_ADR1 = #{MEM_DLV_JBN_ADR1},
+            MEM_DLV_JBN_ADR2 = #{MEM_DLV_ADR2},
+            MEM_DLV_BSC_YN = NVL(#{MEM_DLV_BSC_YN},'N'),
+            MEM_DLV_UPD_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+            MEM_DLV_UPD_IP = #{MEM_DLV_IP},
+            MEM_DLV_UPD_ID = #{MEM_MST_MEM_ID}
+        WHERE
+            MEM_DLV_IDX = #{MEM_DLV_IDX}
+            AND MEM_MST_MEM_ID = #{MEM_MST_MEM_ID}
+    </update>
+    
+    <!-- 기본배송지 N으로 update -->
+    <update id="updateMemberDeliveBaseN" parameterType="HashMap">
+        /* PcMemberDelive.updateMemberDeliveBaseN */
+        UPDATE
+            T_MEM_DLV 
+        SET
+            MEM_DLV_BSC_YN = 'N'
+        WHERE            
+        	MEM_DLV_BSC_YN = 'Y'
+        	AND MEM_MST_MEM_ID = #{MEM_MST_MEM_ID}
+    </update>
+    
+    <!-- 기본배송지로 설정 -->
+    <update id="updateMemberDeliveBaseY" parameterType="HashMap">
+        /* PcMemberDelive.updateMemberDeliveBaseY */
+        UPDATE
+            T_MEM_DLV 
+        SET
+            MEM_DLV_BSC_YN = 'Y'
+        WHERE          
+        	MEM_DLV_IDX = #{chkMemDlvIdx}
+	       	AND MEM_MST_MEM_ID = #{MEM_MST_MEM_ID}
+    </update>
+    
+    <!-- 배송지 관리 삭제 -->
+    <update id="deleteMemberDelive" parameterType="HashMap">
+        /* PcMemberDelive.deleteMemberDelive */
+        UPDATE
+            T_MEM_DLV 
+        SET
+            MEM_DLV_USE_YN = 'N',
+            MEM_DLV_UPD_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+            MEM_DLV_UPD_IP = #{MEM_DLV_IP},
+            MEM_DLV_UPD_ID = #{MEM_MST_MEM_ID}
+        WHERE
+            MEM_DLV_IDX = #{MEM_DLV_IDX}
+            AND MEM_MST_MEM_ID = #{MEM_MST_MEM_ID}
+    </update>
+</mapper>

@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="PopularSearchWord">
+
+    <!--  관리자 > 사이트관리 > 인기 검색어 개수 -->
+    <select id="selectPopularSearchWordListCount" parameterType="HashMap" resultType="Integer">
+        /* PopularSearchWord.selectPopularSearchWordListCount */
+        SELECT
+            COUNT(1)
+        FROM
+            T_PPL_WRD
+       
+    </select> 
+    
+    <!-- 관리자 > 사이트관리 > 인기검색어 등록 -->
+    <insert id="insertPopularSearchWord" parameterType="HashMap">
+     /* PopularSearchWord.insertPopularSearchWord */
+        INSERT
+            INTO T_PPL_WRD
+            ( 
+                 PPL_WRD_IDX
+                , PPL_WRD_TEXT     
+                , PPL_WRD_SORT
+                , PPL_WRD_USE_YN
+                , PPL_WRD_HIT_CNT
+                , PPL_WRD_ICON_HOT
+                , PPL_WRD_ICON_NEW
+                , PPL_WRD_REG_DT    
+                , PPL_WRD_REG_IP
+                , PPL_WRD_REG_ID               
+            )
+        VALUES 
+            (
+                 SEQ_PPL_WRD_IDX.NEXTVAL    
+                , #{PPL_WRD_TEXT}    
+                , #{PPL_WRD_SORT}
+                , NVL(#{PPL_WRD_USE_YN}, 'N')
+                , NVL(#{PPL_WRD_HIT_CNT}, 0)
+                , NVL(#{PPL_WRD_ICON_HOT}, 'N')
+                , NVL(#{PPL_WRD_ICON_NEW}, 'N')
+                , TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS')
+                , #{PPL_WRD_REG_IP}
+                , #{PPL_WRD_REG_ID}
+            )            
+    </insert>
+    
+    <!-- 관리자 > 사이트관리 > 인기검색어 수정 -->
+    <update id="updatePopularSearchWord" parameterType="HashMap">
+     /* PopularSearchWord.updatePopularSearchWord */
+        UPDATE
+            T_PPL_WRD
+        SET 
+             PPL_WRD_TEXT = #{PPL_WRD_TEXT}
+            , PPL_WRD_ICON_NEW = NVL(#{PPL_WRD_ICON_NEW}, 'N')
+            , PPL_WRD_ICON_HOT = NVL(#{PPL_WRD_ICON_HOT}, 'N')
+            , PPL_WRD_SORT = #{PPL_WRD_SORT}
+            , PPL_WRD_HIT_CNT = 0
+            , PPL_WRD_USE_YN = NVL(#{PPL_WRD_USE_YN}, 'N')
+            , PPL_WRD_UPD_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS') 
+            , PPL_WRD_UPD_IP = #{PPL_WRD_UPD_IP}
+            , PPL_WRD_UPD_ID = #{PPL_WRD_UPD_ID}    
+        WHERE
+            PPL_WRD_IDX = #{PPL_WRD_IDX}
+    </update>
+    
+    <!-- 관리자 > 사이트관리 > 인기검색어 등록 이력 -->
+    <insert id="insertPopularSearchWordHis" parameterType="HashMap">
+     /* PopularSearchWord.insertPopularSearchWordHis */
+        INSERT INTO T_PPL_WRD_HIS
+            ( 
+                 PPL_WRD_HIS_IDX
+                , PPL_WRD_HIS_TEXT     
+                , PPL_WRD_HIS_SORT
+                , PPL_WRD_HIS_USE_YN
+                , PPL_WRD_HIS_HIT_CNT
+                , PPL_WRD_HIS_ICON_HOT
+                , PPL_WRD_HIS_ICON_NEW
+                , PPL_WRD_HIS_REG_DT    
+                , PPL_WRD_HIS_REG_IP
+                , PPL_WRD_HIS_REG_ID               
+            )
+        VALUES 
+            (
+                 SEQ_PPL_WRD_HIS_IDX.NEXTVAL    
+                , #{PPL_WRD_HIS_TEXT}    
+                , #{PPL_WRD_HIS_SORT}
+                , NVL(#{PPL_WRD_HIS_USE_YN}, 'N')
+                , NVL(#{PPL_WRD_HIS_HIT_CNT}, 0)
+                , NVL(#{PPL_WRD_HIS_ICON_HOT}, 'N')
+                , NVL(#{PPL_WRD_HIS_ICON_NEW}, 'N')
+                , TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS')
+                , #{PPL_WRD_HIS_REG_IP}
+                , #{PPL_WRD_HIS_REG_ID}
+            )            
+    </insert>
+    
+    <!-- 관리자 >  사이트관리 > 인기검색어 목록보기 -->
+    <select id="selectPopularSearchWordList" parameterType="HashMap" resultType="HashMap">
+        /* PopularSearchWord.selectPopularSearchWordList */
+        SELECT
+            ROWNUM AS RNUM
+            ,PPL_WRD_IDX
+            ,PPL_WRD_SORT
+            ,PPL_WRD_TEXT
+            ,PPL_WRD_HIT_CNT
+            ,PPL_WRD_ICON_NEW
+            ,PPL_WRD_ICON_HOT
+            ,PPL_WRD_USE_YN
+        FROM
+            T_PPL_WRD
+        ORDER BY
+            PPL_WRD_SORT ASC
+    </select>
+    
+    <!--  프론트(top) > 검색 > 인기검색어 목록 -->
+    <select id="selectPcPopSearcWordList" parameterType="HashMap" resultType="HashMap">
+        /* PopularSearchWord.selectPcPopSearcWordList */
+        SELECT
+            PPL_WRD_IDX
+            ,PPL_WRD_TEXT
+            ,PPL_WRD_SORT
+            ,PPL_WRD_HIT_CNT
+            ,PPL_WRD_ICON_NEW
+            ,PPL_WRD_ICON_HOT
+        FROM
+            T_PPL_WRD
+        WHERE
+            PPL_WRD_USE_YN='Y'
+        ORDER BY
+            PPL_WRD_SORT ASC
+    </select>
+
+    <!-- 프론트(top) > 검색 > 인기검색어 목록에서 하나 선택 > 조회수 증가 -->
+    <update id="updatePopularSearchWordHit" parameterType="HashMap">
+     /* PopularSearchWord.updatePopularSearchWordHit */
+        UPDATE
+            T_PPL_WRD
+        SET 
+           PPL_WRD_HIT_CNT = PPL_WRD_HIT_CNT+1
+        WHERE
+            PPL_WRD_IDX = #{PPL_WRD_IDX}
+    </update>
+    
+    <!-- 프론트(top) > 검색 > 인기검색어 목록에서 하나 선택 > 해당 검색어 조회 -->
+    <select id="selectPopSearchWordInfo" parameterType="HashMap" resultType="HashMap">
+        /* PopularSearchWord.selectPopSearchWordInfo */
+        SELECT
+            PPL_WRD_TEXT
+        FROM
+            T_PPL_WRD
+        WHERE
+            PPL_WRD_IDX=#{PPL_WRD_IDX}
+    </select>
+</mapper>

@@ -1,0 +1,131 @@
+
+/*22 pagination ====================================================== */
+
+// <div class="section-pagination"><!-- section pagination -->
+//     <h4 class="sr-only">목록 페이징</h4>
+//     <div class="wrap"><!-- 개발 시 wrap 이하 모듈 시작 -->
+//         <a href="javascript:;" class="nav first"><i><em>첫 페이지</em></i></a>
+//         <a href="javascript:;" class="nav prev"><i><em>이전 페이지</em></i></a>
+//         <a href="javascript:;" class="num"><span>1</span></a>
+//         <a href="javascript:;" class="num"><span>2</span></a>
+//         <strong><em>현재 페이지 -</em><span>3</span></strong>
+//         <a href="javascript:;" class="num"><span>4</span></a>
+//         <a href="javascript:;" class="num"><span>5</span></a>
+//         <a href="javascript:;" class="nav next"><i><em>다음 페이지</em></i></a>
+//         <a href="javascript:;" class="nav last"><i><em>마지막 페이지</em></i></a>
+//     </div>
+// </div><!-- // section pagination -->
+
+@pagination-width:          33px;
+@pagination-height:         33px;
+@pagination-bgcolor:        #fff;
+@pagination-bgcolor-in:     #403934; 
+@pagination-border:         #d0d0d0;
+@pagination-color:          #999;
+@pagination-image:          "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAFUAAAC3CAYAAABjeRLTAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAyJpVFh0WE1MOmNvbS5hZG9iZS54bXAAAAAAADw/eHBhY2tldCBiZWdpbj0i77u/IiBpZD0iVzVNME1wQ2VoaUh6cmVTek5UY3prYzlkIj8+IDx4OnhtcG1ldGEgeG1sbnM6eD0iYWRvYmU6bnM6bWV0YS8iIHg6eG1wdGs9IkFkb2JlIFhNUCBDb3JlIDUuMy1jMDExIDY2LjE0NTY2MSwgMjAxMi8wMi8wNi0xNDo1NjoyNyAgICAgICAgIj4gPHJkZjpSREYgeG1sbnM6cmRmPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5LzAyLzIyLXJkZi1zeW50YXgtbnMjIj4gPHJkZjpEZXNjcmlwdGlvbiByZGY6YWJvdXQ9IiIgeG1sbnM6eG1wPSJodHRwOi8vbnMuYWRvYmUuY29tL3hhcC8xLjAvIiB4bWxuczp4bXBNTT0iaHR0cDovL25zLmFkb2JlLmNvbS94YXAvMS4wL21tLyIgeG1sbnM6c3RSZWY9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC9zVHlwZS9SZXNvdXJjZVJlZiMiIHhtcDpDcmVhdG9yVG9vbD0iQWRvYmUgUGhvdG9zaG9wIENTNiAoV2luZG93cykiIHhtcE1NOkluc3RhbmNlSUQ9InhtcC5paWQ6NjcxOUE2RkJCRDlBMTFFNTg1RENGRTI2NDhEN0I0OEEiIHhtcE1NOkRvY3VtZW50SUQ9InhtcC5kaWQ6NjcxOUE2RkNCRDlBMTFFNTg1RENGRTI2NDhEN0I0OEEiPiA8eG1wTU06RGVyaXZlZEZyb20gc3RSZWY6aW5zdGFuY2VJRD0ieG1wLmlpZDo2NzE5QTZGOUJEOUExMUU1ODVEQ0ZFMjY0OEQ3QjQ4QSIgc3RSZWY6ZG9jdW1lbnRJRD0ieG1wLmRpZDo2NzE5QTZGQUJEOUExMUU1ODVEQ0ZFMjY0OEQ3QjQ4QSIvPiA8L3JkZjpEZXNjcmlwdGlvbj4gPC9yZGY6UkRGPiA8L3g6eG1wbWV0YT4gPD94cGFja2V0IGVuZD0iciI/PgKWYy8AAAI8SURBVHja7NxRjoIwGIXRwbhnXIKsmgkPJDqpivpfh5rzJcaEN09AarEd5nn+UW0HBFChQhVUqFAF9RtRp2mal9ejY3vvdDrNy+vRsTjqCjeO43DvWA+gy/v5fB7uHYujAi1GBVqMCrQYFWgxKtBiVKAB1BXucuzZOrb3VrjLsWfr2Mcuf7ChGxXY0JAKbGjwDzb0MxVsaEIFbLvBc//6TFJDhQpVUKFCFdQ9dvyWDzIM2bnyZ34kOVNd/lChCipUqIIKFaqgQoUqqFChalv+oeJMhQpVUKFCFVSoUJ+rx90oWr26G0U5ao/rVG+BLu8fXZoO9AOoQItRgRajAi1GBVqMCjSA2uO601aJ3SjeuvzBhm5UYENDKrChwT/Y0M9UsKEJFbDXee6/hyGVoEKFKqhQoepvNlHYmE0UXP5QBRUqVEGFClVQoUIVVKhQoSKA2kX+oeJMhQpVUKFCFVSoUG9nF4oAqoUTocsfbOg7FWzoRgU2dPcHGxpSgQ2NU8EGUG0HUowKtBgVaDEq0GJUoMWoQItRgd7Pc/9AJqmhQoUqqFChCuoes93Hxmz34fKHKqhQoQoqVKiCChWqoEKFChVBff6h4kyFClVQoUIVVKhQr2vtRtHjDhWt3Siqd6jYjNpad9rjWtTWutN/Xe8PNvSdCjZ0owIbuvuDDQ2pwIbGqWADqK11qj2uXW2tU3117eoBaC3oW6hAi1GBFqMCLUYFGpilArotz/0DmaSGChWqoEKFKqh77FeAAQAT+P5/31FPkQAAAABJRU5ErkJggg==";
+
+.section-pagination {
+
+    line-height: 1; 
+
+    .wrap {
+        .clearfix();
+        position: relative;
+        text-align: center;
+        cursor: default;
+    }
+
+    a, 
+    strong {
+        .inline-block();
+        .box-sizing(content-box);
+        .vertical-middle();
+        transition: all .1s;
+        text-align: center;
+        margin: 0;
+        margin-left: -1px;
+        font-size: 14px;
+    }
+
+    em {
+        .sr-only();
+    }
+
+    a:hover {
+        text-decoration: none;
+    }
+    a {
+        &.nav {
+
+            i {
+                display: inline;
+                display: inline-block;
+                overflow: hidden;
+                .vertical-top();
+                background-image: url(@pagination-image);
+            }
+
+            &.first i {
+                background-position: left top;
+            }
+            &.prev i {
+                background-position: left -50px;
+            }
+            &.next i {
+                background-position: left -100px;
+            }
+            &.last i {
+                background-position: left -150px;
+            }
+            &.first:hover i {
+                background-position: right top;
+            }
+            &.prev:hover i {
+                background-position: right -50px;
+            }
+            &.next:hover i {
+                background-position: right -100px;
+            }
+            &.last:hover i {
+                background-position: right -150px;
+            }
+        }
+
+    }
+}
+
+/*22 pagination : custom ====================================================== */
+
+.section-pagination {
+
+    margin: 10px auto 60px;
+
+    a, 
+    strong {
+        width: @pagination-width;
+        .height(@pagination-height, true);     
+        background-color: @pagination-bgcolor;
+        border: solid 1px @pagination-border;
+        color: @pagination-color;
+    }
+    i {
+        width: @pagination-width + 2;
+        height: @pagination-height + 2;
+    }
+    a:hover,
+    a.active,
+    strong {
+        font-weight: bold;
+        border-color: darken(@pagination-bgcolor-in, 5%);
+        background-color: @pagination-bgcolor-in;
+        color: #fff;
+    }
+    a:hover {
+        background-color: @pagination-bgcolor-in;
+        &:hover, 
+        &:focus {
+            background-color: lighten(@pagination-bgcolor-in, 10%);
+        }
+    }
+}
+

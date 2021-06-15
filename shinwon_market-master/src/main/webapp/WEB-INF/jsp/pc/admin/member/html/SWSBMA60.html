@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="ko" dir="ltr">
+    <head>
+        <meta charset="utf-8">
+        <title></title>
+		<link href="http://bo.marketplanta.epasscni.com:8080/am/css/font-awesome.css" rel="stylesheet">
+		<link rel="stylesheet" href="http://bo.marketplanta.epasscni.com:8080/am/css/import.css">
+        <link rel="stylesheet" href="style.css">
+		<script src="http://bo.marketplanta.epasscni.com:8080/am/js/vendor/modernizr-2.6.2-respond-1.1.0.min.js"></script>
+		<script src="http://bo.marketplanta.epasscni.com:8080/am/js/vendor/jquery-1.11.2.min.js"></script>
+    </head>
+    <body><!-- body class, 중요 -->
+
+    <div id="header"><!-- header -->
+        <div id="top" class="container" style="background: #414547 url('/am/img/bg_head.png') no-repeat center top;"><!-- top -->
+            <div class="wrap">
+                <div class="menu"><!-- menu -->
+                    <div id="togglerAside" class="toggler left">
+                        <a href="#" class="js-toggle-nav" data-class="is-aside-in" data-lg-class="is-aside-out">
+                            <i class="fonti um-fog on"><em>메뉴 펼치기</em></i>
+                            <i class="fonti um-fog off"><em>메뉴 접기</em></i>
+                        </a>
+                    </div>
+                </div><!-- // menu -->
+                <h1 class="logo">
+                    <a href="http://bo.marketplanta.epasscni.com"><img src="http://bo.marketplanta.epasscni.com/nas/cdn/logo/2c679ea5-27f8-4d4b-a2ee-0bd2e4aa2bef.png" alt="HOME" /></a>
+                </h1>
+                <div class="util"><!-- util -->
+                    <div class="col">
+                        <a href="javascript:;"><i class="fonti um-gears"><em>환경설정</em></i></a>
+                    </div>
+                    <div class="col">
+                        <a href="http://bo.marketplanta.epasscni.com/am/manager/logout.do"><i class="fonti um-sign-out"><em>로그아웃</em></i></a>
+                    </div>
+                    <div class="col">
+                        <div id="togglerQuick" class="toggler left">
+                            <a href="#!" class="js-toggle-nav" data-class="is-quick-in" data-lg-class="is-quick-out">
+                                <i class="fonti um-ellipsis-h on"><em>사용자 메뉴 펼치기</em></i>
+                                <i class="fonti um-ellipsis-v off"><em>사용자 메뉴 접기</em></i>
+                            </a>
+                        </div>
+                    </div>
+                </div><!-- // util -->
+            </div>
+        </div><!-- // top -->
+
+        <div id="gnb" class="container">
+            <div class="wrap core"></div><!-- // gnb -->
+            <div class="spacer"></div>
+        </div>
+    </div><!-- // header -->
+
+    <div id="container"><!-- container -->
+
+        <div id="aside" class="aside left"><!-- aside -->
+            <div class="holder"><!-- holder -->
+                <div id="lnb" class="container">
+                    <div class="wrap modules"><!-- modules -->
+                        <div class="title">
+
+                        </div>
+                        <div class="core"></div>
+                    </div><!-- // modules -->
+                </div>
+            </div><!-- // holder --></div><!-- // aside -->
+
+        <div id="wrapper"><!-- wrapper -->
+
+            <div id="breadcrumb"></div><!-- breadcrumb -->
+
+            <div id="contents"><!-- contents -->
+
+                <div class="container">
+
+                    <h2 class="title"><span>회원등급 등록</span></h2>
+
+                    <h3 class="title"><span>기본설정</span></h3>
+                    <p>
+                       <span><i class="require"><em>필수입력</em></i></span> 표시된 항목은 필수 입력 사항입니다.
+                    </p>
+
+                    <form id="searchForm" name="searchForm">
+                        <input type="hidden" name="pageSize" value="" />
+    	                <table cellspacing="0" class="table-row table-a" style="margin-bottom: 0;"><!-- table -->
+    	                    <colgroup>
+    	                        <col style="width: 15%;" />
+    	                        <col style="width: auto;" />
+    	                    </colgroup>
+    	                    <tbody>
+                                <tr>
+                                    <th><span>회원등급 명<i class="require"><em>필수입력</em></i></span></th>
+                                    <td>
+                                        <select class="select">
+                                            <option>선택</option>
+                                            <option></option>
+                                        </select>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th><span>회원등급 설명</span></th>
+                                    <td>
+                                        <input type="text" class="text xlarge" placeholder="회원등급 설명"/>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th><span>구매금액 조건<i class="require"><em>필수입력</em></i></span></th>
+                                    <td>
+                                        <input type="text" class="text" value=""/> 이상 ~ <input type="text" class="text" value=""/>
+                                        / <input type="text" class="text large" value=""/>
+                                    </td>
+                                </tr>
+                                <!-- 상세/수정에만 노출 -->
+                                <tr>
+                                    <th><span>사용여부</span></th>
+    	                            <td>
+    	                            	<input type="radio" id="stateA" name="" class="radio" checked="checked" value="" />
+    									<label for="stateA">전체</label>
+    									<input type="radio"	id="stateB" name="" class="radio"  value="Y" />
+    									<label for="stateB">사용</label>
+    									<input type="radio" id="stateC" name="" class="radio"  value="N" />
+    									<label for="stateC">미사용</label>
+    	                            </td>
+                                </tr>
+                                <!-- // 상세/수정에만 노출 -->
+    	                    </tbody>
+    	                </table><!-- // table -->
+                    </form>
+
+                    <h3 class="title"><span>혜택설</span></h3>
+
+                    <form id="searchForm" name="searchForm">
+                        <input type="hidden" name="pageSize" value="" />
+    	                <table cellspacing="0" class="table-row table-a" style="margin-bottom: 0;"><!-- table -->
+    	                    <colgroup>
+    	                        <col style="width: 15%;" />
+    	                        <col style="width: auto;" />
+    	                    </colgroup>
+    	                    <tbody>
+                                <tr>
+                                    <th><span>추가할인</span></th>
+                                    <td>
+                                        <input type="text" class="text large"/> %
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th><span>E포인트</span></th>
+                                    <td>
+                                        <input type="text" class="text large"/> P 지급
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th><span>APP전용 E포인트</span></th>
+                                    <td>
+                                        <input type="text" class="text large"/> P 지급
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th><span>생일기념 E포인트</span></th>
+                                    <td>
+                                        <input type="text" class="text large"/> P 지급
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th><span>추가 적립포인트</span></th>
+                                    <td>
+                                        <input type="text" class="text large"/> %
+                                    </td>
+                                </tr>
+    	                    </tbody>
+    	                </table><!-- // table -->
+                    </form>
+                    <div class="section-button"><!-- section-button -->
+                        <div class="wrap text-center">
+                            <a href="#none" id="goRegist" class="button large primary"><span>저장</span></a>
+    						<a href="#none" id="goList" class="button large"><span>목록</span></a>
+                        </div>
+                    </div><!-- // section-button -->
+                </div>
+
+            </div><!-- // contents -->
+
+        </div><!-- // wrapper -->
+
+        <div id="quickmenu" class="aside right"><!-- quickmenu-->
+            <div class="holder"><!-- holder -->
+
+                <div id="quick" class="container">
+
+                    <div class="wrap modules"><!-- modules -->
+                        <ul class="core">
+                            <li class="d2 active">
+                                <a href="javascript:;" class="d2"><span>admin 님</span></a>
+                                <div class="d3 show"><!-- d3 -->
+                                    <ul class="d3">
+                                        <li class="d3">
+                                            <a href="http://bo.marketplanta.epasscni.com/am/manager/logout.do" class="d3"><span>로그아웃</span></a>
+                                        </li>
+                                    </ul>
+                                </div><!-- // d3 -->
+                            </li>
+                        </ul>
+                    </div><!-- // modules -->
+
+                </div>
+
+            </div><!-- // holder --></div><!-- // quickmenu -->
+
+    </div><!-- // container -->
+
+    <div id="footer">
+        <div id="copyrights"><!-- copyrights -->
+            <div class="container">
+                <p>
+                    Copyrights &copy; MarketPlant, co.ltd. All rights Reserved.
+                </p>
+            </div>
+        </div><!-- // copyrights -->
+    </div>
+
+    <script src="/am/js/epass.base-0.3.js"></script>
+    <script src="/am/js/plugins.js"></script>
+    <script src="/am/js/plugins/jquery.menu-aim.js"></script>
+    <script src="/am/js/plugins/nanobar.js"></script>
+    <script src="/am/js/plugins/alertify.custom-0.3.11.js"></script>
+    <script src="/am/js/plugins/Chart.bundle.js"></script>
+    <script src="/am/js/common/jquery.cookie.js"></script>
+    <script src="/am/js/epass.helper.notify-0.1.js"></script>
+    <script src="/am/js/epass.modalr-0.1.js"></script>
+    <!-- run -->
+    <script src="/am/js/ui.nav.js"></script>
+    <script src="/am/js/ui.js"></script>
+    <script src="/am/js/admin.js"></script>
+    <script src="/am/js/common.js"></script>
+    <script src="/am/js/common/jquery.validate.js"></script>
+    </body>
+	</html>

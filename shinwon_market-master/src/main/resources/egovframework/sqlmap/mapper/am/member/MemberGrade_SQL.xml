@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="MemberGrade">
+
+    <!-- 관리자 > 회원관리 > 등급등록 -->
+    <insert id="insertMemberGrade" parameterType="hashMap">
+		<selectKey keyProperty="MEM_GRD_CD" resultType="Integer" order="BEFORE">
+            SELECT SEQ_MEM_GRD_CD.NEXTVAL AS MEM_GRD_CD FROM DUAL
+        </selectKey>
+        /* MemberGrade.insertMemberGrade */
+        INSERT INTO
+            T_MEM_GRD
+            (
+                MEM_GRD_CD,
+                MEM_GRD_DESC,
+                MEM_GRD_NM,
+                MEM_AMT_CDT_MIN,
+                MEM_AMT_CDT_MAX,
+                MEM_AMT_CDT_DESC,
+                MEM_GRD_E_PIT,
+                MEM_GRD_APP_PIT,
+                MEM_GRD_BRT_PIT,
+                MEM_GRD_ADD_PIT,
+                MEM_GRD_REG_DT,
+                MEM_GRD_REG_ID,
+                MEM_GRD_REG_IP,
+                MEM_GRD_USE_YN
+            )
+        VALUES
+            (
+                #{MEM_GRD_CD},
+                #{MEM_GRD_DESC},
+                #{MEM_GRD_NM},
+                #{MEM_AMT_CDT_MIN},
+                #{MEM_AMT_CDT_MAX},
+                #{MEM_AMT_CDT_DESC},
+                #{MEM_GRD_E_PIT},
+                #{MEM_GRD_APP_PIT},
+                #{MEM_GRD_BRT_PIT},
+                #{MEM_GRD_ADD_PIT},
+                TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+                #{MEM_GRD_REG_ID},
+                #{MEM_GRD_REG_IP},
+                NVL(#{MEM_GRD_USE_YN},'Y')
+            )
+    </insert>
+    
+    <!-- 관리자 >  회원 관리 > 회원등급 관리 목록 -->
+    <select id="selectMemberGradeList" parameterType="HashMap" resultType="HashMap">
+        /* MemberGrade.selectMemberGradeList */
+		SELECT
+			S2.*
+		FROM
+		(
+			SELECT 
+				ROWNUM RNUM,
+				S1.*
+			FROM 
+				(SELECT
+					TMG.MEM_GRD_NM
+					, TMG.MEM_GRD_CD
+					, TMG.MEM_GRD_DESC
+					, TMG.MEM_AMT_CDT_MIN
+					, TMG.MEM_AMT_CDT_MAX
+					, TMG.MEM_AMT_CDT_DESC
+					, TMG.MEM_GRD_E_PIT
+					, TMG.MEM_GRD_APP_PIT
+					, TMG.MEM_GRD_BRT_PIT
+					, TMG.MEM_GRD_ADD_PIT
+					, TMG.MEM_GRD_USE_YN
+					, (SELECT COUNT(*) FROM T_MEM_MST TMM WHERE TMG.MEM_GRD_CD = TMM.MEM_MST_MEM_GRD ) AS MEMBER_COUNTS
+				FROM
+					T_MEM_GRD TMG
+				ORDER BY TMG.MEM_GRD_NM DESC
+				) S1
+		) S2
+		<if test="startNum != null and startNum != '' and endNum != null and endNum != '' and excelDown == null or !excelDown.equals('Y'.toString())">
+            WHERE S2.RNUM BETWEEN #{startNum} AND #{endNum}
+        </if>
+    </select>
+    
+    <!-- 관리자 >  회원 관리 > 회원등급 관리 상세 정보 -->
+    <select id="selectMemberGradeInfo" parameterType="HashMap" resultType="HashMap">
+        /* MemberGrade.selectMemberGradeInfo */
+		SELECT
+			TMG.MEM_GRD_NM
+			, TMG.MEM_GRD_CD
+			, TMG.MEM_GRD_DESC
+			, TMG.MEM_AMT_CDT_MIN
+			, TMG.MEM_AMT_CDT_MAX
+			, TMG.MEM_AMT_CDT_DESC
+			, TMG.MEM_GRD_E_PIT
+			, TMG.MEM_GRD_APP_PIT
+			, TMG.MEM_GRD_BRT_PIT
+			, TMG.MEM_GRD_ADD_PIT
+			, TMG.MEM_GRD_USE_YN
+		FROM
+			T_MEM_GRD TMG
+		WHERE
+			TMG.MEM_GRD_CD = #{MEM_GRD_CD}
+		ORDER BY TMG.MEM_GRD_NM DESC
+    </select>
+    
+	<!-- 관리자 >  회원 관리 > 회원등급 관리 수정 -->
+    <update id="updateMemberGrade" parameterType="HashMap">
+        /* MemberGrade.updateMemberGrade */
+        UPDATE
+            T_MEM_GRD 
+        SET
+			MEM_GRD_NM = #{MEM_GRD_NM}
+			, MEM_GRD_DESC = #{MEM_GRD_DESC}
+			, MEM_AMT_CDT_MIN = #{MEM_AMT_CDT_MIN}
+			, MEM_AMT_CDT_MAX = #{MEM_AMT_CDT_MAX}
+			, MEM_AMT_CDT_DESC = #{MEM_AMT_CDT_DESC}
+			, MEM_GRD_E_PIT = #{MEM_GRD_E_PIT}
+			, MEM_GRD_APP_PIT = #{MEM_GRD_APP_PIT}
+			, MEM_GRD_BRT_PIT = #{MEM_GRD_BRT_PIT}
+			, MEM_GRD_ADD_PIT = #{MEM_GRD_ADD_PIT}
+			, MEM_GRD_USE_YN = #{MEM_GRD_USE_YN}
+			, MEM_GRD_UPD_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS')
+			, MEM_GRD_UPD_IP = #{MEM_GRD_UPD_IP}
+			, MEM_GRD_UPD_ID = #{MEM_GRD_UPD_ID}
+        WHERE
+            MEM_GRD_CD = #{MEM_GRD_CD}
+    </update>
+    
+    <!-- 관리자 > 회원등급관리 > 회원등급관리 목록 갯수 -->
+    <select id="selectMemberGradeListCount" parameterType="hashMap" resultType="integer">
+        /* MemberGrade.selectMemberGradeListCount */
+        SELECT
+            COUNT(0)
+        FROM
+            T_MEM_GRD TMG
+        WHERE
+        	1=1
+    </select>
+    
+</mapper>

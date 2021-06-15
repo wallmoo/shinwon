@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="ko" dir="ltr">
+    <head>
+        <meta charset="utf-8">
+        <title></title>
+		<link href="http://bo.marketplanta.epasscni.com:8080/am/css/font-awesome.css" rel="stylesheet">
+		<link rel="stylesheet" href="http://bo.marketplanta.epasscni.com:8080/am/css/import.css">
+        <link rel="stylesheet" href="style.css">
+		<script src="http://bo.marketplanta.epasscni.com:8080/am/js/vendor/modernizr-2.6.2-respond-1.1.0.min.js"></script>
+		<script src="http://bo.marketplanta.epasscni.com:8080/am/js/vendor/jquery-1.11.2.min.js"></script>
+    </head>
+    <body><!-- body class, 중요 -->
+
+    <div id="header"><!-- header -->
+        <div id="top" class="container" style="background: #414547 url('/am/img/bg_head.png') no-repeat center top;"><!-- top -->
+            <div class="wrap">
+                <div class="menu"><!-- menu -->
+                    <div id="togglerAside" class="toggler left">
+                        <a href="#!" class="js-toggle-nav" data-class="is-aside-in" data-lg-class="is-aside-out">
+                            <i class="fonti um-fog on"><em>메뉴 펼치기</em></i>
+                            <i class="fonti um-fog off"><em>메뉴 접기</em></i>
+                        </a>
+                    </div>
+                </div><!-- // menu -->
+                <h1 class="logo">
+                    <a href="http://bo.marketplanta.epasscni.com"><img src="http://bo.marketplanta.epasscni.com/nas/cdn/logo/2c679ea5-27f8-4d4b-a2ee-0bd2e4aa2bef.png" alt="HOME" /></a>
+                </h1>
+                <div class="util"><!-- util -->
+                    <div class="col">
+                        <a href="javascript:;"><i class="fonti um-gears"><em>환경설정</em></i></a>
+                    </div>
+                    <div class="col">
+                        <a href="http://bo.marketplanta.epasscni.com/am/manager/logout.do"><i class="fonti um-sign-out"><em>로그아웃</em></i></a>
+                    </div>
+                    <div class="col">
+                        <div id="togglerQuick" class="toggler left">
+                            <a href="#!" class="js-toggle-nav" data-class="is-quick-in" data-lg-class="is-quick-out">
+                                <i class="fonti um-ellipsis-h on"><em>사용자 메뉴 펼치기</em></i>
+                                <i class="fonti um-ellipsis-v off"><em>사용자 메뉴 접기</em></i>
+                            </a>
+                        </div>
+                    </div>
+                </div><!-- // util -->
+            </div>
+        </div><!-- // top -->
+
+        <div id="gnb" class="container">
+            <div class="wrap core"></div><!-- // gnb -->
+            <div class="spacer"></div>
+        </div>
+    </div><!-- // header -->
+
+    <div id="container"><!-- container -->
+
+        <div id="aside" class="aside left"><!-- aside -->
+            <div class="holder"><!-- holder -->
+                <div id="lnb" class="container">
+                    <div class="wrap modules"><!-- modules -->
+                        <div class="title">
+
+                        </div>
+                        <div class="core"></div>
+                    </div><!-- // modules -->
+                </div>
+            </div><!-- // holder --></div><!-- // aside -->
+
+        <div id="wrapper"><!-- wrapper -->
+
+            <div id="breadcrumb"></div><!-- breadcrumb -->
+
+            <div id="contents"><!-- contents -->
+
+                <div class="container">
+
+                    <h2 class="title"><span>임직원 목록</span></h2>
+
+                    <h3 class="title"><span>검색</span></h3>
+
+                    <form id="searchForm" name="searchForm">
+                        <input type="hidden" name="pageSize" value="" />
+    	                <table cellspacing="0" class="table-row table-a" style="margin-bottom: 0;"><!-- table -->
+    	                    <colgroup>
+    	                        <col style="width: 10%;" />
+    	                        <col style="width: auto;" />
+                                <col style="width: 10%;" />
+    	                        <col style="width: auto;" />
+    	                    </colgroup>
+    	                    <tbody>
+                                <tr>
+                                    <th class="5"><span>가입일</span></th>
+                                    <td colspan="5">
+                                        <a href="javascript:;" class="js-datepickr"><span class="icon datepickr"><em>날짜선택</em></span></a>
+                                        <input type="text" class="text" name="searchPlnMstStDt" value="2020-01-21" readonly="readonly" data-target-end="#searchPlnMstEdDt"> ~
+                                        <a href="javascript:;" class="js-datepickr"><span class="icon datepickr"><em>날짜선택</em></span></a>
+                                        <input type="text" class="text" name="searchPlnMstEdDt" value="2020-01-21" readonly="readonly" data-target-start="#searchPlnMstStDt">
+                                        <a href="javascript:fnDateSet('searchPlnMstEdDt', 'searchPlnMstStDt', 0, 0, 0, 0, 0, 0,  '-');" class="button button-a xsmall"><span>오늘</span></a>
+                                        <a href="javascript:fnDateSet('searchPlnMstEdDt', 'searchPlnMstStDt', 0, 0, 0, 0, 0, -7,  '-');" class="button button-a xsmall"><span>일주일</span></a>
+                                        <a href="javascript:fnDateSet('searchPlnMstEdDt', 'searchPlnMstStDt', 0, 0, 0, 0, 0, -15,  '-');" class="button button-a xsmall"><span>15일</span></a>
+                                        <a href="javascript:fnDateSet('searchPlnMstEdDt', 'searchPlnMstStDt', 0, 0, 0, 0, -1, 0,  '-');" class="button button-a xsmall"><span>한달</span></a>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th><span>회원등급</span></th>
+                                    <td>
+                                        <select class="select">
+                                            <option>전체</option>
+                                            <option>일반회원</option>
+                                            <option>임원회원</option>
+                                        </select>
+                                    </td>
+                                    <th><span>아이디</span></th>
+                                    <td>
+                                        <input type="text" class="text xlarge" placeholder="아이디입력">
+                                    </td>
+                                    <th><span>이름</span></th>
+                                    <td>
+                                        <input type="text" class="text xlarge" placeholder="이름입력">
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th><span>휴대폰(뒤자리)</span></th>
+                                    <td>
+                                        <input type="text" class="text large" placeholder="4자리 입력">
+                                    </td>
+                                    <th><span>생년월일</span></th>
+                                    <td colspan="3">
+                                        <input type="text" class="text large" placeholder="YYYYMMDD(8자리)">
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th><span>특정권한</span></th>
+                                    <td colspan="5">
+                                        <input type="checkbox" class="checkbox" name="PLN_MST_CHANNEL_PC_YN" id="PLN_MST_CHANNEL_PC_YN" value="Y" checked = "checked" /><label for="PLN_MST_CHANNEL_PC_YN" > 리뷰어회원</label>
+    									<input type="checkbox" class="checkbox" name="PLN_MST_CHANNEL_MOBILE_YN" id="PLN_MST_CHANNEL_MOBILE_YN" value="Y"/><label for="PLN_MST_CHANNEL_MOBILE_YN" > 특정리뷰회원</label>
+                                        <input type="checkbox" class="checkbox" name="PLN_MST_CHANNEL_MOBILE_YN" id="PLN_MST_CHANNEL_MOBILE_YN" value="Y"/><label for="PLN_MST_CHANNEL_MOBILE_YN" > 특정OOTD회원</label>
+                                    </td>
+                                </tr>
+    	                    </tbody>
+    	                </table><!-- // table -->
+                    </form>
+
+                    <div class="grid section-button-search"><!-- 검색 하단 버튼 -->
+                        <a href="javascript:searchClear('searchForm');" class="button small"><span>초기화</span></a>
+                        <a href="#none" id="search" class="button small primary"><span>검색</span></a>
+                    </div>
+
+                    <form id="frm" name="frm">
+    	               <input type="hidden" name="PLN_MST_IDX" value="" />
+    					<input type="hidden" name="cPage" value="" />
+    					<input type="hidden" name="searchPlnMstShopType" value="" />
+    					<input type="hidden" name="searchPlnMstTitle" value="" />
+    					<input type="hidden" name="searchPlnMstStDt" value="2020-01-21" />
+    					<input type="hidden" name="searchPlnMstEdDt" value="2020-01-21" />
+    					<input type="hidden" name="searchPlnMstStatus" value="" />
+    					<input type="hidden" name="searchPlnMstUseYn" value="" />
+
+                        <h3 class="title"><span>목록</span></h3>
+
+    	                <div class="grid section-button-list"><!-- 목록 상단 버튼 -->
+                     		<div class="col-1-2 text-left">
+    	                 		<select class="select" id="pageSize" name="pageSize" onchange="javascript:goPage(1);" title="상품 보기 개수" ><option value="20" selected>20개씩 보기</option><option value="40" >40개씩 보기</option><option value="60" >60개씩 보기</option><option value="80" >80개씩 보기</option><option value="100" >100개씩 보기</option></select>
+                                <span class="pages">
+    	                        	(총 <strong class="em">1</strong>건, 1 of 1 page)
+    	                        </span>
+    						</div>
+
+    	                    <div class="col-1-2 text-right">
+                                <a href="#none" id="" class="button small"><span>일반회원 전환</span></a>
+                                <a href="#none" id="excelDown" class="button small primary"><span>엑셀 다운로드</span></a>
+    	                        <a href="#none" id="goForm" class="button small primary"><span>등록</span></a>
+    	                    </div>
+                    	</div><!-- // 목록 상단 버튼 -->
+
+    	                <table cellspacing="0" class="table-col table-b"><!-- table -->
+    						<colgroup>
+    							<col style="width: 10%;" />
+    							<col style="width: 8%;" />
+    							<col style="width: 10%;" />
+    							<col style="width: 10%;" />
+    							<col style="width: 8%;" />
+    							<col style="width: 10%;" />
+    							<col style="width: 15%;" />
+    							<col style="width: 20%;" />
+    							<col style="width: 15%;" />
+    						</colgroup>
+    						<thead>
+    							<tr>
+                                    <th>일반회원 전환<input type="checkbox" class="checkbox checkAll" /></th>
+    								<th>NO</th>
+    								<th>아이디</th>
+    								<th>회원이름</th>
+    								<th>성별</th>
+    								<th>생년월일</th>
+    								<th>회원분류/회원등급</th>
+    								<th>임직원포인트</th>
+    								<th>가입일</th>
+    							</tr>
+    						</thead>
+    						<tbody>
+    							<tr>
+                                    <td><input type="checkbox" class="checkbox"/></td>
+                                    <td>1</td>
+                                    <td class="text-left"><a href="#">never11</a></td>
+                                    <td class="text-left"><a href="#">홍길*</a></td>
+                                    <td>남자</td>
+                                    <td>1975.05.11</td>
+                                    <td>임직원회원/일반회원</td>
+                                    <td>3,000,000p</td>
+                                    <td>2019.12.15</td>
+								</tr>
+                                <tr>
+                                    <td><input type="checkbox" class="checkbox"/></td>
+                                    <td>2</td>
+                                    <td class="text-left"><a href="#">tree1234</a></td>
+                                    <td class="text-left"><a href="#">홍길*</a></td>
+                                    <td>남자</td>
+                                    <td>1980.06.26</td>
+                                    <td>임직원회원/일반회원</td>
+                                    <td>2,500,000p</td>
+                                    <td>2019.12.15</td>
+								</tr>
+                                <tr>
+                                    <td><input type="checkbox" class="checkbox"/></td>
+                                    <td>3</td>
+                                    <td class="text-left"><a href="#">never11</a></td>
+                                    <td class="text-left"><a href="#">홍길*</a></td>
+                                    <td>남자</td>
+                                    <td>1975.05.11</td>
+                                    <td>임직원회원/일반회원</td>
+                                    <td>0p</td>
+                                    <td>2019.12.15</td>
+								</tr>
+							</tbody>
+    					</table>
+
+    					<div class="section-pagination"><!-- section pagination -->
+    	                    <h4 class="sr-only">목록 페이징</h4>
+    	                    <div class="wrap"><!-- 개발 시 wrap 이하 모듈 시작 -->
+    	                        <a class="nav first" href="javascript:;" ><i><em>첫 페이지</em></i></a> <a class="nav prev" href="javascript:;" ><i><em>이전 페이지</em></i></a> <strong><em>현재 페이지 -</em><span>1<span></strong> <a class="nav next" href="javascript:;" ><i><em>다음 페이지</em></i></a> <a class="nav last" href="javascript:;" ><i><em>마지막 페이지</em></i></a>
+                            </div>
+    	                </div><!-- // section pagination -->
+
+    				</form>
+                </div>
+
+            </div><!-- // contents -->
+
+        </div><!-- // wrapper -->
+
+        <div id="quickmenu" class="aside right"><!-- quickmenu-->
+            <div class="holder"><!-- holder -->
+
+                <div id="quick" class="container">
+
+                    <div class="wrap modules"><!-- modules -->
+                        <ul class="core">
+                            <li class="d2 active">
+                                <a href="javascript:;" class="d2"><span>admin 님</span></a>
+                                <div class="d3 show"><!-- d3 -->
+                                    <ul class="d3">
+                                        <li class="d3">
+                                            <a href="http://bo.marketplanta.epasscni.com/am/manager/logout.do" class="d3"><span>로그아웃</span></a>
+                                        </li>
+                                    </ul>
+                                </div><!-- // d3 -->
+                            </li>
+                        </ul>
+                    </div><!-- // modules -->
+
+                </div>
+
+            </div><!-- // holder --></div><!-- // quickmenu -->
+
+    </div><!-- // container -->
+
+    <div id="footer">
+        <div id="copyrights"><!-- copyrights -->
+            <div class="container">
+                <p>
+                    Copyrights &copy; MarketPlant, co.ltd. All rights Reserved.
+                </p>
+            </div>
+        </div><!-- // copyrights -->
+    </div>
+
+    <script src="/am/js/epass.base-0.3.js"></script>
+    <script src="/am/js/plugins.js"></script>
+    <script src="/am/js/plugins/jquery.menu-aim.js"></script>
+    <script src="/am/js/plugins/nanobar.js"></script>
+    <script src="/am/js/plugins/alertify.custom-0.3.11.js"></script>
+    <script src="/am/js/plugins/Chart.bundle.js"></script>
+    <script src="/am/js/common/jquery.cookie.js"></script>
+    <script src="/am/js/epass.helper.notify-0.1.js"></script>
+    <script src="/am/js/epass.modalr-0.1.js"></script>
+    <!-- run -->
+    <script src="/am/js/ui.nav.js"></script>
+    <script src="/am/js/ui.js"></script>
+    <script src="/am/js/admin.js"></script>
+    <script src="/am/js/common.js"></script>
+    <script src="/am/js/common/jquery.validate.js"></script>
+    </body>
+	</html>

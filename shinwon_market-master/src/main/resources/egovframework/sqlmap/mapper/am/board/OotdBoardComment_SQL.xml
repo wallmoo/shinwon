@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="OotdBoardComment">
+    
+    <!-- OOTD 댓글 갯수 -->
+    <select id="selectOOTDCommentListCount" parameterType="HashMap" resultType="Integer">
+        /* OotdBoardComment.selectOOTDCommentListCount */
+        SELECT COUNT(TOR.OTD_RPL_ID)
+        FROM T_OTD_RPL TOR
+        WHERE TOR.CNT_OTD_ID = #{CNT_MST_IDX}
+    </select>
+
+    <!-- OOTD 댓글 리스트 -->
+    <select id="selectOOTDCommentList" parameterType="HashMap" resultType="HashMap">
+        /* OotdBoardComment.selectOOTDCommentList */
+        SELECT S3.*, (CASE WHEN S3.TEMP_NM1 IS NOT NULL THEN S3.TEMP_NM1 ELSE S3.TEMP_NM2 END) AS MEM_MST_NCK_NM 
+		FROM 
+		(
+	        SELECT TA.*
+	        , (SELECT NVL(MEM_MST_NCK_NM, MEM_MST_MEM_NM) FROM T_MEM_MST WHERE MEM_MST_MEM_ID = TA.OTD_RPL_REG_ID) AS TEMP_NM1
+	        , (SELECT MEM_MST_PRF_IMG FROM T_MEM_MST WHERE MEM_MST_MEM_ID = TA.OTD_RPL_REG_ID) AS MEM_MST_PRF_IMG
+	        , (SELECT ADM_MST_NM FROM T_ADM_MST WHERE ADM_MST_ID = TA.OTD_RPL_REG_ID ) AS TEMP_NM2
+	       FROM (
+	           SELECT
+	           ROWNUM AS RNUM
+	            , TOR.OTD_RPL_ID
+	            , TOR.OTD_RPL_CTS
+	            , TOR.CNT_OTD_ID
+	            , TOR.OTD_RPL_REF_ID            
+	            , TO_CHAR(TO_DATE(TOR.OTD_RPL_REG_DT,'YYYYMMDDHH24MISS'),'YYYY-MM-DD HH24:MI:SS') AS OTD_RPL_REG_DT
+	            , TOR.OTD_RPL_REG_ID
+	            , TOR.OTD_RPL_REG_IP
+	            , TOR.OTD_RPL_UPD_ID
+	            , TO_CHAR(TO_DATE(TOR.OTD_RPL_UPD_DT,'YYYYMMDDHH24MISS'),'YYYY-MM-DD HH24:MI:SS') AS OTD_RPL_UPD_DT
+	            , TOR.OTD_RPL_UPD_IP
+	            , TOR.OTD_RPL_USE_YN
+	        FROM T_OTD_RPL TOR
+	        WHERE TOR.CNT_OTD_ID = #{CNT_MST_IDX} 
+	        START WITH TOR.OTD_RPL_REF_ID IS NULL
+	        CONNECT BY PRIOR TOR.OTD_RPL_ID = TOR.OTD_RPL_REF_ID
+	        ORDER SIBLINGS BY TOR.OTD_RPL_UPD_DT DESC
+	       ) TA WHERE TA.RNUM BETWEEN #{startNum} AND #{endNum}
+		) S3
+    </select>
+
+    <!-- OOTD 댓글 등록 -->
+    <insert id="insertOOTDComment" parameterType="HashMap">
+        <selectKey keyProperty="OTD_RPL_ID" resultType="Integer" order="BEFORE">
+            SELECT SEQ_OTD_RPL_ID.NEXTVAL AS OTD_RPL_ID FROM DUAL
+        </selectKey>
+        /* OotdBoardComment.insertOOTDComment */
+        INSERT INTO 
+            T_OTD_RPL 
+            (    
+                OTD_RPL_ID
+                ,CNT_OTD_ID
+                ,OTD_RPL_REG_ID
+                ,OTD_RPL_REG_DT
+                ,OTD_RPL_REG_IP
+                ,OTD_RPL_CTS
+                ,OTD_RPL_REF_ID
+                ,OTD_RPL_USE_YN
+            )
+        VALUES          
+            (
+                #{OTD_RPL_ID}
+                , #{CNT_OTD_ID}
+                , #{OTD_RPL_REG_ID}
+                , TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS')
+                , #{OTD_RPL_REG_IP}
+                , #{OTD_RPL_CTS}
+                , #{OTD_RPL_REF_ID}
+                , NVL(#{OTD_RPL_USE_YN},'Y')
+            )
+    </insert>
+    
+    <!-- OOTD 댓글 미사용 처리 -->
+    <update id="updateOOTDCommentStatus" parameterType="HashMap">
+        /* OotdBoardComment.updateOOTDCommentStatus */
+        UPDATE T_OTD_RPL SET
+                OTD_RPL_USE_YN = 'N'
+                , OTD_RPL_UPD_ID = #{OTD_RPL_UPD_ID}
+                , OTD_RPL_UPD_IP = #{OTD_RPL_UPD_IP}
+                , OTD_RPL_UPD_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS')
+        WHERE OTD_RPL_ID IN
+        <foreach collection="arrOTD_RPL_ID" item="OTD_RPL_ID" open="(" close=")" separator=",">
+                    #{OTD_RPL_ID}
+        </foreach>
+    </update>
+
+
+</mapper>

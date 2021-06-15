@@ -1,0 +1,261 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="BrandManager">
+	<!-- 관리자 > 시스템 관리 > 브랜드 관리 > 조건절  -->
+    <sql id="BrandManagerWhere">
+        <if test="searchBrandNm != null and searchBrandNm != ''">
+            AND BND_MST_BRAND_NM LIKE '%' || UPPER(#{searchBrandNm}) || '%'
+        </if>
+        <if test="searchBrandUseYn != null and searchBrandUseYn != ''">
+            AND BND_MST_USE_YN = #{searchBrandUseYn}
+        </if>
+        <if test="searchBrandDplState != null and searchBrandDplState != ''">
+            AND BND_MST_DPL_STATE = #{searchBrandDplState}
+        </if>
+        <if test="searchVdrMstIdx != null and searchVdrMstIdx != ''">
+            AND VDR_MST_IDX = #{searchVdrMstIdx}
+        </if>
+
+    </sql>
+    
+    <!-- 입점업체 조건절 -->
+    <sql id="vendorWhere">
+        <if test="searchVdrNm != null and searchVdrNm != ''">
+            AND VDR_MST_NM LIKE '%' || #{searchVdrNm} || '%'
+        </if>
+        <if test="searchVdrBusi != null and searchVdrBusi != ''">
+            AND VDR_MST_BUSI1 || VDR_MST_BUSI2 || VDR_MST_BUSI3 LIKE '%' || #{searchVdrBusi} || '%'
+        </if>
+    </sql>
+    
+	<!-- 관리자 > 시스템 관리 > 브랜드 관리 목록 갯수 -->
+	<select id="selectBrandManagerListCount" parameterType="HashMap" resultType="Integer">
+		/* BrandManager.selectBrandManagerListCount */
+		SELECT
+			COUNT(1)
+		FROM
+			T_BND_MST
+		WHERE 	
+			1=1
+			<include refid="BrandManagerWhere"/>
+	</select>
+	
+	<!-- 관리자 > 사이트 관리 > 브랜드 관리 목록 -->
+	<select id="selectBrandManagerList" parameterType="HashMap" resultType="HashMap">
+		/* BrandManager.selectBrandManagerList */
+		SELECT
+			S2.*
+		FROM
+		(
+			SELECT
+				ROWNUM AS RNUM,
+				S1.*,
+                (SELECT VDR_MST_NM FROM T_VDR_MST WHERE VDR_MST_IDX = S1.VDR_MST_IDX) AS VDR_MST_NM
+			FROM
+			(
+				SELECT		
+					BND_MST_IDX,
+				    BND_MST_BRAND_NM,
+				    BND_MST_SERV,
+				    BND_MST_USE_YN,
+				    BND_MST_REG_DT,
+                    BND_MST_DPL_STATE,
+                    BND_MST_BRAND_TYPE,
+                    VDR_MST_IDX
+				FROM T_BND_MST
+				WHERE
+					1=1
+					<include refid="BrandManagerWhere"/>
+				ORDER BY BND_MST_REG_DT DESC
+			) S1			
+		) S2
+        <if test="startNum != null and startNum != '' and endNum != null and endNum != '' and excelDown == null or !excelDown.equals('Y'.toString())">
+            WHERE 
+                S2.RNUM BETWEEN #{startNum} AND #{endNum}
+        </if>
+	</select>
+	
+	<!-- 관리자 > 시스템관리 > 브랜드 관리 등록 -->
+	<insert id="insertBrandManager" parameterType="HashMap">
+        <selectKey resultType="Integer" keyProperty="BND_MST_IDX" order="BEFORE">
+            SELECT SEQ_BND_MST_IDX.NEXTVAL AS BND_MST_IDX FROM DUAL
+        </selectKey>
+		/* BrandManager.insertBrandManager */
+		INSERT INTO
+			T_BND_MST
+			(
+                VDR_MST_IDX,
+				BND_MST_IDX,
+                BND_MST_BRAND_TYPE,
+				BND_MST_BRAND_NM,
+				BND_MST_QLY_ASR,
+				BND_MST_SERV,
+				BND_MST_DTL,
+				BND_MST_USE_YN,
+				BND_MST_REG_DT,
+				BND_MST_REG_ID,
+				BND_MST_REG_IP,
+                BND_MST_DPL_STATE,
+                BND_MST_SEL_NM,
+                BND_MST_SEL_DESC,
+                BND_MST_SRC_KR,
+                BND_MST_SRC_EN,
+                BND_MST_INST_URL,
+                BND_MST_URL
+			)
+		VALUES
+			(
+                #{VDR_MST_IDX},
+				#{BND_MST_IDX},
+                #{BND_MST_BRAND_TYPE},
+				#{BND_MST_BRAND_NM},
+				#{BND_MST_QLY_ASR},
+				#{BND_MST_SERV},
+				#{BND_MST_DTL},
+				NVL(#{BND_MST_USE_YN},'Y'),
+				TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+				#{BND_MST_REG_ID},
+				#{BND_MST_REG_IP},
+                #{BND_MST_DPL_STATE},
+                #{BND_MST_SEL_NM},
+                #{BND_MST_SEL_DESC},
+                #{BND_MST_SRC_KR},
+                #{BND_MST_SRC_EN},
+                #{BND_MST_INST_URL},
+                #{BND_MST_URL}
+			)
+	</insert>
+	
+	<!-- 관리자 > 시스템 관리 > 브랜드 관리 상세 -->
+	<select id="selectBrandManagerInfo" parameterType="HashMap" resultType="HashMap">
+		/* BrandManager.selectBrandManagerInfo */
+		SELECT
+			TBM.BND_MST_IDX,
+		    (SELECT TVM.VDR_MST_NM FROM T_VDR_MST TVM WHERE TVM.VDR_MST_IDX = TBM.VDR_MST_IDX ) AS VDR_MST_NM ,
+		    TBM.BND_MST_BRAND_NM,
+		    TBM.BND_MST_QLY_ASR,
+		    TBM.BND_MST_SERV,
+		    TBM.BND_MST_DTL,
+		    TBM.BND_MST_USE_YN,
+            TBM.VDR_MST_IDX,
+            TBM.BND_MST_SEL_NM,
+            TBM.BND_MST_SEL_DESC,
+            TBM.BND_MST_BRAND_TYPE,
+            TBM.BND_MST_SRC_KR,
+            TBM.BND_MST_SRC_EN,
+            TBM.BND_MST_DPL_STATE,
+            TBM.BND_MST_INST_URL,
+            TBM.BND_MST_URL
+		FROM 
+			T_BND_MST TBM
+		WHERE
+			BND_MST_IDX = #{BND_MST_IDX} 
+	</select>
+	
+	<!-- 관리자 > 시스템 관리 > 브랜드 정보 수정-->
+	<update id="updateBrandManager" parameterType="HashMap">
+		/* BrandManager.updateBrandManager */
+		UPDATE 
+			T_BND_MST
+		SET
+			BND_MST_QLY_ASR = #{BND_MST_QLY_ASR},
+			BND_MST_SERV = #{BND_MST_SERV},
+			BND_MST_UPD_IP = #{BND_MST_UPD_IP},
+			BND_MST_UPD_ID = #{BND_MST_UPD_ID},
+			BND_MST_UPD_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+            BND_MST_SRC_KR = #{BND_MST_SRC_KR},
+            BND_MST_SRC_EN = #{BND_MST_SRC_EN},
+            BND_MST_DTL = #{BND_MST_DTL},
+            BND_MST_SEL_NM = #{BND_MST_SEL_NM},
+            BND_MST_SEL_DESC = #{BND_MST_SEL_DESC},
+            BND_MST_USE_YN = NVL(#{BND_MST_USE_YN},'Y'),
+            BND_MST_DPL_STATE = #{BND_MST_DPL_STATE},
+            BND_MST_INST_URL = #{BND_MST_INST_URL},
+            BND_MST_URL = #{BND_MST_URL}
+		WHERE 
+			BND_MST_IDX = #{BND_MST_IDX}
+	</update>
+	
+	<!-- 관리자 > 시스템관리 > 브랜드관리 > 브랜드명 중복체크 -->
+	<select id="selectBrandManagerNmCheckCount" parameterType="HashMap" resultType="Integer">
+		/* BrandManager.selectBrandManagerNmCheckCount*/
+		SELECT
+			COUNT(1)
+		FROM
+			T_BND_MST
+		WHERE
+			BND_MST_BRAND_NM = #{BND_MST_BRAND_NM}
+	</select>
+    
+    <!-- 관리자 > 시스템관리 > 브랜드관리 > 셀러명 중복체크 -->
+    <select id="selectSellerNmCheckCount" parameterType="HashMap" resultType="Integer">
+        /* BrandManager.selectSellerNmCheckCount*/
+        SELECT
+            COUNT(1)
+        FROM
+            T_BND_MST
+        WHERE
+            BND_MST_SEL_NM = #{BND_MST_SEL_NM}
+    </select>
+    
+        <!-- 관리자 > 시스템 관리 > 브랜드 상태 수정-->
+    <update id="updateBrandStatus" parameterType="HashMap">
+        /* BrandManager.updateBrandStatus */
+        UPDATE 
+            T_BND_MST
+        SET
+            BND_MST_USE_YN = NVL(#{BND_MST_USE_YN},'Y'),
+            BND_MST_DPL_STATE = NVL(#{BND_MST_DPL_STATE},'Y'),
+            BND_MST_UPD_IP = #{BND_MST_UPD_IP},
+            BND_MST_UPD_ID = #{BND_MST_UPD_ID},
+            BND_MST_UPD_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS')
+        WHERE 
+            BND_MST_IDX = #{BND_MST_IDX}
+    </update>
+    
+    <!-- 입점업체로 브랜드 조회 -->
+    <select id="selectBrandInfoByVendor" parameterType="HashMap" resultType="HashMap">
+        /* BrandManager.selectBrandInfoByVendor*/
+        SELECT
+            BND_MST_IDX
+            , BND_MST_BRAND_NM
+            , BND_MST_SEL_NM
+            , BND_MST_BRAND_TYPE
+            , BND_MST_SERV
+        FROM
+            T_BND_MST
+        WHERE
+            VDR_MST_IDX = #{VDR_MST_IDX}
+    </select>
+	
+	<!-- 관리자 > 브랜드관리 > 브랜드목록 안내/사용 여부 수정 -->
+    <update id="updateBrandList" parameterType="HashMap">
+        /* BrandManager.updateBrandList */
+        <foreach collection="selectedBrandList" item="item" index="index" open="DECLARE BEGIN" close="; END;" separator=";">
+			UPDATE
+	            T_BND_MST 
+	        SET
+	            BND_MST_USE_YN = NVL(#{item.BND_MST_USE_YN}, 'Y'),
+	            BND_MST_DPL_STATE = NVL(#{item.BND_MST_DPL_STATE}, 'Y'),
+	            BND_MST_UPD_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+	            BND_MST_UPD_IP = #{BND_MST_UPD_IP},
+	            BND_MST_UPD_ID = #{BND_MST_UPD_ID}
+	        WHERE
+	            BND_MST_IDX = #{item.BND_MST_IDX}        
+        </foreach>
+    </update>
+    
+    
+	<delete id="deleteBrandList" parameterType="HashMap">
+		/*BrandManager.deleteBrandList*/
+		DELETE FROM T_BND_MST
+		 WHERE BND_MST_IDX IN 
+    	 <foreach collection="BND_LIST" item="item" index="index" separator="," open="(" close=")">
+		    #{item}
+		 </foreach>		 
+	</delete>   
+    
+    
+    
+</mapper>

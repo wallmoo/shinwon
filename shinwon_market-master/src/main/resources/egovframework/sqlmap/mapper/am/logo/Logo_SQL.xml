@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="Logo">
+
+    <!-- 로고관리 > 로고목록 -->
+    <select id="selectLogoList" parameterType="HashMap" resultType="HashMap">
+        /* Logo.selectLogoList */
+        SELECT
+            CC.CMN_COM_IDX
+            , CC.CMN_COM_NM
+            , LM.LGO_MST_IDX
+            , LM.LGO_MST_ATT_PATH || LM.LGO_MST_SYS_NM AS WEB_PATH
+            , LM.LGO_MST_SYS_NM
+            , LM.LGO_MST_ORG_NM
+        FROM T_CMM_COM CC
+            LEFT OUTER JOIN T_LGO_MST LM ON LM.LGO_MST_TYPE = CC.CMN_COM_IDX
+        WHERE CC.CMN_COM_UP_IDX = #{LOGO_TYPE}
+            AND CC.CMN_COM_USE_YN = 'Y'
+        ORDER BY CC.CMN_COM_IDX ASC
+    </select>
+
+    <!-- 로고관리 > 로고등록 -->
+    <update id="updateLogo" parameterType="HashMap">
+        /* Logo.updateLogo */
+        MERGE INTO T_LGO_MST
+        USING DUAL 
+        ON(LGO_MST_IDX = #{LGO_MST_IDX} AND LGO_MST_TYPE = #{LGO_MST_TYPE})
+        WHEN MATCHED THEN
+            UPDATE SET
+                LGO_MST_SYS_PATH = #{LGO_MST_SYS_PATH}
+                , LGO_MST_ATT_PATH = #{LGO_MST_ATT_PATH}
+                , LGO_MST_ORG_NM = #{LGO_MST_ORG_NM}
+                , LGO_MST_SYS_NM = #{LGO_MST_SYS_NM}
+                , LGO_MST_ATT_SIZE = #{LGO_MST_ATT_SIZE}
+                , LGO_MST_UPD_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS')
+                , LGO_MST_UPD_IP = #{REG_IP}
+                , LGO_MST_UPD_ID = #{REG_ID}
+        WHEN NOT MATCHED THEN
+            INSERT (
+                LGO_MST_IDX
+                , ADM_MST_ID
+                , LGO_MST_TYPE
+                , LGO_MST_SYS_PATH
+                , LGO_MST_ATT_PATH
+                , LGO_MST_ORG_NM
+                , LGO_MST_SYS_NM
+                , LGO_MST_ATT_SIZE
+                , LGO_MST_REG_DT
+                , LGO_MST_REG_IP
+                , LGO_MST_REG_ID
+                , LGO_MST_UPD_DT
+                , LGO_MST_UPD_IP
+                , LGO_MST_UPD_ID
+            )VALUES(
+                SEQ_LGO_MST_IDX.NEXTVAL
+                , #{REG_ID}
+                , #{LGO_MST_TYPE}
+                , #{LGO_MST_SYS_PATH}
+                , #{LGO_MST_ATT_PATH}
+                , #{LGO_MST_ORG_NM}
+                , #{LGO_MST_SYS_NM}
+                , #{LGO_MST_ATT_SIZE}
+                , TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS')
+                , #{REG_IP}
+                , #{REG_ID}
+                , TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS')
+                , #{REG_IP}
+                , #{REG_ID}
+            )
+    </update>
+
+    <!-- 로고 주소 -->
+    <select id="selectLogoUrl" parameterType="HashMap" resultType="String">
+        /* Logo.selectLogoUrl */
+        SELECT
+            LM.LGO_MST_ATT_PATH || LM.LGO_MST_SYS_NM AS WEB_PATH
+        FROM T_LGO_MST LM
+            INNER JOIN T_CMM_COM CC ON CC.CMN_COM_IDX = LM.LGO_MST_TYPE AND CC.CMN_COM_USE_YN = 'Y'
+        WHERE LM.LGO_MST_TYPE = #{LGO_MST_TYPE}
+    </select>
+</mapper>

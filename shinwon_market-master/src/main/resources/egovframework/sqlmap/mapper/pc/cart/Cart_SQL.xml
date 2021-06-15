@@ -1,0 +1,3610 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="PcCart">
+
+    <!-- 로그인시 상품정보 해당 회원에게로 소유권 이전 -->
+    <update id="updateCartOwner" parameterType="java.util.HashMap">
+    /* PcCart.updateCartOwner */
+    <![CDATA[
+        UPDATE T_MEM_CRT
+        SET
+            MEM_MST_MEM_ID = #{MEM_MST_MEM_ID},
+            MEM_CRT_SES_ID = ''
+        WHERE
+            MEM_MST_MEM_ID IS NULL
+            AND MEM_CRT_SES_ID = #{MEM_CRT_SES_ID}
+    ]]>
+    </update>
+    
+    <!-- 로그인시 임시주문정보 해당 회원에게로 소유권 이전 -->
+    <update id="updateTempOrderOwner" parameterType="java.util.HashMap">
+    /* PcCart.updateTempOrderOwner */
+    <![CDATA[
+        UPDATE T_ORD_TMP
+        SET
+            ORD_TMP_MEM_ID = #{ORD_TMP_MEM_ID},
+            ORD_TMP_SES_ID = ''
+        WHERE
+            ORD_TMP_MEM_ID IS NULL
+            AND ORD_TMP_SES_ID = #{ORD_TMP_SES_ID}
+            AND ORD_TMP_PRE_CD IS NULL /* 재결제 주문은 소유권 이전하지 않는다. */
+    ]]>
+    </update>
+    
+    <!-- 장바구니 IDX 기준 상품 정보 -->
+    <select id="selectCartPrdInfo" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+        /* PcCart.selectCartPrdInfo */
+        <![CDATA[
+            SELECT
+                TMC.MEM_CRT_IDX
+                , TMC.MEM_MST_MEM_ID
+                , TMC.MEM_CRT_SES_ID
+                , TMC.MEM_CRT_SES_ID
+                , TMC.MEM_PRD_MST_CD
+                , TMC.MEM_PRD_OPT_DTL_IDX
+                , TMC.MEM_CRT_CNT
+                , TMC.MEM_CRT_DRT_SAL_YN
+                , TMC.MEM_CRT_SLT_YN
+                , TPM.PRD_MST_NM
+                , TPM.PRD_MST_SEL_STATE
+                , TPM.PRD_MST_APV_STATE
+                , DTL.OPT_DTL_IDX
+                , DTL.OPT_DTL_ST_DT
+                , DTL.OPT_DTL_ED_DT
+                , DTL.OPT_DTL_NM
+                , DECODE(TMC.MEM_PRD_OPT_DTL_IDX, 0, TPM.PRD_MST_SEL_CNT, DTL.OPT_DTL_STK_CNT) as STOCK_CNT /* 선택옵션 없으면 마스터 재고, 있으면 옵션 재고 */
+                , CASE 
+                    WHEN TO_CHAR(SYSDATE, 'YYYYMMDD') BETWEEN DTL.OPT_DTL_ST_DT AND DTL.OPT_DTL_ED_DT THEN 'Y'
+                    ELSE 'N'
+                  END AVAILABLE_OPT_DT_YN /* 옵션상품인 경우 판매기간 가능 여부 */
+            FROM T_MEM_CRT TMC, T_PRD_MST TPM, T_OPT_DTL DTL
+            WHERE TMC.MEM_PRD_MST_CD = TPM.PRD_MST_CD
+            AND TMC.MEM_PRD_OPT_DTL_IDX = DTL.OPT_DTL_IDX(+)
+            AND TMC.MEM_CRT_IDX = #{MEM_CRT_IDX}
+        ]]> 
+    </select>
+    
+    <!-- 대표상품코드기준 판매가능여부 -->
+    <select id="selectSellAvailable" parameterType="java.util.HashMap" resultType="Integer">
+    /* PcCart.selectSellAvailable */
+    <![CDATA[
+        SELECT
+            COUNT(1) CNT
+        FROM T_PRD_MST
+        WHERE
+            PRD_MST_CD = #{PRD_MST_CD}
+            AND PRD_MST_SEL_STATE = 'I'
+    ]]>
+    </select>
+    
+    <!-- 장바구니에 있는 상품인지 확인 - 대표상품코드 / 옵션 -->
+    <select id="selectCartDupIdx" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+    /* PcCart.selectCartDupCount */
+    <![CDATA[
+        SELECT
+            MEM_CRT_IDX
+        FROM T_MEM_CRT
+        WHERE
+            MEM_PRD_MST_CD = #{MEM_PRD_MST_CD}
+            ]]>
+             <![CDATA[
+            AND MEM_CRT_DRT_SAL_YN = 'N'
+    		]]>
+            <if test="MEM_MST_MEM_ID != null and MEM_MST_MEM_ID != ''">
+                AND MEM_MST_MEM_ID = #{MEM_MST_MEM_ID}
+            </if>
+            <if test="MEM_MST_MEM_ID == null or MEM_MST_MEM_ID == ''">
+                AND MEM_CRT_SES_ID = #{MEM_CRT_SES_ID}
+            </if>
+            AND ROWNUM= 1
+    </select>
+    
+     <!-- 장바구니에 있는 상품인지 확인 - 대표상품코드 / 옵션 -->
+    <select id="selectCartDupCartProductIdx" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+    /* PcCart.selectCartDupCartProductIdx */
+    <![CDATA[
+        SELECT
+            MEM_CRT_IDX
+        FROM T_MEM_CRT
+        WHERE
+            MEM_PRD_MST_CD = #{MEM_PRD_MST_CD}
+            ]]>
+             <![CDATA[
+            AND MEM_CRT_DRT_SAL_YN = 'N'
+            AND MEM_PRD_OPT_DTL_IDX = #{MEM_PRD_OPT_DTL_IDX}
+    		]]>
+            <if test="MEM_MST_MEM_ID != null and MEM_MST_MEM_ID != ''">
+                AND MEM_MST_MEM_ID = #{MEM_MST_MEM_ID}
+            </if>
+            <if test="MEM_MST_MEM_ID != null or MEM_MST_MEM_ID != ''">
+                AND MEM_CRT_SES_ID = #{MEM_CRT_SES_ID}
+            </if>
+            <if test="PRD_MST_TYPE != null or MEM_CRT_COLOR != ''">
+                AND MEM_CRT_COLOR = #{MEM_CRT_COLOR}
+            </if>
+            <if test="MEM_CRT_SIZE != null or MEM_CRT_SIZE != ''">
+                AND MEM_CRT_SIZE = #{MEM_CRT_SIZE}
+            </if>
+            <if test="PRD_MST_TYPE != null or PRD_MST_TYPE != 'S'">
+                AND PRD_MST_TYPE = #{PRD_MST_TYPE}
+                AND PRD_MST_CD = #{PRD_MST_CD}
+            </if>
+            AND ROWNUM= 1
+    </select>
+    
+    <!-- 바로구매시 기존 장바구니에 있던 바로구매 상품 삭제 -->
+    <delete id="deleteDirectCart" parameterType="java.util.HashMap">
+    /* PcCart.deleteDirectCart */
+    <![CDATA[
+        DELETE FROM T_MEM_CRT
+        WHERE 
+            MEM_CRT_DRT_SAL_YN = 'Y'
+    ]]>
+        <if test="MEM_MST_MEM_ID != null and MEM_MST_MEM_ID != ''">
+            AND MEM_MST_MEM_ID = #{MEM_MST_MEM_ID}
+        </if>
+        <if test="MEM_MST_MEM_ID == null or MEM_MST_MEM_ID == ''">
+            AND MEM_CRT_SES_ID = #{MEM_CRT_SES_ID}
+        </if>
+    </delete>
+    <select id="selectGroupDeliveryFee" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+    <!--업체별 배송비 조회 -->
+    SELECT
+		PRD_MST_VDR_IDX ,
+		SUM(tpm.PRD_MST_DLV_FEE) AS VENDOR_DLV_FEE
+	FROM
+		T_MEM_CRT tmc
+	INNER JOIN T_PRD_MST tpm ON
+		tmc.MEM_PRD_MST_CD = tpm.PRD_MST_CD
+	WHERE
+		tmc.MEM_MST_MEM_ID = #{MEM_MST_MEM_ID}
+		AND tpm.PRD_MST_CNL_PC_YN = 'Y'
+		AND tmc.MEM_CRT_SLT_YN = 'N'
+		AND tmc.MEM_CRT_DRT_SAL_YN = 'N'
+		AND tpm.PRD_MST_DEL_YN = 'N'
+	GROUP BY
+		tpm.PRD_MST_VDR_IDX
+    </select>
+    <!-- 장바구니 상품 등록 -->
+    <insert id="insertCart" parameterType="java.util.HashMap">
+         
+	    /* PcCart.insertCart */
+	    INSERT ALL
+	    <foreach collection="PRODUCT_LIST" item="item" separator="">
+	    <![CDATA[
+	    	
+	        INTO T_MEM_CRT
+	            ( 
+	            MEM_CRT_IDX
+	            , MEM_PRD_MST_CD
+	            , MEM_CRT_COLOR
+	            , MEM_CRT_SIZE
+	            , PRD_MST_TYPE
+	            , MEM_PRD_OPT_DTL_IDX
+	            , PRD_MST_CD
+	            , MEM_CRT_CNT
+	            , MEM_CRT_REG_DT
+	            , MEM_CRT_REG_IP
+	            , MEM_CRT_DRT_SAL_YN
+	            , MEM_CRT_DLV_GBN
+	            , MEM_CRT_SHP_MST_IDX
+	            , MEM_CRT_GET_PKU_DT
+	            , MEM_CRT_GET_PKU_HH            
+	            , MEM_CRT_SLT_YN
+	            , MEM_CRT_UP_IDX
+	            , MEM_CRT_LNG_DIV
+	            , PLN_MST_IDX
+	            , CHN_DTL_CD
+	            , MEM_MST_MEM_ID
+	            , MEM_CRT_SES_ID
+	            
+	            )
+	        VALUES
+	        ]]>
+	          
+            		(
+            		(SELECT FN_GET_NEXT_SEQ('SEQ_MEM_CRT_IDX') FROM DUAL)
+		            , #{item.MEM_PRD_MST_CD}
+		            , #{item.MEM_CRT_COLOR}
+		            , #{item.MEM_CRT_SIZE}
+		            , #{item.PRD_MST_TYPE}
+		            , #{item.MEM_PRD_OPT_DTL_IDX}
+	            	, #{PRD_MST_CD}
+		            , NVL(#{item.MEM_CRT_CNT},1)
+		            , TO_CHAR(SYSDATE,'YYYYMMDDHH24MISS')
+		            , #{MEM_CRT_REG_IP} 
+		            , NVL(#{MEM_CRT_DRT_SAL_YN}, 'N')
+		            , #{MEM_CRT_DLV_GBN}
+		            , #{MEM_CRT_SHP_MST_IDX}
+		            , #{MEM_CRT_GET_PKU_DT}
+		            , #{MEM_CRT_GET_PKU_HH}
+		            , #{MEM_CRT_SLT_YN}
+		            , #{MEM_CRT_UP_IDX}
+		            , #{MEM_CRT_LNG_DIV}
+		            , #{PLN_MST_IDX}
+		            , #{CHN_DTL_CD}
+		            ,
+		    		
+	            <if test="MEM_MST_MEM_ID != null and MEM_MST_MEM_ID != ''">
+	                #{MEM_MST_MEM_ID}
+	                , ''
+	            </if>
+	            <if test="MEM_MST_MEM_ID == null or MEM_MST_MEM_ID == ''">
+	                ''
+	                , #{MEM_CRT_SES_ID}
+	            </if>
+	            )
+        		</foreach>
+        		SELECT * FROM DUAL
+    </insert>
+    
+    <!-- 상품삭제 -->
+    <delete id="deleteCart" parameterType="java.util.HashMap">
+    /* PcCart.deleteCart */
+    <![CDATA[
+            DELETE FROM T_MEM_CRT
+            WHERE 1 = 1 
+    ]]>
+            <if test="MEM_MST_MEM_ID != null and MEM_MST_MEM_ID != ''">
+                AND MEM_MST_MEM_ID = #{MEM_MST_MEM_ID}
+            </if>
+            <if test="MEM_MST_MEM_ID == null or MEM_MST_MEM_ID == ''">
+                AND MEM_CRT_SES_ID = #{MEM_CRT_SES_ID}
+            </if>
+    <![CDATA[   
+        AND 
+        (
+            MEM_CRT_IDX IN
+     ]]>    
+        <foreach collection="MEM_CRT_IDXs" item="MEM_CRT_IDX" open="(" close=")" separator=",">#{MEM_CRT_IDX}</foreach>
+     <![CDATA[
+            OR MEM_CRT_UP_IDX IN
+     ]]>    
+        <foreach collection="MEM_CRT_IDXs" item="MEM_CRT_IDX" open="(" close=")" separator=",">#{MEM_CRT_IDX}</foreach>
+        )
+    
+    </delete>
+   
+    <!-- 장바구니 수량 변경(장바구니 상품 담을때 동일 상품 있는 경우 수량 추가) -->
+    <update id="updateCartCount" parameterType="java.util.HashMap">
+    /* PcCart.updateCartCount */
+    <![CDATA[
+        UPDATE T_MEM_CRT
+        SET MEM_CRT_CNT = MEM_CRT_CNT + #{MEM_CRT_CNT}
+        WHERE
+            MEM_CRT_IDX = #{MEM_CRT_IDX}
+        AND MEM_CRT_DRT_SAL_YN = 'N'    
+    ]]>
+        <if test="MEM_MST_MEM_ID != null and MEM_MST_MEM_ID != ''">
+            AND MEM_MST_MEM_ID = #{MEM_MST_MEM_ID}
+        </if>
+        <if test="MEM_MST_MEM_ID == null or MEM_MST_MEM_ID == ''">
+            AND MEM_CRT_SES_ID = #{MEM_CRT_SES_ID}
+        </if>
+    </update>
+    
+    <!-- 장바구니 목록 -->
+    <select id="selectCartlist" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+    /* PcCart.selectCartlist */
+        <![CDATA[
+        SELECT
+            S3.*
+            , SUM(DECODE(FREE_DLV_CHARGE_YN, 'Y', 0, FIN_DLV_CHARGE)) OVER() as SUM_FIN_DLV_CHARGE /* 총 배송비 */ 
+            , (SELECT SHP_MST_NM FROM T_SHP_MST WHERE SHP_MST_IDX = MEM_CRT_SHP_MST_IDX) as SHP_MST_NM /* 겟잇나우 지점명 */
+        FROM
+        (
+            SELECT
+                S2.*
+                , 
+                /* 배송비 무료조건 수정 2016.9.6 > 기존 :  업체별 주문금액이 배송비무료조건금액 이상인 경우, 묶음배송만 적용되도록 수정 
+                CASE
+                    WHEN DLV_BUNDLE_YN = 'Y' THEN
+                        CASE
+                            WHEN SUM_VDR_ORDER_PRICE >=  VDR_MST_DLV_PRICE THEN 'Y' /*
+                            ELSE 'N'
+                        END
+                    ELSE 'N'
+                END FREE_DLV_CHARGE_YN 
+                */
+                /* 수정 : 배송비무료조건 금액 이상인경우 무료 배송 */
+                CASE
+                    WHEN SUM_VDR_ORDER_PRICE >=  VDR_MST_DLV_PRICE THEN 'Y' /* 업체별 주문금액이 배송비무료조건금액 이상인 경우 */
+                    ELSE 'N'
+                END FREE_DLV_CHARGE_YN /* 묶음배송만 적용되도록 수정 */
+                , CASE              
+                    WHEN DLV_BUNDLE_YN = 'Y' AND VDR_ROWNUM = 1 THEN DLV_CHARGE
+                    WHEN DLV_BUNDLE_YN = 'Y' AND VDR_ROWNUM <> 1 THEN 0
+                    ELSE DLV_CHARGE
+                  END FIN_DLV_CHARGE    /* 묶음배송인 경우 묶음배송비, 개별배송인 경우 개별배송비 */
+                , SUM(RESERVE_POINT) OVER() as SUM_RESERVE_POINT /* 총 적립예정마일리지 */  
+            FROM
+            (
+                SELECT
+                    S1.*
+                    , NVL(TMP_VDR_MST_DLV_PRICE,0) as VDR_MST_DLV_PRICE
+                    , CASE
+                        WHEN DLV_BUNDLE_YN = 'Y' AND MIN_DLV_CHARGE > 0 THEN MAX_DLV_CHARGE /* 묶음배송이고, 무료배송 포함 안된 경우 가장 큰 배송비 */
+                        WHEN DLV_BUNDLE_YN = 'Y' AND MIN_DLV_CHARGE = 0 THEN MIN_DLV_CHARGE /* 묶음배송이고, 무료배송 포함된 경우 무료배송*/ 
+                        ELSE CALCULATED_DLV_CHARGE
+                      END DLV_CHARGE /*배송비*/    
+                    , INSTANT_CPN_PRC*MEM_CRT_CNT as INSTANT_CPN_ORDER_PRICE /* 상품별 즉시할인금액(즉시쿠폰할인금액*수량) */  
+                    , TMP_PRODUCT_PRICE as PRODUCT_PRICE /* 서브옵션 제외 옵션별 추가금액까지 계산한 최종 상품가격 */
+                    , TMP_CUSTOMER_PRICE as CUSTOMER_PRICE /* 서브옵션 제외 옵션별 추가금액까지 계산한 최종 판매가격 */
+                    , ((TMP_PRODUCT_PRICE+NVL(OPT_DTL_ADD_PRC,0))*MEM_CRT_CNT) + NVL(SUM_SUB_OPTION_ADD_PRC,0) as PRODUCT_ORDER_PRICE /* 서브옵션 포함 상품별 상품금액(상품가*수량) */
+                    , ((TMP_CUSTOMER_PRICE)*MEM_CRT_CNT) + NVL(SUM_SUB_OPTION_ADD_PRC,0) as CUSTOMER_ORDER_PRICE /* 서브옵션 포함 상품별 주문금액(판매가*수량) */
+                    , SUM(((TMP_CUSTOMER_PRICE)*MEM_CRT_CNT) + NVL(SUM_SUB_OPTION_ADD_PRC,0)) OVER(PARTITION BY MEM_CRT_DLV_GBN, CHN_DTL_CD, MEM_CRT_LNG_DIV, MEM_CRT_SHP_MST_IDX, MEM_CRT_GET_PKU_DT, MEM_CRT_GET_PKU_HH, PRD_MST_VDR_IDX) as SUM_VDR_ORDER_PRICE /* 서브옵션 포함 업체별 주문금액 */   
+                    , SUM(((TMP_CUSTOMER_PRICE)*MEM_CRT_CNT) + NVL(SUM_SUB_OPTION_ADD_PRC,0)) OVER() as SUM_TOT_ORDER_PRICE /* 서브옵션 포함 총 주문금액 */  
+                    , CASE
+                        WHEN PRD_MST_IVB_YN = 'Y' THEN 0
+                        ELSE FN_GET_CART_RESERVE_PRICE((TMP_CUSTOMER_PRICE*MEM_CRT_CNT)+NVL(SUM_SUB_OPTION_ADD_PRC,0), PRD_MST_ADD_MIL, #{MEM_MST_MEM_ID}, 'M')
+                      END RESERVE_POINT /* 적립예정마일리지 */
+                FROM      
+                (
+                    SELECT 
+                        MEM_CRT_IDX
+                        , MC.MEM_CRT_COLOR
+                        , MC.MEM_CRT_SIZE
+                        , TCC_COLOR.CMN_COM_ETC2  AS MEM_CRT_COLOR_VALUE
+                        , TCC_COLOR.CMN_COM_ETC3  AS MEM_CRT_COLOR_TITLE
+                        , TCC_SIZE.CMN_COM_NM  AS MEM_CRT_SIZE_VALUE 
+                        , PM.PRD_MST_CD
+                        , PM.PRD_MST_ADD_MIL
+                        , TPO.PRD_OPT_IDX
+                        , TPO.PRD_OPT_NM
+                        , MEM_CRT_DRT_SAL_YN
+                        , PM.PRD_MST_NM
+                        , FN_GET_CART_PRD_PRICE(MEM_PRD_MST_CD, #{MEM_MST_MEM_ID}) as TMP_PRODUCT_PRICE /* 회원,비회원:상품가격 기업회원:기업회원등급가 */              
+                        , FN_GET_CART_CUS_PRICE(MEM_PRD_MST_CD, #{MEM_MST_MEM_ID}, #{CART_PC_MOBILE_GUBUN}, MC.CHN_DTL_CD, null) as TMP_CUSTOMER_PRICE /* 회원:즉시할인 적용가 비회원:상품가격 기업회원:기업회원등급가 */
+                        , PRD_MST_PRC
+                        , DECODE(#{CART_PC_MOBILE_GUBUN}, 'P', PRD_MST_PC_CPN_UNT, PRD_MST_MB_CPN_UNT) as INSTANT_CPN_UNT /* 즉시쿠폰 정액 정율 여부 */
+                        , FN_GET_CART_IST_CPN_PRC(PM.PRD_MST_CD, #{MEM_MST_MEM_ID}, #{CART_PC_MOBILE_GUBUN}, MC.CHN_DTL_CD, null) as INSTANT_CPN_PRC /* 즉시쿠폰 할인금액 */
+                        , FN_PRODUCT_IMG (PM.PRD_MST_CD, #{THUMBNAIL_SIZE}) PRODUCT_THUM_IMG
+                        , FN_PRODUCT_IMG_ALT(PM.PRD_MST_CD, #{THUMBNAIL_SIZE}) PRD_IMAGE_ALT
+                        , MEM_CRT_CNT
+                        , PM.PRD_MST_SEL_STATE
+                        , PM.PRD_MST_VDR_IDX /* 입점업체 IDX */
+                        , PM.PRD_MST_VDR_YN /* 입점업체여부 */
+                        , (SELECT BND_MST_BRAND_NM FROM T_BND_MST WHERE BND_MST_IDX = PM.PRD_MST_BRD_IDX ) AS PRD_MST_BRAND_NM
+                        , COUNT(1) OVER(PARTITION BY MEM_CRT_DLV_GBN, MEM_CRT_LNG_DIV, MEM_CRT_SHP_MST_IDX, MEM_CRT_GET_PKU_DT, MEM_CRT_GET_PKU_HH, PRD_MST_VDR_IDX) as VDR_IDX_CNT /* 동일 입점업체 상품 개수(장바구니 구분별) 이건 채널 구분 안한다 */
+                        , ROW_NUMBER() OVER(PARTITION BY MEM_CRT_DLV_GBN, MEM_CRT_LNG_DIV, MEM_CRT_SHP_MST_IDX, MEM_CRT_GET_PKU_DT, MEM_CRT_GET_PKU_HH, PM.PRD_MST_VDR_IDX ORDER BY MEM_CRT_IDX DESC) as VDR_ROWNUM /* 동일 입점업체 상품 순번(장바구니 구분별) 이건 채널 구분 안한다 */
+                        , PM.PRD_MST_DLV_BND /* 묶음배송 가능여부 0:불가 1:가능 */
+                        , PM.PRD_MST_DLV_FEE /* 상품 기본 배송비 */ 
+                        , DECODE(PM.PRD_MST_DLV_BND, 0, PM.PRD_MST_DLV_FEE, PM.PRD_MST_DLV_FEE) as CALCULATED_DLV_CHARGE /* 묶음배송 N인 상품은 배송비*수량 */
+                        , (SELECT NVL(VDR_MST_DLV_PRICE,0) FROM T_VDR_MST WHERE VDR_MST_IDX = PM.PRD_MST_VDR_IDX) as TMP_VDR_MST_DLV_PRICE /* 배송비무료조건금액 */
+                        , CASE
+                            WHEN 
+                                SUM(PRD_MST_DLV_BND) OVER(PARTITION BY MEM_CRT_DLV_GBN, MEM_CRT_LNG_DIV, MEM_CRT_SHP_MST_IDX, MEM_CRT_GET_PKU_DT, MEM_CRT_GET_PKU_HH, PRD_MST_VDR_IDX) = COUNT(1) OVER(PARTITION BY MEM_CRT_DLV_GBN, MEM_CRT_LNG_DIV, MEM_CRT_SHP_MST_IDX, MEM_CRT_GET_PKU_DT, MEM_CRT_GET_PKU_HH, PRD_MST_VDR_IDX) 
+                                AND COUNT(1) OVER(PARTITION BY MEM_CRT_DLV_GBN, MEM_CRT_LNG_DIV, MEM_CRT_SHP_MST_IDX, MEM_CRT_GET_PKU_DT, MEM_CRT_GET_PKU_HH, PRD_MST_VDR_IDX) > 1 /* 업체 상품이 한개 이상인 경우 */
+                            THEN 'Y'    
+                            ELSE 'N' 
+                          END DLV_BUNDLE_YN /* 묶음배송여부 */
+                        , MAX(PRD_MST_DLV_FEE) OVER(PARTITION BY MEM_CRT_DLV_GBN, CHN_DTL_CD, MEM_CRT_LNG_DIV, MEM_CRT_SHP_MST_IDX, MEM_CRT_GET_PKU_DT, MEM_CRT_GET_PKU_HH, PRD_MST_VDR_IDX) as MAX_DLV_CHARGE
+                        , MIN(PRD_MST_DLV_FEE) OVER(PARTITION BY MEM_CRT_DLV_GBN, CHN_DTL_CD, MEM_CRT_LNG_DIV, MEM_CRT_SHP_MST_IDX, MEM_CRT_GET_PKU_DT, MEM_CRT_GET_PKU_HH, PRD_MST_VDR_IDX) as MIN_DLV_CHARGE
+                        , 
+                        (
+                            SELECT
+                                NVL(OPT_DTL_ADD_PRC,0) 
+                            FROM T_OPT_DTL
+                            WHERE OPT_DTL_IDX = MC.MEM_PRD_OPT_DTL_IDX
+                        ) as OPT_DTL_ADD_PRC
+                        , MEM_CRT_SLT_YN /* 선택옵션 여부 */
+                        , MEM_CRT_UP_IDX /* 상위주문상품 IDX */
+                        , (SELECT COUNT(1) FROM T_MEM_CRT WHERE MEM_CRT_UP_IDX = MC.MEM_CRT_IDX) as SUB_OPTION_CNT /* 서브옵션 개수 */
+                        , (SELECT 
+                                SUM(
+                                    OPT_DTL_ADD_PRC*
+                                        (
+                                            SELECT MEM_CRT_CNT FROM T_MEM_CRT WHERE MEM_CRT_UP_IDX = MC.MEM_CRT_IDX AND MEM_PRD_OPT_DTL_IDX = DTL.OPT_DTL_IDX
+                                        )
+                                    )
+                            FROM T_OPT_DTL DTL
+                            WHERE OPT_DTL_IDX IN
+                            (
+                                SELECT MEM_PRD_OPT_DTL_IDX FROM T_MEM_CRT WHERE MEM_CRT_UP_IDX = MC.MEM_CRT_IDX
+                            )
+                            ) as SUM_SUB_OPTION_ADD_PRC /* 서브옵션 추가금 합계 */
+                        , MEM_CRT_DLV_GBN /* 장바구니 배송 유형 */  
+                        , MEM_CRT_SHP_MST_IDX /* 겟잇나우 매장 IDX */
+                        , MEM_CRT_GET_PKU_DT
+                        , MEM_CRT_GET_PKU_HH
+                        , DECODE(MEM_CRT_SHP_MST_IDX, NULL, 0, DENSE_RANK() OVER(ORDER BY MEM_CRT_SHP_MST_IDX, MEM_CRT_GET_PKU_DT, MEM_CRT_GET_PKU_HH)) as GET_IT_NOW_ROWNUM /* 겟잇나우 매장 순번 */
+                        , PM.PRD_MST_LNG_DIV_YN /* 장기할부 사용여부 */
+                        , NVL(MEM_CRT_LNG_DIV,0) as MEM_CRT_LNG_DIV /* 장기할부 개월 */
+                        , PM.PRD_MST_IVB_YN /* 무형상품 여부 */
+                        , MC.CHN_DTL_CD
+                        , TVM.VDR_MST_IDX 
+                        , TVM.VDR_MST_NM 
+                        , MC.MEM_CRT_REG_DT
+                    FROM
+                        T_MEM_CRT MC, T_PRD_MST PM, T_PRD_OPT TPO, T_VDR_MST TVM , T_CMM_COM TCC_COLOR, T_CMM_COM TCC_SIZE
+                    WHERE
+                        MC.MEM_PRD_MST_CD = PM.PRD_MST_CD
+                        AND PM.PRD_MST_VDR_IDX = TVM.VDR_MST_IDX 
+                        AND TCC_COLOR.CMN_COM_IDX = MC.MEM_CRT_COLOR
+                        AND TCC_SIZE.CMN_COM_IDX  = MC.MEM_CRT_SIZE
+                        AND MC.MEM_PRD_OPT_DTL_IDX = TPO.PRD_OPT_IDX(+)
+                        AND MC.MEM_CRT_SLT_YN = 'N'
+                        AND MC.MEM_CRT_DRT_SAL_YN = 'N'
+                        AND PM.PRD_MST_DEL_YN = 'N' 
+                ]]>
+                    <if test="MEM_MST_MEM_ID != null and MEM_MST_MEM_ID != ''">
+                        AND MEM_MST_MEM_ID = #{MEM_MST_MEM_ID}
+                    </if>
+                    <if test="MEM_MST_MEM_ID == null or MEM_MST_MEM_ID == ''">
+                        AND MEM_CRT_SES_ID = #{MEM_CRT_SES_ID}
+                    </if>
+                    <if test="MEM_CRT_IDXs != null and MEM_CRT_IDXs != ''">
+                        AND MEM_CRT_IDX IN <foreach collection="MEM_CRT_IDXs" item="MEM_CRT_IDX" open="(" close=")" separator=",">#{MEM_CRT_IDX}</foreach>
+                    </if>
+                    <if test="PRD_MST_CNL_PC_YN != null and PRD_MST_CNL_PC_YN.equals('Y'.toString())">
+                        AND PM.PRD_MST_CNL_PC_YN = #{PRD_MST_CNL_PC_YN}
+                    </if>
+                    <if test="PRD_MST_CNL_MB_YN != null and PRD_MST_CNL_MB_YN.equals('Y'.toString())">
+                        AND PM.PRD_MST_CNL_MB_YN = #{PRD_MST_CNL_MB_YN}
+                    </if>
+                ) S1
+                ORDER BY MEM_CRT_DLV_GBN, PRD_MST_VDR_IDX, VDR_ROWNUM
+                /* ORDER BY PRD_MST_VDR_IDX, VDR_ROWNUM */
+            ) S2    
+        ) S3    
+    </select>
+    
+    <!-- 주문서 상품 목록 -->
+    <select id="selectTempOrderProductList" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+    /* PcCart.selectTempOrderProductList */
+        <![CDATA[
+        SELECT
+            S3.*
+            ,
+              CASE /* 일반/재결제시 다름 */
+                WHEN ORD_TMP_PRE_CD IS NULL THEN SUM(DECODE(FREE_DLV_CHARGE_YN, 'Y', 0, FIN_DLV_CHARGE)) OVER()
+                ELSE (SELECT ORD_MST_DLV_CAG FROM T_ORD_MST WHERE ORD_MST_CD = ORD_TMP_PRE_CD)
+              END SUM_FIN_DLV_CHARGE /* 총 배송비(배송비 쿠폰 할인까지 계산한 실제 배송비) */ 
+            ,
+              CASE /* 일반/재결제시 다름 */
+                WHEN ORD_TMP_PRE_CD IS NULL THEN SUM(FIN_DLV_ADD_CHARGE) OVER()
+                ELSE 0
+              END SUM_FIN_DLV_ADD_CHARGE /* 총 추가배송비(입점업체당 5000원 붙는 것으로 수정.) */
+            , (SELECT SHP_MST_NM FROM T_SHP_MST WHERE SHP_MST_IDX = ORD_TMP_SHP_MST_IDX) as SHP_MST_NM /* 겟잇나우 지점명 */
+            , COUNT(0)OVER() AS TOT_CNT
+        FROM
+        (
+            SELECT
+                S2.*
+                , 
+                /* 배송비 무료조건 수정 2016.9.6 > 기존 :  업체별 주문금액이 배송비무료조건금액 이상인 경우, 묶음배송만 적용되도록 수정 
+                CASE
+                    WHEN DLV_BUNDLE_YN = 'Y' THEN
+                        CASE
+                            WHEN SUM_VDR_ORDER_PRICE >=  VDR_MST_DLV_PRICE THEN 'Y'
+                            ELSE 'N'
+                        END
+                    ELSE 'N'
+                END FREE_DLV_CHARGE_YN
+                */
+                /* 수정 : 배송비무료조건 금액 이상인경우 무료 배송 */
+                CASE
+                    WHEN SUM_VDR_ORDER_PRICE >=  VDR_MST_DLV_PRICE THEN 'Y'
+                ELSE 'N'
+                END FREE_DLV_CHARGE_YN
+                , CASE              
+                    WHEN DLV_BUNDLE_YN = 'Y' AND VDR_ROWNUM = 1 THEN DLV_CHARGE
+                    WHEN DLV_BUNDLE_YN = 'Y' AND VDR_ROWNUM <> 1 THEN 0
+                    ELSE DLV_CHARGE
+                  END FIN_DLV_CHARGE    /* 묶음배송인 경우 묶음배송비, 개별배송인 경우 개별배송비 */
+                  , CASE
+                    WHEN VDR_ROWNUM = 1 THEN NVL(DLV_ADD_CHARGE,0) 
+                    ELSE 0
+                  END FIN_DLV_ADD_CHARGE /* 추가배송비는 업체별로 받는다. 업체별 첫번째 상품에만 추가 배송비 붙임. */
+                 , SUM(RESERVE_POINT) OVER() as SUM_RESERVE_POINT /* 총 적립예정포인트 */
+                 , SUM(RESERVE_CASHBAG) OVER() as SUM_RESERVE_CASHBAG /* 총 적립예정캐쉬백 */
+            FROM
+            (
+                SELECT
+                    S1.*
+                    , NVL(TMP_VDR_MST_DLV_PRICE,0) as VDR_MST_DLV_PRICE
+                    , CASE
+                        WHEN DLV_BUNDLE_YN = 'Y' AND MIN_DLV_CHARGE > 0 THEN MAX_DLV_CHARGE /* 묶음배송이고, 무료배송 포함 안된 경우 가장 큰 배송비 */
+                        WHEN DLV_BUNDLE_YN = 'Y' AND MIN_DLV_CHARGE = 0 THEN MIN_DLV_CHARGE /* 묶음배송이고, 무료배송 포함된 경우 무료배송*/ 
+                        ELSE CALCULATED_DLV_CHARGE
+                      END DLV_CHARGE /*배송비*/    
+                    , INSTANT_CPN_PRC*PRD_TMP_CNT as INSTANT_CPN_ORDER_PRICE  /* 상품별 즉시할인금액(즉시쿠폰할인금액*수량) */
+                    , TMP_PRODUCT_PRICE+NVL(OPT_DTL_ADD_PRC,0) as PRODUCT_PRICE /* 서브옵션 제외 옵션별 추가금액까지 계산한 최종 상품가격 */
+                    , TMP_CUSTOMER_PRICE as CUSTOMER_PRICE /* 서브옵션 제외 옵션별 추가금액까지 계산한 최종 판매가격 */
+                    , CASE /* 견적 주문시 다름  */
+                        WHEN ESM_PRD_IDX IS NULL THEN ((TMP_CUSTOMER_PRICE)*PRD_TMP_CNT) 
+                        ELSE NVL(ESM_PRD_ESM_PRICE,0) 
+                      END TOT_CUSTOMER_PRICE /* 서브옵션 제외 옵션별 추가금액까지 계산한 최종 판매가격*수량 */
+                    , ((TMP_PRODUCT_PRICE+NVL(OPT_DTL_ADD_PRC,0))*PRD_TMP_CNT) + NVL(SUM_SUB_OPTION_ADD_PRC,0) as PRODUCT_ORDER_PRICE /* 서브옵션 포함 상품별 상품금액(상품가*수량) */
+                    , CASE /* 견적 주문시 다름  */
+                        WHEN ESM_PRD_IDX IS NULL THEN ((TMP_CUSTOMER_PRICE)*PRD_TMP_CNT) + NVL(SUM_SUB_OPTION_ADD_PRC,0)
+                        ELSE NVL(ESM_PRD_ESM_PRICE,0) + NVL(SUM_SUB_OPTION_ADD_PRC,0)
+                      END CUSTOMER_ORDER_PRICE  /* 서브옵션 포함 상품별 주문금액(판매가*수량) */                  
+                    , CASE /* 견적 주문시 다름  */
+                        WHEN ESM_PRD_IDX IS NULL THEN SUM(((TMP_CUSTOMER_PRICE)*PRD_TMP_CNT) + NVL(SUM_SUB_OPTION_ADD_PRC,0)) OVER(PARTITION BY PRD_MST_VDR_IDX)
+                        ELSE SUM(ESM_PRD_ESM_PRICE + NVL(SUM_SUB_OPTION_ADD_PRC,0)) OVER(PARTITION BY PRD_MST_VDR_IDX)
+                      END SUM_VDR_ORDER_PRICE  /* 서브옵션 포함 업체별 주문금액 */   
+                    , CASE /* 견적 주문시 다름  */
+                        WHEN ESM_PRD_IDX IS NULL THEN SUM(((TMP_CUSTOMER_PRICE)*PRD_TMP_CNT) + NVL(SUM_SUB_OPTION_ADD_PRC,0)) OVER()
+                        ELSE SUM(ESM_PRD_ESM_PRICE + NVL(SUM_SUB_OPTION_ADD_PRC,0)) OVER()
+                      END SUM_TOT_ORDER_PRICE /* 서브옵션 포함 총 주문금액 */  
+                    , CASE 
+                        WHEN PRD_MST_IVB_YN = 'Y' THEN 0
+                        ELSE FN_GET_CART_RESERVE_PRICE((TMP_CUSTOMER_PRICE*PRD_TMP_CNT)+NVL(SUM_SUB_OPTION_ADD_PRC,0), PRD_MST_ADD_MIL, #{MEM_MST_MEM_ID}, 'M')
+                      END RESERVE_POINT /* 적립예정포인트 */
+                      
+                    , CASE 
+                        WHEN PRD_MST_IVB_YN = 'Y' THEN 0
+                        ELSE FN_GET_CART_RESERVE_PRICE((TMP_CUSTOMER_PRICE*PRD_TMP_CNT)+NVL(SUM_SUB_OPTION_ADD_PRC,0), PRD_MST_ADD_MIL, #{MEM_MST_MEM_ID}, 'C')
+                      END RESERVE_CASHBAG /* 적립예정캐쉬백 */  
+                    , NVL(BUY_PRC,0) as PRD_BUY_PRC /* 매입원가 */
+                FROM      
+                (
+                    SELECT
+                        *
+                    FROM
+                    (
+                        SELECT 
+                            PT.PRD_TMP_IDX
+                            , PM.PRD_MST_CD
+                            , PM.PRD_MST_ADD_MIL
+                            , PM.PRD_MST_DLV_DSN_YN /* 배송지정일 가능여부 */
+                            , TO_CHAR(SYSDATE+NVL(PM.PRD_MST_DLV_DT,0), 'YYYY-MM-DD') as DLV_MIN_DT /* 배송가능일 */
+                            , TO_CHAR(SYSDATE+90, 'YYYY-MM-DD') as DLV_MAX_DT /* 최대배송가능일(3개월) */
+                            , TPO.PRD_OPT_IDX
+                            , PT.PRD_TMP_OPT_DTL_IDX as OPT_DTL_IDX /* 옵션 idx 옵션이 없는 경우 0 */
+                            , TPO.PRD_OPT_NM
+                            , FN_GET_PRODUCT_NM(PM.PRD_MST_CD,30) AS PRD_MST_NM
+                            , CASE /* 일반/재결제시 다름 */
+                                WHEN OT.ORD_TMP_PRE_CD IS NULL THEN 
+                                    CASE /* 견적 주문시 다름  */
+                                        WHEN ESM_PRD_IDX IS NULL THEN FN_GET_CART_PRD_PRICE(PM.PRD_MST_CD, #{MEM_MST_MEM_ID})
+                                        ELSE
+                                        (
+                                            SELECT 
+                                                TRUNC(ESM_PRD_ESM_PRICE/ESM_PRD_CNT,0)
+                                            FROM T_ESM_PRD EP
+                                            WHERE EP.ESM_PRD_IDX = PT.ESM_PRD_IDX
+                                        )
+                                         /* 견적 주문은 판매가를 견적가/수량으로 계산해서 보여준다. */
+                                    END     
+                                ELSE (SELECT ORD_PRD_PRD_PRC FROM T_ORD_PRD WHERE ORD_ORD_MST_CD = OT.ORD_TMP_PRE_CD AND ORD_PRD_MST_CD = PT.PRD_TMP_MST_CD AND ORD_PRD_OPT_DTL_IDX = PT.PRD_TMP_OPT_DTL_IDX)
+                              END TMP_PRODUCT_PRICE /* 회원,비회원:상품가격 기업회원:기업회원등급가 */
+                            , CASE /* 일반/재결제시 다름 */
+                                WHEN OT.ORD_TMP_PRE_CD IS NULL THEN 
+                                    CASE /* 견적 주문시 다름  */
+                                        WHEN ESM_PRD_IDX IS NULL THEN FN_GET_CART_CUS_PRICE(PM.PRD_MST_CD, #{MEM_MST_MEM_ID}, #{CART_PC_MOBILE_GUBUN}, PT.CHN_DTL_CD, PT.PRD_TMP_OPT_DTL_IDX)
+                                        ELSE
+                                        (
+                                            SELECT 
+                                                TRUNC(ESM_PRD_ESM_PRICE/ESM_PRD_CNT,0)
+                                            FROM T_ESM_PRD EP
+                                            WHERE EP.ESM_PRD_IDX = PT.ESM_PRD_IDX
+                                        )
+                                         /* 견적 주문은 판매가를 견적가/수량으로 계산해서 보여준다. */
+                                    END 
+                                ELSE (SELECT ORD_PRD_SAL_PRC FROM T_ORD_PRD WHERE ORD_ORD_MST_CD = OT.ORD_TMP_PRE_CD AND ORD_PRD_MST_CD = PT.PRD_TMP_MST_CD AND ORD_PRD_OPT_DTL_IDX = PT.PRD_TMP_OPT_DTL_IDX)
+                              END TMP_CUSTOMER_PRICE /* 회원:즉시할인 적용가 비회원:상품가격 기업회원:기업회원등급가 */        
+                            , PM.PRD_MST_PRC
+                            , CASE /* 일반/재결제시 다름 */
+                                WHEN OT.ORD_TMP_PRE_CD IS NULL THEN DECODE(#{CART_PC_MOBILE_GUBUN}, 'P', PM.PRD_MST_PC_CPN_UNT, PM.PRD_MST_MB_CPN_UNT)
+                                ELSE (SELECT ORD_PRD_IST_CPN_UNT FROM T_ORD_PRD WHERE ORD_ORD_MST_CD = OT.ORD_TMP_PRE_CD AND ORD_PRD_MST_CD = PT.PRD_TMP_MST_CD AND ORD_PRD_OPT_DTL_IDX = PT.PRD_TMP_OPT_DTL_IDX)
+                              END INSTANT_CPN_UNT /* 즉시쿠폰 정액 정율 여부 */
+                            , CASE /* 일반/재결제시 다름 */
+                                WHEN OT.ORD_TMP_PRE_CD IS NULL THEN 
+                                    CASE /* 견적 주문시 다름  */
+                                        WHEN ESM_PRD_IDX IS NULL THEN FN_GET_CART_IST_CPN_PRC(PM.PRD_MST_CD, #{MEM_MST_MEM_ID}, #{CART_PC_MOBILE_GUBUN}, PT.CHN_DTL_CD, PT.PRD_TMP_OPT_DTL_IDX)  
+                                        ELSE 0 /* 견적 주문은 즉시할인 0 */
+                                    END                                     
+                                ELSE (SELECT ORD_PRD_IST_CPN_PRC FROM T_ORD_PRD WHERE ORD_ORD_MST_CD = OT.ORD_TMP_PRE_CD AND ORD_PRD_MST_CD = PT.PRD_TMP_MST_CD AND ORD_PRD_OPT_DTL_IDX = PT.PRD_TMP_OPT_DTL_IDX)
+                              END INSTANT_CPN_PRC  /* 즉시쿠폰 할인금액 */  
+                            , FN_PRODUCT_IMG (PM.PRD_MST_CD, #{THUMBNAIL_SIZE}) PRODUCT_THUM_IMG
+                            , FN_PRODUCT_IMG_ALT(PM.PRD_MST_CD, #{THUMBNAIL_SIZE}) PRD_IMAGE_ALT
+                            , PT.PRD_TMP_CNT
+                            , PM.PRD_MST_SEL_STATE
+                            , PM.PRD_MST_VDR_IDX /* 입점업체 IDX */
+                            , PM.PRD_MST_VDR_YN /* 입점업체여부 */
+                            , COUNT(1) OVER(PARTITION BY PM.PRD_MST_VDR_IDX) as VDR_IDX_CNT /* 동일 입점업체 상품 개수 */
+                            , ROW_NUMBER() OVER(PARTITION BY PM.PRD_MST_VDR_IDX ORDER BY PT.PRD_TMP_IDX DESC) as VDR_ROWNUM
+                            , PM.PRD_MST_DLV_BND /* 묶음배송 가능여부 0:불가 1:가능 */
+                            , PM.PRD_MST_DLV_FEE /* 상품 기본 배송비 */ 
+                            , DECODE(PM.PRD_MST_DLV_BND, 0, PM.PRD_MST_DLV_FEE, PM.PRD_MST_DLV_FEE) as CALCULATED_DLV_CHARGE /* 묶음배송 N인 상품은 배송비 */
+                            , (SELECT NVL(VDR_MST_DLV_PRICE,0) FROM T_VDR_MST WHERE VDR_MST_IDX = PM.PRD_MST_VDR_IDX) as TMP_VDR_MST_DLV_PRICE /* 배송비무료조건금액 */
+                            ,
+                            CASE /* 일반/재결제시 다름(재결제는 무조건 개별배송 처리) */
+                              WHEN ORD_TMP_PRE_CD IS NULL THEN
+                                  CASE 
+                                    WHEN SUM(PRD_MST_DLV_BND) OVER(PARTITION BY PRD_MST_VDR_IDX) = COUNT(1) OVER(PARTITION BY PRD_MST_VDR_IDX) 
+                                    AND COUNT(1) OVER(PARTITION BY PRD_MST_VDR_IDX) > 1 /* 업체 상품이 한개 이상인 경우 */
+                                    THEN 'Y'
+                                    ELSE 'N' 
+                                  END
+                              ELSE 'N'
+                            END DLV_BUNDLE_YN /* 묶음배송여부 */
+                           , MAX(PRD_MST_DLV_FEE) OVER(PARTITION BY PRD_MST_VDR_IDX) as MAX_DLV_CHARGE
+                           , MIN(PRD_MST_DLV_FEE) OVER(PARTITION BY PRD_MST_VDR_IDX) as MIN_DLV_CHARGE   
+                            , CASE /* 일반/재결제시 다름 */
+                                WHEN OT.ORD_TMP_PRE_CD IS NULL THEN 
+                                    (
+                                        SELECT
+                                            NVL(OPT_DTL_ADD_PRC,0) 
+                                        FROM T_OPT_DTL
+                                        WHERE OPT_DTL_IDX = PT.PRD_TMP_OPT_DTL_IDX
+                                        AND PT.ESM_PRD_IDX IS NULL /* 견적 주문인 경우 0 */
+                                    )
+                                ELSE (SELECT ORD_PRD_OPT_ADD_PRC FROM T_ORD_PRD WHERE ORD_ORD_MST_CD = OT.ORD_TMP_PRE_CD AND ORD_PRD_MST_CD = PT.PRD_TMP_MST_CD AND ORD_PRD_OPT_DTL_IDX = PT.PRD_TMP_OPT_DTL_IDX)
+                              END OPT_DTL_ADD_PRC
+                            , PT.PRD_TMP_DLV_ADD_CAG as DLV_ADD_CHARGE /* 상품별 추가배송비 */
+                            , OT.ORD_TMP_DLV_ADD_CAG /* 총 추가배송비 */
+                            , OT.ORD_TMP_DC_CPN /* 쿠폰할인금액 */
+                            , (SELECT SUM(NVL(ORD_TMP_PRD_SAL_PRC,0)) FROM T_PRD_TMP WHERE ORD_TMP_MST_CD = OT.ORD_TMP_MST_CD) as TOT_PRD_DC_CPN /* 상품쿠폰 할인 금액 */
+                            , (SELECT SUM(NVL(ORD_TMP_DLV_SAL_PRC,0)) FROM T_PRD_TMP WHERE ORD_TMP_MST_CD = OT.ORD_TMP_MST_CD) as TOT_DLV_DC_CPN /* 배송비쿠폰 할인 금액 */ 
+                            , OT.ORD_TMP_DC_PIT /* 포인트 할인금액 */
+                            , OT.ORD_TMP_DC_OCB /* OCB 할인금액 */
+                            , OT.ORD_TMP_PRE_CD /* 재결제시 이전 주문번호 */
+                            , DECODE(OT.ORD_TMP_PRE_CD, '', 0, (SELECT NVL(ORD_MST_DC_MLG,0) FROM T_ORD_MST WHERE ORD_MST_CD = OT.ORD_TMP_PRE_CD)) as PRE_USED_MLG /* 재결제시 기존 사용 마일리지 가져온다 */                       
+                            , ORD_TMP_SLT_YN /* 선택옵션 여부 */
+                            , ORD_TMP_UP_IDX /* 상위주문상품 IDX */
+                            , (SELECT COUNT(1) FROM T_PRD_TMP WHERE ORD_TMP_UP_IDX = PT.PRD_TMP_IDX) as SUB_OPTION_CNT /* 서브옵션 개수 */
+                            , 
+                            CASE /* 일반/재결제시 다름 */
+                                  WHEN OT.ORD_TMP_PRE_CD IS NULL THEN 
+                                    /* 일반/견적시 다름 */
+                                    CASE 
+                                        WHEN PT.ESM_PRD_IDX IS NULL THEN
+                                            (SELECT 
+                                                SUM(
+                                                    OPT_DTL_ADD_PRC*
+                                                        (
+                                                            SELECT 
+                                                                PRD_TMP_CNT 
+                                                            FROM T_PRD_TMP 
+                                                            WHERE ORD_TMP_UP_IDX = PT.PRD_TMP_IDX 
+                                                            AND PRD_TMP_OPT_DTL_IDX = DTL.OPT_DTL_IDX
+                                                        )
+                                                    )
+                                                FROM T_OPT_DTL DTL
+                                                WHERE OPT_DTL_IDX IN
+                                                (
+                                                    SELECT PRD_TMP_OPT_DTL_IDX FROM T_PRD_TMP WHERE ORD_TMP_UP_IDX = PT.PRD_TMP_IDX
+                                                )
+                                            )
+                                        ELSE
+                                            (
+                                                SELECT
+                                                    SUM(NVL(ESM_PRD_ESM_PRICE,0))
+                                                FROM T_ESM_PRD EP
+                                                WHERE EP.ESM_PRD_UP_IDX = PT.ESM_PRD_IDX /* 서브옵션의 견적가만 가져와서 SUM */
+                                                AND EP.OPT_DTL_IDX IN
+                                                (
+                                                    SELECT PRD_TMP_OPT_DTL_IDX FROM T_PRD_TMP WHERE ORD_TMP_UP_IDX = PT.PRD_TMP_IDX
+                                                )                                                   
+                                            )
+                                    END 
+                                  ELSE 
+                                    (SELECT 
+                                        SUM(ORD_PRD_ORD_PRC) 
+                                    FROM T_ORD_PRD 
+                                    WHERE ORD_ORD_MST_CD = OT.ORD_TMP_PRE_CD 
+                                    AND ORD_PRD_MST_CD = PT.PRD_TMP_MST_CD 
+                                    AND ORD_PRD_OPT_DTL_IDX IN
+                                        (
+                                            SELECT PRD_TMP_OPT_DTL_IDX FROM T_PRD_TMP WHERE ORD_TMP_UP_IDX = PT.PRD_TMP_IDX
+                                        )
+                                    )
+                            END SUM_SUB_OPTION_ADD_PRC /* 서브옵션 추가금 합계 */    
+                            , ORD_TMP_DLV_GBN /* 장바구니 배송 유형 */  
+                            , NVL(ORD_TMP_PRD_SAL_PRC,0) as ORD_TMP_PRD_SAL_PRC /* 상품쿠폰할인금액 */
+                            , NVL(ORD_TMP_DLV_SAL_PRC,0) as ORD_TMP_DLV_SAL_PRC /* 배송비쿠폰할인금액 */
+                            , ORD_TMP_PRD_CPN_IDX /* 상품쿠폰번호 */
+                            , ORD_TMP_DLV_CPN_IDX /* 배송비쿠폰번호 */
+                            , ORD_TMP_SHP_MST_IDX /* 겟잇나우 매장 IDX */
+                            , ORD_TMP_GET_PKU_DT 
+                            , ORD_TMP_GET_PKU_HH
+                            , PM.PRD_MST_O2O_YN /* 겟잇나우 가능 여부 */
+                            , SUM(DECODE(PM.PRD_MST_O2O_YN, 'Y', 1, 0)) OVER() as O2O_Y_CNT /* 겟잇나우 가능 상품 개수 */
+                            , SUM(DECODE(PM.PRD_MST_IVB_YN, 'Y', 1, 0)) OVER() as CLEANKING_Y_CNT /* 클린킹 가능 상품 개수 */
+                            , PT.MEM_CRT_IDX /* 장바구니 삭제를 위한 장바구니 IDX */
+                            , ORD_TMP_LNG_DIV /* 장기할부 개월수 */        
+                            , CASE 
+                                  WHEN PM.PRD_MST_VDR_YN = 'Y' THEN /* 입점업체 상품인 경우 */
+                                     NVL(PM.PRD_MST_BUY_PRC,0) /* 상품 마스터의 PRD_MST_BUY_PRC가 매입원가 */            
+                                  ELSE /* 기간계 상품인 경우 */
+                                     0
+                              END BUY_PRC /* 매입원가 */
+                            , PT.PLN_MST_IDX /* 기획전 idx */
+                            , (SELECT 
+                                    ESM_PRD_ESM_PRICE
+                                FROM T_ESM_PRD EP
+                                WHERE EP.ESM_PRD_IDX = PT.ESM_PRD_IDX
+                               ) as ESM_PRD_ESM_PRICE /* 견적 주문인 경우 MD 책정가격(상품가*수량) */
+                            , PT.ESM_PRD_IDX /* 견적상품 IDX */      
+                            , (SELECT ESM_PRD_MST_IDX FROM T_ESM_PRD WHERE ESM_PRD_IDX = PT.ESM_PRD_IDX) as ESM_MST_IDX /* 견적 마스터 IDX */
+                            , PT.ORD_TMP_ERP_SEQ /* 재결제시 원 라인번호 */
+                            , PM.PRD_MST_IVB_YN /* 클린킹 여부 */
+                            , PT.CHN_DTL_CD /* 채널코드 */
+                            , PM.PRD_MST_CPN_OWN /* 즉시쿠폰권한(S:SGS, V:입점) */
+                            , OT.ORD_TMP_MEM_ID /* 회원 아이디 */
+                            , PT.PRD_TMP_COLOR 
+                            , PT.PRD_TMP_SIZE 
+                            , (SELECT CMN_COM_ETC3 FROM T_CMM_COM WHERE CMN_COM_IDX = PT.PRD_TMP_COLOR) AS PRD_TMP_COLOR_TITLE
+                            , (SELECT CMN_COM_NM FROM T_CMM_COM WHERE CMN_COM_IDX = PT.PRD_TMP_SIZE) AS PRD_TMP_SIZE_NM
+                        FROM
+                            T_ORD_TMP OT, T_PRD_TMP PT, T_PRD_MST PM, T_PRD_OPT TPO
+                        ]]>
+                        WHERE 1=1
+                        	<if test="ORD_TMP_MST_CD != null and ORD_TMP_MST_CD != ''"> <!-- 2020.06.20 0원결제 조건추가  -->
+	                          AND  OT.ORD_TMP_MST_CD = #{ORD_MST_CD}
+	                        </if>                           
+                            AND OT.ORD_TMP_MST_CD = PT.ORD_TMP_MST_CD
+                            AND PT.PRD_TMP_MST_CD = PM.PRD_MST_CD
+                            AND PT.PRD_TMP_OPT_DTL_IDX = TPO.PRD_OPT_IDX(+)
+                            AND PT.ORD_TMP_SLT_YN = 'N'
+                            AND PM.PRD_MST_DEL_YN = 'N'                     
+                        <if test="MEM_MST_MEM_ID != null and MEM_MST_MEM_ID != ''">
+                            AND ORD_TMP_MEM_ID = #{MEM_MST_MEM_ID} 
+                        </if>
+                        <if test="MEM_MST_MEM_ID == null or MEM_MST_MEM_ID == ''">
+                            AND ORD_TMP_SES_ID = #{MEM_CRT_SES_ID}
+                        </if>      
+                        <if test="PRD_MST_CNL_PC_YN != null and PRD_MST_CNL_PC_YN != ''">
+                            <if test="PRD_MST_CNL_PC_YN.equals('Y'.toString())">
+                                AND PM.PRD_MST_CNL_PC_YN = #{PRD_MST_CNL_PC_YN}
+                            </if>
+                        </if>
+                        <if test="PRD_MST_CNL_MB_YN != null and PRD_MST_CNL_MB_YN != ''">
+                            <if test="PRD_MST_CNL_MB_YN.equals('Y'.toString())">  
+                                AND PM.PRD_MST_CNL_MB_YN = #{PRD_MST_CNL_MB_YN}
+                            </if>
+                        </if>
+                        
+                        /* ORDER BY PM.PRD_MST_VDR_IDX, PT.PRD_TMP_IDX DESC */
+                    )
+                ) S1
+                ORDER BY PRD_MST_VDR_IDX, VDR_ROWNUM
+            ) S2    
+        ) S3    
+    </select>
+    
+    <!-- 장바구니 간편목록 (임시주문 상품 넣을때/재고체크할때) -->
+    <select id="selectSimpleCartList" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+    /* PcCart.selectSimpleCartList */
+        <![CDATA[
+            SELECT 
+                MEM_CRT_IDX
+                , MEM_MST_MEM_ID
+                , MEM_CRT_SES_ID
+                , MEM_PRD_MST_CD
+                , MEM_PRD_OPT_DTL_IDX
+                , MEM_CRT_CNT
+                , MEM_CRT_SHP_MST_IDX
+                , (SELECT SHP_MST_ERP_CD FROM T_SHP_MST WHERE SHP_MST_IDX = MEM_CRT_SHP_MST_IDX) as SHP_MST_ERP_CD
+                , MEM_CRT_DRT_SAL_YN
+                , MEM_CRT_DLV_GBN
+                , MEM_CRT_GET_PKU_DT
+                , MEM_CRT_GET_PKU_HH
+                , MEM_CRT_REG_DT
+                , MEM_CRT_REG_IP
+                , PLN_MST_IDX
+                , MEM_CRT_SLT_YN
+                , MEM_CRT_UP_IDX
+                , SUM(MC.MEM_CRT_CNT) OVER(PARTITION BY MEM_CRT_SHP_MST_IDX, MEM_CRT_GET_PKU_DT, MEM_CRT_GET_PKU_HH, MEM_PRD_MST_CD, MEM_PRD_OPT_DTL_IDX) as SUM_OPT_CNT /* 옵션별 장바구니 개수 */  
+                , MEM_CRT_LNG_DIV /* 장기할부 개월 */
+                , PM.PRD_MST_NM
+                , PM.PRD_MST_SEL_STATE
+                , PM.PRD_MST_APV_STATE
+                , MEM_CRT_COLOR
+				, MEM_CRT_SIZE                              
+                , DTL.OPT_DTL_IDX
+                , DTL.OPT_DTL_ST_DT
+                , DTL.OPT_DTL_ED_DT
+                , DTL.OPT_DTL_NM
+                , PM.ERP_PRD_CD
+                , (SELECT BND_MST_BRAND_TYPE FROM T_BND_MST WHERE VDR_MST_IDX = PM.PRD_MST_VDR_IDX) AS BND_MST_BRAND_TYPE
+                , DECODE(MC.MEM_PRD_OPT_DTL_IDX, 0, PM.PRD_MST_SEL_CNT, DTL.OPT_DTL_STK_CNT) as STOCK_CNT /* 선택옵션 없으면 마스터 재고, 있으면 옵션 재고 */
+                , CASE 
+                    WHEN TO_CHAR(SYSDATE, 'YYYYMMDD') BETWEEN DTL.OPT_DTL_ST_DT AND DTL.OPT_DTL_ED_DT THEN 'Y'
+                    ELSE 'N'
+                  END AVAILABLE_OPT_DT_YN /* 옵션상품인 경우 판매기간 가능 여부 */
+                , DTL.OPT_DTL_USE_YN /* 옵션 상품인 경우 옵션 사용 여부 */
+                , CHN_DTL_CD
+            FROM
+                T_MEM_CRT MC, T_PRD_MST PM, T_OPT_DTL DTL
+            WHERE
+                MC.MEM_PRD_MST_CD = PM.PRD_MST_CD    
+            AND MC.MEM_PRD_OPT_DTL_IDX = DTL.OPT_DTL_IDX(+)
+        ]]>
+        <if test="MEM_MST_MEM_ID != null and MEM_MST_MEM_ID != ''">
+            AND MEM_MST_MEM_ID = #{MEM_MST_MEM_ID} 
+        </if>
+        <if test="MEM_MST_MEM_ID == null or MEM_MST_MEM_ID == ''">
+            AND MEM_CRT_SES_ID = #{MEM_CRT_SES_ID}
+        </if>  
+            ORDER BY MEM_CRT_IDX
+    </select>
+    
+    <!-- 장바구니 간편목록 (임시주문 상품 넣을때/재고체크할때) -->
+    <select id="selectSimpleSelectedCartList" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+    /* PcCart.selectSimpleSelectedCartList */
+        <![CDATA[
+            SELECT 
+                MEM_CRT_IDX
+                , MEM_MST_MEM_ID
+                , MEM_CRT_SES_ID
+                , MEM_PRD_MST_CD
+                , MEM_PRD_OPT_DTL_IDX
+                , MEM_CRT_CNT
+                , MEM_CRT_SHP_MST_IDX
+                , (SELECT SHP_MST_ERP_CD FROM T_SHP_MST WHERE SHP_MST_IDX = MEM_CRT_SHP_MST_IDX) as SHP_MST_ERP_CD
+                , MEM_CRT_DRT_SAL_YN
+                , MEM_CRT_DLV_GBN
+                , MEM_CRT_GET_PKU_DT
+                , MEM_CRT_GET_PKU_HH
+                , MEM_CRT_REG_DT
+                , MEM_CRT_REG_IP
+                , PLN_MST_IDX
+                , MEM_CRT_SLT_YN
+                , MEM_CRT_UP_IDX
+                , SUM(MC.MEM_CRT_CNT) OVER(PARTITION BY MEM_CRT_SHP_MST_IDX, MEM_CRT_GET_PKU_DT, MEM_CRT_GET_PKU_HH, MEM_PRD_MST_CD, MEM_PRD_OPT_DTL_IDX) as SUM_OPT_CNT /* 옵션별 장바구니 개수 */  
+                , MEM_CRT_LNG_DIV /* 장기할부 개월 */
+                , PM.PRD_MST_NM
+                , PM.PRD_MST_SEL_STATE
+                , PM.PRD_MST_APV_STATE
+                , MEM_CRT_COLOR
+				, MEM_CRT_SIZE                              
+                , DTL.OPT_DTL_IDX
+                , DTL.OPT_DTL_ST_DT
+                , DTL.OPT_DTL_ED_DT
+                , DTL.OPT_DTL_NM
+                , PM.PRD_MST_ERP_CD
+                , (SELECT BND_MST_BRAND_TYPE FROM T_BND_MST WHERE VDR_MST_IDX = PM.PRD_MST_VDR_IDX) AS BND_MST_BRAND_TYPE
+                , DECODE(MC.MEM_PRD_OPT_DTL_IDX, 0, PM.PRD_MST_SEL_CNT, DTL.OPT_DTL_STK_CNT) as STOCK_CNT /* 선택옵션 없으면 마스터 재고, 있으면 옵션 재고 */
+                , CASE 
+                    WHEN TO_CHAR(SYSDATE, 'YYYYMMDD') BETWEEN DTL.OPT_DTL_ST_DT AND DTL.OPT_DTL_ED_DT THEN 'Y'
+                    ELSE 'N'
+                  END AVAILABLE_OPT_DT_YN /* 옵션상품인 경우 판매기간 가능 여부 */
+                , DTL.OPT_DTL_USE_YN /* 옵션 상품인 경우 옵션 사용 여부 */
+                , CHN_DTL_CD
+            FROM
+                T_MEM_CRT MC, T_PRD_MST PM, T_OPT_DTL DTL
+            WHERE
+                MC.MEM_PRD_MST_CD = PM.PRD_MST_CD    
+            AND MC.MEM_PRD_OPT_DTL_IDX = DTL.OPT_DTL_IDX(+)
+        ]]>
+        <if test="MEM_MST_MEM_ID != null and MEM_MST_MEM_ID != ''">
+            AND MEM_MST_MEM_ID = #{MEM_MST_MEM_ID} 
+        </if>
+        <if test="MEM_MST_MEM_ID == null or MEM_MST_MEM_ID == ''">
+            AND MEM_CRT_SES_ID = #{MEM_CRT_SES_ID}
+        </if>  
+        <if test="MEM_CRT_IDXs != null and !MEM_CRT_IDXs.isEmpty()">
+        	AND MEM_CRT_IDX IN 
+	        <foreach collection="MEM_CRT_IDXs" item="MEM_CRT_IDX" open="(" close=")" separator=",">
+	                    #{MEM_CRT_IDX}
+	        </foreach>
+        </if>
+            ORDER BY MEM_CRT_IDX
+    </select>
+    
+    <!-- 결제 전 재고 체크 대상 상품 목록 -->
+    <select id="selectSimpleTempOrderProductList" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+        /* PcCart.selectSimpleTempOrderProductList */
+        <![CDATA[
+            SELECT 
+                PRD_TMP_IDX
+                , PT.ORD_TMP_MST_CD
+                , PRD_TMP_MST_CD
+                , PRD_TMP_OPT_DTL_IDX
+                , PRD_TMP_DLV_ADD_CAG
+                , PRD_TMP_CNT
+                , OT.ORD_TMP_DLV_GBN
+                , OT.ORD_TMP_SHP_MST_IDX
+                , (SELECT SHP_MST_ERP_CD FROM T_SHP_MST WHERE SHP_MST_IDX = OT.ORD_TMP_SHP_MST_IDX) as SHP_MST_ERP_CD
+                , PT.PLN_MST_IDX
+                , PT.ORD_TMP_SLT_YN
+                , PT.ORD_TMP_UP_IDX
+                , SUM(PT.PRD_TMP_CNT) OVER(PARTITION BY ORD_TMP_SHP_MST_IDX, ORD_TMP_GET_PKU_DT, ORD_TMP_GET_PKU_HH, PRD_TMP_MST_CD, PRD_TMP_OPT_DTL_IDX) as SUM_OPT_CNT /* 옵션별 장바구니 개수 */
+                , PM.PRD_MST_NM
+                , PM.PRD_MST_SEL_STATE
+                , PM.PRD_MST_APV_STATE
+                , DTL.OPT_DTL_IDX
+                , DTL.OPT_DTL_ST_DT
+                , DTL.OPT_DTL_ED_DT
+                , DTL.OPT_DTL_NM
+                , DECODE(PT.PRD_TMP_OPT_DTL_IDX, 0, PM.PRD_MST_SEL_CNT, DTL.OPT_DTL_STK_CNT) as STOCK_CNT /* 선택옵션 없으면 마스터 재고, 있으면 옵션 재고 */
+                , CASE 
+                    WHEN TO_CHAR(SYSDATE, 'YYYYMMDD') BETWEEN DTL.OPT_DTL_ST_DT AND DTL.OPT_DTL_ED_DT THEN 'Y'
+                    ELSE 'N'
+                  END AVAILABLE_OPT_DT_YN /* 옵션상품인 경우 판매기간 가능 여부 */
+                , DTL.OPT_DTL_USE_YN /* 옵션 상품인 경우 옵션 사용 여부 */  
+            FROM
+                T_PRD_TMP PT, T_ORD_TMP OT, T_PRD_MST PM, T_OPT_DTL DTL
+            WHERE
+                PT.ORD_TMP_MST_CD = OT.ORD_TMP_MST_CD
+            AND PT.PRD_TMP_MST_CD = PM.PRD_MST_CD    
+            AND PT.PRD_TMP_OPT_DTL_IDX = DTL.OPT_DTL_IDX(+)
+        ]]>
+            <if test="ORD_MST_CD != null and ORD_MST_CD != ''">
+                AND PT.ORD_TMP_MST_CD = #{ORD_MST_CD}
+            </if>
+    </select>
+    
+    <!-- 신규 주문번호 채번 -->
+    <select id="selectOrderMstCd" resultType="java.lang.String">
+    /* PcCart.selectOrderMstCd */
+        <!-- SELECT 'T' || TO_CHAR(SYSDATE, 'YYMMDD') || (CHR(SEQ_ORD_MST_CHAR_SEQ.NEXTVAL) || LPAD(SEQ_ORD_MST_CD.NEXTVAL,6,'0')) AS ORD_MST_CD FROM DUAL -->
+    <![CDATA[   
+        SELECT TO_CHAR(SYSDATE, 'YYYYMMDD') || LPAD(SEQ_ORD_MST_CD.NEXTVAL,5,'0') FROM DUAL
+    ]]>
+    </select>
+        
+    <!-- 2020.06.20 0원결제 시 임시테이블에서 주문번호 획득 -->
+    <select id="selectOrderTmpMstCd" resultType="java.lang.String">
+    /* PcCart.selectOrderTmpMstCd */
+        SELECT TOT.ORD_TMP_MST_CD
+		FROM T_ORD_TMP TOT
+		INNER JOIN T_PRD_TMP TPM
+		ON TOT.ORD_TMP_MST_CD = TPM.ORD_TMP_MST_CD
+		WHERE 1=1
+		<choose>
+			<when test="MEM_MST_MEM_ID != null and MEM_MST_MEM_ID != ''">
+				AND TOT.ORD_TMP_MEM_ID = #{MEM_MST_MEM_ID} 
+			</when>
+			<otherwise>
+				AND TOT.ORD_TMP_SES_ID = #{MEM_CRT_SES_ID}
+			</otherwise>
+		</choose>		
+		AND ROWNUM=1
+    </select>    
+    
+    <!-- 장바구니 상세 정보 -->
+    <!-- 2020.06.22 ERP 재고조회 데이터 추가조회  -->
+    <select id="selectCartInfo" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+    /* PcCart.selectCartInfo */
+    <![CDATA[
+        SELECT 
+            MEM_CRT_IDX
+            , MEM_MST_MEM_ID
+            , MEM_CRT_SES_ID
+            , MEM_PRD_MST_CD
+            , MEM_PRD_OPT_DTL_IDX
+            , MEM_CRT_CNT
+            , MEM_CRT_SHP_MST_IDX
+            , MEM_CRT_DRT_SAL_YN
+            , MEM_CRT_DLV_GBN
+            , MEM_CRT_GET_PKU_DT
+            , MEM_CRT_GET_PKU_HH
+            , MEM_CRT_REG_DT
+            , MEM_CRT_REG_IP
+            , PLN_MST_IDX
+            , MEM_CRT_SLT_YN
+            , MEM_CRT_UP_IDX
+            , (SELECT PRD_MST_ERP_CD FROM T_PRD_MST WHERE 1=1 AND PRD_MST_CD = MEM_PRD_MST_CD) AS ERP_NO 
+		    , (SELECT PRD_MST_YEAR FROM T_PRD_MST WHERE 1=1 AND PRD_MST_CD = MEM_PRD_MST_CD) AS ERP_YEAR
+		    , (SELECT CMN_COM_NM FROM T_CMM_COM WHERE 1=1 AND CMN_COM_IDX = MEM_CRT_COLOR) AS ERP_COLOR
+		    , (SELECT CMN_COM_NM FROM T_CMM_COM WHERE 1=1 AND CMN_COM_IDX = MEM_CRT_SIZE) AS ERP_SIZE
+        FROM T_MEM_CRT
+        WHERE ROWNUM = 1
+    ]]>
+        <if test="MEM_MST_MEM_ID != null and MEM_MST_MEM_ID != ''">
+            AND MEM_MST_MEM_ID = #{MEM_MST_MEM_ID} 
+        </if>
+        <if test="MEM_MST_MEM_ID == null or MEM_MST_MEM_ID == ''">
+            AND MEM_CRT_SES_ID = #{MEM_CRT_SES_ID}
+        </if>
+        <if test="TARGET_PRD_MST_CD != null and TARGET_PRD_MST_CD != ''">
+            AND MEM_PRD_MST_CD = #{TARGET_PRD_MST_CD}
+        </if>
+        <if test="CART_OPT_DTL_IDX != null and CART_OPT_DTL_IDX != ''">
+            AND MEM_PRD_OPT_DTL_IDX = #{CART_OPT_DTL_IDX}
+        </if>
+        <if test="MEM_CRT_IDX != null and MEM_CRT_IDX != ''">
+            AND MEM_CRT_IDX = #{MEM_CRT_IDX}
+        </if>
+
+    </select>
+    
+    <!-- 장바구니 서브 옵션 리스트 -->
+    <select id="selectCartSubOptionList" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+    /* PcCart.selectCartSubOptionList */
+    <![CDATA[
+        SELECT 
+            MEM_CRT_IDX
+            , MEM_MST_MEM_ID
+            , MEM_CRT_SES_ID
+            , MEM_PRD_MST_CD
+            , MEM_PRD_OPT_DTL_IDX
+            , MEM_CRT_CNT
+            , MEM_CRT_SHP_MST_IDX
+            , MEM_CRT_DRT_SAL_YN
+            , MEM_CRT_DLV_GBN
+            , MEM_CRT_GET_PKU_DT
+            , MEM_CRT_GET_PKU_HH
+            , MEM_CRT_REG_DT
+            , MEM_CRT_REG_IP
+            , PLN_MST_IDX
+            , MEM_CRT_SLT_YN
+            , MEM_CRT_UP_IDX
+            , (SELECT COUNT(1) FROM T_MEM_CRT WHERE MEM_CRT_UP_IDX = MEM_CRT_IDX) as SUB_OPTION_CNT
+        FROM T_MEM_CRT
+        WHERE MEM_CRT_UP_IDX = #{MEM_CRT_IDX}
+        ORDER BY MEM_CRT_IDX DESC
+    ]]>
+    </select>
+    
+    <!-- 장바구니 수량 변경 팝업 옵션 리스트 -->
+    <select id="selectProductOptionList" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+    /* PcCart.selectProductOptionList */
+    <![CDATA[
+    SELECT 
+        PRD_OPT_IDX, 
+        PRD_OPT_COLR_NM,
+        PRD_OPT_SIZE_NM,
+        PRD_OPT_STOCK_CNT
+    FROM 
+        T_PRD_OPT PO        
+    WHERE
+        PO.PRD_MST_CD = #{PRD_PRD_MST_CD}
+    ]]> 
+    </select>
+    
+    <!-- 장바구니 수량 변경(장바구니 목록에서 변경) -->
+    <update id="updateProductOptionCnt" parameterType="java.util.HashMap">
+    /* PcCart.updateProductOptionCnt */
+        UPDATE T_MEM_CRT 
+        SET 
+            MEM_CRT_REG_DT = MEM_CRT_REG_DT
+            <if test="PRD_OPT_DTL_IDX != null and PRD_OPT_DTL_IDX != ''">
+                , MEM_PRD_OPT_DTL_IDX = #{PRD_OPT_DTL_IDX}
+            </if>
+            <if test="MEM_CRT_CNT != null and MEM_CRT_CNT != ''">
+                , MEM_CRT_CNT= #{MEM_CRT_CNT}
+            </if>
+        WHERE 
+            MEM_CRT_IDX = #{MEM_CRT_IDX}
+            <if test="MEM_MST_MEM_ID != null and MEM_MST_MEM_ID != ''">
+                AND MEM_MST_MEM_ID = #{MEM_MST_MEM_ID} 
+            </if>
+            <if test="MEM_MST_MEM_ID == null or MEM_MST_MEM_ID == ''">
+                AND MEM_CRT_SES_ID = #{MEM_CRT_SES_ID}
+            </if>
+    </update>
+    
+    <!-- // [BEGIN] 주문, 결제 내역 등록 -->
+    
+    <!-- PG HISTORY -->
+    <insert id="insertPayMst" parameterType="java.util.HashMap">
+        /* PcCart.insertPayMst */
+        INSERT INTO T_PAY_MST (
+            PAY_MST_IDX, PAY_MST_RESPCODE, PAY_MST_RESPMSG, PAY_MST_MID, PAY_MST_OID, 
+            PAY_MST_AMOUNT, PAY_MST_TID, PAY_MST_PAYTYPE, 
+            PAY_MST_PAYDATE, 
+            PAY_MST_HASHDATA, 
+            PAY_MST_FINANCECODE, PAY_MST_FINANCENAME, PAY_MST_ESCROWYN, PAY_MST_TRANSAMOUNT, PAY_MST_EXCHANGERATE, 
+            PAY_MST_BUYER, PAY_MST_BUYERID, PAY_MST_BUYERPHONE, PAY_MST_BUYEREMAIL, PAY_MST_PRODUCTINFO, 
+            PAY_MST_CARDINSTALLMONTH, PAY_MST_CARDNOINTYN, PAY_MST_FINANCEAUTHNUM, PAY_MST_ACCOUNTNUM, 
+            PAY_MST_CASTAMOUNT, PAY_MST_CASCAMOUNT, PAY_MST_CASFLAG, PAY_MST_CASSEQNO, PAY_MST_CASHRECEIPTNUM, 
+            PAY_MST_CASHRECEIPTSELFYN, PAY_MST_CASHRECEIPTKIND, PAY_MST_TELNO, PAY_MST_TR_STATUS, 
+            PAY_MST_KAKAO_PAYMETHOD, PAY_MST_KAKAO_AUTHCODE, PAY_MST_KAKAO_CARDCODE, PAY_MST_KAKAO_CARDNAME,
+            PAY_MST_KAKAO_CARDQUOTA, PAY_MST_KAKAO_CARDINTEREST, PAY_MST_KAKAO_CARDCL, PAY_MST_KAKAO_CARDBIN,
+            PAY_MST_KAKAO_CARDPOINT, PAY_MST_KAKAO_NONREPTOKEN,         
+            PAY_MST_CLOSEDATE
+        ) VALUES (
+            SEQ_PAY_MST_IDX.NEXTVAL, #{PAY_MST_RESPCODE}, #{PAY_MST_RESPMSG}, #{PAY_MST_MID}, #{PAY_MST_OID},
+            #{PAY_MST_AMOUNT}, #{PAY_MST_TID}, #{PAY_MST_PAYTYPE},
+            <if test="PAY_MST_PAYDATE != null and PAY_MST_PAYDATE != ''">
+                #{PAY_MST_PAYDATE},
+            </if>
+            <if test="PAY_MST_PAYDATE == null or PAY_MST_PAYDATE == ''">
+                TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+            </if> 
+            #{PAY_MST_HASHDATA},
+            #{PAY_MST_FINANCECODE}, #{PAY_MST_FINANCENAME}, #{PAY_MST_ESCROWYN}, #{PAY_MST_TRANSAMOUNT}, #{PAY_MST_EXCHANGERATE},
+            #{PAY_MST_BUYER}, #{PAY_MST_BUYERID}, #{PAY_MST_BUYERPHONE}, #{PAY_MST_BUYEREMAIL}, #{PAY_MST_PRODUCTINFO#,
+            #{PAY_MST_CARDINSTALLMONTH}, #{PAY_MST_CARDNOINTYN}, #{PAY_MST_FINANCEAUTHNUM}, #{PAY_MST_ACCOUNTNUM},
+            #{PAY_MST_CASTAMOUNT}, #{PAY_MST_CASCAMOUNT}, #{PAY_MST_CASFLAG}, #{PAY_MST_CASSEQNO}, #{PAY_MST_CASHRECEIPTNUM},
+            #{PAY_MST_CASHRECEIPTSELFYN}, #{PAY_MST_CASHRECEIPTKIND}, #{PAY_MST_TELNO}, #{PAY_MST_TR_STATUS},
+            #{PAY_MST_KAKAO_PAYMETHOD}, #{PAY_MST_KAKAO_AUTHCODE}, #{PAY_MST_KAKAO_CARDCODE}, #{PAY_MST_KAKAO_CARDNAME},
+            #{PAY_MST_KAKAO_CARDQUOTA}, #{PAY_MST_KAKAO_CARDINTEREST}, #{PAY_MST_KAKAO_CARDCL}, #{PAY_MST_KAKAO_CARDBIN},
+            #{PAY_MST_KAKAO_CARDPOINT}, #{PAY_MST_KAKAO_NONREPTOKEN},   #{PAY_MST_CLOSEDATE}        
+        ) 
+    </insert>
+    
+    <!-- 주문 마스터 -->
+    <insert id="insertOrdMst" parameterType="java.util.HashMap"> 
+    /* PcCart.insertOrdMst */
+        INSERT INTO T_ORD_MST (
+            ORD_MST_CD
+            , ORD_MST_ORD_DT
+            , ORD_MST_ORD_TYPE
+            , ORD_MST_ORD_ID
+            , ORD_MST_PAY_TYPE
+            , ORD_MST_RFD_CD
+            , ORD_MST_RFD_NM
+            , ORD_MST_RFD_ACT
+            , ORD_MST_RFD_HDR
+            , ORD_MST_PAY_DT
+            , ORD_MST_ORD_NM
+            , ORD_MST_ORD_PRC
+            , ORD_MST_DC_MLG
+            , ORD_MST_DC_CPN
+            , ORD_MST_DC_OCB_PIT
+            , ORD_MST_PAY_PRC
+            , ORD_MST_SEX
+            , ORD_MST_HP1
+            , ORD_MST_HP2
+            , ORD_MST_HP3
+            , ORD_MST_MAIL
+            , ORD_MST_DLV_CAG
+            , ORD_MST_DPS_NM
+            , ORD_MST_PRE_CD
+            , ORD_MST_DLV_GBN
+            , ORD_MST_CSH_RCP
+            , ORD_MST_LNG_DIV
+            , CHN_DTL_CD
+            , ESM_MST_IDX
+            , ORD_MST_SAV_MLG
+            , ORD_MST_SAV_OCB
+            , ORD_MST_DC_PIT
+            , ORD_MST_PCK_YN
+        ) VALUES (
+            #{ORD_MST_CD}
+            , TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS')
+            , #{ORD_MST_ORD_TYPE}
+            , #{ORD_MST_ORD_ID}
+            , #{ORD_MST_PAY_TYPE}
+            , #{ORD_MST_RFD_CD}
+            , #{ORD_MST_RFD_NM}
+            , #{ORD_MST_RFD_ACT}
+            , #{ORD_MST_RFD_HDR}
+            ,
+            <!-- 가상계좌인경우 결제일 정보 등록하지 않음 -->
+            <if test="payDepositYn.equals('Y'.toString())">
+                '00000000000000'   
+            </if>
+            <if test="!payDepositYn.equals('Y'.toString())">
+                TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS')
+            </if>
+            , #{ORD_MST_ORD_NM}
+            , #{ORD_MST_ORD_PRC}
+            , #{ORD_MST_DC_MLG}
+            , #{ORD_MST_DC_CPN}
+            , #{ORD_MST_DC_OCB_PIT}
+            , #{ORD_MST_PAY_PRC}
+            , #{ORD_MST_SEX}
+            , #{ORD_MST_HP1}
+            , #{ORD_MST_HP2}
+            , #{ORD_MST_HP3}
+            , #{ORD_MST_MAIL}
+            , #{ORD_MST_DLV_CAG}
+            , #{ORD_MST_DPS_NM}
+            , #{ORD_MST_PRE_CD}
+            , #{ORD_MST_DLV_GBN}
+            , #{ORD_MST_CSH_RCP}
+            , #{ORD_MST_LNG_DIV}
+            , #{CHN_DTL_CD}
+            , #{ESM_MST_IDX}
+            <if test="!ORD_MST_ORD_ID.equals('_GUEST_'.toString())">
+                , FN_GET_CART_REAL_RESERVE_PRICE(#{ORD_PRC}, #{ORD_MST_ORD_ID}, 'M') /* 마일리지 적립금 */
+                , FN_GET_CART_REAL_RESERVE_PRICE(#{ORD_PRC}, #{ORD_MST_ORD_ID}, 'C') /* 캐쉬백 적립금 */    
+            </if>
+            <if test="ORD_MST_ORD_ID.equals('_GUEST_'.toString())">
+                , 0
+                , 0
+            </if>
+            , #{ORD_MST_DC_PIT}
+            , #{ORD_MST_PCK_YN}
+        )
+    </insert>
+    
+    <!-- 주문 상품, 장바구니 정보를 기초로 하여 주문 상품정보를 생성합니다. -->
+    <insert id="insertOrdPrd" parameterType="java.util.HashMap">
+        <selectKey resultType="integer" keyProperty="ORD_PRD_IDX" order="BEFORE">
+            SELECT SEQ_ORD_PRD_SEQ_IDX.NEXTVAL ORD_PRD_IDX FROM DUAL
+        </selectKey>
+        /* PcCart.insertOrdPrd */
+        INSERT INTO T_ORD_PRD(
+            ORD_PRD_IDX
+            ,ORD_ORD_MST_CD
+            ,ORD_PRD_MST_CD         
+            ,ORD_PRD_OPT_DTL_IDX
+            ,ORD_PRD_ORD_STATE
+            ,ORD_PRD_PRD_PRC
+            ,ORD_PRD_SAL_PRC
+            ,ORD_PRD_ORD_CNT
+            ,ORD_PRD_ORD_PRC
+            ,ORD_PRD_DLV_CAG
+            ,ORD_PRD_DLV_BND_CAG
+            ,ORD_PRD_DLV_ADD_CAG
+            ,ORD_PRD_DLV_BND_YN
+            ,ORD_PRD_VDR_IDX
+            ,ORD_PRD_IST_CPN_PRC
+            ,ORD_PRD_IST_CPN_UNT
+            ,ORD_ORD_EDI_ORD_NO
+            ,ORD_PRD_OPT_ADD_PRC
+            ,ORD_PRD_SAV_MIL
+            ,ORD_PRD_SAV_OCB
+            ,ORD_PRD_SLT_YN
+            ,ORD_PRD_UP_IDX
+            ,ORD_PRD_DLV_DUE_DT
+            ,ORD_PRD_BUY_PRC
+            ,ORD_PRD_DLV_TYPE
+            ,PLN_MST_IDX
+            ,ORD_PRD_CPN_OWN
+            ,CHN_DTL_CD
+            ,ORD_PRD_DC_PIT            
+            ,ORD_PRD_DC_TOT_PIT /* 2020.06.23 컬럼추가로 데이터 INSERT */
+            ,ORD_PRD_DC_SW_PIT /* 2020.06.23 컬럼추가로 데이터 INSERT */
+            ,ORD_PRD_DC_OCB
+            ,ORD_PRD_DC_CPN
+            ,ORD_PRD_COLOR
+            ,ORD_PRD_SIZE
+        )
+        SELECT
+            #{ORD_PRD_IDX} 
+            , #{ORD_ORD_MST_CD} 
+            , #{ORD_PRD_MST_CD}
+            , #{ORD_PRD_OPT_DTL_IDX}
+            , #{ORD_PRD_ORD_STATE}
+            , #{ORD_PRD_PRD_PRC}
+            , #{ORD_PRD_SAL_PRC}
+            , #{ORD_PRD_ORD_CNT}
+            , #{ORD_PRD_ORD_PRC}
+            , #{ORD_PRD_DLV_CAG}
+            , #{ORD_PRD_DLV_BND_CAG}
+            , #{ORD_PRD_DLV_ADD_CAG}
+            , #{ORD_PRD_DLV_BND_YN}
+            , #{ORD_PRD_VDR_IDX}
+            , #{ORD_PRD_IST_CPN_PRC} /* 즉시쿠폰할인금액 (계산된 금액)*/
+            , #{ORD_PRD_IST_CPN_UNT} /* 즉시쿠폰 정액/정률여부 S:정액 R:정률 */
+            , #{ORD_ORD_MST_CD}||'_'||'0001' AS ORD_ORD_EDI_ORD_NO /* 묶음 배송인 경우 처리 필요할듯...! */
+            , #{ORD_PRD_OPT_ADD_PRC}
+            , #{ORD_PRD_SAV_MIL}
+            , #{ORD_PRD_SAV_OCB}
+            , #{ORD_PRD_SLT_YN}
+            , #{ORD_PRD_UP_IDX}
+            , NVL(#{ORD_PRD_DLV_DUE_DT}, (SELECT TO_CHAR(SYSDATE+NVL(PRD_MST_DLV_DT,1), 'YYYYMMDD') FROM T_PRD_MST WHERE PRD_MST_CD = #{ORD_PRD_MST_CD}))
+            , #{ORD_PRD_BUY_PRC}
+            , #{ORD_PRD_DLV_TYPE}
+            , #{PLN_MST_IDX}
+            , #{ORD_PRD_CPN_OWN}
+            , #{CHN_DTL_CD}
+            , #{ORD_PRD_DC_PIT}
+            , #{ORD_PRD_DC_TOT_PIT}
+            , #{ORD_PRD_DC_SW_PIT}
+            , #{ORD_PRD_DC_OCB}
+            , #{ORD_PRD_DC_CPN}
+            , #{ORD_PRD_COLOR}
+            , #{ORD_PRD_SIZE}
+        FROM DUAL
+    </insert>
+
+    <!-- EDI배송예약번호 갱신 -->
+    <update id="updateOrdPrdEdiNo" parameterType="java.util.HashMap">
+    /* PcCart.updateOrdPrdEdiNo */
+        UPDATE
+            T_ORD_PRD TOP
+        SET ORD_ORD_EDI_ORD_NO = 
+        (
+            SELECT
+                SUBSTR(ORD_ORD_EDI_ORD_NO,1, 14) || LPAD(RNUM, 4, '0') as SEQ
+            FROM
+            (
+                SELECT ROWID RID, ROW_NUMBER() OVER(ORDER BY ORD_PRD_IDX) as RNUM, ORD_PRD_IDX, ORD_ORD_EDI_ORD_NO FROM T_ORD_PRD WHERE ORD_ORD_MST_CD = #{ORD_ORD_MST_CD}
+            )
+            WHERE RID = TOP.ROWID
+        )
+        WHERE ORD_ORD_MST_CD = #{ORD_ORD_MST_CD}
+    </update>
+    
+    <!-- 라인번호 갱신 -->
+    <update id="updateOrdPrdSeq" parameterType="java.util.HashMap">
+    /* PcCart.updateOrdPrdSeq */
+        UPDATE
+            T_ORD_PRD TOP
+        SET ORD_PRD_SEQ = 
+        (
+            SELECT
+                RNUM as SEQ
+            FROM
+            (
+                SELECT ROWID RID, ROW_NUMBER() OVER(ORDER BY ORD_PRD_IDX) as RNUM, ORD_PRD_IDX, ORD_ORD_EDI_ORD_NO FROM T_ORD_PRD WHERE ORD_ORD_MST_CD = #{ORD_ORD_MST_CD}
+            )
+            WHERE RID = TOP.ROWID
+        )
+        WHERE ORD_ORD_MST_CD = #{ORD_ORD_MST_CD}
+    </update>
+    
+    <!-- 주문 이력정보 -->
+    <insert id="insertOrdPrdHistory" parameterType="java.util.HashMap">
+    /* PcCart.insertOrdPrdHistory */
+    INSERT INTO T_ORD_PRD_HIS (
+        ORD_PRD_HIS_IDX,
+        ORD_ORD_MST_CD, 
+        ORD_PRD_MST_CD, 
+        ORD_ORD_PRD_IDX, 
+        ORD_PRD_ORD_STATE, 
+        ORD_PRD_REG_DT, ORD_PRD_REG_ID, ORD_PRD_REG_IP, ORD_PRD_DSC, ORD_PRD_REG_TYPE, ORD_PRD_COLOR, ORD_PRD_SIZE
+    ) VALUES (
+        SEQ_ORD_PRD_HIS_IDX.NEXTVAL, 
+        #{ORD_ORD_MST_CD}, 
+        #{ORD_PRD_MST_CD},
+        #{ORD_PRD_IDX},
+        #{ORD_PRD_ORD_STATE}, 
+        TO_CHAR(SYSDATE,'YYYYMMDDHH24MISS'), #{ORD_PRD_REG_ID}, #{ORD_PRD_REG_IP}, #{ORD_PRD_DSC}, #{ORD_PRD_REG_TYPE},#{ORD_PRD_COLOR},#{ORD_PRD_SIZE}
+    ) 
+    </insert>
+    
+    <!-- 주문 배송정보 -->
+    <insert id="insertOrdDlv" parameterType="java.util.HashMap">
+    /* PcCart.insertOrdDlv */
+    INSERT INTO T_ORD_DLV (
+        ORD_ORD_MST_CD
+        , ORD_DLV_NM
+        , ORD_DLV_HP1
+        , ORD_DLV_HP2
+        , ORD_DLV_HP3
+        , ORD_DLV_ZIP_CDE6
+        , ORD_DLV_MSG
+        , ORD_DLV_JBN_ADR1
+        , ORD_DLV_JBN_ADR2
+        , ORD_DLV_TEL1
+        , ORD_DLV_TEL2
+        , ORD_DLV_TEL3
+        , ORD_DLV_ZIP_CDE5
+        , ORD_DLV_DRO_ADR1
+        , ORD_DLV_DRO_ADR2
+    ) VALUES (
+        #{ORD_ORD_MST_CD}
+        , #{ORD_DLV_NM}
+        , #{ORD_DLV_HP1}
+        , #{ORD_DLV_HP2}
+        , #{ORD_DLV_HP3}
+        , #{ORD_DLV_ZIP_CDE6}
+        , #{ORD_DLV_MSG}
+        , #{ORD_DLV_JBN_ADR1}
+        , #{ORD_DLV_DRO_ADR2}
+        , #{ORD_DLV_TEL1}
+        , #{ORD_DLV_TEL2}
+        , #{ORD_DLV_TEL3}
+        , #{ORD_DLV_ZIP_CDE5}
+        , #{ORD_DLV_DRO_ADR1}
+        , #{ORD_DLV_DRO_ADR2}
+    )
+    </insert>
+    
+    <!-- 재결제시 주문 배송정보 -->
+    <insert id="insertRepayOrdDlv" parameterType="java.util.HashMap">
+    /* PcCart.insertRepayOrdDlv */
+    INSERT INTO T_ORD_DLV (
+        ORD_ORD_MST_CD
+        , ORD_DLV_NM
+        , ORD_DLV_HP1
+        , ORD_DLV_HP2
+        , ORD_DLV_HP3
+        , ORD_DLV_ZIP_CDE6
+        , ORD_DLV_MSG
+        , ORD_DLV_JBN_ADR1
+        , ORD_DLV_JBN_ADR2
+        , ORD_DLV_TEL1
+        , ORD_DLV_TEL2
+        , ORD_DLV_TEL3
+        , ORD_DLV_ZIP_CDE5
+        , ORD_DLV_DRO_ADR1
+        , ORD_DLV_DRO_ADR2
+    ) 
+    SELECT
+        #{ORD_ORD_MST_CD}
+        , ORD_DLV_NM
+        , ORD_DLV_HP1
+        , ORD_DLV_HP2
+        , ORD_DLV_HP3
+        , ORD_DLV_ZIP_CDE6
+        , ORD_DLV_MSG
+        , ORD_DLV_JBN_ADR1
+        , ORD_DLV_JBN_ADR2
+        , ORD_DLV_TEL1
+        , ORD_DLV_TEL2
+        , ORD_DLV_TEL3
+        , ORD_DLV_ZIP_CDE5
+        , ORD_DLV_DRO_ADR1
+        , ORD_DLV_DRO_ADR2
+    FROM T_ORD_DLV
+    WHERE ORD_ORD_MST_CD = #{ORD_MST_CD}
+    </insert>
+    
+    <!-- 상품쿠폰사용정보등록 -->
+    <insert id="insertOrdCpn" parameterType="java.util.HashMap">
+        <selectKey resultType="integer" keyProperty="ORD_CPN_IDX" order="BEFORE">
+            SELECT SEQ_ORD_CPN_IDX.NEXTVAL AS ORD_CPN_IDX  FROM DUAL
+        </selectKey>
+        /* PcCart.insertOrdCpn */
+        INSERT INTO T_ORD_CPN
+        (
+            ORD_CPN_IDX
+            , ORD_MST_CD
+            , ORD_PRD_IDX
+            , CPN_MST_IDX
+            , ORD_CPN_DC_AMT
+            , CPN_MEM_IDX
+        )
+        VALUES
+        (
+            #{ORD_CPN_IDX}
+            , #{ORD_MST_CD}
+            , #{ORD_PRD_IDX}
+            , (SELECT CPN_MST_IDX FROM T_CPN_MEM WHERE CPN_MEM_IDX = #{CPN_MEM_IDX})
+            , #{ORD_CPN_DC_AMT}
+            , #{CPN_MEM_IDX}
+        )
+    </insert>
+    <!-- // [END] 주문, 결제 내역 등록 -->
+    
+    <!-- TOP >> 장바구니 수량 표시 -->
+    <select id="selectCartCnt" parameterType="java.util.HashMap" resultType="integer">
+    /* PcCart.selectCartCnt */
+        SELECT 
+            NVL(COUNT(MEM_CRT_IDX),0) CRT_CNT
+        FROM
+            T_MEM_CRT MC, T_PRD_MST PM
+        WHERE 
+            MC.MEM_PRD_MST_CD = PM.PRD_MST_CD         
+            AND MC.MEM_CRT_DRT_SAL_YN = 'N'  
+            AND MC.MEM_CRT_SLT_YN = 'N'
+            AND PM.PRD_MST_DEL_YN = 'N'
+        <if test="PRD_MST_CNL_PC_YN != null and PRD_MST_CNL_PC_YN.equals('Y'.toString())">
+            AND PM.PRD_MST_CNL_PC_YN = #{PRD_MST_CNL_PC_YN}
+        </if>
+        <if test="PRD_MST_CNL_MB_YN != null and PRD_MST_CNL_MB_YN.equals('Y'.toString())">
+            AND PM.PRD_MST_CNL_MB_YN = #{PRD_MST_CNL_MB_YN}
+        </if>
+        <if test="MEM_MST_MEM_ID != null and MEM_MST_MEM_ID != ''">
+            AND MEM_MST_MEM_ID = #{MEM_MST_MEM_ID} 
+        </if>
+        <if test="MEM_MST_MEM_ID == null or MEM_MST_MEM_ID == ''">
+            AND MEM_CRT_SES_ID = #{MEM_CRT_SES_ID} 
+        </if>
+    </select>
+    
+    <!-- 화면 배너 목록 -->
+    <select id="selectBannerDisplayList" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+    /* PcCart.selectBannerDisplayList */
+        SELECT
+            BM.BNR_MST_IDX 
+            , BM.BNR_MST_TITLE 
+            , BM.CMN_COM_IDX 
+            , BM.BNR_MST_ST_DT 
+            , BM.BNR_MST_ED_DT 
+            , BM.BNR_MST_USE_YN 
+            , BM.BNR_MST_REG_DT 
+            , BM.BNR_MST_REG_IP 
+            , BM.BNR_MST_REG_ID 
+            , BD.BNR_DTL_ORDER 
+            , BD.BNR_DTL_IDX
+            , FL.CMM_FLE_ATT_PATH
+            , FL.CMM_FLE_SYS_NM
+            , FL.CMN_FLE_ALT_TXT
+            , BD.BNR_DTL_TARGET
+            , BD.BNR_DTL_URL
+        FROM
+         T_BNR_MST BM, T_BNR_DTL BD , T_CMM_FLE FL
+        WHERE
+            BM.BNR_MST_IDX = BD.BNR_BNR_MST_IDX 
+            AND BD.BNR_DTL_IDX = FL.CMM_FLE_TB_PK
+            AND FL.CMM_FLE_TB_NM =  'T_BNR_DTL'
+            AND CMN_COM_IDX = #{BANNER_IDX}
+            AND FL.CMM_FLE_USE_YN = 'Y'
+            AND TO_CHAR(SYSDATE,'YYYYMMDDHH24MI') BETWEEN BM.BNR_MST_ST_DT AND BM.BNR_MST_ED_DT
+    </select>
+    
+    <!-- 주문상품 정보 -->
+    <select id="selectOrdPrdInfo" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+    /* PcCart.selectOrdPrdInfo */
+        SELECT 
+                OP.ORD_PRD_MST_CD
+               , OP.ORD_PRD_OPT_DTL_IDX
+               , OP.ORD_PRD_ORD_CNT
+               , OP.ORD_PRD_DLV_TYPE   
+               , OP.ORD_PRD_SAL_PRC
+               , (SELECT SUBSTR(ORD_MST_ORD_DT,0,8) FROM T_ORD_MST WHERE ORD_MST_CD = OP.ORD_ORD_MST_CD) AS ORD_MST_ORD_DT      
+            FROM T_ORD_PRD OP, T_PRD_MST PM, T_OPT_DTL DTL 
+            WHERE  OP.ORD_PRD_IDX = #{ORD_PRD_IDX}
+            AND OP.ORD_PRD_MST_CD = PM.PRD_MST_CD
+            AND OP.ORD_PRD_OPT_DTL_IDX = DTL.OPT_DTL_IDX(+)
+    </select>
+    
+     <!-- 상품 마스터 테이블 재고수량 갱신-->
+     <update id="updatePrdMstStock" parameterType="java.util.HashMap">
+        /* PcCart.updatePrdMstStock */
+        UPDATE T_PRD_MST
+        SET PRD_MST_SEL_CNT = PRD_MST_SEL_CNT - #{ORD_PRD_ORD_CNT}
+        WHERE PRD_MST_CD = #{ORD_PRD_MST_CD}
+     </update>  
+     
+     <!-- 상품 옵션 테이블 재고수량 갱신-->
+     <update id="updatePrdOptStock" parameterType="java.util.HashMap">
+        /* PcCart.updatePrdOptStock */
+        UPDATE T_OPT_DTL
+        SET OPT_DTL_STK_CNT = OPT_DTL_STK_CNT - #{ORD_PRD_ORD_CNT}
+        WHERE OPT_DTL_IDX = #{ORD_PRD_OPT_DTL_IDX}
+     </update>  
+     
+    <!-- 컬러/사이즈로 상품정보 찾기 -->
+    <select id="selectPrdOptIdxBySizeColor" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+        /* PcCart.selectPrdOptIdxBySizeColor */
+        <![CDATA[
+        SELECT
+            TPO.PRD_OPT_IDX
+            , TPO.PRD_OPT_STOCK_CNT
+            , TPM.PRD_MST_CD
+            , TPM.PRD_MST_MULTI_SHOP_CD
+            , TPO.PRD_OPT_COLR_CD
+            , TPO.PRD_OPT_COLR_NM
+            , TPO.PRD_OPT_SIZE_NM
+            , TPO.PRD_OPT_SIZE_CD
+            , TPM.PRD_MST_PURCHASE_YN           
+        FROM T_PRD_MST TPM, T_PRD_OPT TPO
+        WHERE TPM.PRD_MST_CD = TPO.PRD_MST_CD(+)
+        AND #{PRD_MST_CD} = TPO.PRD_MST_CD(+)
+        AND #{PRD_OPT_COLR_CD} = TPO.PRD_OPT_COLR_CD(+)
+        AND #{PRD_OPT_SIZE_CD} = TPO.PRD_OPT_SIZE_CD(+)
+        ]]> 
+    </select>
+    
+    <!-- 옵션별 재고수량 확인 -->
+    <select id="selectOptionStockCount" parameterType="java.util.HashMap" resultType="Integer">
+        /* PcCart.selectOptionStockCount */
+        <![CDATA[
+            SELECT  
+                OPT_DTL_STK_CNT
+            FROM T_OPT_DTL
+            WHERE 
+                PRD_PRD_MST_CD = #{MEM_PRD_MST_CD}
+                AND PRD_OPT_IDX = #{MEM_PRD_OPT_IDX} 
+        ]]>
+    </select>
+    
+    <!-- 재고 체크를 위한 상품정보 가져오기 -->
+    <select id="selectProducStocktInfo" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+        /* PcCart.selectProducStocktInfo */
+        <![CDATA[
+        SELECT
+            S1.*
+            , CASE
+                WHEN #{OPT_DTL_IDX} = 0 THEN PRD_MST_SEL_CNT /* 옵션 없는 경우 마스터 재고 */
+                ELSE OPT_DTL_STK_CNT /* 옵션 있는 경우 옵션 재고 */
+              END STOCK_CNT
+        FROM
+        (
+            SELECT
+                TPM.PRD_MST_CD
+                , TPM.PRD_MST_NM
+                , TPM.PRD_MST_SEL_CNT
+                , TPM.PRD_MST_SEL_STATE
+                , TPM.PRD_MST_DPL_STATE
+                , TPM.PRD_MST_APV_STATE
+                , 
+                (
+                    SELECT
+                        NVL(OPT_DTL_STK_CNT,0) 
+                    FROM T_OPT_DTL
+                    WHERE OPT_DTL_IDX = #{OPT_DTL_IDX}
+                ) as OPT_DTL_STK_CNT
+                ,
+                (
+                    SELECT
+                        OPT_DTL_NM
+                    FROM T_OPT_DTL
+                    WHERE OPT_DTL_IDX = #{OPT_DTL_IDX}
+                ) as OPT_DTL_NM
+                ,
+                (
+                    SELECT
+                        PRD_OPT_EST_YN
+                    FROM T_PRD_OPT
+                    WHERE PRD_OPT_IDX =
+                    (SELECT PRD_OPT_IDX FROM T_OPT_DTL WHERE OPT_DTL_IDX = #{OPT_DTL_IDX})
+                ) as PRD_OPT_EST_YN /* 필수옵션 여부 */
+            FROM T_PRD_MST TPM
+            WHERE TPM.PRD_MST_CD = #{PRD_MST_CD}
+        ) S1
+        ]]> 
+    </select>
+    
+     <!-- 재고 체크를 위한 상품정보 가져오기 -->
+    <select id="selectProducStocktInfoShowwindow" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+         /* PcCart.selectProducStocktInfoShowwindow */
+        <![CDATA[
+        	SELECT 
+        		PM.PRD_MST_CD,
+        		PM.PRD_MST_NM,
+        		PM.PRD_MST_ERP_CD,
+        		PM.PRD_MST_SEL_CNT,
+        		PM.PRD_MST_SEL_STATE, 
+                PM.PRD_MST_DPL_STATE, 
+                PM.PRD_MST_APV_STATE, 
+        		(SELECT OPT_STK_CNT FROM T_PRD_CMM_OPT TPCO WHERE TPCO.PRD_MST_CD = PM.PRD_MST_CD AND TPCO.UP_COM_OPT_IDX = #{MEM_CRT_COLOR} AND TPCO.CMM_OPT_NM = #{MEM_CRT_SIZE}) AS OPT_STK_CNT,
+        		(SELECT TBM.BND_MST_BRAND_TYPE FROM T_BND_MST TBM WHERE PM.PRD_MST_VDR_IDX = TBM.VDR_MST_IDX ) AS BND_MST_BRAND_TYPE,
+        		PM.PRD_MST_SEASON,
+        		PM.PRD_MST_YEAR      
+        	  FROM 
+        		T_PRD_MST PM
+        	  WHERE 
+        	  	PM.PRD_MST_CD = #{PRD_MST_CD}
+        ]]> 
+    </select>
+    
+    
+    
+    <!-- ERP 서브 매장 코드 가져오기(O2O만 해당/온라인,미니샵은 prd_mst의 prd_mst_shop_cd가 sub_bcnc_cd) -->
+    <select id="selectErpSubBcncCd" parameterType="java.util.HashMap" resultType="String">
+        /* PcCart.selectErpSubBcncCd */
+        <![CDATA[
+             SELECT 
+                A.SHOP_CD
+             FROM US_YAK.TSU_SHOP_MLT A, US_YAK.TSU_SHOP_MLT_BRND B
+             WHERE A.COMP_CD = B.COMP_CD
+             AND A.SHOP_CD = B.SHOP_CD
+             AND A.COMP_CD = '003'
+             AND A.MLT_SHOP_CD = #{BCNC_CD}
+          ]]>    
+    </select>
+    
+    <!-- 회원 정보 -->
+    <select id="selectCartMemberInfo" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+        /* PcCart.selectCartMemberInfo */
+        <![CDATA[
+            SELECT 
+                BCNC_CD, 
+                NVL(TSM_CUST_LIMIT_BUY,0) AS TSM_CUST_LIMIT_BUY, 
+                FN_GET_USER_POINT(TC.COMP_CD,TC.CUST_NO) AS RMN_PNT,
+                TSM_CUST_STAFF_NO,
+                TSM_CUST_COMP_CD
+            FROM TSM_CUST TC, TSM_CUST_SCRT TCS
+            WHERE TC.CUST_NO = TCS.CUST_NO
+            AND TC.COMP_CD = TCS.COMP_CD
+            AND TC.COMP_CD = #{serverCompCd}
+            AND CUST_ID = #{MEM_MST_MEM_ID}
+        ]]>
+    </select>
+    
+    <!-- 사은품 리스트 -->
+    <select id="selectGiftList" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+        /* PcCart.selectGiftList */
+             SELECT
+                GFT_MST_IDX
+                , GFT_MST_NAME
+                , GFT_MST_OPTION
+                , AMT_BASE_YN
+                , PRD_BASE_YN
+                , PLN_BASE_YN
+                , MAX(GFT_MST_PRD_TYPE) as GFT_MST_PRD_TYPE
+                , MAX(PRODUCT_THUM_IMG) as PRODUCT_THUM_IMG
+                , MAX(PRD_IMAGE_ALT) as PRD_IMAGE_ALT
+                , MAX(CMM_FLE_ATT_PATH) as CMM_FLE_ATT_PATH
+                , MAX(CMM_FLE_SYS_NM) as CMM_FLE_SYS_NM
+                , MAX(CMN_FLE_ALT_TXT) as CMN_FLE_ALT_TXT
+                , GFT_MST_STOCK_CNT
+            FROM
+            (
+            SELECT
+                S1.*
+                , CASE
+                    WHEN GFT_MST_GUBUN = 'S' THEN /* 주문금액 기준인 경우 */
+                        CASE 
+                            WHEN PRD_GFT_CNT > 0 THEN /* 상품이 걸려있는 경우 */
+                                CASE
+                                    WHEN #{SUM_TOT_ORDER_PRICE} >= GFT_MST_COND_AMT AND SELECTED_PRD_GFT_CNT > 0 THEN 'Y'
+                                    ELSE 'N'
+                                END     
+                            WHEN PRD_GFT_CNT = 0 THEN /* 상품이 걸려있지 않은 경우 금액만 체크 */       
+                                CASE
+                                    WHEN #{SUM_TOT_ORDER_PRICE} >= GFT_MST_COND_AMT THEN 'Y'
+                                    ELSE 'N'
+                                END
+                        END
+                    ELSE 'N'            
+                  END AMT_BASE_YN 
+                , CASE
+                    WHEN GFT_MST_GUBUN = 'P' THEN /* 상품 기준인 경우 */       
+                        CASE 
+                            WHEN SELECTED_PRD_GFT_CNT > 0 THEN 'Y'
+                            ELSE 'N'
+                        END     
+                    ELSE 'N'            
+                  END PRD_BASE_YN 
+                , CASE
+                    WHEN GFT_MST_GUBUN = 'D' THEN /* 기획전 기준인 경우 */      
+                        CASE 
+                            WHEN SELECTED_PLN_PRD_CNT > 0 THEN 'Y'
+                            ELSE 'N'
+                        END     
+                    ELSE 'N'            
+                  END PLN_BASE_YN  
+            FROM
+            (
+            SELECT 
+                TGM.GFT_MST_IDX     
+                , GFT_MST_BRAND_CD  
+                , GFT_MST_NAME      
+                , GFT_MST_OPTION    
+                , GFT_MST_ST_DT 
+                , GFT_MST_ED_DT 
+                , GFT_MST_COND_AMT  
+                , GFT_MST_USE_YN    
+                , GFT_MST_REG_DT    
+                , GFT_MST_REG_IP    
+                , GFT_MST_REG_ID    
+                , GFT_MST_UPD_DT    
+                , GFT_MST_UPD_IP    
+                , GFT_MST_UPD_ID    
+                , GFT_MST_GUBUN 
+                , GFT_MST_STOCK_CNT 
+                , GFT_MST_PRD_TYPE  
+                , GFT_MST_PRD_CD    
+                , GFT_MST_PLN_IDX               
+                , TPG.PRD_PRD_MST_CD
+                , (SELECT COUNT(1) FROM T_PRD_GFT WHERE GFT_MST_IDX = TGM.GFT_MST_IDX) as PRD_GFT_CNT
+                , COUNT(TPG.PRD_PRD_MST_CD) OVER(PARTITION BY TGM.GFT_MST_IDX) as SELECTED_PRD_GFT_CNT
+                , PLN.PLN_MST_IDX
+                , PLN.PLN_PRD_MST_CD
+                , COUNT(PLN.PLN_PRD_MST_CD) OVER(PARTITION BY TGM.GFT_MST_IDX) as SELECTED_PLN_PRD_CNT
+                , FN_PRODUCT_IMG (TGM.GFT_MST_PRD_CD, #{THUMBNAIL_SIZE}) PRODUCT_THUM_IMG
+                , FN_PRODUCT_IMG_ALT(TGM.GFT_MST_PRD_CD, #{THUMBNAIL_SIZE}) PRD_IMAGE_ALT
+                , FL.CMM_FLE_ATT_PATH
+                , FL.CMM_FLE_SYS_NM
+                , FL.CMM_FLE_IDX 
+                , FL.CMM_FLE_SYS_PATH             
+                , FL.CMM_FLE_ORG_NM 
+                , FL.CMN_FLE_ALT_TXT
+            FROM T_GFT_MST TGM
+            LEFT OUTER JOIN T_CMM_FLE FL
+            ON TGM.GFT_MST_IDX = FL.CMM_FLE_TB_PK AND FL.CMM_FLE_USE_YN = 'Y' AND FL.CMM_FLE_TB_NM = 'T_GFT_MST'
+            LEFT OUTER JOIN (
+                            SELECT * FROM T_PRD_GFT TPG
+                            WHERE 
+                            EXISTS
+                            (
+                            SELECT PRD_TMP_MST_CD FROM T_PRD_TMP TPM
+                            WHERE ORD_TMP_MST_CD = #{ORD_MST_CD}
+                            AND TPG.PRD_PRD_MST_CD = TPM.PRD_TMP_MST_CD
+                            )
+                        ) TPG
+            ON TGM.GFT_MST_IDX = TPG.GFT_MST_IDX
+            LEFT OUTER JOIN (
+                            SELECT 
+                                PLN.PLN_MST_IDX, PLN_PRD_MST_CD
+                            FROM T_PLN_MST PLN, T_PLN_DTL TPD
+                            WHERE PLN.PLN_MST_IDX = TPD.PLN_MST_IDX
+                            AND PLN_MST_USE_YN = 'Y'
+                            AND EXISTS
+                            (
+                                SELECT PRD_TMP_MST_CD FROM T_PRD_TMP TPM
+                                WHERE ORD_TMP_MST_CD = #{ORD_MST_CD}
+                                AND TPD.PLN_PRD_MST_CD = TPM.PRD_TMP_MST_CD
+                                AND TO_CHAR(SYSDATE, 'YYYYMMDD') BETWEEN PLN_MST_ST_DT AND PLN_MST_ED_DT
+                                AND TO_CHAR(SYSDATE, 'HH24MI') BETWEEN NVL(PLN_MST_ST_HH, '00')||NVL(PLN_MST_ST_MI, '00') AND NVL(PLN_MST_ED_MI,'23')||NVL(PLN_MST_ED_MI,'59')
+                            )
+                        ) PLN
+            ON TGM.GFT_MST_PLN_IDX = PLN.PLN_MST_IDX
+            WHERE GFT_MST_USE_YN = 'Y' 
+            /* AND GFT_MST_STOCK_CNT > 0  재고 없는 것도 가져오도록 수정 */
+            AND TO_CHAR(SYSDATE, 'YYYYMMDD') BETWEEN GFT_MST_ST_DT AND GFT_MST_ED_DT
+            ORDER BY GFT_MST_IDX DESC
+            ) S1
+            ) S2
+            WHERE (AMT_BASE_YN = 'Y' OR PRD_BASE_YN = 'Y' OR PLN_BASE_YN = 'Y')
+            GROUP BY
+                GFT_MST_IDX
+                , GFT_MST_NAME
+                , GFT_MST_OPTION
+                , AMT_BASE_YN
+                , PRD_BASE_YN
+                , PLN_BASE_YN
+                , GFT_MST_STOCK_CNT
+    </select>
+    
+    <!-- 사은품 정보 담기 -->
+    <insert id="insertGftReq" parameterType="java.util.HashMap">
+        <selectKey resultType="integer" keyProperty="GFT_REQ_IDX" order="BEFORE">
+            SELECT SEQ_GFT_REQ_IDX.NEXTVAL AS GFT_REQ_IDX  FROM DUAL
+        </selectKey>
+        /* PcCart.insertGftReq */
+        INSERT INTO T_GFT_REQ 
+        (
+            GFT_REQ_IDX,
+            ORD_ORD_MST_CD,
+            GFT_MST_IDX,
+            GFT_REQ_OPTION,
+            GFT_REQ_REG_DT,
+            GFT_REQ_REG_IP,
+            GFT_REQ_REG_ID
+        )
+        VALUES
+        (
+            #{GFT_REQ_IDX},
+            #{ORD_ORD_MST_CD},
+            #{GFT_MST_IDX},
+            #{GFT_REQ_OPTION},
+            TO_CHAR(SYSDATE,'YYYYMMDDHH24MISS'),
+            #{GFT_REQ_REG_IP},
+            #{GFT_REQ_REG_ID}
+        )
+    </insert>
+    
+    <!-- 사은품 재고 차감 -->
+    <update id="updateGftStock" parameterType="java.util.HashMap">
+        /* PcCart.updateGftStock */
+        UPDATE T_GFT_MST SET GFT_MST_STOCK_CNT = GFT_MST_STOCK_CNT - 1 WHERE GFT_MST_IDX = #{GFT_MST_IDX}           
+    </update>
+    
+    
+    <!-- 회원정보 조회 -->
+    <select id="selectUserInfo" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+      /* PcCart.selectUserInfo */
+        SELECT
+            MEM_MST_MEM_ID  
+            , MEM_MST_MEM_NM
+            , MEM_MST_MEM_GBN
+            , (SELECT CMN_COM_NM FROM T_CMM_COM WHERE CMN_COM_IDX = MEM_MST_MEM_GBN) as MEM_MST_MEM_GBN_NM
+            , MEM_MST_MEM_GRD
+            , (SELECT CMN_COM_NM FROM T_CMM_COM WHERE CMN_COM_IDX = MEM_MST_MEM_GRD) as MEM_MST_MEM_GRD_NM
+            , MEM_MST_MAIL
+            , MEM_MST_ZIP_CDE6
+            , (SELECT MEM_DLV_JBN_ADR1 FROM T_MEM_DLV TMD WHERE MEM_MST_MEM_ID = #{MEM_MST_MEM_ID} AND MEM_DLV_BSC_YN = 'Y' AND MEM_DLV_USE_YN='Y' ) AS MEM_MST_JBN_ADR1 
+            , (SELECT MEM_DLV_JBN_ADR2 FROM T_MEM_DLV TMD WHERE MEM_MST_MEM_ID = #{MEM_MST_MEM_ID} AND MEM_DLV_BSC_YN = 'Y' AND MEM_DLV_USE_YN='Y' ) AS MEM_MST_JBN_ADR2
+		    , (SELECT MEM_DLV_TEL1 FROM T_MEM_DLV TMD WHERE MEM_MST_MEM_ID = #{MEM_MST_MEM_ID} AND MEM_DLV_BSC_YN = 'Y' AND MEM_DLV_USE_YN='Y' ) AS MEM_MST_TEL1
+		    , (SELECT MEM_DLV_TEL2 FROM T_MEM_DLV TMD WHERE MEM_MST_MEM_ID = #{MEM_MST_MEM_ID} AND MEM_DLV_BSC_YN = 'Y' AND MEM_DLV_USE_YN='Y' ) AS MEM_MST_TEL2
+		    , (SELECT MEM_DLV_TEL3 FROM T_MEM_DLV TMD WHERE MEM_MST_MEM_ID = #{MEM_MST_MEM_ID} AND MEM_DLV_BSC_YN = 'Y' AND MEM_DLV_USE_YN='Y' ) AS MEM_MST_TEL3
+            <!-- , (SELECT MEM_MST_TEL1 FROM T_MEM_DLV TMD WHERE MEM_MST_MEM_ID = #{MEM_MST_MEM_ID} AND MEM_DLV_BSC_YN = 'Y' AND MEM_DLV_USE_YN='Y' ) AS MEM_MST_TEL1
+            , (SELECT MEM_MST_TEL2 FROM T_MEM_DLV TMD WHERE MEM_MST_MEM_ID = #{MEM_MST_MEM_ID} AND MEM_DLV_BSC_YN = 'Y' AND MEM_DLV_USE_YN='Y' ) AS MEM_MST_TEL2
+            , (SELECT MEM_MST_TEL3 FROM T_MEM_DLV TMD WHERE MEM_MST_MEM_ID = #{MEM_MST_MEM_ID} AND MEM_DLV_BSC_YN = 'Y' AND MEM_DLV_USE_YN='Y' ) AS MEM_MST_TEL3 -->
+			, (SELECT MEM_DLV_HP1 FROM T_MEM_DLV TMD WHERE MEM_MST_MEM_ID = #{MEM_MST_MEM_ID} AND MEM_DLV_BSC_YN = 'Y' AND MEM_DLV_USE_YN='Y' ) AS MEM_MST_HP1
+            , (SELECT MEM_DLV_HP2 FROM T_MEM_DLV TMD WHERE MEM_MST_MEM_ID = #{MEM_MST_MEM_ID} AND MEM_DLV_BSC_YN = 'Y' AND MEM_DLV_USE_YN='Y' ) AS MEM_MST_HP2
+            , (SELECT MEM_DLV_HP3 FROM T_MEM_DLV TMD WHERE MEM_MST_MEM_ID = #{MEM_MST_MEM_ID} AND MEM_DLV_BSC_YN = 'Y'  AND MEM_DLV_USE_YN='Y') AS MEM_MST_HP3
+            , (SELECT MEM_DLV_ZIP_CDE5 FROM T_MEM_DLV TMD WHERE MEM_MST_MEM_ID = #{MEM_MST_MEM_ID} AND MEM_DLV_BSC_YN = 'Y'  AND MEM_DLV_USE_YN='Y') AS MEM_MST_ZIP_CDE5
+            , (SELECT MEM_DLV_DRO_ADR1 FROM T_MEM_DLV TMD WHERE MEM_MST_MEM_ID = #{MEM_MST_MEM_ID} AND MEM_DLV_BSC_YN = 'Y'  AND MEM_DLV_USE_YN='Y') AS MEM_MST_DRO_ADR1
+            , (SELECT MEM_DLV_DRO_ADR2 FROM T_MEM_DLV TMD WHERE MEM_MST_MEM_ID = #{MEM_MST_MEM_ID} AND MEM_DLV_BSC_YN = 'Y'  AND MEM_DLV_USE_YN='Y') AS MEM_MST_DRO_ADR2
+            , MEM_MST_SEX
+            , MEM_MST_HP1 || MEM_MST_HP2 || MEM_MST_HP3 AS MEM_MST_HP
+            , (SELECT MEM_CPR_NM FROM T_MEM_CPR WHERE MEM_CPR_MEM_ID = #{MEM_MST_MEM_ID}) AS MEM_CPR_NM /* 기업명 */
+        FROM T_MEM_VIEW
+        WHERE MEM_MST_MEM_ID = #{MEM_MST_MEM_ID}
+    </select>
+    
+    <!-- 임시 주문관련 금액 reset -->
+    <update id="updateTempCartAmtReset" parameterType="java.util.HashMap">
+        /* PcCart.updateTempCartAmtReset */
+        UPDATE
+            T_ORD_TMP
+        SET 
+            ORD_TMP_DLV_ADD_CAG = 0
+            , ORD_TMP_DC_CPN = 0
+            , ORD_TMP_DC_PIT = 0
+            , ORD_TMP_DC_OCB = 0
+        WHERE ORD_TMP_MST_CD = #{ORD_MST_CD}        
+    </update>
+    
+    <!-- 임시 주문관련 금액 reset -->
+    <update id="updateTempCartPrdAmtReset" parameterType="java.util.HashMap">
+        /* PcCart.updateTempCartPrdAmtReset */
+        UPDATE
+            T_PRD_TMP
+        SET 
+            PRD_TMP_DLV_ADD_CAG = 0
+            , ORD_TMP_PRD_SAL_PRC = 0
+            , ORD_TMP_DLV_SAL_PRC = 0
+            , ORD_TMP_PRD_CPN_IDX = 0
+            , ORD_TMP_DLV_CPN_IDX = 0
+        WHERE ORD_TMP_MST_CD = #{ORD_MST_CD}        
+    </update>
+    
+    <!-- 임시 주문상품 금액 변경 -->
+    <update id="updateTempCartPrdAmt" parameterType="java.util.HashMap">
+        /* PcCart.updateTempCartPrdAmt */
+        UPDATE
+            T_PRD_TMP
+        SET 
+            ORD_TMP_MST_CD = ORD_TMP_MST_CD
+            <if test="PRD_TMP_DLV_ADD_CAG != null and PRD_TMP_DLV_ADD_CAG != ''">
+                , PRD_TMP_DLV_ADD_CAG = #{PRD_TMP_DLV_ADD_CAG}
+            </if>
+            <if test="(ORD_TMP_PRD_SAL_PRC != null and ORD_TMP_PRD_SAL_PRC != '') || ORD_TMP_PRD_SAL_PRC > -1">
+                , ORD_TMP_PRD_SAL_PRC = #{ORD_TMP_PRD_SAL_PRC}
+            </if>
+            <if test="ORD_TMP_DLV_SAL_PRC != null and ORD_TMP_DLV_SAL_PRC != ''">
+                , ORD_TMP_DLV_SAL_PRC = #{ORD_TMP_DLV_SAL_PRC}
+            </if>
+            <if test="ORD_TMP_PRD_CPN_IDX != null and ORD_TMP_PRD_CPN_IDX != ''">
+                , ORD_TMP_PRD_CPN_IDX = #{ORD_TMP_PRD_CPN_IDX}
+            </if>
+            <if test="ORD_TMP_DLV_CPN_IDX != null and ORD_TMP_DLV_CPN_IDX != ''">
+                , ORD_TMP_DLV_CPN_IDX = #{ORD_TMP_DLV_CPN_IDX}
+            </if>
+        WHERE ORD_TMP_MST_CD = #{ORD_MST_CD}
+        <if test="PRD_TMP_IDX != null and PRD_TMP_IDX != ''">
+            AND PRD_TMP_IDX = #{PRD_TMP_IDX}
+        </if>
+    </update>
+    
+    <!-- 주문 금액 변경 -->
+    <update id="updateTempCartAmt" parameterType="java.util.HashMap">
+        /* PcCart.updateTempCartAmt */
+        UPDATE
+            T_ORD_TMP
+        SET 
+            ORD_TMP_REG_IP = #{remote_addr}
+            <if test="ORD_TMP_DLV_ADD_CAG != null and ORD_TMP_DLV_ADD_CAG != ''">
+                , ORD_TMP_DLV_ADD_CAG = #{ORD_TMP_DLV_ADD_CAG}
+            </if>
+            <if test="ORD_TMP_DC_CPN != null and ORD_TMP_DC_CPN != ''">
+                , ORD_TMP_DC_CPN = #{ORD_TMP_DC_CPN}
+            </if>
+            <if test="ORD_TMP_DC_PIT != null and ORD_TMP_DC_PIT != ''">
+                , ORD_TMP_DC_PIT = #{ORD_TMP_DC_PIT}
+            </if>
+            <if test="ORD_TMP_DC_OCB != null and ORD_TMP_DC_OCB != ''">
+                , ORD_TMP_DC_OCB = #{ORD_TMP_DC_OCB}
+            </if>
+        WHERE ORD_TMP_MST_CD = #{ORD_MST_CD}    
+    </update>
+    
+    <!-- 주문 금액 정보  -->
+    <select id="selectPaymentAmt" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+        /* PcCart.selectPaymentAmt */
+        SELECT
+            MEM_CRT_IDX
+            , MEM_CRT_PAYMENT_DELIVERY
+            , MEM_CRT_PAYMENT_TOTAL
+            , MEM_CRT_PAYMENT_DC_POINT
+            , MEM_CRT_PAYMENT_DC_CASHBACK
+            , MEM_CRT_PAYMENT_DC_AV_CASHBACK
+            , MEM_CRT_PAYMENT_DC_COUPON_RT
+            , MEM_CRT_PAYMENT_DC_COUPON_AMT
+        FROM T_MEM_CRT
+        WHERE MEM_CRT_IDX = #{MEM_CRT_IDX}
+        <if test="MEM_MST_MEM_ID != null and MEM_MST_MEM_ID != ''">
+            AND MEM_MST_MEM_ID = #{MEM_MST_MEM_ID}
+        </if>
+        <if test="MEM_MST_MEM_ID == null or MEM_MST_MEM_ID == ''">
+            AND MEM_CRT_SES_ID = #{MEM_CRT_SES_ID}
+        </if>
+        
+    </select>  
+    
+     <!-- 모바일 장바구니 임시 정보 등록 -->
+     <insert id="insertCartTempInfo" parameterType="java.util.HashMap">
+        /* PcCart.insertCartTempInfo */
+        INSERT INTO T_CRT_TMP
+        (
+            CRT_SESSION_ID, CRT_INFO, CRT_REG_DT
+        )
+        VALUES
+        (
+            #{CRT_SESSION_ID}
+            , #{CRT_INFO}
+            , TO_CHAR(SYSDATE,'YYYYMMDDHH24MISS')
+        )
+     </insert>
+     
+      <!-- 모바일 장바구니 임시 정보 삭제 -->
+      <delete id="deleteCartTempInfo" parameterType="java.util.HashMap">
+        /* PcCart.deleteCartTempInfo */
+        DELETE FROM T_CRT_TMP
+        WHERE CRT_SESSION_ID = #{CRT_SESSION_ID}
+      </delete>
+    
+     <!-- 모바일 장바구니 임시 정보 -->
+     <select id="selectCartTempInfo" parameterType="java.util.HashMap" resultType="java.util.HashMap">  
+        /* PcCart.selectCartTempInfo */
+        SELECT
+            CRT_INFO
+        FROM T_CRT_TMP
+        WHERE CRT_SESSION_ID = #{CRT_SESSION_ID}
+        AND ROWNUM = 1
+     </select>
+     
+    <!-- 공통코드 하위 코드 조회 -->
+    <select id="selectCodeList" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+        /* PcCart.selectCodeList */
+        SELECT
+            CMN_COM_IDX,
+            CMN_COM_NM,
+            CMN_COM_LEVEL,
+            CMN_COM_UP_IDX,
+            CMN_COM_TOP_IDX,
+            CMN_COM_ETC1,
+            CMN_COM_ETC2,
+            CMN_COM_ETC3,
+            CMN_COM_SORT,
+            CMN_COM_USE_YN,
+            CMN_COM_REG_DT,
+            CMN_COM_REG_IP,
+            CMN_COM_REG_ID,
+            CMN_COM_UPD_DT,
+            CMN_COM_UPD_IP,
+            CMN_COM_UPD_ID 
+        FROM
+            T_CMM_COM
+        WHERE
+            CMN_COM_UP_IDX = #{CODE}
+            AND CMN_COM_USE_YN = 'Y'
+            <if test="searchCmnComEtc1 != null and searchCmnComEtc1 != ''">
+                AND CMN_COM_ETC1 = #{searchCmnComEtc1}
+            </if> 
+            <if test="searchCmnComEtc2 != null and searchCmnComEtc2 != ''">
+                AND CMN_COM_ETC2 = #{searchCmnComEtc2}
+            </if>
+            <if test="searchCmnComEtc3 != null and searchCmnComEtc3 != ''">
+                AND CMN_COM_ETC3 = #{searchCmnComEtc3}
+            </if>       
+        ORDER BY CMN_COM_LEVEL, CMN_COM_SORT ASC
+    </select>
+    
+    <!-- kicc 카드사 조회 -->
+    <select id="selectKiccCardList" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+        /* PcCart.selectKiccCardList */
+        SELECT 
+              CRD_INF_IDX /* 카드사정보 */
+			, CRD_INF_NM  /* 카드명 */
+			, CRD_INF_CD  /* 카드사코드 */
+			, CRD_INF_CRP /* 카드사 */
+			, CRD_INF_PG  /* 카드PG */
+			, CRD_INF_CD_NO /* 카드코드넘버 */
+			, CRD_INF_PAY   /*카드결제구분 */
+			, CRD_INF_IST_MID   /* 일반할부 MID */
+			, CRD_INF_IST_FRE_MID   /* 무이자할부 MID  */
+			, CRD_INF_IST_O2O_MID   /* 겟잇나우 일반할부 MID */
+			, CRD_INF_IST_FRE_O2O_MID   /* 겟잇나우 무이자할부 MID */
+			, CRD_INF_IST_ERP    /* 일반할부 ERP */
+			, CRD_INF_IST_FRE_ERP   /* 무이자할부 ERP */    
+        FROM T_CRD_INF
+        WHERE 1=1
+        <if test="CRD_INF_IDX != null and CRD_INF_IDX != ''">
+            AND CRD_INF_IDX = #{CRD_INF_IDX}
+        </if>
+        <if test="longCardCdArr != null and longCardCdArr != ''">
+            AND CRD_INF_IDX IN <foreach collection="longCardCdArr" item="longCardCd" open="(" close=")" separator=",">#{longCardCd}</foreach>
+        </if>
+        ORDER BY CRD_INF_IDX
+    </select>
+     
+    <!--  테스트용 임시 쿼리 시작 -->
+    <!-- 상품 상세 정보 -->
+    <select id="selectBasicOnlineProductInfo" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+        /* Cart.selectBasicOnlineProductInfo */
+        SELECT 
+                PRD_MST_PRC
+                , PRD_MST_CPR_PRC1
+                , PRD_MST_CPR_PRC2
+                , PRD_MST_PC_CPN_UNT
+                , PRD_MST_PC_CPN_PRC
+                , PRD_MST_MB_CPN_UNT
+                , PRD_MST_MB_CPN_PRC
+                , FN_GET_CART_CUS_PRICE(TPM.PRD_MST_CD, #{MEM_MST_MEM_ID}, #{CART_PC_MOBILE_GUBUN}) as CUSTOMER_PRICE /* 회원:즉시할인 적용가 비회원:상품가격 기업회원:기업회원등급가 */
+                , PRD_MST_O2O_YN /* 겟잇나우 여부 */
+        FROM T_PRD_MST TPM
+        WHERE TPM.PRD_MST_CD = #{PRD_MST_CD}
+    </select>
+    
+     <!-- 온라인 상품 상세 옵션 정보 조회 -->
+    <select id="selectBasicOnlineProductOptionList" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+        /* Cart.selectBasicOnlineProductOptionList */
+        SELECT 
+                PRP.PRD_OPT_IDX,
+                PRP.PRD_MST_CD, 
+                PRP.PRD_OPT_NM, 
+                PRP.PRD_OPT_EST_YN, 
+                PRP.PRD_OPT_CNT_YN,
+                (SELECT COUNT(*) FROM T_OPT_DTL WHERE PRD_OPT_IDX = PRP. PRD_OPT_IDX) AS DTL_CNT
+        FROM T_PRD_OPT PRP
+        WHERE PRP.PRD_MST_CD = #{PRD_MST_CD}
+        ORDER BY PRP.PRD_OPT_IDX
+    </select>
+    
+    <!-- 온라인 상품 상세 옵션 상세 정보 조회 -->
+    <select id="selectBasicOnlineProductOptionDetailList" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+        /* Cart.selectBasicOnlineProductOptionDetailList */
+        SELECT 
+                OPD.OPT_DTL_IDX,
+                OPD.PRD_OPT_IDX, 
+                OPD.OPT_DTL_NM, 
+                OPD.OPT_DTL_ADD_PRC,
+                OPD.OPT_DTL_STK_CNT,
+                OPD.OPT_DTL_ST_DT,
+                OPD.OPT_DTL_ED_DT,
+                OPD.OPT_DTL_USE_YN,
+                SUM(DECODE(PRP.PRD_OPT_EST_YN, 'Y', 1, 0)) OVER() as EST_Y_CNT
+        FROM T_OPT_DTL OPD 
+        INNER JOIN T_PRD_OPT PRP ON OPD.PRD_OPT_IDX = PRP.PRD_OPT_IDX
+        AND PRP.PRD_MST_CD = #{PRD_MST_CD}
+        AND OPD.OPT_DTL_USE_YN = 'Y'
+        AND TO_CHAR(SYSDATE, 'YYYYMMDD') BETWEEN OPD.OPT_DTL_ST_DT AND OPD.OPT_DTL_ED_DT
+        ORDER BY OPD.PRD_OPT_IDX
+    </select>
+    
+    <!-- 선택 옵션 상세 정보 -->
+    <select id="selectOptionDetailInfo" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+        /* Cart.selectOptionDetailInfo */
+        SELECT 
+                OPD.OPT_DTL_IDX,
+                OPD.PRD_OPT_IDX, 
+                OPD.OPT_DTL_NM, 
+                OPD.OPT_DTL_ADD_PRC,
+                OPD.OPT_DTL_STK_CNT,
+                OPD.OPT_DTL_ST_DT,
+                OPD.OPT_DTL_ED_DT,
+                OPD.OPT_DTL_USE_YN,
+                PRP.PRD_OPT_EST_YN,
+                PRP.PRD_OPT_CNT_YN
+        FROM T_OPT_DTL  OPD 
+        INNER JOIN T_PRD_OPT  PRP ON OPD.PRD_OPT_IDX = PRP.PRD_OPT_IDX
+        WHERE PRP.PRD_MST_CD = #{PRD_MST_CD}
+        AND OPD.OPT_DTL_USE_YN = 'Y'
+        AND TO_CHAR(SYSDATE, 'YYYYMMDD') BETWEEN OPD.OPT_DTL_ST_DT AND OPD.OPT_DTL_ED_DT
+        AND OPD.OPT_DTL_IDX = #{OPT_DTL_IDX}
+    </select>
+    
+    <!-- 선택 옵션 상세 정보 리스트 -->
+    <select id="selectOptionDetailList" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+        /* Cart.selectOptionDetailList */
+        SELECT 
+                OPD.OPT_DTL_IDX,
+                OPD.PRD_OPT_IDX, 
+                OPD.OPT_DTL_NM, 
+                OPD.OPT_DTL_ADD_PRC,
+                OPD.OPT_DTL_STK_CNT,
+                OPD.OPT_DTL_ST_DT,
+                OPD.OPT_DTL_ED_DT,
+                OPD.OPT_DTL_USE_YN,
+                PRP.PRD_OPT_EST_YN,
+                PRP.PRD_OPT_CNT_YN,
+                SUM(DECODE(PRP.PRD_OPT_EST_YN, 'Y', 1, 0)) OVER() as EST_Y_CNT,
+                SUM(DECODE(PRP.PRD_OPT_EST_YN, 'Y', 0, 1)) OVER() as EST_N_CNT
+        FROM T_OPT_DTL  OPD 
+        INNER JOIN T_PRD_OPT  PRP ON OPD.PRD_OPT_IDX = PRP.PRD_OPT_IDX
+        WHERE PRP.PRD_MST_CD = #{PRD_MST_CD}
+        AND OPD.OPT_DTL_USE_YN = 'Y'
+        AND TO_CHAR(SYSDATE, 'YYYYMMDD') BETWEEN OPD.OPT_DTL_ST_DT AND OPD.OPT_DTL_ED_DT
+        AND OPD.OPT_DTL_IDX IN <foreach collection="OPT_DTL_IDXs" item="OPT_DTL_IDX" open="(" close=")" separator=",">#{OPT_DTL_IDX}</foreach>
+    </select>
+    
+    <!-- 겟잇나우 지점 리스트 -->
+    <select id="selectShpMstList" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+        /* PcCart.selectShpMstList */
+        <![CDATA[
+        SELECT * FROM T_SHP_MST
+        ]]> 
+    </select>
+    
+     <!--  테스트용 임시 쿼리 끝 -->
+     
+     <!-- 장바구니 상품 옵션 리스트 -->
+     <select id="selectCartOptionDetailList" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+        /* Cart.selectCartOptionDetailList */
+        SELECT 
+                ROWNUM RNUM,
+                OPD.OPT_DTL_IDX,
+                OPD.PRD_OPT_IDX, 
+                OPD.OPT_DTL_NM, 
+                OPD.OPT_DTL_ADD_PRC,
+                OPD.OPT_DTL_STK_CNT,
+                OPD.OPT_DTL_ST_DT,
+                OPD.OPT_DTL_ED_DT,
+                OPD.OPT_DTL_USE_YN,
+                (SELECT PRD_OPT_NM FROM T_PRD_OPT WHERE PRD_OPT_IDX = OPD.PRD_OPT_IDX) as PRD_OPT_NM
+        FROM T_OPT_DTL  OPD 
+        WHERE PRD_OPT_IDX = #{PRD_OPT_IDX}
+        ORDER BY OPT_DTL_IDX
+    </select>
+     
+     <!-- 임시 주문 데이터 생성 -->
+     <insert id="insertTempOrder" parameterType="java.util.HashMap">
+        /* PcCart.insertTempOrder */
+        <![CDATA[
+            INSERT INTO T_ORD_TMP
+            (
+                ORD_TMP_MST_CD          
+                , ORD_TMP_DLV_ADD_CAG   
+                , ORD_TMP_DC_CPN    
+                , ORD_TMP_DC_PIT    
+                , ORD_TMP_DC_OCB    
+                , ORD_TMP_SHP_MST_IDX   
+                , ORD_TMP_DLV_GBN
+                , ORD_TMP_GET_PKU_DT
+                , ORD_TMP_GET_PKU_HH
+                , ORD_TMP_REG_DT    
+                , ORD_TMP_REG_IP    
+                , ORD_TMP_REG_ID    
+                , ORD_TMP_PRE_CD    
+                , ORD_TMP_LNG_DIV
+                , PLN_MST_IDX
+                , ORD_TMP_MEM_ID    
+                , ORD_TMP_SES_ID
+            )
+            VALUES
+            (
+                #{ORD_TMP_MST_CD}           
+                , NVL(#{ORD_TMP_DLV_ADD_CAG},0) 
+                , NVL(#{ORD_TMP_DC_CPN},0)  
+                , NVL(#{ORD_TMP_DC_PIT},0)  
+                , NVL(#{ORD_TMP_DC_OCB},0)
+                , #{ORD_TMP_SHP_MST_IDX}    
+                , #{ORD_TMP_DLV_GBN}
+                , #{ORD_TMP_GET_PKU_DT}
+                , #{ORD_TMP_GET_PKU_HH}
+                , TO_CHAR(SYSDATE,'YYYYMMDDHH24MISS')
+                , #{ORD_TMP_REG_IP} 
+                , #{ORD_TMP_REG_ID}
+                , NVL(#{ORD_TMP_PRE_CD},'')
+                , #{ORD_TMP_LNG_DIV}
+                , #{PLN_MST_IDX}
+                ,
+            ]]> 
+                <if test="ORD_TMP_MEM_ID != null and ORD_TMP_MEM_ID != ''">
+                    #{ORD_TMP_MEM_ID}
+                    , ''   
+                </if>
+                <if test="ORD_TMP_MEM_ID == null or ORD_TMP_MEM_ID == ''">
+                    ''
+                    , #{ORD_TMP_SES_ID}
+                </if>
+             <![CDATA[          
+            )
+        ]]>
+    </insert>
+    
+    <!-- 임시 주문 상품 데이터 생성 -->
+     <insert id="insertTempOrderProduct" parameterType="java.util.HashMap">
+        <selectKey resultType="Integer" keyProperty="PRD_TMP_IDX" order="BEFORE">
+            SELECT SEQ_PRD_TMP_IDX.NEXTVAL AS PRD_TMP_IDX  FROM DUAL
+        </selectKey>
+        /* PcCart.insertTempOrderProduct */
+        <![CDATA[
+            INSERT INTO T_PRD_TMP
+            (
+                PRD_TMP_IDX
+                , ORD_TMP_MST_CD        
+                , PRD_TMP_MST_CD    
+                , PRD_TMP_OPT_DTL_IDX   
+                , PRD_TMP_CNT   
+                , PRD_TMP_DLV_ADD_CAG
+                , PLN_MST_IDX
+                , ORD_TMP_SLT_YN
+                , ORD_TMP_UP_IDX        
+                , MEM_CRT_IDX
+                , ESM_PRD_IDX
+                , ORD_TMP_ERP_SEQ
+                , CHN_DTL_CD
+                , PRD_TMP_COLOR
+                , PRD_TMP_SIZE
+            )
+            VALUES
+            (
+                #{PRD_TMP_IDX}
+                , #{ORD_TMP_MST_CD}     
+                , #{PRD_TMP_MST_CD} 
+                , #{PRD_TMP_OPT_DTL_IDX}    
+                , #{PRD_TMP_CNT}        
+                , NVL(#{PRD_TMP_DLV_ADD_CAG},0) 
+                , #{PLN_MST_IDX}
+                , #{ORD_TMP_SLT_YN}
+                , #{ORD_TMP_UP_IDX}
+                , #{MEM_CRT_IDX}
+                , #{ESM_PRD_IDX}
+                , #{ORD_TMP_ERP_SEQ}
+                , #{CHN_DTL_CD}
+                , #{PRD_TMP_COLOR}
+                , #{PRD_TMP_SIZE}
+            )
+        ]]>
+    </insert>
+    
+    <!-- 본인 임시주문 목록 -->
+    <select id="selectTempOrderInfoList" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+        /* Cart.selectTempOrderInfoList */
+        SELECT 
+                ORD_TMP_MST_CD          
+        FROM T_ORD_TMP
+        WHERE
+            1=1
+        <if test="MEM_MST_MEM_ID != null and MEM_MST_MEM_ID != ''">
+            AND ORD_TMP_MEM_ID = #{MEM_MST_MEM_ID} 
+        </if>
+        <if test="MEM_MST_MEM_ID == null or MEM_MST_MEM_ID == ''">
+            AND ORD_TMP_SES_ID = #{MEM_CRT_SES_ID} 
+        </if>
+        GROUP BY ORD_TMP_MST_CD 
+    </select>
+    
+    <!-- 임시 주문 데이터 삭제 -->
+     <delete id="deleteTempOrder" parameterType="java.util.HashMap">
+        /* PcCart.deleteTempOrder */
+        <![CDATA[
+            DELETE 
+            FROM T_ORD_TMP
+            WHERE
+                ORD_TMP_MST_CD = #{ORD_TMP_MST_CD}
+        ]]>             
+    </delete>
+    
+     <!-- 임시 주문 상품 데이터 삭제 -->
+     <delete id="deleteTempOrderProduct" parameterType="java.util.HashMap">
+        /* PcCart.deleteTempOrderProduct */
+        <![CDATA[
+            DELETE 
+            FROM T_PRD_TMP
+            WHERE
+                ORD_TMP_MST_CD = #{ORD_TMP_MST_CD}
+        ]]>             
+    </delete>
+    
+    <!-- 장바구니 옵션 없는 상품 중복 리스트 -->
+    <select id="selectCartDupNoOptionList" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+        /* PcCart.selectCartDupNoOptionList */
+        <![CDATA[
+            SELECT
+                T2.*
+            FROM
+            (
+            SELECT
+                T1.*
+                , MAX(MEM_CRT_IDX) OVER(PARTITION BY MEM_CRT_DLV_GBN, CHN_DTL_CD, MEM_CRT_LNG_DIV, MEM_CRT_SHP_MST_IDX, MEM_CRT_GET_PKU_DT, MEM_CRT_GET_PKU_HH, MEM_PRD_MST_CD, MEM_PRD_OPT_DTL_IDX) as RECENT_MEM_CRT_IDX /* 최근 장바구니 IDX */
+                , COUNT(1) OVER(PARTITION BY MEM_CRT_DLV_GBN, CHN_DTL_CD, MEM_CRT_LNG_DIV, MEM_CRT_SHP_MST_IDX, MEM_CRT_GET_PKU_DT, MEM_CRT_GET_PKU_HH, MEM_PRD_MST_CD, MEM_PRD_OPT_DTL_IDX) as SAME_OPT_CNT /* 같은 옵션 개수 */
+                , SUM(MEM_CRT_CNT) OVER(PARTITION BY MEM_CRT_DLV_GBN, CHN_DTL_CD, MEM_CRT_LNG_DIV, MEM_CRT_SHP_MST_IDX, MEM_CRT_GET_PKU_DT, MEM_CRT_GET_PKU_HH, MEM_PRD_MST_CD, MEM_PRD_OPT_DTL_IDX) as SUM_MEM_CRT_CNT /* 장바구니 개수 합계 */
+            FROM
+            (
+            SELECT
+                MEM_CRT_IDX     
+                , MEM_CRT_DLV_GBN
+                , CHN_DTL_CD
+                , MEM_CRT_LNG_DIV
+                , MEM_CRT_SHP_MST_IDX
+                , MEM_CRT_GET_PKU_DT
+                , MEM_CRT_GET_PKU_HH
+                , MEM_PRD_MST_CD
+                , MEM_PRD_OPT_DTL_IDX   
+                , MEM_CRT_CNT
+                , (SELECT COUNT(1) FROM T_MEM_CRT WHERE MEM_CRT_UP_IDX = TMC.MEM_CRT_IDX) as SUB_OPTION_CNT /* 서브 옵션 개수 */
+            FROM T_MEM_CRT TMC
+            WHERE MEM_CRT_DRT_SAL_YN = 'N'
+            AND MEM_CRT_SLT_YN = 'N'
+            ]]>   
+            <if test="MEM_MST_MEM_ID != null and MEM_MST_MEM_ID != ''">
+                AND MEM_MST_MEM_ID = #{MEM_MST_MEM_ID} 
+            </if>
+            <if test="MEM_MST_MEM_ID == null or MEM_MST_MEM_ID == ''">
+                AND MEM_CRT_SES_ID = #{MEM_CRT_SES_ID} 
+            </if>
+          <![CDATA[
+            ) T1
+            WHERE SUB_OPTION_CNT = 0
+            ) T2
+            WHERE SAME_OPT_CNT > 1
+            ORDER BY MEM_CRT_IDX DESC
+         ]]>   
+    </select>
+    
+    <!-- 장바구니 선택옵션 중복 리스트 -->
+    <select id="selectCartDupOptionList" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+        /* PcCart.selectCartDupOptionList */
+        <![CDATA[
+            SELECT
+                T1.*
+            FROM
+            (
+                SELECT                      
+                    S1.*        
+                    , COUNT(1) OVER(PARTITION BY MEM_CRT_DLV_GBN, CHN_DTL_CD, MEM_CRT_LNG_DIV, MEM_CRT_SHP_MST_IDX, MEM_CRT_GET_PKU_DT, MEM_CRT_GET_PKU_HH, PARENT_OPT_DTL_IDX, MEM_CRT_UP_IDX_CNT) as MEM_CRT_UP_IDX_CNT_CNT
+                    , (SELECT PRD_OPT_CNT_YN FROM T_PRD_OPT WHERE PRD_OPT_IDX =
+                         (
+                            SELECT PRD_OPT_IDX FROM T_OPT_DTL WHERE OPT_DTL_IDX = S1.PARENT_OPT_DTL_IDX
+                         )
+                       ) AS PRD_OPT_CNT_YN /* 수량선택여부 */
+                FROM
+                (
+                SELECT
+                    MEM_CRT_DLV_GBN
+                    , CHN_DTL_CD
+                    , MEM_CRT_LNG_DIV           
+                    , MEM_CRT_SHP_MST_IDX
+                    , MEM_CRT_GET_PKU_DT
+                    , MEM_CRT_GET_PKU_HH
+                    , MEM_CRT_UP_IDX 
+                    , COUNT(MEM_CRT_UP_IDX) as MEM_CRT_UP_IDX_CNT /* 선택옵션 개수 */
+                    , (SELECT MEM_PRD_OPT_DTL_IDX FROM T_MEM_CRT WHERE MEM_CRT_IDX = TMC.MEM_CRT_UP_IDX) as PARENT_OPT_DTL_IDX /* 부모 옵션 IDX */
+                FROM T_MEM_CRT TMC
+                WHERE MEM_CRT_SLT_YN = 'Y'
+                AND MEM_CRT_DRT_SAL_YN = 'N'
+                AND MEM_CRT_SLT_YN = 'Y'
+          ]]>   
+               <if test="MEM_MST_MEM_ID != null and MEM_MST_MEM_ID != ''">
+                    AND MEM_MST_MEM_ID = #{MEM_MST_MEM_ID} 
+                </if>
+                <if test="MEM_MST_MEM_ID == null or MEM_MST_MEM_ID == ''">
+                    AND MEM_CRT_SES_ID = #{MEM_CRT_SES_ID} 
+                </if>
+          <![CDATA[            
+                GROUP BY MEM_CRT_DLV_GBN, CHN_DTL_CD, MEM_CRT_LNG_DIV, MEM_CRT_SHP_MST_IDX, MEM_CRT_GET_PKU_DT, MEM_CRT_GET_PKU_HH, MEM_CRT_UP_IDX  
+                ) S1
+            ) T1
+            WHERE MEM_CRT_UP_IDX_CNT_CNT > 1
+            ORDER BY MEM_CRT_UP_IDX_CNT, MEM_CRT_UP_IDX DESC
+         ]]>   
+    </select>
+    
+    <!-- 장바구니 중복으로 수량 합쳐야할 리스트 -->
+    <select id="selectCartTargetSumList" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+        /* PcCart.selectCartTargetSumList */
+        <![CDATA[
+            SELECT
+                T2.*
+                , (SELECT PRD_OPT_CNT_YN FROM T_PRD_OPT WHERE PRD_OPT_IDX =
+                     (
+                        SELECT PRD_OPT_IDX FROM T_OPT_DTL WHERE OPT_DTL_IDX = T2.MEM_PRD_OPT_DTL_IDX
+                     )
+                   ) AS PRD_OPT_CNT_YN /* 수량선택여부 */
+            FROM
+            (
+                SELECT
+                    T1.*
+                    , COUNT(1) OVER(PARTITION BY MEM_CRT_UP_IDX) as FINAL_MEM_CRT_UP_IDX_CNT /* 최종 동일옵션 상품 개수 */
+                FROM
+                (
+                    SELECT 
+                        TMC.*
+                        , COUNT(1) OVER(PARTITION BY MEM_CRT_UP_IDX) as MEM_CRT_UP_IDX_CNT /* 동일옵션 상품 개수 */
+                        , (SELECT MEM_PRD_OPT_DTL_IDX FROM T_MEM_CRT WHERE MEM_CRT_IDX = TMC.MEM_CRT_UP_IDX) as PARENT_OPT_DTL_IDX /* 부모 옵션 IDX */
+                        , NVL(MEM_CRT_SHP_MST_IDX,0) as MEM_CRT_SHP_MST_IDX2 /* null값인 경우 비교 위해 0으로 치환 */
+                        , NVL(MEM_CRT_LNG_DIV,0) as MEM_CRT_LNG_DIV2 /* null값인 경우 비교 위해 0으로 치환 */
+                    FROM T_MEM_CRT TMC 
+                ) T1
+                WHERE MEM_CRT_SLT_YN = 'Y'
+                AND MEM_CRT_DRT_SAL_YN = 'N'
+                AND MEM_CRT_SLT_YN = 'Y'
+              ]]>   
+                <if test="MEM_MST_MEM_ID != null and MEM_MST_MEM_ID != ''">
+                    AND MEM_MST_MEM_ID = #{MEM_MST_MEM_ID} 
+                </if>
+                <if test="MEM_MST_MEM_ID == null or MEM_MST_MEM_ID == ''">
+                    AND MEM_CRT_SES_ID = #{MEM_CRT_SES_ID} 
+                </if>   
+              <![CDATA[
+                AND PARENT_OPT_DTL_IDX = 
+                (
+                    SELECT MEM_PRD_OPT_DTL_IDX 
+                    FROM T_MEM_CRT
+                    WHERE MEM_CRT_IDX = #{RECENT_MEM_CRT_IDX}
+                )
+                AND MEM_PRD_OPT_DTL_IDX IN 
+                (
+                    SELECT MEM_PRD_OPT_DTL_IDX 
+                    FROM T_MEM_CRT
+                    WHERE MEM_CRT_UP_IDX = #{RECENT_MEM_CRT_IDX}
+                )
+                AND MEM_CRT_IDX NOT IN
+                (
+                    SELECT MEM_CRT_IDX 
+                    FROM T_MEM_CRT
+                    WHERE MEM_CRT_IDX = #{RECENT_MEM_CRT_IDX}
+                )
+                AND MEM_CRT_DLV_GBN = 
+                (
+                    SELECT MEM_CRT_DLV_GBN 
+                    FROM T_MEM_CRT
+                    WHERE MEM_CRT_IDX = #{RECENT_MEM_CRT_IDX}
+                )
+                AND CHN_DTL_CD = 
+                (
+                    SELECT CHN_DTL_CD 
+                    FROM T_MEM_CRT
+                    WHERE MEM_CRT_IDX = #{RECENT_MEM_CRT_IDX}
+                )
+                AND MEM_CRT_SHP_MST_IDX2 = 
+                (
+                    SELECT NVL(MEM_CRT_SHP_MST_IDX,0) 
+                    FROM T_MEM_CRT
+                    WHERE MEM_CRT_IDX = #{RECENT_MEM_CRT_IDX}
+                )
+                AND MEM_CRT_LNG_DIV2 = 
+                (
+                    SELECT NVL(MEM_CRT_LNG_DIV,0) 
+                    FROM T_MEM_CRT
+                    WHERE MEM_CRT_IDX = #{RECENT_MEM_CRT_IDX}
+                )
+                AND MEM_CRT_UP_IDX <> #{RECENT_MEM_CRT_IDX}
+                AND MEM_CRT_UP_IDX_CNT = 
+                (
+                    SELECT COUNT(1) 
+                    FROM T_MEM_CRT
+                    WHERE MEM_CRT_UP_IDX = #{RECENT_MEM_CRT_IDX}
+                )
+            ) T2
+            WHERE T2.FINAL_MEM_CRT_UP_IDX_CNT =
+            (
+                SELECT COUNT(1) 
+                FROM T_MEM_CRT
+                WHERE MEM_CRT_UP_IDX = #{RECENT_MEM_CRT_IDX}
+            )
+         ]]>   
+    </select>
+    
+    <!-- 중복 옵션 수량 update -->
+    <update id="updateDupCartOptionCnt" parameterType="java.util.HashMap">
+    /* PcCart.updateDupCartOptionCnt */
+    <![CDATA[
+        UPDATE T_MEM_CRT
+        SET
+            MEM_CRT_CNT = MEM_CRT_CNT + (SELECT MEM_CRT_CNT FROM T_MEM_CRT WHERE MEM_CRT_IDX = #{SUM_MEM_CRT_IDX})
+        WHERE
+            MEM_CRT_UP_IDX = #{RECENT_MEM_CRT_IDX}
+            AND MEM_PRD_OPT_DTL_IDX = (SELECT MEM_PRD_OPT_DTL_IDX FROM T_MEM_CRT WHERE MEM_CRT_IDX = #{SUM_MEM_CRT_IDX})
+    ]]>
+    </update>
+    
+    <!-- 중복 옵션 부모 상품 수량 update -->
+    <update id="updateDupCartUpOptionCnt" parameterType="java.util.HashMap">
+    /* PcCart.updateDupCartUpOptionCnt */
+    <![CDATA[
+        UPDATE T_MEM_CRT
+        SET
+            MEM_CRT_CNT = MEM_CRT_CNT + (SELECT MEM_CRT_CNT FROM T_MEM_CRT WHERE MEM_CRT_IDX = #{PARENT_SUM_MEM_CRT_IDX})
+        WHERE
+            MEM_CRT_IDX = #{RECENT_MEM_CRT_IDX}
+            AND MEM_PRD_OPT_DTL_IDX = (SELECT MEM_PRD_OPT_DTL_IDX FROM T_MEM_CRT WHERE MEM_CRT_IDX = #{PARENT_SUM_MEM_CRT_IDX})
+    ]]>
+    </update>
+    
+    <!-- 중복 옵션 수량 추가 후 삭제 -->
+    <delete id="deleteDupCartOption" parameterType="java.util.HashMap">
+    /* PcCart.deleteDupCartOption */
+    <![CDATA[
+        DELETE FROM T_MEM_CRT
+        WHERE
+            MEM_CRT_IDX IN
+    ]]>
+        <foreach collection="delCrtIdxs" item="delCrtIdx" open="(" close=")" separator=",">#{delCrtIdx}</foreach>
+    </delete>
+    
+    <!-- 중복 상품 수량 update -->
+    <update id="updateDupCartNoOptionCnt" parameterType="java.util.HashMap">
+    /* PcCart.updateDupCartNoOptionCnt */
+    <![CDATA[
+        UPDATE T_MEM_CRT
+        SET
+            MEM_CRT_CNT = #{SUM_MEM_CRT_CNT}
+        WHERE
+            MEM_CRT_IDX = #{RECENT_MEM_CRT_IDX}
+    ]]>
+    </update>
+    
+    <!-- 중복 상품 수량 추가 후 삭제-->
+    <delete id="deleteDupCartNoOption" parameterType="java.util.HashMap">
+    /* PcCart.deleteDupCartNoOption */
+    <![CDATA[
+        DELETE FROM T_MEM_CRT
+        WHERE
+            MEM_CRT_IDX = #{MEM_CRT_IDX}
+    ]]>
+    </delete>
+    
+    <!-- 장바구니 서브옵션 상품 리스트 -->
+    <select id="selectCartSubPrdList" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+        /* PcCart.selectCartSubPrdList */
+        <![CDATA[
+            SELECT 
+                MEM_CRT_IDX
+                , MEM_MST_MEM_ID
+                , MEM_CRT_SES_ID
+                , MEM_PRD_MST_CD
+                , MEM_PRD_OPT_DTL_IDX
+                , MEM_CRT_CNT
+                , MEM_CRT_SHP_MST_IDX
+                , PLN_MST_IDX
+                , MEM_CRT_SLT_YN
+                , MEM_CRT_UP_IDX
+                , DTL.PRD_OPT_IDX
+                , DTL.OPT_DTL_IDX
+                , DTL.OPT_DTL_NM
+                (
+                    SELECT PRD_OPT_CNT_YN FROM T_PRD_OPT WHERE PRD_OPT_IDX = DTL.PRD_OPT_IDX
+                ) as PRD_OPT_CNT_YN
+                , NVL(DTL.OPT_DTL_ADD_PRC,0) as OPT_DTL_ADD_PRC /* 옵션 추가금 */
+                , NVL(DTL.OPT_DTL_ADD_PRC,0)*MEM_CRT_CNT as ORDER_ADD_PRC
+            FROM
+                T_MEM_CRT MC, T_OPT_DTL DTL
+            WHERE
+                MC.MEM_PRD_OPT_DTL_IDX = DTL.OPT_DTL_IDX
+                AND MC.MEM_CRT_UP_IDX = #{MEM_CRT_IDX}
+        ]]>
+    </select>
+    
+    <!-- 주문서 서브옵션 상품 리스트 -->
+    <select id="selectTempOrderSubPrdList" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+        /* PcCart.selectTempOrderSubPrdList */
+        <![CDATA[
+        SELECT
+            T2.*
+            , NVL(BUY_PRC,0) as PRD_BUY_PRC /* 매입원가 */
+        FROM
+        (
+        SELECT
+            T1.*
+            , CASE 
+                  WHEN PRD_MST_VDR_YN = 'Y' THEN /* 입점업체 상품인 경우 */
+                     OPT_DTL_BUY_PRC /* T_OPT_DTL의 매입원가 */            
+                  ELSE /* 기간계 상품인 경우 */
+                     0
+              END BUY_PRC /* 매입원가 */
+        FROM
+        (
+            SELECT 
+                PRD_TMP_IDX
+                , ORD_TMP_MST_CD
+                , PRD_TMP_MST_CD
+                , PRD_TMP_OPT_DTL_IDX
+                , PRD_TMP_DLV_ADD_CAG
+                , PRD_TMP_CNT
+                , PLN_MST_IDX
+                , ORD_TMP_SLT_YN
+                , ORD_TMP_UP_IDX
+                , DTL.PRD_OPT_IDX
+                , DTL.OPT_DTL_IDX
+                , DTL.OPT_DTL_NM
+                , NVL(DTL.OPT_DTL_ADD_PRC,0) as OPT_DTL_ADD_PRC
+                , NVL(DTL.OPT_DTL_ADD_PRC,0)*PRD_TMP_CNT as ORDER_ADD_PRC
+                , (SELECT PRD_MST_VDR_YN FROM T_PRD_MST WHERE PRD_MST_CD = PT.PRD_TMP_MST_CD) as PRD_MST_VDR_YN /* 마스터 상품 입점상품 여부 */
+                , NVL(DTL.OPT_DTL_BUY_PRC,0) as OPT_DTL_BUY_PRC /* 매입원가 */
+            FROM
+                T_PRD_TMP PT, T_OPT_DTL DTL
+            WHERE
+                PT.PRD_TMP_OPT_DTL_IDX = DTL.OPT_DTL_IDX
+                AND PT.ORD_TMP_UP_IDX = #{PRD_TMP_IDX}
+        ) T1
+        ) T2
+        ]]>
+    </select>
+    
+    <!-- 장바구니 개수 30개 넘는지 체크하기 위한 리스트 -->
+    <select id="selectCartCntOverPrdList" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+        /* PcCart.selectCartCntOverPrdList */
+        <![CDATA[
+            SELECT
+                MEM_CRT_IDX
+            FROM
+            (
+            SELECT 
+                ROW_NUMBER() OVER(PARTITION BY MEM_CRT_DLV_GBN, CHN_DTL_CD, MEM_CRT_LNG_DIV, MEM_CRT_SHP_MST_IDX, MEM_CRT_GET_PKU_DT, MEM_CRT_GET_PKU_HH ORDER BY MEM_CRT_IDX DESC) as RNUM
+                , MEM_CRT_IDX
+                , MEM_MST_MEM_ID
+                , MEM_CRT_SES_ID
+                , MEM_CRT_DLV_GBN   
+            FROM T_MEM_CRT
+            WHERE 
+            MEM_CRT_SLT_YN = 'N'
+            AND MEM_CRT_DRT_SAL_YN = 'N'
+        ]]> 
+            <if test="MEM_MST_MEM_ID != null and MEM_MST_MEM_ID != ''">
+                AND MEM_MST_MEM_ID = #{MEM_MST_MEM_ID}
+            </if>
+            <if test="MEM_MST_MEM_ID == null or MEM_MST_MEM_ID == ''">
+                AND MEM_CRT_SES_ID = #{MEM_CRT_SES_ID}
+            </if>
+        <![CDATA[
+            )
+            WHERE RNUM > 30 
+        ]]> 
+    </select>
+    
+    <!-- 주문서 최근 배송지 목록 -->
+    <select id="selectRecentDlvList" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+      /* PcCart.selectRecentDlvList */
+      <![CDATA[
+        SELECT
+            T2.*
+        FROM
+        (
+            SELECT
+                T1.*
+                , ROW_NUMBER() OVER(ORDER BY ORD_MST_CD DESC) as RNUM
+            FROM
+            (
+                SELECT
+                    ORD_MST_ORD_DT  
+                    , ORD_MST_CD
+                    , ORD_DLV_NM
+                    , ORD_DLV_ZIP_CDE5
+                    , ROW_NUMBER() OVER(PARTITION BY ORD_DLV_ZIP_CDE5, ORD_DLV_NM ORDER BY ORD_MST_CD DESC) as ZIP_RNUM 
+                    , ORD_DLV_DRO_ADR1
+                    , ORD_DLV_DRO_ADR2
+                    , ORD_DLV_ZIP_CDE6
+                    , ORD_DLV_JBN_ADR1
+                    , ORD_DLV_JBN_ADR2
+                    , ORD_DLV_HP1
+                    , ORD_DLV_HP2
+                    , ORD_DLV_HP3 as ORD_DLV_HP3
+                    , ORD_DLV_TEL1
+                    , ORD_DLV_TEL2
+                    , ORD_DLV_TEL3 as ORD_DLV_TEL3
+                FROM T_ORD_MST TOM, T_ORD_DLV TOD
+                WHERE TOM.ORD_MST_CD = TOD.ORD_ORD_MST_CD
+                AND ORD_MST_ORD_ID = #{MEM_MST_MEM_ID}
+            ) T1
+            WHERE ZIP_RNUM = 1
+        ) T2
+        WHERE RNUM < 6
+        ]]>
+    </select>
+    
+    <!-- 카드사 할부 목록 -->
+    <select id="selectCardInstallmentList" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+      /* PcCart.selectCardInstallmentList */
+      <![CDATA[
+        SELECT
+            T2.*
+        FROM
+        (
+            SELECT
+                T1.*
+                , DENSE_RANK() OVER(ORDER BY CRD_DIV_IDX DESC) as CRD_DIV_RANK /* 프로모션 순위(최신순) */
+                , DENSE_RANK() OVER(ORDER BY DIV_DTL_PRC DESC) as DTL_PRC_RANK /* 기준금액 순위(높은금액순) */
+            FROM
+            (
+                SELECT
+                    TCD.CRD_DIV_IDX
+                    , TCD.CRD_DIV_ST_DT || NVL(TCD.CRD_DIV_ST_HH,'00') || NVL(TCD.CRD_DIV_ST_MM,'00') as DIV_ST_DATE
+                    , TCD.CRD_DIV_ED_DT || NVL(TCD.CRD_DIV_ED_HH,'23') || NVL(TCD.CRD_DIV_ED_MM,'59') as DIV_ED_DATE
+                    , TO_CHAR(SYSDATE, 'YYYYMMDDHH24MI') as NOW_DATE
+                    , TCD.CRD_DIV_USE_YN /* 프로모션 사용 여부 */
+                    , TDD.DIV_DTL_CD /* 카드사 코드 */ 
+                    , TDD.DIV_DTL_PRC /* 기준금액 */
+                    , TDD.DIV_DTL_PRC*10000 as MINIMUM_PRC /* 기준금액*10000 */
+                    , TDI.DIV_INF_MNT /* 할부개월수 */
+                    , TDI.DIV_INF_GBN /* 무이자구분 */
+                    , TDI.DIV_INF_NTC /* 안내 */
+                    , TDI.DIV_INF_USE_YN /* 할부개월 적용여부 */
+                FROM T_CRD_DIV TCD, T_DIV_DTL TDD, T_DIV_INF TDI
+                WHERE TCD.CRD_DIV_IDX = TDD.CRD_DIV_IDX
+                AND TDD.DIV_DTL_IDX = TDI.DIV_DTL_IDX
+            ) T1
+            WHERE NOW_DATE BETWEEN DIV_ST_DATE AND DIV_ED_DATE
+            AND CRD_DIV_USE_YN = 'Y'
+            AND DIV_INF_USE_YN = 'Y'
+            AND DIV_DTL_CD = #{CRD_INF_IDX}
+            AND MINIMUM_PRC <= #{cart_total}
+            AND DIV_INF_MNT < 24 /* 24개월 이하만 가져온다. */
+        ) T2
+        WHERE CRD_DIV_RANK = 1 AND DTL_PRC_RANK = 1
+        ORDER BY DIV_INF_MNT ASC
+        ]]>
+    </select>
+    
+    <!-- 장기할부인 경우 사용가능 카드사 코드 목록 -->
+    <select id="selectCardLongInstallmentList" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+      /* PcCart.selectCardLongInstallmentList */
+      <![CDATA[
+        SELECT
+            T2.DIV_DTL_CD
+        FROM
+        (
+            SELECT
+                T1.*
+                , DENSE_RANK() OVER(PARTITION BY DIV_DTL_CD ORDER BY CRD_DIV_IDX DESC) as CRD_DIV_RANK /* 프로모션 순위(최신순) */
+                , DENSE_RANK() OVER(PARTITION BY DIV_DTL_CD ORDER BY DIV_DTL_PRC DESC) as DTL_PRC_RANK /* 기준금액 순위(높은금액순) */
+            FROM
+            (
+                SELECT
+                    TCD.CRD_DIV_IDX
+                    , TCD.CRD_DIV_ST_DT || NVL(TCD.CRD_DIV_ST_HH,'00') || NVL(TCD.CRD_DIV_ST_MM,'00') as DIV_ST_DATE
+                    , TCD.CRD_DIV_ED_DT || NVL(TCD.CRD_DIV_ED_HH,'23') || NVL(TCD.CRD_DIV_ED_MM,'59') as DIV_ED_DATE
+                    , TO_CHAR(SYSDATE, 'YYYYMMDDHH24MI') as NOW_DATE
+                    , TCD.CRD_DIV_USE_YN /* 프로모션 사용 여부 */
+                    , TDD.DIV_DTL_CD /* 카드사 코드 */ 
+                    , TDD.DIV_DTL_PRC /* 기준금액 */
+                    , TDD.DIV_DTL_PRC*10000 as MINIMUM_PRC /* 기준금액*10000 */
+                    , TDI.DIV_INF_MNT /* 할부개월수 */
+                    , TDI.DIV_INF_GBN /* 무이자구분 */
+                    , TDI.DIV_INF_NTC /* 안내 */
+                    , TDI.DIV_INF_USE_YN /* 할부개월 적용여부 */
+                FROM T_CRD_DIV TCD, T_DIV_DTL TDD, T_DIV_INF TDI
+                WHERE TCD.CRD_DIV_IDX = TDD.CRD_DIV_IDX
+                AND TDD.DIV_DTL_IDX = TDI.DIV_DTL_IDX
+                AND TDI.DIV_INF_MNT = #{ORD_TMP_LNG_DIV}
+                AND TDI.DIV_INF_GBN = #{CARD_DIV_TYPE_FREE_INTEREST}
+            ) T1
+            WHERE NOW_DATE BETWEEN DIV_ST_DATE AND DIV_ED_DATE
+            AND CRD_DIV_USE_YN = 'Y'
+            AND DIV_INF_USE_YN = 'Y'
+            AND MINIMUM_PRC <= #{cart_total}
+        ) T2
+        WHERE CRD_DIV_RANK = 1 AND DTL_PRC_RANK = 1
+        ORDER BY DIV_INF_MNT ASC
+        ]]>
+    </select>
+    
+    <!-- 장기할부인 경우 최소구매가능금액 -->
+    <select id="selectCardLongInstallmentMinimumPrc" parameterType="java.util.HashMap" resultType="Integer">
+      /* PcCart.selectCardLongInstallmentMinimumPrc */
+      <![CDATA[
+        SELECT
+            NVL(MIN(MINIMUM_PRC),0) as MINIMUM_PRC
+        FROM
+        (
+            SELECT
+                T1.*
+                , DENSE_RANK() OVER(PARTITION BY DIV_DTL_CD ORDER BY CRD_DIV_IDX DESC) as CRD_DIV_RANK /* 프로모션 순위(최신순) */
+                , DENSE_RANK() OVER(PARTITION BY DIV_DTL_CD ORDER BY DIV_DTL_PRC DESC) as DTL_PRC_RANK /* 기준금액 순위(높은금액순) */
+            FROM
+            (
+                SELECT
+                    TCD.CRD_DIV_IDX
+                    , TCD.CRD_DIV_ST_DT || NVL(TCD.CRD_DIV_ST_HH,'00') || NVL(TCD.CRD_DIV_ST_MM,'00') as DIV_ST_DATE
+                    , TCD.CRD_DIV_ED_DT || NVL(TCD.CRD_DIV_ED_HH,'23') || NVL(TCD.CRD_DIV_ED_MM,'59') as DIV_ED_DATE
+                    , TO_CHAR(SYSDATE, 'YYYYMMDDHH24MI') as NOW_DATE
+                    , TCD.CRD_DIV_USE_YN /* 프로모션 사용 여부 */
+                    , TDD.DIV_DTL_CD /* 카드사 코드 */ 
+                    , TDD.DIV_DTL_PRC /* 기준금액 */
+                    , TDD.DIV_DTL_PRC*10000 as MINIMUM_PRC /* 기준금액*10000 */
+                    , TDI.DIV_INF_MNT /* 할부개월수 */
+                    , TDI.DIV_INF_GBN /* 무이자구분 */
+                    , TDI.DIV_INF_NTC /* 안내 */
+                    , TDI.DIV_INF_USE_YN /* 할부개월 적용여부 */
+                FROM T_CRD_DIV TCD, T_DIV_DTL TDD, T_DIV_INF TDI
+                WHERE TCD.CRD_DIV_IDX = TDD.CRD_DIV_IDX
+                AND TDD.DIV_DTL_IDX = TDI.DIV_DTL_IDX
+                AND TDI.DIV_INF_MNT = #{ORD_TMP_LNG_DIV}
+                AND TDI.DIV_INF_GBN = #{CARD_DIV_TYPE_FREE_INTEREST}
+            ) T1
+            WHERE NOW_DATE BETWEEN DIV_ST_DATE AND DIV_ED_DATE
+            AND CRD_DIV_USE_YN = 'Y'
+            AND DIV_INF_USE_YN = 'Y'
+        ) T2
+        WHERE CRD_DIV_RANK = 1 AND DTL_PRC_RANK = 1
+        ]]>
+    </select>
+    
+    <!-- 진행중인 무이자 할부 행사 목록 -->
+    <select id="selectCardEventFreeList" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+      /* PcCart.selectCardEventFreeList */
+      <![CDATA[
+        SELECT
+            ROW_NUMBER() OVER(PARTITION BY DIV_DTL_CD, DIV_DTL_PRC ORDER BY DIV_INF_GBN) as RNUM
+            , COUNT(1) OVER(PARTITION BY DIV_DTL_CD, DIV_DTL_PRC) as CRD_DIV_CNT
+            , TO_CHAR(SYSDATE, 'FMMM') as THIS_MONTH
+            , T3.*
+        FROM
+        (   
+            SELECT
+                    DIV_DTL_CD
+                    , DIV_DTL_PRC
+                    , CRD_DIV_IDX
+                    , DIV_INF_GBN                       
+                    , (SELECT CRD_INF_NM FROM T_CRD_INF WHERE CRD_INF_IDX = DIV_DTL_CD) as CARD_NM
+                    , (SELECT CMN_COM_NM FROM T_CMM_COM WHERE CMN_COM_IDX = DIV_INF_GBN) as DIV_INF_GBN_NM
+                    , LISTAGG(DIV_INF_MNT, ',') WITHIN GROUP(ORDER BY DIV_INF_MNT) as DIV_INF_MNT
+                    , LISTAGG(DIV_INF_NTC, '||') WITHIN GROUP(ORDER BY DIV_INF_MNT) as DIV_INF_NTC
+                FROM
+                (
+                    SELECT
+                        T1.*
+                        , ROW_NUMBER() OVER(PARTITION BY DIV_DTL_CD, CRD_DIV_IDX ORDER BY DIV_INF_MNT) as CRD_DIV_RNUM /* 프로모션 일련번호(1번이 대표) */
+                        , DENSE_RANK() OVER(PARTITION BY DIV_DTL_CD, DIV_DTL_PRC ORDER BY CRD_DIV_IDX DESC) as CRD_DIV_RANK /* 프로모션 순위(최신순) */              
+                    FROM
+                    (
+                        SELECT
+                            TCD.CRD_DIV_IDX
+                            , TCD.CRD_DIV_ST_DT || NVL(TCD.CRD_DIV_ST_HH,'00') || NVL(TCD.CRD_DIV_ST_MM,'00') as DIV_ST_DATE
+                            , TCD.CRD_DIV_ED_DT || NVL(TCD.CRD_DIV_ED_HH,'23') || NVL(TCD.CRD_DIV_ED_MM,'59') as DIV_ED_DATE
+                            , TO_CHAR(SYSDATE, 'YYYYMMDDHH24MI') as NOW_DATE
+                            , TCD.CRD_DIV_USE_YN /* 프로모션 사용 여부 */
+                            , TDD.DIV_DTL_CD /* 카드사 코드 */ 
+                            , TDD.DIV_DTL_PRC /* 기준금액 */
+                            , TDI.DIV_INF_MNT /* 할부개월수 */
+                            , TDI.DIV_INF_GBN /* 무이자구분 */
+                            , NVL(TRIM(TDI.DIV_INF_NTC), '-') as DIV_INF_NTC   /* 안내 */
+                            , TDI.DIV_INF_USE_YN /* 할부개월 적용여부 */                                        
+                        FROM T_CRD_DIV TCD, T_DIV_DTL TDD, T_DIV_INF TDI
+                        WHERE TCD.CRD_DIV_IDX = TDD.CRD_DIV_IDX
+                        AND TDD.DIV_DTL_IDX = TDI.DIV_DTL_IDX
+                    ) T1
+                    WHERE NOW_DATE BETWEEN DIV_ST_DATE AND DIV_ED_DATE
+                    AND CRD_DIV_USE_YN = 'Y'
+                    AND DIV_INF_USE_YN = 'Y'
+                    AND DIV_INF_GBN <> #{DIV_INF_GBN}
+                    ]]>
+                    <if test="longCartYn != null and !longCartYn.equals('Y'.toString())">
+                        AND DIV_INF_MNT <![CDATA[<]]> 24 /* 24개월 이하만 가져온다. */
+                    </if>
+                    <![CDATA[
+                ) T2        
+                WHERE CRD_DIV_RANK = 1
+                GROUP BY DIV_DTL_CD, DIV_DTL_PRC, CRD_DIV_IDX, DIV_INF_GBN
+            ) T3
+        ]]>
+    </select>
+    
+    <!-- 진행중인 청구할인/캐시백포인트적립/포인트선할인 목록 -->
+    <select id="selectCardPromotionList" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+      /* PcCart.selectCardPromotionList */
+      <![CDATA[
+          SELECT
+            T2.*
+          FROM
+          (
+            SELECT
+                T1.*
+                , REPLACE(CARD_NM, '카드', '') as SIMPLE_CARD_NM
+                , COUNT(1) OVER(PARTITION BY CRD_PMT_GBN) as PMT_GBN_CNT
+                , DENSE_RANK() OVER(PARTITION BY PMT_CRD_IDX ORDER BY PMT_CRD_SML_PRC DESC) as SML_PRC_RANK /* 최소구매금액 순위(높은금액순) */
+                , TO_CHAR(SYSDATE, 'FMMM') as THIS_MONTH
+            FROM
+            (
+                SELECT
+                    TCP.CRD_PMT_IDX
+                    , TCP.CRD_PMT_GBN /* 프로모션 종류 */
+                    , TCP.CRD_PMT_ST_DT || NVL(TCP.CRD_PMT_ST_HH,'00') || NVL(TCP.CRD_PMT_ST_MM,'00') as DIV_ST_DATE
+                    , TCP.CRD_PMT_ED_DT || NVL(TCP.CRD_PMT_ED_HH,'23') || NVL(TCP.CRD_PMT_ED_MM,'59') as DIV_ED_DATE
+                    , TO_CHAR(SYSDATE, 'YYYYMMDDHH24MI') as NOW_DATE
+                    , TO_CHAR(TO_DATE(TCP.CRD_PMT_ED_DT),'MM/DD') as END_DATE
+                    , TCP.CRD_PMT_USE_YN /* 프로모션 사용 여부 */
+                    , TPC.PMT_CRD_IDX /* 카드사 IDX */
+                    , (SELECT CRD_INF_NM FROM T_CRD_INF WHERE CRD_INF_IDX = TPC.PMT_CRD_IDX) as CARD_NM
+                    , TPC.PMT_CRD_SAL_GBN /* 할인구분 R:정율 M:정액 */ 
+                    , TPC.PMT_CRD_SAL_PRC /* 최대할인률/원 */     
+                    , TPC.PMT_CRD_SML_PRC /* 최소구매금액 */
+                    , TPC.PMT_CRD_MXM_PRC /* 최대할인금액 */          
+                    , TPC.PMT_CRD_DPL_YN /* 노출여부 */                 
+                FROM T_CRD_PMT TCP, T_PMT_CRD TPC
+                WHERE TCP.CRD_PMT_IDX = TPC.PMT_CRD_PMT_IDX         
+            ) T1
+            WHERE NOW_DATE BETWEEN DIV_ST_DATE AND DIV_ED_DATE
+            AND CRD_PMT_USE_YN = 'Y'
+            AND PMT_CRD_DPL_YN = 'Y'
+            ]]>
+            <if test="CRD_PMT_GBN != null and CRD_PMT_GBN != ''">
+                <![CDATA[
+                    AND PMT_CRD_SML_PRC*10000 <= #{CUSTOMER_ORDER_PRICE} /* 장바구니인 경우 기준 금액 필요 */
+                    AND CRD_PMT_GBN = #{CRD_PMT_GBN}  /* 장바구니인 경우 청구할인만 */
+                ]]>
+            </if>
+            <![CDATA[
+            ORDER BY PMT_CRD_IDX, PMT_CRD_SML_PRC
+        ) T2
+        ]]>
+        <if test="CRD_PMT_GBN != null and CRD_PMT_GBN != ''">
+            <![CDATA[
+                WHERE SML_PRC_RANK = 1 /* 장바구니인 경우 카드별 최소구매금액 1순위 하나만 가져온다. */
+            ]]>
+        </if>
+    </select>
+    
+    <!-- 프론트 > 장바구니 > 관심 상품 중복 체크 -->
+    <select id="selectInterestProductCheckCount" parameterType="java.util.HashMap" resultType="Integer">
+        /* PcCart.selectInterestProductCheckCount */
+        SELECT
+            COUNT(1)
+        FROM
+            T_MEM_KEP
+        WHERE
+            MEM_MST_MEM_ID = #{MEM_MST_MEM_ID}
+        AND
+            PRD_MST_CD = #{PRD_MST_CD}
+    </select>
+    
+    <!-- 프론트 > 장바구니 > 관심 상품 등록 -->
+    <insert id="insertInterestProduct" parameterType="java.util.HashMap">
+        /* PcCart.insertInterestProduct */
+        INSERT INTO
+            T_MEM_KEP
+            (
+                MEM_KEP_IDX,
+                MEM_MST_MEM_ID,
+                PRD_MST_CD,
+                MEM_KEP_REG_DT,
+                MEM_KEP_REG_IP
+            )
+        VALUES
+            (
+                SEQ_MEM_KEP_IDX.NEXTVAL,
+                #{MEM_MST_MEM_ID},
+                #{PRD_MST_CD},
+                TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+                #{MEM_KEP_REG_IP}
+            )
+    </insert>
+    
+    <!-- 회원 캐쉬백 정보 -->
+    <select id="selectMemberCashbagInfo" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+        /* PcCart.selectMemberCashbagInfo */
+        SELECT 
+            0
+        FROM T_MEM_VIEW
+        WHERE MEM_MST_MEM_ID = #{MEM_MST_MEM_ID}
+        /*AND MEM_MST_OCB_REQ_YN = 'Y'*/        
+    </select>
+    
+    <!-- 이전 주문 캐쉬백 사용 정보 -->
+    <select id="selectPreOrderCashbagInfo" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+        /* PcCart.selectPreOrderCashbagInfo */
+        SELECT
+            *
+        FROM
+        (           
+            SELECT 
+                ORD_MST_CD
+                , ROW_NUMBER() OVER(ORDER BY ORD_MST_CD DESC) as RNUM
+                , PAY_MST_KICC_CARD_NO
+                , PAY_MST_TR_STATUS
+            FROM T_ORD_MST OM, T_PAY_MST PM
+            WHERE OM.ORD_MST_CD = PM.PAY_MST_OID
+            AND OM.ORD_MST_ORD_ID = #{MEM_MST_MEM_ID}
+            AND PAY_MST_TR_STATUS = 'U'
+        ) 
+        WHERE RNUM = 1       
+    </select>
+    
+    <!-- 해당 상품 쿠폰 리스트 -->
+    <select id="selectCartCouponList" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+        /* PcCart.selectCartCouponList */
+        <![CDATA[
+        SELECT
+            T4.*
+        FROM
+        (
+            SELECT
+                T3.*
+                , CPN_DC_PRICE*#{PRD_TMP_CNT} as FIN_CPN_DC_PRICE /* 수량 적용 최종 쿠폰할인금액 */
+                , ((CUSTOMER_PRICE -CPN_DC_PRICE)*#{PRD_TMP_CNT}) as DISCOUNTED_PRICE /* 쿠폰할인 적용 금액 */
+                , CASE
+                    WHEN (CUSTOMER_PRICE - CPN_DC_PRICE) ]]>>=<![CDATA[ NVL(BUY_PRC,0) THEN 'Y'
+                    ELSE 'N'
+                  END BUY_PRC_USABLE_CPN_YN /* 매입원가 기준 쿠폰 사용 가능 여부 */ 
+                , CASE
+                    WHEN CUSTOMER_PRICE ]]>>=<![CDATA[ CPN_MST_SML_PRC THEN 'Y'
+                    ELSE 'N'
+                  END CUS_PRC_USABLE_CPN_YN /* 주문금액 기준 쿠폰 사용 가능 여부 */
+                , CASE /* 등급 쿠폰인 경우 현재 등급과 비교해서 사용 가능 여부 체크한다. */
+                    WHEN CPN_MST_GBN = 'D' THEN
+                        CASE 
+                            WHEN MEM_MST_MEM_GBN = '682' THEN /* 일반회원인 경우 */
+                                CASE
+                                    WHEN CPN_MST_NML_YN = 'Y' THEN /* 일반회원 적용 쿠폰인 경우 등급 비교 필요 */
+                                        CASE 
+                                            WHEN CPN_MST_MEM_GRD IS NULL THEN 'Y' /* 전체인 경우 */
+                                            WHEN CPN_MST_MEM_GRD = MEM_MST_MEM_GRD THEN 'Y' /* 등급 맞는 경우에만 사용 가능 */
+                                            ELSE 'N' /* 등급 안맞는 경우는 사용 불가 */
+                                        END
+                                    ELSE 'N'
+                                END
+                            WHEN MEM_MST_MEM_GBN = '1961' THEN /* 간편회원인 경우 */
+                                CASE
+                                    WHEN CPN_MST_SMP_YN = 'Y' THEN 'Y' /* 간편회원 적용 쿠폰인 경우 */                                         
+                                    ELSE 'N' /* 그 외에는 사용 불가 */
+                                END
+                            ELSE 'N'
+                        END                             
+                    ELSE 'Y'    
+                  END MEM_GRD_USABLE_YN /* 등급쿠폰 사용 가능 여부 */  
+            FROM
+            (
+                SELECT
+                    T2.*
+                    , CASE
+                        WHEN CPN_MST_SAL_GBN = 'A' THEN /* 정률인 경우 최대할인금액 비교 후 작은 값이 할인금액이 된다. */
+                            CASE
+                                WHEN TMP_CPN_DC_PRICE > CPN_MST_MXM_PRC THEN CPN_MST_MXM_PRC
+                                ELSE TMP_CPN_DC_PRICE
+                            END 
+                        ELSE TMP_CPN_DC_PRICE
+                      END CPN_DC_PRICE /* 최대할인금액까지 비교한 최종 쿠폰할인금액 */      
+                    FROM
+                (
+                    SELECT
+                        T1.*
+                        , CASE 
+                            WHEN CPN_MST_SAL_GBN = 'A' /* 정률인 경우 즉시할인가 기준으로 할인금액 계산 */
+                            THEN ROUND((CUSTOMER_PRICE*(CPN_MST_SAL_PRC/100)),-1) /* 원단위 반올림 */
+                            ELSE CPN_MST_SAL_PRC /* 정액인 경우 */
+                          END TMP_CPN_DC_PRICE /* 임시쿠폰할인금액 */   
+                    FROM
+                    (
+                       SELECT 
+                          M.CPN_MEM_IDX
+                          , ROW_NUMBER() OVER(PARTITION BY S.CPN_MST_IDX ORDER BY CPN_MEM_IDX) as CPN_RNUM
+                          , COUNT(1) OVER(PARTITION BY S.CPN_MST_IDX) as CPN_COUNT  
+                          , S.*
+                          , FN_GET_CART_CUS_PRICE(#{PRD_MST_CD}, #{MEM_MST_MEM_ID}, #{CART_PC_MOBILE_GUBUN}, #{CHN_DTL_CD}, #{OPT_DTL_IDX}) as CUSTOMER_PRICE /* 회원:즉시할인 적용가 비회원:상품가격 기업회원:기업회원등급가 */             
+                          , 0 BUY_PRC /* 매입원가 */                             
+                         , CASE 
+                            WHEN CPN_MST_ISU_DAY_GBN = 'A'
+                            THEN S.CPN_MST_USE_ED_DT
+                            WHEN CPN_MST_ISU_DAY_GBN = 'B'
+                            THEN TO_CHAR(TO_DATE(M.CPN_MEM_ISU_DT, 'YYYYMMDDHH24MISS') + S.CPN_MST_USE_DAY, 'YYYYMMDD')
+                            WHEN CPN_MST_ISU_DAY_GBN = 'M'
+                            THEN TO_CHAR(LAST_DAY(TO_DATE(M.CPN_MEM_ISU_DT,'YYYYMMDDHH24MISS')),'YYYYMMDD')
+                          END END_DATE /* 종료일 */
+                         , (SELECT MEM_MST_MEM_GBN FROM T_MEM_VIEW WHERE MEM_MST_MEM_ID = #{MEM_MST_MEM_ID}) as MEM_MST_MEM_GBN /* 682면 일반, 1961은 간편 */
+                         , (SELECT MEM_MST_MEM_GRD FROM T_MEM_VIEW WHERE MEM_MST_MEM_ID = #{MEM_MST_MEM_ID}) as MEM_MST_MEM_GRD /* 1833 레드, 1834 실버, 1835 골드, 1836 VIP, 1837 플래티넘 */         
+                       FROM T_CPN_MEM M,
+                            T_CPN_MST S
+                      WHERE M.CPN_MST_IDX = S.CPN_MST_IDX
+                        AND M.CPN_MEM_ID = #{MEM_MST_MEM_ID}
+                        AND S.CPN_MST_YN = 'Y'
+                        AND M.CPN_MEM_USE_YN = 'N'
+                    ]]>
+                        <if test="CART_PC_MOBILE_GUBUN.equals('P'.toString())">
+                            AND NVL(S.CPN_MST_PC_YN,'N') = 'Y'
+                        </if>
+                        <if test="!CART_PC_MOBILE_GUBUN.equals('P'.toString())">
+                            AND NVL(S.CPN_MST_MB_YN,'N') = 'Y'
+                        </if>
+                    <![CDATA[
+                        AND (
+                        
+                        CASE WHEN CPN_MST_ISU_DAY_GBN = 'A'
+                        AND SYSDATE BETWEEN TO_DATE(S.CPN_MST_USE_ST_DT || '000000',
+                            'YYYYMMDDHH24MISS')
+                        AND TO_DATE(S.CPN_MST_USE_ED_DT || '235959',
+                            'YYYYMMDDHH24MISS') THEN 'Y' 
+                            
+                            WHEN CPN_MST_ISU_DAY_GBN = 'B'
+                        AND SYSDATE BETWEEN TO_DATE(M.CPN_MEM_ISU_DT,
+                            'YYYYMMDDHH24MISS')
+                        AND TO_DATE(M.CPN_MEM_ISU_DT,
+                            'YYYYMMDDHH24MISS') + S.CPN_MST_USE_DAY THEN 'Y' 
+                            
+                            WHEN CPN_MST_ISU_DAY_GBN = 'M'
+                        AND SYSDATE BETWEEN TO_DATE(M.CPN_MEM_ISU_DT,
+                            'YYYYMMDDHH24MISS')
+                        AND TO_CHAR(LAST_DAY(TO_DATE(M.CPN_MEM_ISU_DT,'YYYYMMDDHH24MISS')),'YYYYMMDD') THEN 'Y' 
+                            
+                            ELSE 'N' END ) = 'Y'
+                           
+                        AND (CASE WHEN S.CPN_MST_TGT_GBN = 'A' THEN ( SELECT COUNT(1) FROM T_CPN_TGT T, T_PRD_MST P WHERE T.CPN_MST_IDX = S.CPN_MST_IDX AND T.CPN_TGT_GBN = 'A' AND P.PRD_MST_CD = T.CPN_TGT_CD AND P.PRD_MST_CD = #{PRD_MST_CD}) 
+                                  WHEN S.CPN_MST_TGT_GBN = 'B' THEN ( SELECT COUNT(1) FROM T_PRD_MST WHERE PRD_MST_CD = #{PRD_MST_CD}) 
+                                  WHEN S.CPN_MST_TGT_GBN = 'C' THEN ( SELECT COUNT(1) FROM T_CPN_TGT T, T_PRD_MST P WHERE T.CPN_MST_IDX = S.CPN_MST_IDX AND T.CPN_TGT_GBN = 'C' AND P.PRD_MST_BRD_IDX = T.CPN_TGT_CD AND P.PRD_MST_CD = #{PRD_MST_CD}) 
+                                  WHEN S.CPN_MST_TGT_GBN = 'D' THEN ( SELECT COUNT(1) FROM T_CPN_TGT T, T_PRD_MST P, T_PLN_DTL PLN WHERE T.CPN_MST_IDX = S.CPN_MST_IDX AND T.CPN_TGT_GBN = 'D' AND PLN.PLN_MST_IDX = T.CPN_TGT_CD AND PLN.PLN_PRD_MST_CD = P.PRD_MST_CD AND PLN.PLN_PRD_MST_CD = #{PRD_MST_CD}) 
+                                  ELSE 1 END ) = 1
+                                 
+                        AND (CASE WHEN S.CPN_MST_ETC_GBN = 'A' THEN ( SELECT COUNT(*) FROM T_CPN_ETC WHERE CPN_MST_IDX = S.CPN_MST_IDX AND CPN_ETC_GBN = 'A' AND CPN_ETC_CD = #{PRD_MST_CD}) 
+                                  WHEN S.CPN_MST_ETC_GBN = 'B' THEN ( SELECT COUNT(*) FROM T_CPN_ETC T, T_PRD_MST P, T_DSP_CTG CTG WHERE T.CPN_MST_IDX = S.CPN_MST_IDX  AND T.CPN_ETC_GBN = 'B' AND FN_CATEGORY_PATH (CTG.DSP_PRD_CTG_IDX) LIKE FN_CATEGORY_PATH (T.CPN_ETC_CD) || '%' AND CTG.DSP_PRD_MST_CD = P.PRD_MST_CD AND P.PRD_MST_CD = #{PRD_MST_CD}) 
+                                  WHEN S.CPN_MST_ETC_GBN = 'C' THEN ( SELECT COUNT(*) FROM T_CPN_ETC T, T_PRD_MST P WHERE T.CPN_MST_IDX = S.CPN_MST_IDX  AND T.CPN_ETC_GBN = 'C' AND P.PRD_MST_BRD_IDX = T.CPN_ETC_CD  AND PRD_MST_CD = #{PRD_MST_CD}) 
+                                  WHEN S.CPN_MST_ETC_GBN = 'D' THEN ( SELECT COUNT(*) FROM T_CPN_ETC T, T_PRD_MST P  WHERE T.CPN_MST_IDX = S.CPN_MST_IDX AND T.CPN_ETC_GBN = 'D'  AND P.PRD_MST_VDR_IDX = T.CPN_ETC_CD  AND PRD_MST_CD = #{PRD_MST_CD}) 
+                                  ELSE 0 END ) = 0
+                ) T1
+                WHERE CPN_RNUM = 1
+                AND (SELECT PRD_MST_CPN_YN FROM T_PRD_MST PM WHERE PM.PRD_MST_CD = #{PRD_MST_CD}) = 'N'  /* 쿠폰 적용 가능 여부 */ /* 2020.06.26 쿠폰사용 텍스트를 위해 임시주석  , Y -> N 으로 수정*/
+            ) T2
+         ) T3
+        ) T4
+         WHERE 1=1
+        ]]>
+        <if test="CART_COUPON_TYPE.equals('prd'.toString())">
+            AND BUY_PRC_USABLE_CPN_YN = 'Y'    
+            AND CUS_PRC_USABLE_CPN_YN = 'Y'
+            AND MEM_GRD_USABLE_YN = 'Y'
+            AND DISCOUNTED_PRICE <![CDATA[ > ]]> 0 
+            AND CPN_MST_GBN <![CDATA[ <> ]]> 'F'
+        </if>
+        <if test="!CART_COUPON_TYPE.equals('prd'.toString())">
+            AND CPN_MST_GBN = 'F'
+        </if>
+        <if test="CPN_MST_IDX != null and CPN_MST_IDX != ''">
+            AND CPN_MST_IDX = #{CPN_MST_IDX}
+        </if>
+    </select> 
+    
+    <!-- 총 쿠폰할인 금액 가져오기 -->
+    <select id="selectTotCouponDcAmt" parameterType="java.util.HashMap" resultType="Integer">
+        /* PcCart.selectTotCouponDcAmt */
+        SELECT
+            SUM(NVL(ORD_TMP_PRD_SAL_PRC,0)) + SUM(NVL(ORD_TMP_DLV_SAL_PRC,0))
+        FROM
+            T_PRD_TMP
+        WHERE
+            ORD_TMP_MST_CD = #{ORD_MST_CD}
+    </select>
+    
+    <!-- 겟잇나우 전체 매장 개수/매장 IDX 가져오기 -->
+    <select id="selectGetItNowCartInfoList" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+        /* PcCart.selectGetItNowCartInfoList */
+        SELECT 
+            MEM_CRT_SHP_MST_IDX
+            , COUNT(1) OVER() as TOT_SHP_MST_IDX
+            , MEM_CRT_GET_PKU_DT
+            , MEM_CRT_GET_PKU_HH
+        FROM T_MEM_CRT 
+        WHERE MEM_CRT_SHP_MST_IDX IS NOT NULL 
+        AND MEM_CRT_DLV_GBN = #{CART_DLV_GBN_GET_IT_NOW_CD}
+        AND MEM_CRT_DRT_SAL_YN = 'N'
+        AND MEM_MST_MEM_ID = #{MEM_MST_MEM_ID}
+        GROUP BY MEM_CRT_SHP_MST_IDX, MEM_CRT_GET_PKU_DT, MEM_CRT_GET_PKU_HH
+    </select>
+    
+    <!-- 겟잇나우 지점 정보 -->
+    <select id="selectGetItNowShopInfo" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+        /* PcCart.selectGetItNowShopInfo */
+        SELECT 
+            SHP_MST_IDX     
+            , SHP_MST_ERP_CD    
+            , SHP_MST_NM        
+            , SHP_MST_ENG_NM    
+            , SHP_MST_TYPE      
+            , SHP_MST_AREA      
+            , SHP_MST_MNG_NM    
+            , SHP_MST_MNG_HP    
+            , SHP_MST_MNG_MAIL  
+            , SHP_MST_ZIP_CDE5  
+            , SHP_MST_JBN_ADR1  
+            , SHP_MST_JBN_ADR2  
+            , SHP_MST_DRO_ADR1  
+            , SHP_MST_DRO_ADR2  
+            , SHP_MST_LTTD      
+            , SHP_MST_LGTD      
+            , SHP_MST_PST       
+            , SHP_MST_TEL       
+            , SHP_MST_FAX       
+            , SHP_MST_PRK       
+            , SHP_MST_URL       
+            , SHP_MST_MAS_TRS   
+            , SHP_MST_MAP_TXT   
+            , SHP_MST_WEK_DAY_GBN   
+            , SHP_MST_WEK_DAY_ST_HH 
+            , SHP_MST_WEK_DAY_ST_MM 
+            , SHP_MST_WEK_DAY_ED_HH 
+            , SHP_MST_WEK_DAY_ED_MM 
+            , SHP_MST_WEK_DAY_TXT   
+            , SHP_MST_WEK_END_GBN   
+            , SHP_MST_WEK_END_ST_HH 
+            , SHP_MST_WEK_END_ST_MM 
+            , SHP_MST_WEK_END_ED_HH 
+            , SHP_MST_WEK_END_ED_MM 
+            , SHP_MST_WEK_END_TXT   
+            , SHP_MST_O2O_ST_HH 
+            , SHP_MST_O2O_ST_MM 
+            , SHP_MST_O2O_ED_HH 
+            , SHP_MST_O2O_ED_MM 
+            , SHP_MST_IMG1_TXT  
+            , SHP_MST_IMG2_TXT  
+            , SHP_MST_IMG3_TXT  
+            , SHP_MST_IMG4_TXT  
+            , SHP_MST_IMG5_TXT  
+            , SHP_MST_IMG6_TXT  
+            , SHP_MST_IMG7_TXT  
+            , SHP_MST_IMG8_TXT  
+            , SHP_MST_IMG9_TXT  
+            , SHP_MST_IMG10_TXT 
+            , SHP_MST_BRC       
+            , SHP_MST_HED_OFC   
+            , SHP_MST_O2O_YN    
+            , SHP_MST_USE_YN    
+            , SHP_MST_REG_DT    
+            , SHP_MST_REG_IP    
+            , SHP_MST_REG_ID    
+            , SHP_MST_UPD_DT    
+            , SHP_MST_UPD_IP    
+            , SHP_MST_UPD_ID    
+        FROM T_SHP_MST
+        WHERE SHP_MST_IDX = #{SHP_MST_IDX}
+    </select>
+    
+    <!-- 주문 후 겟잇나우 지점 정보 -->
+    <select id="selectOrderGetItNowShopInfo" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+        /* PcCart.selectOrderGetItNowShopInfo */
+        SELECT 
+            TOM.ORD_MST_CD      
+            , TOM.ORD_MST_ORD_NM
+            , TOM.ORD_MST_ORD_DT
+            , TO_CHAR(TO_DATE(TOM.ORD_MST_ORD_DT, 'YYYYMMDDHH24MISS'), 'YYYY.MM.DD HH24:MI') as ORD_DT_STR
+            , ORD_GET_SHP_MST_IDX   
+            , ORD_GET_TIK       
+            , ORD_GET_TIK_YN    
+            , ORD_GET_SMS_CNT   
+            , ORD_GET_NM        
+            , ORD_GET_GBN       
+            , ORD_GET_RLT       
+            , ORD_GET_TEL1      
+            , ORD_GET_TEL2      
+            , ORD_GET_TEL3 as ORD_GET_TEL3      
+            , ORD_GET_PKU_DT    
+            , SUBSTR(ORD_GET_PKU_DT, 0, 4) ||'-'|| SUBSTR(ORD_GET_PKU_DT, 5, 2) ||'-'|| SUBSTR(ORD_GET_PKU_DT, 7, 2) AS ORD_GET_PKU_DT_MAIL /* 메일용 */
+            , ORD_GET_PKU_HH    
+            , ORD_GET_ADM_SMS_CNT
+            , ORD_MST_MAIL as ORD_MST_MAIL
+            , ORD_MST_ORD_DT
+            , ORD_MST_ORD_NM
+            , ORD_MST_HP1
+            , ORD_MST_HP2
+            , ORD_MST_HP3 as ORD_MST_HP3        
+            , SHP_MST_IDX       
+            , SHP_MST_ERP_CD    
+            , CASE
+                WHEN SHP_MST_TYPE = #{COMMON_INFOSITE_BRANCH_GB_PRICEKING} 
+                THEN (SELECT CMN_COM_NM FROM T_CMM_COM WHERE CMN_COM_IDX = #{COMMON_INFOSITE_BRANCH_GB_PRICEKING}) ||' '|| SHP_MST_NM
+                WHEN SHP_MST_TYPE = #{COMMON_INFOSITE_BRANCH_GB_COOK}
+                THEN (SELECT CMN_COM_NM FROM T_CMM_COM WHERE CMN_COM_IDX = #{COMMON_INFOSITE_BRANCH_GB_COOK}) ||' '|| SHP_MST_NM
+                ELSE SHP_MST_NM
+             END SHP_MST_NM /* 프라이스킹 쿡앤킹인 경우에만 지점명 앞에 붙는다. 이외에는 지점명만 보여줌 */
+            , SHP_MST_ENG_NM    
+            , SHP_MST_TYPE      
+            , SHP_MST_AREA      
+            , SHP_MST_MNG_NM    
+            , SHP_MST_MNG_HP    
+            , SHP_MST_MNG_MAIL  
+            , SHP_MST_ZIP_CDE5  
+            , SHP_MST_JBN_ADR1  
+            , SHP_MST_JBN_ADR2  
+            , SHP_MST_DRO_ADR1  
+            , SHP_MST_DRO_ADR2  
+            , SHP_MST_LTTD      
+            , SHP_MST_LGTD      
+            , SHP_MST_PST       
+            , SHP_MST_TEL       
+            , SHP_MST_FAX       
+            , SHP_MST_PRK       
+            , SHP_MST_URL       
+            , SHP_MST_MAS_TRS   
+            , SHP_MST_MAP_TXT   
+            , SHP_MST_WEK_DAY_GBN   
+            , SHP_MST_WEK_DAY_ST_HH 
+            , SHP_MST_WEK_DAY_ST_MM 
+            , SHP_MST_WEK_DAY_ED_HH 
+            , SHP_MST_WEK_DAY_ED_MM 
+            , SHP_MST_WEK_DAY_TXT   
+            , SHP_MST_WEK_END_GBN   
+            , SHP_MST_WEK_END_ST_HH 
+            , SHP_MST_WEK_END_ST_MM 
+            , SHP_MST_WEK_END_ED_HH 
+            , SHP_MST_WEK_END_ED_MM 
+            , SHP_MST_WEK_END_TXT   
+            , SHP_MST_O2O_ST_HH 
+            , SHP_MST_O2O_ST_MM 
+            , SHP_MST_O2O_ED_HH 
+            , SHP_MST_O2O_ED_MM 
+            , SHP_MST_IMG1_TXT  
+            , SHP_MST_IMG2_TXT  
+            , SHP_MST_IMG3_TXT  
+            , SHP_MST_IMG4_TXT  
+            , SHP_MST_IMG5_TXT  
+            , SHP_MST_IMG6_TXT  
+            , SHP_MST_IMG7_TXT  
+            , SHP_MST_IMG8_TXT  
+            , SHP_MST_IMG9_TXT  
+            , SHP_MST_IMG10_TXT 
+            , SHP_MST_BRC       
+            , SHP_MST_HED_OFC   
+            , SHP_MST_O2O_YN    
+            , SHP_MST_USE_YN    
+            , SHP_MST_REG_DT    
+            , SHP_MST_REG_IP    
+            , SHP_MST_REG_ID    
+            , SHP_MST_UPD_DT    
+            , SHP_MST_UPD_IP    
+            , SHP_MST_UPD_ID
+            , (SELECT COUNT(1) FROM T_ORD_PRD WHERE ORD_ORD_MST_CD = TOM.ORD_MST_CD) as PRD_CNT /* 주문상품 개수 */
+            , (SELECT MAX(FN_GET_PRODUCT_NM(ORD_PRD_MST_CD,30)) KEEP(DENSE_RANK FIRST ORDER BY ORD_PRD_IDX)  FROM T_ORD_PRD WHERE ORD_ORD_MST_CD = TOM.ORD_MST_CD ) as PRD_NM /* 상품명 */ 
+            , TOM.ORD_MST_ORD_PRC /* 주문금액 */
+        FROM T_ORD_MST TOM, T_ORD_GET TOG, T_SHP_MST TSM
+        WHERE TOM.ORD_MST_CD = TOG.ORD_MST_CD
+        AND TOG.ORD_GET_SHP_MST_IDX = TSM.SHP_MST_IDX
+        AND TOM.ORD_MST_CD = #{ORD_MST_CD}
+        <if test="MEM_MST_MEM_ID != null and MEM_MST_MEM_ID != ''">
+            AND TOM.ORD_MST_ORD_ID = #{MEM_MST_MEM_ID}
+        </if>
+    </select>
+    
+    <!-- 겟잇나우 주문 정보 입력 -->
+    <insert id="insertOrdGet" parameterType="java.util.HashMap">
+        /* PcCart.insertOrdGet */
+        <![CDATA[
+            INSERT INTO T_ORD_GET
+            (
+                ORD_MST_CD      
+                , ORD_GET_SHP_MST_IDX
+                , ORD_GET_TIK       
+                , ORD_GET_TIK_YN    
+                , ORD_GET_SMS_CNT   
+                , ORD_GET_NM        
+                , ORD_GET_GBN       
+                , ORD_GET_RLT       
+                , ORD_GET_TEL1      
+                , ORD_GET_TEL2      
+                , ORD_GET_TEL3      
+                , ORD_GET_PKU_DT    
+                , ORD_GET_PKU_HH    
+                , ORD_GET_ADM_SMS_CNT
+            )
+            VALUES
+            (
+                #{ORD_MST_CD}       
+                , #{ORD_GET_SHP_MST_IDX}
+                , #{ORD_GET_TIK}        
+                , #{ORD_GET_TIK_YN} 
+                , #{ORD_GET_SMS_CNT}    
+                , #{ORD_GET_NM}     
+                , #{ORD_GET_GBN}    
+                , #{ORD_GET_RLT}        
+                , #{ORD_GET_TEL1}       
+                , #{ORD_GET_TEL2}   
+                , #{ORD_GET_TEL3}       
+                , #{ORD_GET_PKU_DT} 
+                , #{ORD_GET_PKU_HH} 
+                , #{ORD_GET_ADM_SMS_CNT}
+            )   
+        ]]>
+    </insert>
+    
+    <!-- 겟잇나우 수령자 정보 수정 -->
+    <insert id="updateOrdGet" parameterType="java.util.HashMap">
+        /* PcCart.updateOrdGet */
+        <![CDATA[
+            UPDATE T_ORD_GET
+            SET
+                ORD_GET_TIK = #{ORD_GET_TIK}
+                , ORD_GET_SMS_CNT = ORD_GET_SMS_CNT + 1
+                , ORD_GET_NM = #{ORD_GET_NM}        
+                , ORD_GET_GBN = #{ORD_GET_GBN}  
+                , ORD_GET_RLT = #{ORD_GET_RLT}      
+                , ORD_GET_TEL1 = #{ORD_GET_TEL1}        
+                , ORD_GET_TEL2 = #{ORD_GET_TEL2}        
+                , ORD_GET_TEL3 = #{ORD_GET_TEL3}        
+            WHERE   
+                ORD_MST_CD = #{ORD_MST_CD}  
+        ]]>
+    </insert>
+    
+    <!-- 유효성 체크 위한 상품 간단 정보 -->
+    <select id="selectSimplePrdInfo" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+        /* PcCart.selectSimplePrdInfo */
+        <![CDATA[
+            SELECT
+                PRD_MST_O2O_YN /* 겟잇나우 가능여부 */
+                , PRD_MST_IVB_YN /* 클린킹 가능여부 */
+                , PRD_MST_LNG_DIV_YN /* 장기할부 가능여부 */
+                , PRD_MST_LNG_DIV_MNT1 /* 장기할부 24개월 가능여부 */
+                , PRD_MST_LNG_DIV_MNT2 /* 장기할부 36개월 가능여부 */
+            FROM T_PRD_MST
+            WHERE PRD_MST_CD = #{PRD_MST_CD}
+        ]]>
+    </select>
+    
+    <!-- id 기준 주문 개수  -->
+    <select id="selectOrderCount" parameterType="java.util.HashMap" resultType="Integer">
+        /* PcCart.selectOrderCount */
+        SELECT
+            COUNT(1)
+        FROM
+            T_ORD_MST
+        WHERE
+            ORD_MST_ORD_ID = #{MEM_MST_MEM_ID}
+    </select>
+    
+    <!-- 견적 주문 상품 리스트  -->
+    <select id="selectEstimatePrdList" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+        /* PcCart.selectEstimatePrdList */
+        <![CDATA[
+            SELECT 
+                MST.ESM_MST_MEM_ID
+                , PRD.ESM_PRD_IDX /* 견적상품 IDX */        
+                , PRD.ESM_PRD_MST_IDX /* 견적관리 IDX */    
+                , PRD.ESM_PRD_MST_CD /* 견적관리코드 */   
+                , PRD.ESM_PRD_PCH_IDX /* 견적상품속성 IDX */  
+                , PRD.PRD_MST_CD /* 상품코드 */ 
+                , PRD.ESM_PRD_WSH_PRICE /* 상품가격 */  
+                , PRD.ESM_PRD_ESM_PRICE /* MD 책정가격 */   
+                , PRD.OPT_DTL_IDX /* 옵션 상세 IDX */   
+                , PRD.ESM_PRD_CNT   /* 옵션별수량 */
+                , PRD.ESM_PRD_UP_IDX     /* 상위견적상품 IDX */
+                , PCH.ESM_PCH_EPT_ST_DT /* 유효기간 시작일 */
+                , PCH.ESM_PCH_EPT_ED_DT /* 유효기간 종료일 */
+                , PCH.ESM_PCH_MEM_BUY_YN /* 고객구매 결정여부 */
+                , PCH.ESM_PCH_MD_BUY_YN /* MD 구매승인여부 */
+            FROM T_ESM_MST MST, T_ESM_PRD PRD, T_ESM_PCH PCH
+            WHERE MST.ESM_MST_IDX = ESM_PRD_MST_IDX
+            AND PRD.ESM_PRD_PCH_IDX = PCH.ESM_PCH_IDX
+            AND PRD.ESM_PRD_MST_IDX = #{ESM_MST_IDX}
+            AND PCH.ESM_PCH_MEM_BUY_YN = 'Y' /* 고객구매 결정여부가 Y */
+            AND PCH.ESM_PCH_MD_BUY_YN = 'Y' /* MD 구매승인여부가 Y */
+            AND TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS') BETWEEN PCH.ESM_PCH_EPT_ST_DT AND PCH.ESM_PCH_EPT_ED_DT
+            AND MST.ESM_MST_MEM_ID = #{MEM_MST_MEM_ID}
+            ORDER BY ESM_PRD_IDX
+        ]]>
+    </select>
+    
+    <!-- 선택 옵션 변경시 재고 체크 -->
+    <select id="selectSubOptionCntCheck" parameterType="java.util.HashMap" resultType="integer">
+    /* PcCart.selectSubOptionCntCheck */
+        SELECT COUNT(1)
+        FROM T_OPT_DTL
+        WHERE 
+        OPT_DTL_IDX = #{PRD_OPT_DTL_IDX}
+        AND OPT_DTL_STK_CNT <![CDATA[>=]]> #{MEM_CRT_CNT}
+    </select>
+    
+    <!-- 필수 옵션 변경시 재고 체크 -->
+    <select id="selectOptionCntCheck" parameterType="java.util.HashMap" resultType="integer">
+    /* PcCart.selectOptionCntCheck */
+        SELECT COUNT(1)
+        FROM T_OPT_DTL
+        WHERE 
+        OPT_DTL_IDX = #{PRD_OPT_DTL_IDX}
+        AND OPT_DTL_STK_CNT <![CDATA[>=]]> (SELECT MEM_CRT_CNT FROM T_MEM_CRT WHERE MEM_CRT_IDX = #{MEM_CRT_IDX})
+    </select>
+    
+    <!-- 마스터 수량만 변경시 재고 체크 -->
+    <select id="selectMasterCntCheck" parameterType="java.util.HashMap" resultType="integer">
+    /* PcCart.selectMasterCntCheck */
+        SELECT COUNT(1)
+        FROM T_PRD_MST
+        WHERE 
+        PRD_MST_CD = #{PRD_MST_CD}
+        AND PRD_MST_SEL_CNT <![CDATA[>=]]> #{MEM_CRT_CNT}
+    </select>
+    
+    <!-- 필수옵션 수량만 변경시 재고 체크 -->
+    <select id="selectMasterOptionCntCheck" parameterType="java.util.HashMap" resultType="integer">
+    /* PcCart.selectMasterOptionCntCheck */
+        SELECT COUNT(1)
+        FROM T_OPT_DTL
+        WHERE 
+        OPT_DTL_IDX = #{PRD_OPT_DTL_IDX}
+        AND OPT_DTL_STK_CNT <![CDATA[>=]]> #{MEM_CRT_CNT}
+    </select>
+    
+    <!-- 적립 예정 포인트/캐쉬백  -->
+    <select id="selectReservePrice" parameterType="java.util.HashMap" resultType="integer">
+    /* PcCart.selectReservePrice */
+        SELECT FN_GET_CART_REAL_RESERVE_PRICE(#{ORD_PRC}, #{MEM_MST_MEM_ID}, #{TYPE}) FROM DUAL
+    </select>
+    
+    <!-- 2020.06.24 포인트테이블 INSERT IDX 채번  -->
+    <select id="selectPitMstIdx" parameterType="java.util.HashMap" resultType="integer">
+    	SELECT SEQ_MEM_PIT_IDX.NEXTVAL AS MEM_PIT_IDX FROM DUAL
+    </select>
+    
+    <!-- 2020.07.02 ERP 전송데이터 SELECT  -->
+    <select id="selectGetOrdData" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+    	/* PcCart.selectGetOrdData */
+    	SELECT ORD_ORD_PRD_IDX
+			 , ORD_PRD_REG_ID	
+			 , ORD_ORD_MST_CD
+			 , ORD_PRD_ORD_STATE
+		FROM T_ORD_PRD_HIS
+		WHERE 1=1
+		AND ORD_ORD_MST_CD = #{ORD_ORD_MST_CD}
+		AND ORD_PRD_REG_ID = #{ORD_PRD_REG_ID}
+    </select>
+    
+    <!-- 2020.06.25 카드정보 및 할부기간 가지고 오기 전까지 사용할 데이터 -->
+    <select id="selectTempCardList" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+    	SELECT '국민@@11'
+			 , '카카오뱅크@@15'
+			 , '하나(외환)@@21'
+			 , 'KDB산업체크@@30'
+			 , '비씨@@31'
+			 , '우리@@33'
+			 , '수협@@34'
+			 , '전북@@35'
+			 , '씨티@@36'
+			 , '우체국체크@@37'
+			 , '새마을금고체크@@39'
+			 , '저축은행체크@@39'
+			 , '신한@@41'
+			 , '제주@@42'
+			 , '광주@@46'
+			 , '삼성@@51'
+			 , '현대@@61'
+			 , '신협체크@@62'
+			 , '롯데@@71'
+			 , 'NH@@91'
+			 , '중극은련@@3C'
+			 , '해외JCB@@4J'
+			 , '해외MASTER@@4M'
+			 , '해외VISA@@4V'
+			 , '해외DINERS@@6D'
+			 , '해외DISCOVER@@6I'
+		FROM DUAL
+    </select>
+    
+</mapper>

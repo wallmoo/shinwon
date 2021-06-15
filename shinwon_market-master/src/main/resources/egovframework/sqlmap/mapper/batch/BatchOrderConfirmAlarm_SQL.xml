@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="BatchOrderConfirmAlarm">
+    
+    <!-- 전체 상품 배송완료이고 구매확정 요청할 주문 리스트 -->
+    <select id="selectOrderConfirmAlarmList" parameterType="HashMap" resultType="HashMap">
+        /* BatchOrderConfirmAlarm.selectOrderConfirmAlarmList */
+        <![CDATA[        
+            SELECT
+                T1.*
+            FROM
+            (
+            SELECT
+                TOM.ORD_MST_CD
+                ,(
+                SELECT
+                    COUNT(1)
+                FROM T_ORD_PRD
+                WHERE ORD_ORD_MST_CD = TOM.ORD_MST_CD
+                AND ORD_PRD_ORD_STATE NOT IN ('423','1670','1672')
+                ) AS TOT_PRD_CNT /* 총 주문상품 개수 */
+                ,(
+                SELECT
+                    COUNT(1)
+                FROM T_ORD_PRD
+                WHERE ORD_ORD_MST_CD = TOM.ORD_MST_CD
+                AND ORD_PRD_ORD_STATE = '408'
+                AND ORD_PRD_ORG_IDX IS NULL /* 교환상품은 제외 */
+                ) AS SEND_END_PRD_CNT /* 배송완료 주문상품 개수 */
+                ,(
+                    SELECT MAX(ORD_PRD_REG_DT) KEEP(DENSE_RANK FIRST ORDER BY ORD_PRD_HIS_IDX DESC) 
+                    FROM T_ORD_PRD_HIS HIS
+                    WHERE HIS.ORD_ORD_MST_CD = TOM.ORD_MST_CD
+                    AND HIS.ORD_PRD_ORD_STATE = '408'
+                ) AS RECENT_SEND_END_DT /* 최근 배송완료로 바꾼 날짜 */
+            FROM T_ORD_MST TOM
+            WHERE ORD_MST_DLV_GBN <> '2097' /* 겟잇나우는 제외 */
+            ) T1
+            WHERE TOT_PRD_CNT = SEND_END_PRD_CNT
+            AND RECENT_SEND_END_DT BETWEEN TO_CHAR(SYSDATE-1, 'YYYYMMDD')||'000000' AND TO_CHAR(SYSDATE-1, 'YYYYMMDD')||'235959'
+        ]]>             
+    </select>   
+
+</mapper>

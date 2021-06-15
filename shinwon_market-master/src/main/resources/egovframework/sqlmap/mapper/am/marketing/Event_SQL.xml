@@ -1,0 +1,1268 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="Event">
+    <!-- 관리자 > 마케팅 관리 > 이벤트 관리 조건절 -->
+    <sql id="eventWhere">
+        <if test="searchEvtMstShopType != null and searchEvtMstShopType != ''">
+            <choose>
+                <when test="searchEvtMstShopType.equals('PC'.toString())">
+                    AND EVT.EVT_MST_PC_YN = 'Y'
+                </when>
+                <when test="searchEvtMstShopType.equals('MOBILE'.toString())">
+                    AND EVT.EVT_MST_MB_YN = 'Y'
+                </when>            
+            </choose>
+        </if>
+        <if test="searchEvtMstStDt != null and searchEvtMstStDt != '' and searchEvtMstEdDt != null and searchEvtMstEdDt != ''">
+            <![CDATA[
+                AND 
+                (
+                    (EVT.EVT_MST_ST_DT BETWEEN REPLACE(#{searchEvtMstStDt}, '-', '') AND REPLACE(#{searchEvtMstEdDt}, '-', ''))
+                    OR
+                    (EVT.EVT_MST_ED_DT BETWEEN REPLACE(#{searchEvtMstStDt}, '-', '') AND REPLACE(#{searchEvtMstEdDt}, '-', ''))
+                )
+            ]]>
+        </if>
+        <if test="searchWord != null and searchWord != ''">
+            AND EVT.EVT_MST_TITLE LIKE '%' || #{searchWord} || '%'
+        </if>
+        <if test="searchEvtMstType != null and searchEvtMstType != ''">
+            AND EVT.EVT_MST_TYPE = #{searchEvtMstType}
+        </if>
+        <if test="searchEvtMstUseYn != null and searchEvtMstUseYn != ''">
+            AND EVT.EVT_MST_USE_YN = #{searchEvtMstUseYn}
+        </if>
+    </sql>
+    
+    <sql id="memberEventWhere">
+        <if test="searchEventStDt != null and searchEventStDt != '' and searchEventEdDt != null and searchEventEdDt != ''">
+            <![CDATA[
+                AND 
+                (
+                    (EVT_MST_ST_DT BETWEEN REPLACE(#{searchEventStDt}, '-', '') AND REPLACE(#{searchEventEdDt}, '-', ''))
+                    OR
+                    (EVT_MST_ED_DT BETWEEN REPLACE(#{searchEventStDt}, '-', '') AND REPLACE(#{searchEventEdDt}, '-', ''))
+                )
+            ]]>
+        </if>
+        <if test="searchEvtMstType != null and searchEvtMstType != ''">
+            AND EVT_MST_TYPE = #{searchEvtMstType}
+        </if>
+        <if test="searchEvtMstTitle != null and searchEvtMstTitle != ''">
+            AND EVT_MST_TITLE LIKE '%' || #{searchEvtMstTitle} || '%'
+        </if>
+        <if test="searchEvtMstStatus != null and searchEvtMstStatus != ''">
+            AND (CASE WHEN #{searchEvtMstStatus} = 'A' AND SYSDATE BETWEEN TO_DATE(EVT_MST_ST_DT,'yyyymmdd') AND TO_DATE(EVT_MST_ED_DT,'yyyymmdd') THEN 1
+                      WHEN #{searchEvtMstStatus} = 'B' AND SYSDATE > TO_DATE(EVT_MST_ED_DT,'yyyymmdd') THEN 1
+                      ELSE 0 END) = 1
+        </if>
+        <if test="MEM_MST_MEM_ID != null and MEM_MST_MEM_ID != ''">
+            AND EVT_MST_IDX IN
+                (SELECT EVT_MST_IDX FROM T_EVT_ETR WHERE EVT_ETR_REG_ID = #{MEM_MST_MEM_ID}
+                UNION ALL
+                SELECT EVT_MST_IDX FROM T_EVT_IMG WHERE EVT_IMG_REG_ID = #{MEM_MST_MEM_ID}
+                UNION ALL
+                SELECT EVT_MST_IDX FROM T_EVT_RPL WHERE EVT_RPL_REG_ID = #{MEM_MST_MEM_ID}
+                UNION ALL
+                SELECT EVT_MST_IDX FROM T_EVT_SVY S, T_EVT_DTL D WHERE S.EVT_DTL_IDX = D.EVT_DTL_IDX AND EVT_SVY_REG_ID = #{MEM_MST_MEM_ID})
+        </if>
+    </sql>
+    
+    <!-- 관리자 > 마케팅 관리 > 이벤트 관리 목록 갯수 -->
+    <select id="selectEventListCount" parameterType="HashMap" resultType="Integer">
+        /*Event.selectEventListCount*/
+        SELECT
+            COUNT(EVT.EVT_MST_IDX)
+        FROM
+            T_EVT_MST EVT
+        JOIN T_ADM_MST ADM
+          ON ADM.ADM_MST_ID = EVT.EVT_MST_REG_ID
+        JOIN T_CMM_COM COM
+          ON COM.CMN_COM_IDX = EVT.EVT_MST_TYPE
+        WHERE 1 = 1
+            AND 
+                COM.CMN_COM_UP_IDX = 3172
+            <include refid="eventWhere"/>
+    </select>
+    
+    <!-- 관리자 > 마케팅 관리 > 이벤트 관리 목록 -->
+    <select id="selectEventList" parameterType="HashMap" resultType="HashMap">
+        /* Event.selectEventList */
+        SELECT
+            S2.* 
+        FROM
+            (   SELECT
+                    ROWNUM AS RNUM,
+                    S1.* 
+                FROM
+                    (   SELECT
+                            EVT.EVT_MST_IDX,
+                            EVT.EVT_MST_PC_YN,
+                            EVT.EVT_MST_MB_YN,
+                            EVT.EVT_MST_TITLE,
+                            EVT.EVT_MST_ST_DT,
+                            EVT.EVT_MST_ED_DT,                            
+                            EVT.EVT_MST_TYPE,
+                            (SELECT CMN_COM_NM FROM T_CMM_COM WHERE CMN_COM_IDX = EVT.EVT_MST_TYPE ) AS EVT_MST_TYPE_NM,
+                            (SELECT COUNT(ETR.EVT_MST_IDX) FROM T_EVT_ETR ETR WHERE ETR.EVT_MST_IDX = EVT.EVT_MST_IDX) AS EVT_MST_ETR_CNT,
+                            /*
+                            (CASE EVT.EVT_MST_TYPE WHEN 708 THEN --일반형 
+                            	(SELECT COUNT(*) FROM T_EVT_ETR WHERE EVT_MST_IDX = EVT.EVT_MST_IDX) 
+                            WHEN 710 THEN --덧글형
+                            	(SELECT COUNT(*) FROM T_EVT_RPL WHERE EVT_MST_IDX = EVT.EVT_MST_IDX)
+                           	WHEN 713 THEN --설문형
+                            	(SELECT COUNT(*) FROM T_EVT_SVY WHERE EVT_DTL_IDX IN (SELECT EVT_DTL_IDX FROM T_EVT_DTL WHERE EVT_MST_IDX = EVT.EVT_MST_IDX))
+                           	WHEN 1842 THEN --이미지형
+                            	(SELECT COUNT(*) FROM T_EVT_IMG WHERE EVT_MST_IDX = EVT.EVT_MST_IDX)
+                            END
+                            ) AS EVT_MST_ETR_CNT,
+                            EVT.EVT_MST_PRE_WIN,
+                            (CASE EVT.EVT_MST_TYPE WHEN 708 THEN --일반형 
+                            	(SELECT COUNT(*) FROM T_EVT_ETR WHERE EVT_MST_IDX = EVT.EVT_MST_IDX AND EVT_ETR_WIN_YN = 'Y') 
+                            WHEN 710 THEN --덧글형
+                            	(SELECT COUNT(*) FROM T_EVT_RPL WHERE EVT_MST_IDX = EVT.EVT_MST_IDX AND EVT_RPL_WIN_YN = 'Y')
+                           	WHEN 713 THEN --설문형
+                            	(SELECT COUNT(*) FROM T_EVT_SVY WHERE EVT_DTL_IDX IN (SELECT EVT_DTL_IDX FROM T_EVT_DTL WHERE EVT_MST_IDX = EVT.EVT_MST_IDX) AND EVT_SVY_WIN_YN = 'Y')
+                           	WHEN 1842 THEN --이미지형
+                            	(SELECT COUNT(*) FROM T_EVT_IMG WHERE EVT_MST_IDX = EVT.EVT_MST_IDX  AND EVT_IMG_WIN_YN = 'Y')
+                            END
+                            ) AS EVT_MST_WIN_CNT,
+                            */
+                            (SELECT COUNT(*) FROM T_WIN_INF WHERE EVT_MST_IDX = EVT.EVT_MST_IDX) EVT_MST_WIN_CNT,
+                            EVT.EVT_MST_WIN_DT,
+                            EVT.EVT_MST_OPN_DT,
+                            EVT.EVT_MST_USE_YN,
+                            EVT.EVT_MST_PRE_WIN
+                        FROM
+                            T_EVT_MST EVT
+                        JOIN
+                            T_ADM_MST ADM
+                          ON ADM.ADM_MST_ID = EVT.EVT_MST_REG_ID
+                        JOIN T_CMM_COM COM
+                          ON COM.CMN_COM_IDX = EVT.EVT_MST_TYPE
+                        WHERE 1 = 1
+                            AND 
+                                COM.CMN_COM_UP_IDX = 3172
+                            <include refid="eventWhere"/> 
+                        ORDER BY EVT.EVT_MST_REG_DT DESC 
+                    )
+                    S1 
+            )
+            S2 
+        WHERE
+            S2.RNUM BETWEEN #{startNum} AND #{endNum}
+    </select>
+    
+    <!-- 관리자 > 마케팅 관리 > 이벤트 관리 상세정보-->
+    <select id="selectEventInfo" parameterType="HashMap" resultType="HashMap">
+        /* Event.selectEventInfo */
+        SELECT
+            EVT.EVT_MST_IDX,
+			EVT.EVT_MST_TITLE,
+			EVT.EVT_MST_PC_YN,
+			EVT.EVT_MST_MB_YN,
+			EVT.EVT_MST_MEM_GBN,
+			EVT.EVT_MST_ST_DT,
+			EVT.EVT_MST_ST_HH,
+			EVT.EVT_MST_ST_MM,
+			EVT.EVT_MST_ED_DT,
+			EVT.EVT_MST_ED_HH,
+			EVT.EVT_MST_ED_MM,
+			EVT.EVT_MST_TYPE,
+			EVT.EVT_MST_USE_YN,
+			EVT.EVT_MST_WIN_DT,
+			EVT.EVT_MST_PIT_YN,
+			EVT.EVT_MST_PIT_GBN,
+			EVT.EVT_MST_PIT,
+			EVT.EVT_MST_OPN_DT,
+			EVT.EVT_MST_DUP_ETR,
+			EVT.EVT_MST_LET_PLY_YN,
+			EVT.EVT_MST_PRE_WIN,
+			EVT.EVT_MST_REG_DT,
+			EVT.EVT_MST_REG_IP,
+			EVT.EVT_MST_REG_ID,
+            ADM.ADM_MST_NM AS EVT_MST_REG_NM,
+            EVT.EVT_MST_UPD_DT,
+            EVT.EVT_MST_UPD_IP,
+            EVT.EVT_MST_UPD_ID,
+            NVL((SELECT DECODE(MAX(EVT_DTL_NO),0,0,MAX(EVT_DTL_NO)-1) FROM T_EVT_DTL WHERE EVT_MST_IDX = EVT.EVT_MST_IDX),0) AS MAX_NUM,
+            NVL((SELECT MAX(EVT_DTL_NO) FROM T_EVT_DTL G, T_CMM_FLE F WHERE G.EVT_MST_IDX = EVT.EVT_MST_IDX AND G.EVT_DTL_IDX = F.CMM_FLE_TB_PK AND CMM_FLE_TB_NM = 'T_EVT_DTL' AND CMM_FLE_USE_YN = 'Y'),0) AS MAX_NUM_FILE,
+            CASE WHEN SYSDATE > TO_DATE(EVT.EVT_MST_ED_DT||EVT.EVT_MST_ED_HH||EVT.EVT_MST_ED_MM||'59','yyyymmddhh24miss') THEN 'N'
+            	ELSE 'Y' END AS MODIFY_YN,
+            EVT.EVT_MST_SVY_TYPE
+        FROM
+            T_EVT_MST EVT,
+            T_ADM_MST ADM
+        WHERE
+            EVT.EVT_MST_REG_ID = ADM.ADM_MST_ID
+            AND EVT_MST_IDX = #{EVT_MST_IDX}
+    </select>
+    
+    <select id="selectEventDetail" parameterType="HashMap" resultType="HashMap">
+    	/* Event.selectEventDetail */	
+    	SELECT EVT_DTL_IDX,
+    			EVT_DTL_NO,
+    			EVT_DTL_NM
+    	FROM T_EVT_DTL
+    	WHERE EVT_MST_IDX = #{EVT_MST_IDX}
+    	ORDER BY EVT_DTL_NO
+    </select>
+    <!-- 관리자 > 마케팅 관리 > 이벤트 관리 등록 -->
+    <insert id="insertEvent" parameterType="HashMap">
+        <selectKey keyProperty="EVT_MST_IDX" resultType="Integer" order="BEFORE">
+            SELECT SEQ_EVT_MST_IDX.NEXTVAL AS EVT_MST_IDX FROM DUAL
+        </selectKey>
+        /* Event.insertEvent */
+        INSERT INTO
+            T_EVT_MST
+            (
+			    EVT_MST_IDX,
+				EVT_MST_TITLE,
+				EVT_MST_PC_YN,
+				EVT_MST_MB_YN,
+				EVT_MST_MEM_GBN,
+				EVT_MST_ST_DT,
+				EVT_MST_ST_HH,
+				EVT_MST_ST_MM,
+				EVT_MST_ED_DT,
+				EVT_MST_ED_HH,
+				EVT_MST_ED_MM,
+				EVT_MST_TYPE,
+				EVT_MST_USE_YN,
+				EVT_MST_WIN_DT,
+				EVT_MST_PIT_YN,
+				EVT_MST_PIT_GBN,
+				EVT_MST_PIT,
+				EVT_MST_OPN_DT,
+				EVT_MST_DUP_ETR,
+				EVT_MST_LET_PLY_YN,
+				EVT_MST_PRE_WIN,
+				EVT_MST_REG_DT,
+				EVT_MST_REG_IP,
+				EVT_MST_REG_ID,
+				EVT_MST_SVY_TYPE
+            )
+        VALUES
+            (
+                #{EVT_MST_IDX},
+                #{EVT_MST_TITLE},
+                NVL(#{EVT_MST_PC_YN},'N'),
+                NVL(#{EVT_MST_MB_YN},'N'),
+                #{EVT_MST_MEM_GBN},
+                REPLACE(#{EVT_MST_ST_DT}, '-', ''),
+                NVL(#{EVT_MST_ST_HH},'00'),
+                NVL(#{EVT_MST_ST_MM},'00'),
+                REPLACE(#{EVT_MST_ED_DT}, '-', ''),
+                NVL(#{EVT_MST_ED_HH},'23'),
+                NVL(#{EVT_MST_ED_MM},'59'),
+                #{EVT_MST_TYPE},
+                #{EVT_MST_USE_YN},
+                REPLACE(#{EVT_MST_WIN_DT}, '-', ''),
+                DECODE(#{EVT_MST_PIT_GB},'N','N','Y'),
+                #{EVT_MST_PIT_GB},
+                #{EVT_MST_PIT},
+                REPLACE(#{EVT_MST_OPN_DT}, '-', ''),
+                NVL(#{EVT_MST_DUP_ETR},'N'),
+                NVL(#{EVT_MST_LET_PLY_YN},'N'),
+                #{EVT_MST_PRE_WIN},
+                TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+                #{EVT_MST_REG_IP},
+                #{EVT_MST_REG_ID},
+                #{EVT_MST_SVY_TYPE}
+            )
+    </insert>
+    
+    <!-- 관리자 > 마케팅 관리 > 이벤트 관리 수정 -->
+    <update id="updateEvent" parameterType="HashMap">
+        /* Event.updateEvent */
+        UPDATE
+            T_EVT_MST 
+        SET            
+            EVT_MST_PC_YN = NVL(#{EVT_MST_PC_YN},'N'),
+            EVT_MST_MB_YN = NVL(#{EVT_MST_MB_YN},'N'),                    
+            EVT_MST_TITLE = #{EVT_MST_TITLE},
+            EVT_MST_MEM_GBN = #{EVT_MST_MEM_GBN},
+            EVT_MST_ST_DT = REPLACE(#{EVT_MST_ST_DT}, '-', ''),
+            EVT_MST_ST_HH = NVL(#{EVT_MST_ST_HH},'00'),
+            EVT_MST_ST_MM = NVL(#{EVT_MST_ST_MM},'00'),
+            EVT_MST_ED_DT = REPLACE(#{EVT_MST_ED_DT}, '-', ''),
+            EVT_MST_ED_HH = NVL(#{EVT_MST_ED_HH},'23'),
+            EVT_MST_ED_MM = NVL(#{EVT_MST_ED_MM},'59'),
+            EVT_MST_TYPE = #{EVT_MST_TYPE},
+            EVT_MST_WIN_DT = REPLACE(#{EVT_MST_WIN_DT}, '-', ''),
+            EVT_MST_PIT_YN = DECODE(#{EVT_MST_PIT_GBN},'N','N','Y'),
+            EVT_MST_PIT_GBN = #{EVT_MST_PIT_GBN},
+            EVT_MST_PIT = #{EVT_MST_PIT},
+            EVT_MST_OPN_DT = REPLACE(#{EVT_MST_OPN_DT}, '-', ''),
+            EVT_MST_DUP_ETR = NVL(#{EVT_MST_DUP_ETR},'N'),
+            EVT_MST_PRE_WIN = #{EVT_MST_PRE_WIN},
+            EVT_MST_USE_YN = NVL(#{EVT_MST_USE_YN}, 'N'),
+            EVT_MST_UPD_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+            EVT_MST_UPD_IP = #{EVT_MST_UPD_IP},
+            EVT_MST_UPD_ID = #{EVT_MST_UPD_ID}
+        WHERE
+            EVT_MST_IDX = #{EVT_MST_IDX}        
+    </update>
+    
+    <!-- 관리자 > 마케팅 관리 > 이벤트 관리 설문등록 -->
+    <insert id="insertEventDetail" parameterType="HashMap">
+        <selectKey keyProperty="EVT_DTL_IDX" resultType="Integer" order="BEFORE">
+            SELECT SEQ_EVT_DTL_IDX.NEXTVAL AS EVT_DTL_IDX FROM DUAL
+        </selectKey>
+        /* Event.insertEventDetail */
+        INSERT INTO
+            T_EVT_DTL
+            (
+			    EVT_DTL_IDX,
+				EVT_MST_IDX,
+				EVT_DTL_NO,
+				EVT_DTL_NM
+			)
+			VALUES
+			(
+				#{EVT_DTL_IDX},
+				#{EVT_MST_IDX},
+				#{EVT_DTL_NO},
+				#{EVT_DTL_NM}
+			)
+			
+    </insert>
+    <delete id="deleteEventDetail" parameterType="HashMap">
+	    /* Event.deleteEventDetail */	
+	    DELETE FROM T_EVT_DTL
+	    WHERE 
+	    	EVT_MST_IDX = #{EVT_MST_IDX}
+    </delete>
+    
+    
+    
+    <!-- 관리자 > 마케팅 관리 > 이벤트 관리 응모자 / 당첨자 목록 갯수 -->
+    <select id="selectEventEntryListCount" parameterType="HashMap" resultType="Integer">
+        /* Event.selectEventEntryListCount */
+        SELECT
+            COUNT(EVT_ETR_IDX)
+        FROM
+            T_EVT_ETR
+        WHERE
+            EVT_MST_IDX = #{EVT_MST_IDX}
+            <if test="EVT_ETR_WIN_YN != null and EVT_ETR_WIN_YN != ''">
+                AND EVT_ETR_WIN_YN = #{EVT_ETR_WIN_YN}
+            </if>
+    </select>
+    
+    <!-- 관리자 > 마케팅 관리 > 이벤트 관리 덧글형 응모자 / 당첨자 목록 갯수 -->
+    <select id="selectEventReplyListCount" parameterType="HashMap" resultType="Integer">
+        /* Event.selectEventReplyListCount */
+        SELECT
+            COUNT(EVT_RPL_IDX)
+        FROM T_EVT_RPL RPL 
+            , T_MEM_VIEW M
+        WHERE RPL.EVT_RPL_REG_ID = M.MEM_MST_MEM_ID
+        AND EVT_MST_IDX = #{EVT_MST_IDX}
+        <if test="EVT_RPL_WIN_YN != null and EVT_RPL_WIN_YN != ''">
+            AND EVT_RPL_WIN_YN = #{EVT_RPL_WIN_YN}
+        </if>
+    </select>
+    
+    <!-- 관리자 > 마케팅 관리 > 이벤트 관리 응모자 / 당첨자 목록 -->
+    <select id="selectEventEntryList" parameterType="HashMap" resultType="HashMap">
+        /* Event.selectEventEntryList */
+        SELECT
+            S2.*          
+        FROM
+            (   SELECT
+                    ROWNUM AS RNUM,
+                    S1.* 
+                FROM
+                    (   SELECT M.MEM_MST_MEM_ID,
+				    			SUBSTR(MEM_MST_MEM_NM,1, LENGTH(MEM_MST_MEM_NM) - 1)||'*' AS MEM_MST_MEM_NM, 
+				    			NVL((SELECT CMN_COM_NM FROM T_CMM_COM WHERE CMN_COM_IDX = M.MEM_MST_MEM_GRD),'-') AS MEM_GRD_NM,
+				    			DECODE(M.MEM_MST_HP3,null,'-',M.MEM_MST_HP1||'-****-'||M.MEM_MST_HP3) AS TEL_NO,
+				    			NVL((SELECT COUNT(EVT_MST_IDX) FROM T_EVT_ETR WHERE EVT_ETR_REG_ID = M.MEM_MST_MEM_ID),0) +
+				    			NVL((SELECT COUNT(EVT_MST_IDX) FROM T_EVT_IMG WHERE EVT_IMG_REG_ID = M.MEM_MST_MEM_ID),0) + 
+				    			NVL((SELECT COUNT(EVT_MST_IDX) FROM T_EVT_RPL WHERE EVT_RPL_REG_ID = M.MEM_MST_MEM_ID),0) +
+				    			NVL((SELECT COUNT(B.EVT_MST_IDX) FROM T_EVT_SVY A, T_EVT_DTL B WHERE A.EVT_DTL_IDX = B.EVT_DTL_IDX AND EVT_SVY_REG_ID = M.MEM_MST_MEM_ID),0) AS EVT_CNT,
+				    			NVL((SELECT COUNT(EVT_MST_IDX) FROM T_EVT_ETR WHERE EVT_ETR_REG_ID = M.MEM_MST_MEM_ID AND EVT_ETR_WIN_YN = 'Y'),0) +
+				    			NVL((SELECT COUNT(EVT_MST_IDX) FROM T_EVT_IMG WHERE EVT_IMG_REG_ID = M.MEM_MST_MEM_ID AND EVT_IMG_WIN_YN = 'Y'),0) + 
+				    			NVL((SELECT COUNT(EVT_MST_IDX) FROM T_EVT_RPL WHERE EVT_RPL_REG_ID = M.MEM_MST_MEM_ID AND EVT_RPL_WIN_YN = 'Y'),0) +
+				    			NVL((SELECT COUNT(B.EVT_MST_IDX) FROM T_EVT_SVY A, T_EVT_DTL B WHERE  A.EVT_DTL_IDX = B.EVT_DTL_IDX AND EVT_SVY_REG_ID = M.MEM_MST_MEM_ID AND EVT_SVY_WIN_YN = 'Y'),0) AS EVT_WIN_CNT,
+				    			(SELECT COUNT(*) FROM T_ORD_MST OM WHERE ORD_MST_ORD_ID = M.MEM_MST_MEM_ID AND NOT EXISTS (SELECT ORD_PRD_IDX FROM T_ORD_PRD WHERE ORD_ORD_MST_CD = OM.ORD_MST_CD AND ORD_PRD_ORD_STATE NOT IN('409'))) AS ORD_CNT,
+				    			E.EVT_ETR_REG_IP,
+				    			E.EVT_ETR_REG_DT,
+				    			E.EVT_ETR_CHN_TYPE,
+				    			E.EVT_ETR_AGT
+				    	FROM T_MEM_VIEW M, T_EVT_ETR E
+				    	WHERE E.EVT_ETR_REG_ID = M.MEM_MST_MEM_ID
+                            AND E.EVT_MST_IDX = #{EVT_MST_IDX}
+                            <if test="EVT_ETR_WIN_YN != null and EVT_ETR_WIN_YN != ''">
+                                AND EVT_ETR_WIN_YN = #{EVT_ETR_WIN_YN}
+                            </if>
+                        ORDER BY EVT_ETR_REG_DT DESC 
+                    )
+                    S1 
+            )
+            S2
+        <if test="startNum != null and startNum != '' and endNum != null and endNum != ''">
+            WHERE S2.RNUM BETWEEN #{startNum} AND #{endNum}
+        </if>
+    </select>
+    
+    <delete id="deleteEventWinInf" parameterType="HashMap">
+	    /* Event.deleteEventWinInf */	
+	    DELETE FROM T_WIN_INF
+	    WHERE 
+	    	EVT_MST_IDX = #{EVT_MST_IDX}
+    </delete>
+    
+     <insert id="insertEventWinInf" parameterType="HashMap">
+        /* Event.insertEventWinInf */
+        INSERT INTO T_WIN_INF
+        (
+        	EVT_MST_IDX,
+        	WIN_INF_NM,
+        	WIN_INF_MEM_NM,
+        	WIN_INF_MEM_HP3,
+        	MEM_MST_MEM_ID
+        )
+        VALUES
+        (
+        	#{EVT_MST_IDX},
+        	#{WIN_INF_NM},
+        	(SELECT SUBSTR(MEM_MST_MEM_NM,1, LENGTH(MEM_MST_MEM_NM) - 1)||'*' FROM T_MEM_VIEW WHERE MEM_MST_MEM_ID = #{MEM_MST_MEM_ID}),
+        	NVL((SELECT MEM_MST_HP3 FROM T_MEM_VIEW WHERE MEM_MST_MEM_ID = #{MEM_MST_MEM_ID}),'-'),
+        	#{MEM_MST_MEM_ID}
+        )
+    </insert>
+    <!-- 관리자 > 마케팅 관리 > 이벤트 관리 덧글형응모자 / 당첨자 목록 -->
+    <select id="selectEventReplyList" parameterType="HashMap" resultType="HashMap">
+        /* Event.selectEventReplyList */
+        SELECT
+            S2.*          
+        FROM
+            (   SELECT
+                    ROWNUM AS RNUM,
+                    S1.* 
+                FROM
+                    (   SELECT  E.EVT_RPL_IDX,
+                    			M.MEM_MST_MEM_ID,
+				    			SUBSTR(MEM_MST_MEM_NM,1, LENGTH(MEM_MST_MEM_NM) - 1)||'*' AS MEM_MST_MEM_NM, 
+				    			NVL((SELECT CMN_COM_NM FROM T_CMM_COM WHERE CMN_COM_IDX = M.MEM_MST_MEM_GRD),'-') AS MEM_GRD_NM,
+				    			DECODE(M.MEM_MST_HP3,null,'-',M.MEM_MST_HP1||'-****-'||M.MEM_MST_HP3) AS TEL_NO,
+				    			NVL((SELECT COUNT(EVT_MST_IDX) FROM T_EVT_ETR WHERE EVT_ETR_REG_ID = M.MEM_MST_MEM_ID),0) +
+				    			NVL((SELECT COUNT(EVT_MST_IDX) FROM T_EVT_IMG WHERE EVT_IMG_REG_ID = M.MEM_MST_MEM_ID),0) + 
+				    			NVL((SELECT COUNT(EVT_MST_IDX) FROM T_EVT_RPL WHERE EVT_RPL_REG_ID = M.MEM_MST_MEM_ID),0) +
+				    			NVL((SELECT COUNT(B.EVT_MST_IDX) FROM T_EVT_SVY A, T_EVT_DTL B WHERE A.EVT_DTL_IDX = B.EVT_DTL_IDX AND EVT_SVY_REG_ID = M.MEM_MST_MEM_ID),0) AS EVT_CNT,
+				    			NVL((SELECT COUNT(EVT_MST_IDX) FROM T_EVT_ETR WHERE EVT_ETR_REG_ID = M.MEM_MST_MEM_ID AND EVT_ETR_WIN_YN = 'Y'),0) +
+				    			NVL((SELECT COUNT(EVT_MST_IDX) FROM T_EVT_IMG WHERE EVT_IMG_REG_ID = M.MEM_MST_MEM_ID AND EVT_IMG_WIN_YN = 'Y'),0) + 
+				    			NVL((SELECT COUNT(EVT_MST_IDX) FROM T_EVT_RPL WHERE EVT_RPL_REG_ID = M.MEM_MST_MEM_ID AND EVT_RPL_WIN_YN = 'Y'),0) +
+				    			NVL((SELECT COUNT(B.EVT_MST_IDX) FROM T_EVT_SVY A, T_EVT_DTL B WHERE A.EVT_DTL_IDX = B.EVT_DTL_IDX AND EVT_SVY_REG_ID = M.MEM_MST_MEM_ID AND EVT_SVY_WIN_YN = 'Y'),0) AS EVT_WIN_CNT,
+				    			(SELECT COUNT(*) FROM T_ORD_MST OM WHERE ORD_MST_ORD_ID = M.MEM_MST_MEM_ID AND NOT EXISTS (SELECT ORD_PRD_IDX FROM T_ORD_PRD WHERE ORD_ORD_MST_CD = OM.ORD_MST_CD AND ORD_PRD_ORD_STATE NOT IN('409'))) AS ORD_CNT,
+				    			E.EVT_RPL_CTS,
+				    			E.EVT_RPL_DPL_YN,
+				    			E.EVT_RPL_REG_IP,
+				    			TO_CHAR(TO_DATE(E.EVT_RPL_REG_DT,'yyyymmddhh24miss'),'yyyy/mm/dd hh24:mi:ss') AS EVT_RPL_REG_DT,
+				    			E.EVT_RPL_AGT,
+				    			E.EVT_RPL_CHN_TYPE
+				    	FROM T_MEM_VIEW M, T_EVT_RPL E
+				    	WHERE E.EVT_RPL_REG_ID = M.MEM_MST_MEM_ID
+                            AND E.EVT_MST_IDX = #{EVT_MST_IDX}
+                            <if test="EVT_RPL_WIN_YN != null and EVT_RPL_WIN_YN != ''">
+                                AND EVT_RPL_WIN_YN = #{EVT_RPL_WIN_YN}
+                            </if>
+                        ORDER BY EVT_RPL_REG_DT DESC 
+                    )
+                    S1 
+            )
+            S2
+        <if test="startNum != null and startNum != '' and endNum != null and endNum != ''">
+            WHERE S2.RNUM BETWEEN #{startNum} AND #{endNum}
+        </if>
+    </select>
+    
+    
+    <!-- 관리자 > 마케팅 관리 > 이벤트 관리 이미지형 응모자 / 당첨자 목록 갯수 -->
+    <select id="selectEventImageListCount" parameterType="HashMap" resultType="Integer">
+        /* Event.selectEventImageListCount */
+        SELECT
+            COUNT(EVT_IMG_IDX)
+        FROM
+            T_EVT_IMG
+        WHERE
+            EVT_MST_IDX = #{EVT_MST_IDX}
+            <if test="EVT_IMG_WIN_YN != null and EVT_IMG_WIN_YN != ''">
+                AND EVT_IMG_WIN_YN = #{EVT_IMG_WIN_YN}
+            </if>
+    </select>
+    
+     <!-- 관리자 > 마케팅 관리 > 이벤트 관리 이미지형응모자 / 당첨자 목록 -->
+    <select id="selectEventImageList" parameterType="HashMap" resultType="HashMap">
+        /* Event.selectEventImageList */
+        SELECT
+            S2.*          
+        FROM
+            (   SELECT
+                    ROWNUM AS RNUM,
+                    S1.* 
+                FROM
+                    (   SELECT  E.EVT_IMG_IDX,
+                    			M.MEM_MST_MEM_ID,
+				    			SUBSTR(MEM_MST_MEM_NM,1, LENGTH(MEM_MST_MEM_NM) - 1)||'*' AS MEM_MST_MEM_NM, 
+				    			NVL((SELECT CMN_COM_NM FROM T_CMM_COM WHERE CMN_COM_IDX = M.MEM_MST_MEM_GRD),'-') AS MEM_GRD_NM,
+				    			DECODE(M.MEM_MST_HP3,null,'-',M.MEM_MST_HP1||'-****-'||M.MEM_MST_HP3) AS TEL_NO,
+				    			NVL((SELECT COUNT(EVT_MST_IDX) FROM T_EVT_ETR WHERE EVT_ETR_REG_ID = M.MEM_MST_MEM_ID),0) +
+				    			NVL((SELECT COUNT(EVT_MST_IDX) FROM T_EVT_IMG WHERE EVT_IMG_REG_ID = M.MEM_MST_MEM_ID),0) + 
+				    			NVL((SELECT COUNT(EVT_MST_IDX) FROM T_EVT_RPL WHERE EVT_RPL_REG_ID = M.MEM_MST_MEM_ID),0) +
+				    			NVL((SELECT COUNT(B.EVT_MST_IDX) FROM T_EVT_SVY A, T_EVT_DTL B WHERE A.EVT_DTL_IDX = B.EVT_DTL_IDX AND EVT_SVY_REG_ID = M.MEM_MST_MEM_ID),0) AS EVT_CNT,
+				    			NVL((SELECT COUNT(EVT_MST_IDX) FROM T_EVT_ETR WHERE EVT_ETR_REG_ID = M.MEM_MST_MEM_ID AND EVT_ETR_WIN_YN = 'Y'),0) +
+				    			NVL((SELECT COUNT(EVT_MST_IDX) FROM T_EVT_IMG WHERE EVT_IMG_REG_ID = M.MEM_MST_MEM_ID AND EVT_IMG_WIN_YN = 'Y'),0) + 
+				    			NVL((SELECT COUNT(EVT_MST_IDX) FROM T_EVT_RPL WHERE EVT_RPL_REG_ID = M.MEM_MST_MEM_ID AND EVT_RPL_WIN_YN = 'Y'),0) +
+				    			NVL((SELECT COUNT(B.EVT_MST_IDX) FROM T_EVT_SVY A, T_EVT_DTL B WHERE A.EVT_DTL_IDX = B.EVT_DTL_IDX AND EVT_SVY_REG_ID = M.MEM_MST_MEM_ID AND EVT_SVY_WIN_YN = 'Y'),0) AS EVT_WIN_CNT,
+				    			(SELECT COUNT(*) FROM T_ORD_MST OM WHERE ORD_MST_ORD_ID = M.MEM_MST_MEM_ID AND NOT EXISTS (SELECT ORD_PRD_IDX FROM T_ORD_PRD WHERE ORD_ORD_MST_CD = OM.ORD_MST_CD AND ORD_PRD_ORD_STATE NOT IN('409'))) AS ORD_CNT,
+				    			E.EVT_IMG_NM,
+				    			NVL(E.EVT_IMG_RCM_CNT,0) AS EVT_IMG_RCM_CNT,
+				    			E.EVT_IMG_DPL_YN,
+				    			E.EVT_IMG_REG_IP,
+				    			TO_CHAR(TO_DATE(E.EVT_IMG_REG_DT,'yyyymmddhh24miss'),'yyyy/mm/dd hh24:mi:ss') AS EVT_IMG_REG_DT,
+				    			E.EVT_IMG_AGT,
+				    			E.EVT_IMG_CHN_TYPE
+				    	FROM T_MEM_VIEW M, T_EVT_IMG E
+				    	WHERE E.EVT_IMG_REG_ID = M.MEM_MST_MEM_ID
+                            AND E.EVT_MST_IDX = #{EVT_MST_IDX}
+                            <if test="EVT_IMG_WIN_YN != null and EVT_IMG_WIN_YN != ''">
+                                AND EVT_IMG_WIN_YN = #{EVT_IMG_WIN_YN}
+                            </if>
+                        ORDER BY EVT_IMG_REG_DT DESC 
+                    )
+                    S1 
+            )
+            S2
+        <if test="startNum != null and startNum != '' and endNum != null and endNum != ''">
+            WHERE S2.RNUM BETWEEN #{startNum} AND #{endNum}
+        </if>
+    </select>
+    
+     <!-- 관리자 > 마케팅 관리 > 이벤트 관리 상세정보 > 선택된 덧글 삭제 -->
+    <update id="deleteEventImage" parameterType="HashMap">
+	    /* Event.deleteEventImage */	
+	    UPDATE 
+	    	T_EVT_IMG
+	    SET
+	    	EVT_IMG_DPL_YN = #{EVT_IMG_DPL_YN}
+	    WHERE 
+	    	EVT_IMG_IDX = #{EVT_IMG_IDX}
+    </update>
+    
+    <!-- 관리자 > 마케팅 관리 > 이벤트 관리 설문형 응모자 / 당첨자 목록 갯수 -->
+    <select id="selectEventSurveyListCount" parameterType="HashMap" resultType="Integer">
+        /* Event.selectEventSurveyListCount */
+        SELECT
+            COUNT(EVT_SVY_IDX)
+        FROM
+            T_EVT_SVY
+        WHERE
+        	EVT_DTL_IDX IN (SELECT EVT_DTL_IDX FROM T_EVT_DTL WHERE EVT_MST_IDX = #{EVT_MST_IDX})
+            <if test="EVT_DTL_IDX != null and EVT_DTL_IDX != ''">
+                AND EVT_DTL_IDX = #{EVT_DTL_IDX}
+            </if>
+            <if test="EVT_DTL_WIN_YN != null and EVT_DTL_WIN_YN != ''">
+                AND EVT_DTL_WIN_YN = #{EVT_DTL_WIN_YN}
+            </if>
+    </select>
+         <!-- 관리자 > 마케팅 관리 > 이벤트 관리 설문형응모자 / 당첨자 목록 -->
+    <select id="selectEventSurveyList" parameterType="HashMap" resultType="HashMap">
+        /* Event.selectEventSurveyList */
+        SELECT
+            S2.*          
+        FROM
+            (   SELECT
+                    ROWNUM AS RNUM,
+                    S1.* 
+                FROM
+                    (   SELECT  E.EVT_SVY_IDX,
+                    			M.MEM_MST_MEM_ID,
+				    			SUBSTR(MEM_MST_MEM_NM,1, LENGTH(MEM_MST_MEM_NM) - 1)||'*' AS MEM_MST_MEM_NM, 
+				    			NVL((SELECT CMN_COM_NM FROM T_CMM_COM WHERE CMN_COM_IDX = M.MEM_MST_MEM_GRD),'-') AS MEM_GRD_NM,
+				    			DECODE(M.MEM_MST_HP3,null,'-',M.MEM_MST_HP1||'-****-'||M.MEM_MST_HP3) AS TEL_NO,
+				    			NVL((SELECT COUNT(EVT_MST_IDX) FROM T_EVT_ETR WHERE EVT_ETR_REG_ID = M.MEM_MST_MEM_ID),0) +
+				    			NVL((SELECT COUNT(EVT_MST_IDX) FROM T_EVT_IMG WHERE EVT_IMG_REG_ID = M.MEM_MST_MEM_ID),0) + 
+				    			NVL((SELECT COUNT(EVT_MST_IDX) FROM T_EVT_RPL WHERE EVT_RPL_REG_ID = M.MEM_MST_MEM_ID),0) +
+				    			NVL((SELECT COUNT(B.EVT_MST_IDX) FROM T_EVT_SVY A, T_EVT_DTL B WHERE A.EVT_DTL_IDX = B.EVT_DTL_IDX AND EVT_SVY_REG_ID = M.MEM_MST_MEM_ID),0) AS EVT_CNT,
+				    			NVL((SELECT COUNT(EVT_MST_IDX) FROM T_EVT_ETR WHERE EVT_ETR_REG_ID = M.MEM_MST_MEM_ID AND EVT_ETR_WIN_YN = 'Y'),0) +
+				    			NVL((SELECT COUNT(EVT_MST_IDX) FROM T_EVT_IMG WHERE EVT_IMG_REG_ID = M.MEM_MST_MEM_ID AND EVT_IMG_WIN_YN = 'Y'),0) + 
+				    			NVL((SELECT COUNT(EVT_MST_IDX) FROM T_EVT_RPL WHERE EVT_RPL_REG_ID = M.MEM_MST_MEM_ID AND EVT_RPL_WIN_YN = 'Y'),0) +
+				    			NVL((SELECT COUNT(B.EVT_MST_IDX) FROM T_EVT_SVY A, T_EVT_DTL B WHERE A.EVT_DTL_IDX = B.EVT_DTL_IDX AND EVT_SVY_REG_ID = M.MEM_MST_MEM_ID AND EVT_SVY_WIN_YN = 'Y'),0) AS EVT_WIN_CNT,
+				    			(SELECT COUNT(*) FROM T_ORD_MST OM WHERE ORD_MST_ORD_ID = M.MEM_MST_MEM_ID AND NOT EXISTS (SELECT ORD_PRD_IDX FROM T_ORD_PRD WHERE ORD_ORD_MST_CD = OM.ORD_MST_CD AND ORD_PRD_ORD_STATE NOT IN('409'))) AS ORD_CNT,
+				    			(SELECT EVT_DTL_NO FROM T_EVT_DTL WHERE EVT_DTL_IDX = E.EVT_DTL_IDX) AS EVT_DTL_NO,
+				    			E.EVT_SVY_REG_IP,
+				    			TO_CHAR(TO_DATE(E.EVT_SVY_REG_DT,'yyyymmddhh24miss'),'yyyy/mm/dd hh24:mi:ss') AS EVT_SVY_REG_DT,
+				    			E.EVT_SVY_AGT,
+				    			E.EVT_SVY_CHN_TYPE
+				    	FROM T_MEM_VIEW M, T_EVT_SVY E
+				    	WHERE E.EVT_SVY_REG_ID = M.MEM_MST_MEM_ID
+				    		AND EVT_DTL_IDX IN (SELECT EVT_DTL_IDX FROM T_EVT_DTL WHERE EVT_MST_IDX = #{EVT_MST_IDX})
+                            <if test="EVT_DTL_IDX != null and EVT_DTL_IDX != ''">
+                                AND EVT_DTL_IDX = #{EVT_DTL_IDX}
+                            </if>
+                            <if test="EVT_SVY_WIN_YN != null and EVT_SVY_WIN_YN != ''">
+                                AND EVT_SVY_WIN_YN = #{EVT_SVY_WIN_YN}
+                            </if>
+                        ORDER BY EVT_SVY_REG_DT DESC 
+                    )
+                    S1 
+            )
+            S2
+        <if test="startNum != null and startNum != '' and endNum != null and endNum != ''">
+            WHERE S2.RNUM BETWEEN #{startNum} AND #{endNum}
+        </if>
+    </select>
+    
+    
+	<select id="selectEventSurveyInfo" parameterType="HashMap" resultType="HashMap">
+		SELECT (SELECT EVT_MST_TITLE FROM T_EVT_MST WHERE EVT_MST_IDX = #{EVT_MST_IDX}) AS EVT_MST_TITLE,
+			(SELECT COUNT(*) FROM T_EVT_SVY WHERE EVT_DTL_IDX IN (SELECT EVT_DTL_IDX FROM T_EVT_DTL WHERE EVT_MST_IDX = #{EVT_MST_IDX})) AS EVT_SVY_CNT
+		FROM DUAL
+		
+	</select>    
+	<select id="selectEventNormalInfo" parameterType="HashMap" resultType="HashMap">
+		SELECT (SELECT EVT_MST_TITLE FROM T_EVT_MST WHERE EVT_MST_IDX = #{EVT_MST_IDX}) AS EVT_MST_TITLE,
+			(SELECT COUNT(*) FROM T_EVT_ETR WHERE EVT_MST_IDX = #{EVT_MST_IDX}) AS EVT_SVY_CNT
+		FROM DUAL
+		
+	</select> 
+	
+	<select id="selectEventImageInfo" parameterType="HashMap" resultType="HashMap">
+		SELECT (SELECT EVT_MST_TITLE FROM T_EVT_MST WHERE EVT_MST_IDX = #{EVT_MST_IDX}) AS EVT_MST_TITLE,
+			(SELECT COUNT(*) FROM T_EVT_IMG WHERE EVT_MST_IDX = #{EVT_MST_IDX}) AS EVT_SVY_CNT
+		FROM DUAL
+		
+	</select> 
+	
+	<select id="selectEventReplyInfo" parameterType="HashMap" resultType="HashMap">
+		SELECT (SELECT EVT_MST_TITLE FROM T_EVT_MST WHERE EVT_MST_IDX = #{EVT_MST_IDX}) AS EVT_MST_TITLE,
+			(SELECT COUNT(*) FROM T_EVT_RPL WHERE EVT_MST_IDX = #{EVT_MST_IDX}) AS EVT_SVY_CNT
+		FROM DUAL
+	</select> 
+    
+    <select id="selectEventDetailList" parameterType="HashMap" resultType="HashMap">
+        /* Event.selectEventDetailList */
+        SELECT EVT_DTL_IDX, 
+    		   EVT_DTL_NO, 
+    		   EVT_DTL_NM,
+    		   (SELECT COUNT(*) FROM T_EVT_SVY WHERE EVT_DTL_IDX = E.EVT_DTL_IDX) AS EVT_CNT
+        FROM T_EVT_DTL E
+        WHERE EVT_MST_IDX = #{EVT_MST_IDX}
+        ORDER BY EVT_DTL_NO
+    	
+    </select>
+    
+    <delete id="deleteEventDetailOne" parameterType="HashMap">
+        /* Event.deleteEventDetail */
+    	DELETE FROM T_EVT_DTL
+    	WHERE EVT_DTL_IDX = #{EVT_DTL_IDX_DEL}
+    </delete>
+    
+    <select id="selectEventDetailImageList" parameterType="HashMap" resultType="HashMap">
+        /* Event.selectEventDetailImageList */
+        SELECT
+            EVT_DTL_IDX,
+            EVT_MST_IDX,
+            EVT_DTL_NO,
+            CMM_FLE_IDX,
+            CMM_FLE_TB_NM,
+            CMM_FLE_TB_PK,
+            CMM_FLE_TB_TYPE,
+            CMM_FLE_SYS_PATH,
+            CMM_FLE_ATT_PATH,
+            CMM_FLE_ORG_NM,
+            CMM_FLE_SYS_NM,
+            CMM_FLE_ATT_SIZE,
+            CMM_FLE_ATT_EXT,
+            CMM_FLE_DW_CNT,
+            CMM_FLE_SORT,
+            CMM_FLE_USE_YN,
+            CMM_FLE_REG_DT,
+            CMM_FLE_REG_ID,
+            CMN_FLE_ALT_TXT,
+            CMM_FLE_SYS_PATH || CMM_FLE_ATT_PATH || CMM_FLE_SYS_NM AS CMM_FLE_SAVE_PATH
+        FROM
+            T_EVT_DTL G, T_CMM_FLE F
+        WHERE
+            G.EVT_MST_IDX = #{EVT_MST_IDX}
+            AND G.EVT_DTL_IDX = F.CMM_FLE_TB_PK
+            AND CMM_FLE_TB_NM = 'T_EVT_DTL'
+            AND CMM_FLE_USE_YN = 'Y'
+        ORDER BY EVT_DTL_NO ASC
+    	
+    </select>
+    
+    <select id="selectEventDetailImageListBack" parameterType="HashMap" resultType="HashMap">
+        /* Event.selectEventDetailImageList */
+        SELECT
+            EVT_DTL_IDX,
+            EVT_MST_IDX,
+            EVT_DTL_NO,
+            (SELECT CMM_FLE_IDX FROM T_CMM_FLE F WHERE F.CMM_FLE_TB_PK= EVT_DTL_IDX AND CMM_FLE_TB_NM = 'T_EVT_DTL' AND CMM_FLE_USE_YN = 'Y') CMM_FLE_IDX,
+            (SELECT CMM_FLE_ORG_NM FROM T_CMM_FLE F WHERE F.CMM_FLE_TB_PK= EVT_DTL_IDX AND CMM_FLE_TB_NM = 'T_EVT_DTL' AND CMM_FLE_USE_YN = 'Y') CMM_FLE_ORG_NM,
+            (SELECT CMM_FLE_SYS_PATH || CMM_FLE_ATT_PATH || CMM_FLE_SYS_NM FROM T_CMM_FLE F WHERE F.CMM_FLE_TB_PK= EVT_DTL_IDX AND CMM_FLE_TB_NM = 'T_EVT_DTL' AND CMM_FLE_USE_YN = 'Y') CMM_FLE_SAVE_PATH
+        FROM
+            T_EVT_DTL
+        WHERE
+            EVT_MST_IDX = #{EVT_MST_IDX}
+        ORDER BY EVT_DTL_NO ASC
+    	
+    </select>
+    
+    <!-- 관리자 > 마케팅 관리 > 이벤트 관리 이미지형응모자 / 당첨자 목록 -->
+    <select id="selectEventLotList" parameterType="HashMap" resultType="HashMap">
+    	SELECT A.MEM_MST_MEM_ID, 
+			   SUBSTR(MEM_MST_MEM_NM,1, LENGTH(MEM_MST_MEM_NM) - 1)||'*' AS MEM_MST_MEM_NM, 
+			   B.EVT_REG_DT
+		FROM T_MEM_VIEW A, 
+		(
+			SELECT EVT_MST_IDX, EVT_ETR_REG_ID AS EVT_ID, EVT_ETR_REG_DT AS EVT_REG_DT FROM T_EVT_ETR WHERE EVT_MST_IDX = #{EVT_MST_IDX}
+			UNION ALL
+			SELECT EVT_MST_IDX, EVT_IMG_REG_ID AS EVT_ID, EVT_IMG_REG_DT AS EVT_REG_DT FROM T_EVT_IMG WHERE EVT_MST_IDX = #{EVT_MST_IDX}
+			UNION ALL
+			SELECT EVT_MST_IDX, EVT_RPL_REG_ID AS EVT_ID, EVT_RPL_REG_DT AS EVT_REG_DT FROM T_EVT_RPL WHERE EVT_MST_IDX = #{EVT_MST_IDX}
+			UNION ALL
+			SELECT EVT_MST_IDX, EVT_SVY_REG_ID AS EVT_ID, EVT_SVY_REG_DT AS EVT_REG_DT FROM T_EVT_SVY S, T_EVT_DTL D WHERE S.EVT_DTL_IDX = D.EVT_DTL_IDX AND EVT_MST_IDX = #{EVT_MST_IDX}
+		) B
+		WHERE A.MEM_MST_MEM_ID = B.EVT_ID
+		AND NVL(MEM_MST_EVT_YN,'N') = 'N'
+		ORDER BY EVT_REG_DT
+		
+    </select>
+    
+    <!-- 관리자 > 마케팅 관리 > 이벤트 관리 이미지형응모자 / 당첨자 목록(자동) -->
+    <select id="selectEventAutoLotList" parameterType="HashMap" resultType="HashMap">
+    	SELECT * 
+    	FROM (
+	    	SELECT A.MEM_MST_MEM_ID, 
+				   SUBSTR(MEM_MST_MEM_NM,1, LENGTH(MEM_MST_MEM_NM) - 1)||'*' AS MEM_MST_MEM_NM, 
+				   B.EVT_REG_DT
+			FROM T_MEM_VIEW A, 
+			(
+				SELECT EVT_MST_IDX, EVT_ETR_REG_ID AS EVT_ID, EVT_ETR_REG_DT AS EVT_REG_DT FROM T_EVT_ETR WHERE EVT_MST_IDX = #{EVT_MST_IDX}
+				UNION ALL
+				SELECT EVT_MST_IDX, EVT_IMG_REG_ID AS EVT_ID, EVT_IMG_REG_DT AS EVT_REG_DT FROM T_EVT_IMG WHERE EVT_MST_IDX = #{EVT_MST_IDX}
+				UNION ALL
+				SELECT EVT_MST_IDX, EVT_RPL_REG_ID AS EVT_ID, EVT_RPL_REG_DT AS EVT_REG_DT FROM T_EVT_RPL WHERE EVT_MST_IDX = #{EVT_MST_IDX}
+				UNION ALL
+				SELECT EVT_MST_IDX, EVT_SVY_REG_ID AS EVT_ID, EVT_SVY_REG_DT AS EVT_REG_DT FROM T_EVT_SVY S, T_EVT_DTL D WHERE S.EVT_DTL_IDX = D.EVT_DTL_IDX AND EVT_MST_IDX = #{EVT_MST_IDX}
+			) B
+			WHERE A.MEM_MST_MEM_ID = B.EVT_ID
+			AND NVL(MEM_MST_EVT_YN,'N') = 'N'
+			ORDER BY DBMS_RANDOM.VALUE
+		) S
+		WHERE ROWNUM &lt;= #{lotCnt}
+		
+    </select>
+    
+    <!-- 관리자 > 마케팅 관리 > 이벤트 관리  당첨자발표 목록 -->
+    <select id="selectEventWinList" parameterType="HashMap" resultType="HashMap">
+        /* Event.selectEventWinList */
+        SELECT
+            S2.*          
+        FROM
+            (   SELECT
+                    ROWNUM AS RNUM,
+                    S1.* 
+                FROM
+                    (   
+                    SELECT 
+                            EVT.EVT_MST_IDX,
+                            EVT.EVT_MST_PC_YN,
+                            EVT.EVT_MST_MB_YN,
+                            EVT.EVT_MST_TITLE,
+                            EVT.EVT_MST_ST_DT,
+                            EVT.EVT_MST_ED_DT,                            
+                            EVT.EVT_MST_TYPE,
+                            (SELECT CMN_COM_NM FROM T_CMM_COM WHERE CMN_COM_IDX = EVT.EVT_MST_TYPE ) AS EVT_MST_TYPE_NM,
+                            (SELECT COUNT(ETR.EVT_MST_IDX) FROM T_EVT_ETR ETR WHERE ETR.EVT_MST_IDX = EVT.EVT_MST_IDX) AS EVT_MST_ETR_CNT,
+                            /*
+                            (CASE EVT.EVT_MST_TYPE WHEN 708 THEN --일반형 
+                                (SELECT COUNT(*) FROM T_EVT_ETR WHERE EVT_MST_IDX = EVT.EVT_MST_IDX) 
+                            WHEN 710 THEN --덧글형
+                                (SELECT COUNT(*) FROM T_EVT_RPL WHERE EVT_MST_IDX = EVT.EVT_MST_IDX)
+                            WHEN 713 THEN --설문형
+                                (SELECT COUNT(*) FROM T_EVT_SVY WHERE EVT_DTL_IDX IN (SELECT EVT_DTL_IDX FROM T_EVT_DTL WHERE EVT_MST_IDX = EVT.EVT_MST_IDX))
+                            WHEN 1842 THEN --이미지형
+                                (SELECT COUNT(*) FROM T_EVT_IMG WHERE EVT_MST_IDX = EVT.EVT_MST_IDX)
+                            END
+                            ) AS EVT_MST_ETR_CNT,
+                            (CASE EVT.EVT_MST_TYPE WHEN 708 THEN --일반형 
+                                (SELECT COUNT(*) FROM T_EVT_ETR WHERE EVT_MST_IDX = EVT.EVT_MST_IDX AND EVT_ETR_WIN_YN = 'Y') 
+                            WHEN 710 THEN --덧글형
+                                (SELECT COUNT(*) FROM T_EVT_RPL WHERE EVT_MST_IDX = EVT.EVT_MST_IDX AND EVT_RPL_WIN_YN = 'Y')
+                            WHEN 713 THEN --설문형
+                                (SELECT COUNT(*) FROM T_EVT_SVY WHERE EVT_DTL_IDX IN (SELECT EVT_DTL_IDX FROM T_EVT_DTL WHERE EVT_MST_IDX = EVT.EVT_MST_IDX) AND EVT_SVY_WIN_YN = 'Y')
+                            WHEN 1842 THEN --이미지형
+                                (SELECT COUNT(*) FROM T_EVT_IMG WHERE EVT_MST_IDX = EVT.EVT_MST_IDX  AND EVT_IMG_WIN_YN = 'Y')
+                            END
+                            ) AS EVT_MST_WIN_CNT,
+                             */
+                            (SELECT COUNT(*) FROM T_WIN_INF WHERE EVT_MST_IDX = EVT.EVT_MST_IDX) EVT_MST_WIN_CNT,
+                            EVT.EVT_MST_WIN_DT,
+                            EVT.EVT_MST_OPN_DT,
+                            EVT.EVT_MST_PRE_WIN
+                        FROM T_EVT_MST EVT
+                        JOIN T_ADM_MST ADM
+                          ON ADM.ADM_MST_ID = EVT.EVT_MST_REG_ID
+                        JOIN T_CMM_COM COM
+                          ON COM.CMN_COM_IDX = EVT.EVT_MST_TYPE
+                        WHERE 1 = 1
+                            AND COM.CMN_COM_UP_IDX = 3172
+                            <include refid="eventWhere"/>
+                        ORDER BY EVT.EVT_MST_REG_DT DESC 
+                    )
+                    S1 
+            )
+            S2
+        <if test="startNum != null and startNum != '' and endNum != null and endNum != ''">
+            WHERE S2.RNUM BETWEEN #{startNum} AND #{endNum}    
+        </if>
+    </select>
+    
+        <!-- 관리자 > 마케팅 관리 > 이벤트 관리  당첨자발표 목록 -->
+    <select id="selectEventWinInfo" parameterType="HashMap" resultType="HashMap">
+        /* Event.selectEventWinList */
+        SELECT EVT_MST_IDX,
+        	   EVT_WIN_IDX,
+			   EVT_WIN_NM,
+			   EVT_WIN_MAN_CPY,
+			   EVT_WIN_SUB_CPY,
+			   EVT_WIN_ATN,
+			   NVL(EVT_WIN_UPD_DT,EVT_WIN_REG_DT) AS EVT_WIN_REG_DT,
+			   NVL(EVT_WIN_UPD_ID, EVT_WIN_REG_ID) AS EVT_WIN_REG_ID,
+			   (SELECT ADM_MST_NM FROM T_ADM_MST WHERE ADM_MST_ID = NVL(EVT_WIN_UPD_ID, EVT_WIN_REG_ID)) EVT_WIN_REG_NM,
+			   EVT_WIN_USE_YN
+		FROM T_EVT_WIN
+		WHERE EVT_WIN_IDX = #{EVT_WIN_IDX}
+    </select>
+    
+     <!-- 관리자 > 마케팅 관리 > 이벤트 관리 목록 갯수 -->
+    <select id="selectEventWinListCount" parameterType="HashMap" resultType="Integer">
+        /*Event.selectEventListCount*/
+        SELECT
+            COUNT(EVT.EVT_MST_IDX)
+        FROM
+            T_EVT_MST EVT
+        JOIN T_CMM_COM COM
+          ON COM.CMN_COM_IDX = EVT.EVT_MST_TYPE
+        WHERE 1 = 1
+            AND COM.CMN_COM_UP_IDX = 3172
+            <include refid="eventWhere"/>
+    </select>
+    
+	<!-- 관리자 > 마케팅 관리 > 이벤트 관리 당첨자발표 등록 -->
+    <insert id="insertEventWin" parameterType="HashMap">
+        <selectKey keyProperty="EVT_WIN_IDX" resultType="Integer" order="BEFORE">
+            SELECT SEQ_EVT_WIN_IDX.NEXTVAL AS EVT_WIN_IDX FROM DUAL
+        </selectKey>
+        /* Event.insertEventWin */
+        INSERT INTO
+            T_EVT_WIN
+            (
+            	EVT_WIN_IDX,
+			    EVT_MST_IDX,
+				EVT_WIN_NM,
+				EVT_WIN_MAN_CPY,
+				EVT_WIN_SUB_CPY,
+ 				EVT_WIN_ATN,
+ 				EVT_WIN_USE_YN,
+				EVT_WIN_REG_DT,
+				EVT_WIN_REG_IP,
+				EVT_WIN_REG_ID
+			)
+        VALUES
+            (
+                #{EVT_WIN_IDX},
+                #{EVT_MST_IDX},
+                #{EVT_WIN_NM},
+                #{EVT_WIN_MAN_CPY},
+                #{EVT_WIN_SUB_CPY},
+                #{EVT_WIN_ATN},
+                #{EVT_WIN_USE_YN},
+                TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+                #{EVT_WIN_REG_IP},
+                #{EVT_WIN_REG_ID}
+            )
+    </insert>    
+    
+    <!-- 관리자 > 마케팅 관리 > 이벤트 관리 당첨자 수정 -->
+    <update id="updateEventWin" parameterType="HashMap">
+        /* Event.updateEventWin */
+        UPDATE 
+            T_EVT_WIN
+        SET
+            EVT_WIN_MAN_CPY = #{EVT_WIN_MAN_CPY},
+            EVT_WIN_SUB_CPY = #{EVT_WIN_SUB_CPY},
+            EVT_WIN_ATN = #{EVT_WIN_ATN},
+            EVT_WIN_USE_YN = #{EVT_WIN_USE_YN},
+            EVT_WIN_UPD_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+            EVT_WIN_UPD_ID = #{EVT_WIN_UPD_ID},
+            EVT_WIN_UPD_IP = #{EVT_WIN_UPD_IP}                
+        WHERE
+            EVT_WIN_IDX = #{EVT_WIN_IDX}
+    </update>
+    
+    <!-- 관리자 > 마케팅 관리 > 응모형 이벤트 관리 당첨자 수정 -->
+    <update id="updateEventEntryWinner" parameterType="HashMap">
+        /* Event.updateEventEntryWinner */
+        UPDATE 
+            T_EVT_ETR
+        SET
+            EVT_ETR_WIN_YN = 'Y',
+            EVT_ETR_UPD_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+            EVT_ETR_UPD_ID = #{EVT_MST_UPLOAD_ID},
+            EVT_ETR_UPD_IP = #{EVT_MST_UPLOAD_IP}                
+        WHERE
+            EVT_MST_IDX = #{EVT_MST_IDX}
+            AND EVT_ETR_REG_ID = #{EVT_ETR_REG_ID}
+    </update>
+    
+    <!-- 관리자 > 마케팅 관리 > 덧글형 이벤트 관리 당첨자 수정 -->
+    <update id="updateEventReplyWinner" parameterType="HashMap">
+        /* Event.updateEventReplyWinner */
+        UPDATE 
+            T_EVT_RPL
+        SET
+            EVT_RPL_WIN_YN = 'Y',
+            EVT_RPL_UPD_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+            EVT_RPL_UPD_ID = #{EVT_MST_UPLOAD_ID},
+            EVT_RPL_UPD_IP = #{EVT_MST_UPLOAD_IP}            
+        WHERE
+            EVT_MST_IDX = #{EVT_MST_IDX}
+            AND EVT_RPL_REG_ID = #{EVT_RPL_REG_ID}
+    </update>
+    
+    <!-- 관리자 > 마케팅 관리 > 설문형 이벤트 관리 당첨자 수정 -->
+    <update id="updateEventSurveyWinner" parameterType="HashMap">
+        /* Event.updateEventSurveyWinner */
+        UPDATE 
+            T_EVT_SVY
+        SET
+            EVT_SVY_WIN_YN = 'Y',
+            EVT_SVY_UPD_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+            EVT_SVY_UPD_ID = #{EVT_MST_UPLOAD_ID},
+            EVT_SVY_UPD_IP = #{EVT_MST_UPLOAD_IP}           
+        WHERE
+            EVT_DTL_IDX IN (SELECT EVT_DTL_IDX FROM T_EVT_DTL WHERE EVT_MST_IDX = #{EVT_MST_IDX})
+            AND EVT_SVY_REG_ID = #{EVT_SVY_REG_ID}
+    </update>
+    
+    <!-- 관리자 > 마케팅 관리 > 이미지 이벤트 관리 당첨자 수정 -->
+    <update id="updateEventImageWinner" parameterType="HashMap">
+        /* Event.updateEventImageWinner */
+        UPDATE 
+            T_EVT_IMG
+        SET
+            EVT_IMG_WIN_YN = 'Y',
+            EVT_IMG_UPD_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+            EVT_IMG_UPD_ID = #{EVT_MST_UPLOAD_ID},
+            EVT_IMG_UPD_IP = #{EVT_MST_UPLOAD_IP}           
+        WHERE
+            EVT_MST_IDX = #{EVT_MST_IDX}
+            AND EVT_IMG_REG_ID = #{EVT_IMG_REG_ID}
+    </update>
+    
+	 <!-- 관리자 > 마케팅 관리 > 응모형 이벤트 관리 당첨자 초기화 수정 -->
+    <update id="updateEventEntryWinnerDel" parameterType="HashMap">
+        /* Event.updateEventEntryWinnerDel */
+        UPDATE 
+            T_EVT_ETR
+        SET
+            EVT_ETR_WIN_YN = 'N',
+            EVT_ETR_UPD_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+            EVT_ETR_UPD_ID = #{EVT_MST_UPLOAD_ID},
+            EVT_ETR_UPD_IP = #{EVT_MST_UPLOAD_IP}                
+        WHERE
+            EVT_MST_IDX = #{EVT_MST_IDX}
+    </update>
+    
+    <!-- 관리자 > 마케팅 관리 > 덧글형 이벤트 관리 당첨자 초기화 수정 -->
+    <update id="updateEventReplyWinnerDel" parameterType="HashMap">
+        /* Event.updateEventReplyWinnerDel */
+        UPDATE 
+            T_EVT_RPL
+        SET
+            EVT_RPL_WIN_YN = 'N',
+            EVT_RPL_UPD_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+            EVT_RPL_UPD_ID = #{EVT_MST_UPLOAD_ID},
+            EVT_RPL_UPD_IP = #{EVT_MST_UPLOAD_IP}            
+        WHERE
+            EVT_MST_IDX = #{EVT_MST_IDX}
+    </update>
+    
+    <!-- 관리자 > 마케팅 관리 > 설문형 이벤트 관리 당첨자 초기화 수정 -->
+    <update id="updateEventSurveyWinnerDel" parameterType="HashMap">
+        /* Event.updateEventSurveyWinnerDel */
+        UPDATE 
+            T_EVT_SVY
+        SET
+            EVT_SVY_WIN_YN = 'N',
+            EVT_SVY_UPD_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+            EVT_SVY_UPD_ID = #{EVT_MST_UPLOAD_ID},
+            EVT_SVY_UPD_IP = #{EVT_MST_UPLOAD_IP}           
+        WHERE
+            EVT_DTL_IDX IN (SELECT EVT_DTL_IDX FROM T_EVT_DTL WHERE EVT_MST_IDX = #{EVT_MST_IDX})
+    </update>
+    
+    <!-- 관리자 > 마케팅 관리 > 이미지 이벤트 관리 당첨자 초기화 수정 -->
+    <update id="updateEventImageWinnerDel" parameterType="HashMap">
+        /* Event.updateEventImageWinnerDel */
+        UPDATE 
+            T_EVT_IMG
+        SET
+            EVT_IMG_WIN_YN = 'N',
+            EVT_IMG_UPD_DT = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+            EVT_IMG_UPD_ID = #{EVT_MST_UPLOAD_ID},
+            EVT_IMG_UPD_IP = #{EVT_MST_UPLOAD_IP}           
+        WHERE
+            EVT_MST_IDX = #{EVT_MST_IDX}
+    </update>
+	    
+    
+    <!-- 관리자 > 마케팅 관리 > 이벤트 관리 상세정보 > 선택된 덧글 삭제 -->
+    <update id="deleteEventReply" parameterType="HashMap">
+	    /* Event.deleteEventReply */	
+	    UPDATE 
+	    	T_EVT_RPL
+	    SET
+	    	EVT_RPL_DPL_YN = #{EVT_RPL_DPL_YN}
+	    WHERE 
+	    	EVT_RPL_IDX = #{EVT_RPL_IDX}
+    </update>
+    
+   
+    <!-- 관리자 > 마케팅 관리 > 이벤트 관리  당첨자 제외회원 목록-->
+    <select id="selectEventExceptMemberList" parameterType="HashMap" resultType="HashMap">
+        /* Event.selectEventExceptMemberList */
+        SELECT
+            S2.*          
+        FROM
+            (   SELECT
+                    ROWNUM AS RNUM,
+                    S1.* 
+                FROM
+                    (  SELECT MEM_MST_ERP_ID, 
+							   MEM_MST_MEM_ID, 
+							   SUBSTR(MEM_MST_MEM_NM,1, LENGTH(MEM_MST_MEM_NM) - 1)||'*' AS MEM_MST_MEM_NM,
+							   MEM_MST_SEX,
+							   NVL((SELECT CMN_COM_NM FROM T_CMM_COM WHERE CMN_COM_IDX = MEM_MST_MEM_GRD),'-') AS MEM_GRD_NM,
+							   (SELECT CMN_COM_NM FROM T_CMM_COM TCC WHERE TCC.CMN_COM_IDX = MEM_MST_JOI_RTE) AS MEM_MST_MEM_GBN,
+							   DECODE(MEM_MST_JIN_MDM,'P','PC','MOBILE') AS MEM_MST_JIN_CHN
+						FROM T_MEM_VIEW
+						WHERE MEM_MST_EVT_YN = 'Y'
+                        ORDER BY MEM_MST_REG_DT DESC 
+                    )
+                    S1 
+            )
+            S2
+        <if test="startNum != null and startNum != '' and endNum != null and endNum != ''">
+            WHERE S2.RNUM BETWEEN #{startNum} AND #{endNum}
+        </if>
+    </select>
+    
+    <!-- 관리자 > 마케팅 관리 > 이벤트 관리 상세정보 > 이미지형 응모자 상세 -->
+    <resultMap id="resultEventImageInfo" type="HashMap">
+        <result property="EVT_IMG_IDX" column="EVT_IMG_IDX"/>
+        <result property="EVT_MST_IDX" column="EVT_MST_IDX"/>        
+        <result property="EVT_IMG_NM" column="EVT_IMG_NM"/>
+        <result property="EVT_IMG_CTS" column="EVT_IMG_CTS" jdbcType="CLOB" javaType="java.lang.String"/>
+        <result property="EVT_IMG_REG_DT" column="EVT_IMG_REG_DT"/>
+        <result property="EVT_IMG_REG_ID" column="EVT_IMG_REG_ID"/>
+        <result property="EVT_IMG_REG_IP" column="EVT_IMG_REG_IP"/>
+        <result property="MEM_MST_MEM_NM" column="MEM_MST_MEM_NM"/>
+        <result property="EVT_MST_TITLE" column="EVT_MST_TITLE"/>
+    </resultMap>
+	<select id="selectEventImagePopupInfo" parameterType="HashMap" resultMap="resultEventImageInfo">
+		/* Event.selectEventImagePopupInfo */	
+		SELECT 
+		    EVT_IMG_IDX,
+			EVT_MST_IDX,
+			EVT_IMG_NM,
+			EVT_IMG_CTS,
+			EVT_IMG_REG_DT,
+			EVT_IMG_REG_ID,
+			EVT_IMG_REG_IP,
+			(SELECT MEM_MST_MEM_NM FROM T_MEM_VIEW   WHERE MEM_MST_MEM_ID = EVT_IMG_REG_ID) AS MEM_MST_MEM_NM,
+			(SELECT EVT_MST_TITLE FROM T_EVT_MST WHERE EVT_MST_IDX = I.EVT_MST_IDX) AS EVT_MST_TITLE
+		FROM 
+			T_EVT_IMG I
+		WHERE	EVT_IMG_IDX = #{EVT_IMG_IDX}
+	</select>
+    
+     <!-- 관리자 > 마케팅 관리 > 이벤트 관리 목록 갯수 -->
+    <select id="selectEventExceptMemberCount" parameterType="HashMap" resultType="Integer">
+        /*Event.selectEventExceptMemberCount*/
+        SELECT
+            COUNT(*)
+        FROM
+            T_MEM_VIEW
+        WHERE MEM_MST_EVT_YN = 'Y'
+    </select>
+     <!-- 관리자 > 마케팅 관리 > 이벤트 관리 목록 갯수 -->
+    <select id="selectMemberEventListCount" parameterType="HashMap" resultType="Integer">
+        /*Event.selectMemberEventListCount*/
+        SELECT COUNT(*)
+       	FROM T_EVT_MST
+		WHERE TO_DATE(EVT_MST_ST_DT||EVT_MST_ST_HH||EVT_MST_ST_MM||'00','yyyymmddhh24miss') <![CDATA[ < ]]>  SYSDATE
+			<include refid="memberEventWhere"/>
+    </select>
+    
+    <!-- 관리자 > 마케팅 관리 > 이벤트 관리 목록 -->
+    <select id="selectMemberEventList" parameterType="HashMap" resultType="HashMap">
+        /* Event.selectMemberEventList */
+        SELECT
+            S2.* 
+        FROM
+            (   SELECT
+                    ROWNUM AS RNUM,
+                    NVL( ETR_REG_DT , NVL( IMG_REG_DT , NVL( RPL_REG_DT , SVY_REG_DT) ) ) AS EVT_REG_DT ,
+                    S1.* 
+                FROM
+                    (   
+                    	SELECT EVT_MST_IDX, 
+                    			EVT_MST_TITLE, 
+                    			EVT_MST_TYPE,
+                    			EVT_MST_ST_DT||EVT_MST_ST_HH||EVT_MST_ST_MM ||'00' AS EVT_MST_ST_DTS ,
+                                EVT_MST_ED_DT||EVT_MST_ED_HH||EVT_MST_ED_MM ||'59' AS EVT_MST_ED_DTS ,
+                                EVT_MST_WIN_DT,
+                                ( SELECT MAX( EVT_ETR_REG_DT )   FROM T_EVT_ETR  TEE WHERE  EVM.EVT_MST_IDX = TEE.EVT_MST_IDX  ) AS ETR_REG_DT ,
+                                ( SELECT MAX( EVT_IMG_REG_DT )   FROM T_EVT_IMG  TEI WHERE  EVM.EVT_MST_IDX = TEI.EVT_MST_IDX  ) AS IMG_REG_DT ,
+                                ( SELECT MAX( EVT_RPL_REG_DT )   FROM T_EVT_RPL  TER WHERE  EVM.EVT_MST_IDX = TER.EVT_MST_IDX  ) AS RPL_REG_DT ,
+                                ( SELECT MAX( EVT_SVY_REG_DT )   FROM T_EVT_SVY S, T_EVT_DTL D WHERE  S.EVT_DTL_IDX = D.EVT_DTL_IDX AND  EVM.EVT_MST_IDX = D.EVT_MST_IDX  ) AS SVY_REG_DT ,
+								(SELECT CMN_COM_NM FROM T_CMM_COM WHERE CMN_COM_IDX =  EVT_MST_TYPE) AS EVT_MST_TYPE_NM,
+								CASE WHEN SYSDATE BETWEEN TO_DATE(EVT_MST_ST_DT||EVT_MST_ST_HH||EVT_MST_ST_MM||'00','yyyymmddhh24miss') AND
+										TO_DATE(EVT_MST_ED_DT||EVT_MST_ED_HH||EVT_MST_ED_MM||'59','yyyymmddhh24miss') THEN '진행중'
+								ELSE 
+									CASE WHEN TO_DATE(EVT_MST_ED_DT||EVT_MST_ED_HH||EVT_MST_ED_MM||'59','yyyymmddhh24miss') <![CDATA[ < ]]> SYSDATE THEN '종료'
+										WHEN TO_DATE(EVT_MST_ST_DT||EVT_MST_ST_HH||EVT_MST_ST_MM||'00','yyyymmddhh24miss') <![CDATA[ > ]]> SYSDATE THEN '진행예정'
+									END
+								END AS EVT_STATUS
+						FROM T_EVT_MST EVM
+						WHERE TO_DATE(EVT_MST_ST_DT||EVT_MST_ST_HH||EVT_MST_ST_MM||'00','yyyymmddhh24miss') <![CDATA[ < ]]> SYSDATE
+							<include refid="memberEventWhere"/> 
+							ORDER BY EVT_MST_IDX DESC
+                    )
+                    S1 
+            )
+            S2 
+        WHERE
+            S2.RNUM BETWEEN #{startNum} AND #{endNum}
+    </select>
+    
+    <select id="selectMemberEventListExcel" parameterType="HashMap" resultType="HashMap">
+        /* Event.selectMemberEventListExcel */
+        SELECT
+            S2.* 
+        FROM
+            (   SELECT
+                    ROWNUM AS RNUM,
+                    TO_CHAR( TO_DATE(NVL( ETR_REG_DT , NVL( IMG_REG_DT , NVL( RPL_REG_DT , SVY_REG_DT) ) ) ,'yyyymmddhh24miss') , 'YYYY-MM-DD HH24:MI:SS'  ) AS EVT_REG_DT ,
+                    S1.* 
+                FROM
+                    (   
+                    	SELECT  EVT_MST_IDX, 
+                    			EVT_MST_TITLE, 
+                    			EVT_MST_TYPE,
+                    			TO_CHAR( TO_DATE(EVT_MST_ST_DT) , 'YYYY-MM-DD'  ) ||' ' ||EVT_MST_ST_HH||':' || EVT_MST_ST_MM || ':'||'00' AS EVT_MST_ST_DTS ,
+                    			TO_CHAR( TO_DATE(EVT_MST_ED_DT) , 'YYYY-MM-DD'  ) ||' ' ||EVT_MST_ED_HH||':' || EVT_MST_ED_MM || ':'||'59' AS EVT_MST_ED_DTS ,
+                                TO_CHAR( TO_DATE(EVT_MST_WIN_DT) , 'YYYY-MM-DD HH24:MI:SS'  ) AS EVT_MST_WIN_DT,
+                                ( SELECT MAX( EVT_ETR_REG_DT )   FROM T_EVT_ETR  TEE WHERE  EVM.EVT_MST_IDX = TEE.EVT_MST_IDX  ) AS ETR_REG_DT ,
+                                ( SELECT MAX( EVT_IMG_REG_DT )   FROM T_EVT_IMG  TEI WHERE  EVM.EVT_MST_IDX = TEI.EVT_MST_IDX  ) AS IMG_REG_DT ,
+                                ( SELECT MAX( EVT_RPL_REG_DT )   FROM T_EVT_RPL  TER WHERE  EVM.EVT_MST_IDX = TER.EVT_MST_IDX  ) AS RPL_REG_DT ,
+                                ( SELECT MAX( EVT_SVY_REG_DT )   FROM T_EVT_SVY S, T_EVT_DTL D WHERE  S.EVT_DTL_IDX = D.EVT_DTL_IDX AND  EVM.EVT_MST_IDX = D.EVT_MST_IDX  ) AS SVY_REG_DT ,
+								(SELECT CMN_COM_NM FROM T_CMM_COM WHERE CMN_COM_IDX =  EVT_MST_TYPE) AS EVT_MST_TYPE_NM,
+								CASE WHEN SYSDATE BETWEEN TO_DATE(EVT_MST_ST_DT||EVT_MST_ST_HH||EVT_MST_ST_MM||'00','yyyymmddhh24miss') AND
+										TO_DATE(EVT_MST_ED_DT||EVT_MST_ED_HH||EVT_MST_ED_MM||'59','yyyymmddhh24miss') THEN '진행중'
+								ELSE 
+									CASE WHEN TO_DATE(EVT_MST_ED_DT||EVT_MST_ED_HH||EVT_MST_ED_MM||'59','yyyymmddhh24miss') <![CDATA[ < ]]> SYSDATE THEN '종료'
+										WHEN TO_DATE(EVT_MST_ST_DT||EVT_MST_ST_HH||EVT_MST_ST_MM||'00','yyyymmddhh24miss') <![CDATA[ > ]]> SYSDATE THEN '진행예정'
+									END
+								END AS EVT_STATUS
+						FROM T_EVT_MST EVM
+						WHERE TO_DATE(EVT_MST_ST_DT||EVT_MST_ST_HH||EVT_MST_ST_MM||'00','yyyymmddhh24miss') <![CDATA[ < ]]> SYSDATE
+							<include refid="memberEventWhere"/> 
+							ORDER BY EVT_MST_IDX DESC
+                    )
+                    S1 
+            )
+            S2 
+    </select>
+        
+    
+    <select id="selectMemberEventEtrPopup" parameterType="HashMap" resultType="HashMap">
+   		/* Event.selectMemberEventEtrPopup */
+   		SELECT EVT_REG_DT, COUNT(*) AS ETR_CNT
+		FROM 
+		(
+			SELECT EVT_MST_IDX, EVT_ETR_REG_ID AS EVT_ID, EVT_ETR_REG_DT AS EVT_REG_DT FROM T_EVT_ETR WHERE EVT_MST_IDX = #{EVT_MST_IDX}
+			UNION ALL
+			SELECT EVT_MST_IDX, EVT_IMG_REG_ID AS EVT_ID, EVT_IMG_REG_DT AS EVT_REG_DT FROM T_EVT_IMG WHERE EVT_MST_IDX = #{EVT_MST_IDX}
+			UNION ALL
+			SELECT EVT_MST_IDX, EVT_RPL_REG_ID AS EVT_ID, EVT_RPL_REG_DT AS EVT_REG_DT FROM T_EVT_RPL WHERE EVT_MST_IDX = #{EVT_MST_IDX}
+			UNION ALL
+			SELECT EVT_MST_IDX, EVT_SVY_REG_ID AS EVT_ID, EVT_SVY_REG_DT AS EVT_REG_DT FROM T_EVT_SVY S, T_EVT_DTL D WHERE S.EVT_DTL_IDX = D.EVT_DTL_IDX AND EVT_MST_IDX = #{EVT_MST_IDX}
+		) B
+		WHERE  EVT_ID = #{MEM_MST_MEM_ID}
+		GROUP BY EVT_REG_DT
+    
+    </select>
+    <select id="selectMemberEventWinPopup" parameterType="HashMap" resultType="HashMap">
+   		/* Event.selectMemberEventWinPopup */
+   		SELECT WIN_INF_NM, CASE WHEN (SELECT COUNT(*) FROM T_WIN_INF WHERE EVT_MST_IDX = #{EVT_MST_IDX} AND WIN_INF_NM = W.WIN_INF_NM AND MEM_MST_MEM_ID = #{MEM_MST_MEM_ID}) <![CDATA[ > ]]> 0 THEN '당첨' ELSE '-' END AS WIN_INF_YN
+		FROM T_WIN_INF W
+		WHERE  EVT_MST_IDX = #{EVT_MST_IDX}
+		GROUP BY WIN_INF_NM
+    </select>
+    
+    <select id="selectMemberEventWinPopupList" parameterType="HashMap" resultType="HashMap">
+   		/* Event.selectMemberEventWinPopupList */
+		SELECT 
+		       TWI.EVT_MST_IDX      , 
+		       TWI.EVT_WIN_IDX      ,
+		       TWI.WIN_INF_NM       ,
+		       TWI.WIN_INF_MEM_NM   ,
+		       TWI.WIN_INF_MEM_HP3  ,
+		       TWI.MEM_MST_MEM_ID   ,
+		       TEW.EVT_WIN_MAN_CPY  ,
+		       TEW.EVT_WIN_SUB_CPY  ,
+		       TEW.EVT_WIN_ATN       
+		 FROM  T_EVT_MST TEM 
+		         INNER JOIN 
+		       T_EVT_WIN TEW 
+		         ON TEM.EVT_MST_IDX = TEW.EVT_MST_IDX
+		         AND TEW.EVT_WIN_USE_YN = 'Y' 
+		         INNER JOIN 
+		       T_WIN_INF TWI 
+		         ON  TEW.EVT_MST_IDX = TWI.EVT_MST_IDX
+		         AND TEW.EVT_WIN_IDX = TWI.EVT_WIN_IDX 
+		WHERE  TEM.EVT_MST_IDX    = #{EVT_MST_IDX}
+		 AND   TWI.MEM_MST_MEM_ID = #{MEM_MST_MEM_ID}
+		ORDER BY 
+		       TEW.EVT_WIN_REG_DT DESC
+    </select>
+        
+    
+    <select id="selectEventWinfInfCnt" parameterType="hashMap" resultType="Integer">
+    	/* Event.selectWinInfCnt */
+    	  
+    	SELECT COUNT(*) 
+    	  FROM T_MEM_VIEW 
+    	 WHERE MEM_MST_MEM_ID = #{MEM_MST_MEM_ID} 
+    </select>
+    
+    <select id="selectEventWinInfList" parameterType="hashMap" resultType="hashMap">
+    	/* Event.selectEventWinInfList */
+    	
+  		SELECT MEM.MEM_MST_HP1||MEM.MEM_MST_HP2||MEM.MEM_MST_HP3 AS TR_PHONE
+			 , MEM.MEM_MST_MEM_NM
+		  FROM T_WIN_INF WIN
+		     , T_MEM_VIEW MEM
+		 WHERE WIN.MEM_MST_MEM_ID = MEM.MEM_MST_MEM_ID
+		   AND WIN.EVT_MST_IDX	= #{EVT_MST_IDX}  
+    </select>
+</mapper>

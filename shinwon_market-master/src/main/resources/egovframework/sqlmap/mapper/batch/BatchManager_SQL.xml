@@ -1,0 +1,247 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="BatchManager">
+
+
+    <!-- 관리자 > 배치작업관리 조건절 -->
+    <sql id="BatchWhere">
+        <where>
+            <if test="BCH_MST_ID != null and BCH_MST_ID != ''">
+                AND BCH_MST_ID = #{BCH_MST_ID}
+            </if>
+            <if test="BCH_MST_STATE != null and BCH_MST_STATE != ''">
+                AND BCH_MST_STATE = #{BCH_MST_STATE}
+                <if test="BCH_MST_STATE != null and BCH_MST_STATE.equals('S'.toString())">
+                    AND BCH_MST_ST_DT &gt; ( SYSDATE - ( NVL( NULL, 60) / 60 / 24 ) )
+                </if>
+            </if>
+        </where>
+    </sql>
+    
+    <!-- 관리자 > 배치작업관리 > 목록 갯수 -->
+    <select id="selectBatchListCount" parameterType="HashMap" resultType="Integer">
+        /* BatchManager.selectBatchListCount */
+        SELECT
+            COUNT(BCH_MST_IDX)
+        FROM
+            T_BCH_MST
+        <include refid="BatchWhere"/>
+    </select>
+    
+    <!-- 관리자 > 배치작업관리 목록 -->
+    <select id="selectBatchList" parameterType="HashMap" resultType="HashMap">
+        /* BatchManager.selectBatchList */
+        SELECT 
+            BCH_MST_IDX,
+            BCH_MST_ID,
+            BCH_MST_NM,
+            TO_CHAR(BCH_MST_ST_DT,'YYYYMMDDHH24MISS') BCH_MST_ST_DT,
+            TO_CHAR(BCH_MST_ED_DT,'YYYYMMDDHH24MISS') BCH_MST_ED_DT,
+            BCH_MST_STATE,
+            BCH_MST_REQ_ID,
+            BCH_MST_REQ_IP,
+            TO_CHAR(BCH_MST_REQ_DT,'YYYYMMDDHH24MISS') BCH_MST_REQ_DT,
+            BCH_MST_ERRMSG          
+        FROM
+        (
+            SELECT
+                ROWNUM RNUM,
+                BCH_MST_IDX,
+                BCH_MST_ID,
+                BCH_MST_NM,
+                BCH_MST_ST_DT,
+                BCH_MST_ED_DT,
+                BCH_MST_STATE,
+                BCH_MST_REQ_ID,
+                BCH_MST_REQ_IP,
+                BCH_MST_REQ_DT,
+                BCH_MST_ERRMSG
+            FROM(
+                SELECT 
+                    ROWNUM RNUM,
+                    BCH_MST_IDX,
+                    BCH_MST_ID,
+                    BCH_MST_NM,
+                    BCH_MST_ST_DT,
+                    BCH_MST_ED_DT,
+                    BCH_MST_STATE,
+                    BCH_MST_REQ_ID,
+                    BCH_MST_REQ_IP,
+                    BCH_MST_REQ_DT,
+                    BCH_MST_ERRMSG
+                FROM T_BCH_MST
+                <include refid="BatchWhere"/>
+                ORDER BY BCH_MST_REQ_DT DESC
+            )
+        )S1 
+        WHERE
+        S1.RNUM BETWEEN #{startNum} AND #{endNum}
+    </select>
+    
+    <!-- 관리자 > 배치작업관리 등록 -->
+    <insert id="insertBatchInfo" parameterType="HashMap">
+        <selectKey keyProperty="BCH_MST_IDX" resultType="Integer" order="BEFORE">
+            SELECT SEQ_BCH_MST_IDX.NEXTVAL AS BCH_MST_IDX  FROM DUAL
+        </selectKey>
+        /* BatchManager.insertBatchInfo */
+        INSERT INTO
+            T_BCH_MST
+            (
+                BCH_MST_IDX,
+                BCH_MST_ID,
+                BCH_MST_NM,
+                BCH_MST_REQ_ID,
+                BCH_MST_REQ_IP,
+                BCH_MST_REQ_DT
+            )
+            VALUES
+            (
+                #{BCH_MST_IDX},
+                #{BCH_MST_ID},
+                #{BCH_MST_NM},
+                #{BCH_MST_REQ_ID},
+                #{BCH_MST_REQ_IP},
+                SYSDATE
+            )
+    </insert>
+    
+    <!-- 관리자 > 배치작업관리 수정 -->
+    <update id="updateBatchStdt" parameterType="HashMap">
+        /* BatchManager.updateBatchStdt */
+        UPDATE
+            T_BCH_MST 
+        SET
+            BCH_MST_STATE = 'S',
+            BCH_MST_ST_DT = SYSDATE
+        WHERE
+            BCH_MST_IDX = #{BCH_MST_IDX}
+    </update>
+    
+    <update id="updateBatchEtdt" parameterType="HashMap">
+        /* BatchManager.updateBatchEtdt */
+        UPDATE
+            T_BCH_MST 
+        SET
+            BCH_MST_STATE = NVL(#{BCH_MST_STATE},'F'),
+            BCH_MST_ED_DT = SYSDATE,
+            BCH_MST_ERRMSG = #{BCH_MST_ERRMSG}
+        WHERE
+            BCH_MST_IDX = #{BCH_MST_IDX}
+    </update>
+
+    <!-- 관리자 > 배치작업관리 > 스캐쥴잡 실행여부 -->
+    <select id="selectBatchExcuteYn" parameterType="HashMap" resultType="String">
+        /* BatchManager.selectBatchExcuteYn */
+        SELECT
+            BCH_OPT_EXCUTE_YN
+        FROM
+            T_BCH_OPT
+        WHERE
+            BCH_OPT_ID = #{BCH_MST_ID}
+    </select>
+    
+    <!-- 관리자 > 배치작업관리 > 스캐쥴잡 실행여부 목록 -->
+    <select id="selectBatchExcuteYnList" parameterType="HashMap" resultType="HashMap">
+        /* BatchManager.selectBatchExcuteYnList */
+        SELECT
+            A.BCH_OPT_ID,
+            NVL(BM.BCH_MST_NM,BO.BCH_OPT_NM) AS BCH_OPT_NM,
+            NVL(BO.BCH_OPT_EXCUTE_YN,'') AS BCH_OPT_EXCUTE_YN,
+            TO_CHAR(BM.BCH_MST_ST_DT,'YYYYMMDDHH24MISS') AS BCH_MST_ST_DT,
+            TO_CHAR(BM.BCH_MST_ED_DT,'YYYYMMDDHH24MISS') AS BCH_MST_ED_DT,
+            BM.BCH_MST_STATE,
+            BM.BCH_MST_REQ_ID,
+            BO.BCH_OPT_REGI_DT,
+            BO.BCH_OPT_REGI_IP,
+            BO.BCH_OPT_REGI_ID,
+            BO.BCH_OPT_UPDT_DT,
+            BO.BCH_OPT_UPDT_IP,
+            BO.BCH_OPT_UPDT_ID
+        FROM (
+            SELECT DISTINCT
+                BCH_MST_ID AS BCH_OPT_ID
+            FROM 
+                T_BCH_MST
+            UNION
+            SELECT DISTINCT
+                BCH_OPT_ID
+            FROM 
+                T_BCH_OPT
+            ) A,
+            (
+            SELECT
+                BCH_MST_ID,
+                BCH_MST_NM,
+                BCH_MST_ST_DT,
+                BCH_MST_ED_DT,
+                BCH_MST_STATE,
+                BCH_MST_REQ_ID
+            FROM 
+                T_BCH_MST
+            WHERE 1=1
+            AND BCH_MST_IDX IN (
+                SELECT MAX_IDX
+                FROM (
+                    SELECT 
+                        BCH_MST_ID MAX_ID, 
+                        MAX(BCH_MST_IDX) MAX_IDX 
+                    FROM 
+                        T_BCH_MST 
+                    GROUP BY BCH_MST_ID
+                    )
+                )
+            ) BM,
+            T_BCH_OPT BO
+        WHERE 1=1
+        AND A.BCH_OPT_ID NOT IN(#{BATCH_CODE_PRODUCT_EXCEL_UPLOAD})
+        AND A.BCH_OPT_ID = BM.BCH_MST_ID(+)
+        AND A.BCH_OPT_ID = BO.BCH_OPT_ID(+)
+        ORDER BY
+            BCH_OPT_NM, BCH_OPT_ID
+    </select>
+
+    <update id="updateBatchExcuteYn" parameterType="HashMap">
+        /* BatchManager.updateBatchExcuteYn */
+        MERGE INTO T_BCH_OPT A
+        USING (SELECT #{BCH_OPT_ID}          ID,
+                      #{BCH_OPT_NM}          NM,
+                      #{BCH_OPT_EXCUTE_YN}   EXCUTE_YN,
+                      #{BCH_OPT_REGI_IP}     REGI_IP,
+                      #{BCH_OPT_REGI_ID}     REGI_ID
+               FROM DUAL) B
+        ON  (A.BCH_OPT_ID = B.ID)
+        WHEN NOT MATCHED THEN
+            INSERT
+                (
+                BCH_OPT_ID,
+                BCH_OPT_NM,
+                BCH_OPT_EXCUTE_YN,
+                BCH_OPT_REGI_DT,
+                BCH_OPT_REGI_IP,
+                BCH_OPT_REGI_ID, 
+                BCH_OPT_UPDT_DT,
+                BCH_OPT_UPDT_IP,
+                BCH_OPT_UPDT_ID 
+                ) 
+            VALUES
+                (
+                ID,
+                NM,
+                EXCUTE_YN,
+                TO_CHAR(SYSDATE,'YYYYMMDDHH24MISS'),
+                REGI_IP,
+                REGI_ID,
+                TO_CHAR(SYSDATE,'YYYYMMDDHH24MISS'),
+                REGI_IP,
+                REGI_ID
+                )
+        WHEN MATCHED THEN
+            UPDATE
+            SET
+                BCH_OPT_NM = NM,
+                BCH_OPT_EXCUTE_YN = EXCUTE_YN,
+                BCH_OPT_UPDT_DT = TO_CHAR(SYSDATE,'YYYYMMDDHH24MISS'),
+                BCH_OPT_UPDT_IP = REGI_IP,
+                BCH_OPT_UPDT_ID = REGI_ID
+    </update>
+</mapper>

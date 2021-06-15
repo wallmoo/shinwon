@@ -1,0 +1,223 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="pcMyEstimate">
+    
+    <select id="selectMyEstimateCount" parameterType="hashMap" resultType="Integer">
+        /* pcMyEstimate.selectMyEstimateCount */
+        
+        SELECT COUNT(ESM_MST_IDX) AS CNT
+          FROM T_ESM_MST
+         WHERE ESM_MST_MEM_ID   = #{MEM_MST_MEM_ID}
+    </select>
+    
+    <select id="selectMyEstimateList" parameterType="hashMap" resultType="hashMap">
+        /* pcMyEstimate.selectMyEstimateList */
+        
+        SELECT S2.*
+             , (SELECT COUNT(ESM_PCH_IDX) FROM T_ESM_PCH WHERE ESM_PCH_MST_IDX = S2.ESM_MST_IDX) AS ESM_PCH_CNT
+             , (SELECT MAX(ESM_PCH_REG_DT) FROM T_ESM_PCH WHERE ESM_PCH_MST_IDX = S2.ESM_MST_IDX) AS ESM_PCH_REG_DT
+             , FN_GET_PRODUCT_NM(S2.PRD_MST_CD, 50) AS PRD_MST_NM
+             , (SELECT COUNT(ESM_PCH_IDX) FROM T_ESM_PCH WHERE ESM_PCH_MEM_BUY_YN = 'Y' AND ESM_PCH_MST_IDX = S2.ESM_MST_IDX AND ESM_PCH_MST_CD = S2.ESM_MST_CD) AS MEM_USE_BUY_CNT
+             , (SELECT COUNT(ESM_PCH_IDX) FROM T_ESM_PCH WHERE ESM_PCH_MD_BUY_YN = 'Y' AND ESM_PCH_MST_IDX = S2.ESM_MST_IDX AND ESM_PCH_MST_CD = S2.ESM_MST_CD) AS MEM_MD_BUY_CNT
+             , (SELECT COUNT(ESM_PCH_IDX) FROM T_ESM_PCH WHERE ESM_PCH_MST_IDX = S2.ESM_MST_IDX AND ESM_PCH_MST_CD = S2.ESM_MST_CD) AS MEM_MD_CNT
+             , (SELECT MAX(ESM_PCH_EPT_ST_DT) FROM T_ESM_PCH WHERE ESM_PCH_MST_IDX = S2.ESM_MST_IDX ) AS ESM_PCH_EPT_ST_DT
+             , (SELECT MAX(ESM_PCH_EPT_ED_DT) FROM T_ESM_PCH WHERE ESM_PCH_MST_IDX = S2.ESM_MST_IDX ) AS ESM_PCH_EPT_ED_DT
+          FROM (
+                SELECT ROWNUM AS RNUM 
+                     , S1.*
+                     , (SELECT MAX(PRD_MST_CD) FROM T_ESM_PRD WHERE ESM_PRD_MST_IDX = S1.ESM_MST_IDX) AS PRD_MST_CD
+                  FROM (
+                           SELECT MST.ESM_MST_IDX
+                                , MST.ESM_MST_CD
+                                , MST.ESM_MST_TYPE
+                                , MST.ESM_MST_MEM_ID
+                                , MST.ESM_MST_MEM_NM
+                                , MST.ESM_MST_HP1
+                                , MST.ESM_MST_HP2
+                                , MST.ESM_MST_HP3
+                                , MST.ESM_MST_MAIL
+                                , MST.ESM_MST_DLV_DT
+                                , MST.ESM_MST_QST_TYPE
+                                , MST.ESM_MST_QST
+                                , MST.ESM_MST_WSH_TOT_PRICE
+                                , MST.ESM_MST_ESM_TOT_PRICE
+                                , MST.ESM_MST_ADV_TYPE
+                                , MST.ESM_MST_CALL_YN
+                                , MST.ESM_MST_SHOP
+                                , MST.ESM_MST_STATE
+                                , MST.ESM_MST_OPN_YN
+                                , MST.ESM_MST_PW
+                                , MST.ESM_MST_USE_YN
+                                , MST.ESM_MST_SMS_SEND_YN
+                                , MST.ESM_MST_PRD_CHANGE_YN
+                                , MST.ESM_MST_CALL_HI
+                                , MST.ESM_MST_CALL_MM
+                                , MST.ESM_MST_REG_DT
+                                , MST.ESM_MST_REG_ID
+                             FROM T_ESM_MST MST
+                            WHERE ESM_MST_MEM_ID = #{MEM_MST_MEM_ID}
+                            ORDER BY ESM_MST_IDX DESC
+                          ) S1
+            ) S2
+        WHERE S2.RNUM BETWEEN #{startNum} AND #{endNum}
+        
+    </select>
+    
+    <select id="selectMyEstimateInfo" parameterType="hashMap" resultType="hashMap">
+        /* pcMyEstimate.selectMyEstimateInfo */
+        
+        SELECT S1.*
+            <![CDATA[
+             , CASE 
+                    WHEN TO_DATE(S1.ESM_PCH_EPT_ST_DT ,'yyyymmddhh24miss') <= SYSDATE AND TO_DATE(S1.ESM_PCH_EPT_ED_DT, 'yyyymmddhh24miss') >= SYSDATE THEN 'ing'
+                    WHEN TO_DATE(S1.ESM_PCH_EPT_ED_DT, 'yyyymmddhh24miss') < SYSDATE THEN 'end'
+                END STA
+            ]]>             
+          FROM (
+                SELECT MST.ESM_MST_IDX
+                     , MST.ESM_MST_CD
+                     , MST.ESM_MST_TYPE
+                     , MST.ESM_MST_MEM_ID
+                     , MST.ESM_MST_MEM_NM
+                     , MST.ESM_MST_HP1
+                     , MST.ESM_MST_HP2
+                     , MST.ESM_MST_HP3
+                     , MST.ESM_MST_MAIL
+                     , MST.ESM_MST_DLV_DT
+                     , MST.ESM_MST_QST_TYPE
+                     , MST.ESM_MST_QST
+                     , MST.ESM_MST_WSH_TOT_PRICE
+                     , MST.ESM_MST_ESM_TOT_PRICE
+                     , MST.ESM_MST_ADV_TYPE
+                     , MST.ESM_MST_CALL_YN
+                     , MST.ESM_MST_SHOP
+                     , MST.ESM_MST_STATE
+                     , MST.ESM_MST_OPN_YN
+                     , MST.ESM_MST_PW
+                     , MST.ESM_MST_USE_YN
+                     , MST.ESM_MST_SMS_SEND_YN
+                     , MST.ESM_MST_PRD_CHANGE_YN
+                     , MST.ESM_MST_CALL_HI
+                     , MST.ESM_MST_CALL_MM
+                     , MST.ESM_MST_REG_DT
+                     , MST.ESM_MST_REG_ID
+                     , (SELECT COUNT(ESM_PCH_IDX) FROM T_ESM_PCH WHERE ESM_PCH_MST_IDX = MST.ESM_MST_IDX) AS ESM_PCH_CNT
+                     , (SELECT MAX(ESM_PCH_REG_DT) FROM T_ESM_PCH WHERE ESM_PCH_MST_IDX = MST.ESM_MST_IDX) AS ESM_PCH_REG_DT
+                     , FN_GET_PRODUCT_NM((SELECT MAX(PRD_MST_CD) FROM T_ESM_PRD WHERE ESM_PRD_MST_IDX = MST.ESM_MST_IDX), 50) AS PRD_MST_NM
+                     , (SELECT MAX(PRD_MST_CD) FROM T_ESM_PRD WHERE ESM_PRD_MST_IDX = MST.ESM_MST_IDX) AS PRD_MST_CD
+                     , (SELECT COUNT(ESM_PCH_IDX) FROM T_ESM_PCH WHERE ESM_PCH_MEM_BUY_YN = 'Y' AND ESM_PCH_MST_IDX = MST.ESM_MST_IDX AND ESM_PCH_MST_CD = MST.ESM_MST_CD) AS MEM_USE_BUY_CNT
+                     , (SELECT COUNT(ESM_PCH_IDX) FROM T_ESM_PCH WHERE ESM_PCH_MD_BUY_YN = 'Y' AND ESM_PCH_MST_IDX = MST.ESM_MST_IDX AND ESM_PCH_MST_CD = MST.ESM_MST_CD) AS MEM_MD_BUY_CNT
+                     , (SELECT COUNT(ESM_PCH_IDX) FROM T_ESM_PCH WHERE ESM_PCH_MST_IDX = MST.ESM_MST_IDX AND ESM_PCH_MST_CD = MST.ESM_MST_CD) AS MEM_MD_CNT
+                     , (SELECT MAX(ESM_PCH_EPT_ST_DT) FROM T_ESM_PCH WHERE ESM_PCH_MST_IDX = ESM_MST_IDX ) AS ESM_PCH_EPT_ST_DT
+                     , (SELECT MAX(ESM_PCH_EPT_ED_DT) FROM T_ESM_PCH WHERE ESM_PCH_MST_IDX = ESM_MST_IDX ) AS ESM_PCH_EPT_ED_DT
+                  FROM T_ESM_MST MST
+                 WHERE MST.ESM_MST_IDX      = #{ESM_MST_IDX}
+                   AND MST.ESM_MST_MEM_ID   = #{MEM_MST_MEM_ID} 
+                )  S1                   
+    </select>
+    
+    <select id="selectMyEstimatePrdList" parameterType="hashMap" resultType="hashMap">
+        /* pcMyEstimate.selectMyEstimatePrdList */
+        
+        SELECT S1.*
+             , ROUND((((SUM_ESM_PRD_WSH_PRICE -SUM_ESM_PRD_ESM_PRICE) / SUM_ESM_PRD_WSH_PRICE) * 100),2) AS SALE
+             <![CDATA[
+             , CASE 
+                    WHEN TO_DATE(S1.ESM_PCH_EPT_ST_DT ,'yyyymmddhh24miss') <= SYSDATE AND TO_DATE(S1.ESM_PCH_EPT_ED_DT, 'yyyymmddhh24miss') >= SYSDATE THEN 'ing'
+                    WHEN TO_DATE(S1.ESM_PCH_EPT_ED_DT, 'yyyymmddhh24miss') < SYSDATE THEN 'end'
+                END STA
+            ]]>   
+          FROM (             
+                SELECT EPR.ESM_PRD_IDX
+                     , EPR.ESM_PRD_MST_IDX
+                     , EPR.ESM_PRD_MST_CD
+                     , EPR.ESM_PRD_PCH_IDX
+                     , EPR.PRD_MST_CD
+                     , EPR.ESM_PRD_WSH_PRICE
+                     , EPR.ESM_PRD_ESM_PRICE
+                     , EPR.OPT_DTL_IDX
+                     , EPR.ESM_PRD_CNT
+                     , FN_GET_PRODUCT_NM(EPR.PRD_MST_CD, 50) AS PRD_MST_NM
+                     , PRD.PRD_MST_PRC
+                     , OPT.OPT_DTL_ADD_PRC
+                     , OPT.OPT_DTL_NM
+                     , (SELECT COUNT(ESM_PCH_IDX) FROM T_ESM_PCH WHERE ESM_PCH_MEM_BUY_YN = 'Y' AND ESM_PCH_MST_IDX = #{ESM_MST_IDX} AND ESM_PCH_MST_CD = EPR.ESM_PRD_MST_CD AND ESM_PCH_IDX = EPR.ESM_PRD_PCH_IDX) AS MEM_USE_BUY_CNT
+                     , (SELECT COUNT(ESM_PCH_IDX) FROM T_ESM_PCH WHERE ESM_PCH_MD_BUY_YN = 'Y' AND ESM_PCH_MST_IDX = #{ESM_MST_IDX} AND ESM_PCH_MST_CD = EPR.ESM_PRD_MST_CD AND ESM_PCH_IDX = EPR.ESM_PRD_PCH_IDX) AS MEM_MD_BUY_CNT
+                     , (SELECT COUNT(ESM_PCH_IDX) FROM T_ESM_PCH WHERE ESM_PCH_MST_IDX = #{ESM_MST_IDX} AND ESM_PCH_MST_CD = EPR.ESM_PRD_MST_CD AND ESM_PCH_IDX = EPR.ESM_PRD_PCH_IDX) AS MEM_MD_CNT
+                     , (SELECT COUNT(ESM_PRD_IDX) FROM T_ESM_PRD WHERE ESM_PRD_MST_IDX = #{ESM_MST_IDX} AND ESM_PRD_PCH_IDX = EPR.ESM_PRD_PCH_IDX) AS T_ESM_PRD_CNT          
+                     , (SELECT COUNT(ESM_PCH_IDX) FROM T_ESM_PCH WHERE ESM_PCH_MST_IDX = #{ESM_MST_IDX}) AS ESM_PCH_CNT
+                     , (SELECT SUM(ESM_PRD_ESM_PRICE) FROM T_ESM_PRD WHERE ESM_PRD_MST_IDX = #{ESM_MST_IDX} AND ESM_PRD_PCH_IDX = EPR.ESM_PRD_PCH_IDX ) AS SUM_ESM_PRD_ESM_PRICE
+                     , (SELECT SUM(ESM_PRD_WSH_PRICE) FROM T_ESM_PRD WHERE ESM_PRD_MST_IDX = #{ESM_MST_IDX} AND ESM_PRD_PCH_IDX = EPR.ESM_PRD_PCH_IDX ) AS SUM_ESM_PRD_WSH_PRICE
+                     , (SELECT ESM_PCH_EPT_ST_DT FROM T_ESM_PCH WHERE ESM_PCH_MST_IDX = #{ESM_MST_IDX} AND ESM_PCH_IDX = EPR.ESM_PRD_PCH_IDX) AS ESM_PCH_EPT_ST_DT
+                     , (SELECT ESM_PCH_EPT_ED_DT FROM T_ESM_PCH WHERE ESM_PCH_MST_IDX = #{ESM_MST_IDX} AND ESM_PCH_IDX = EPR.ESM_PRD_PCH_IDX) AS ESM_PCH_EPT_ED_DT
+                  FROM T_ESM_PRD EPR
+                     , T_PRD_MST PRD
+                     , T_OPT_DTL OPT
+                     , T_ESM_MST MST
+                 WHERE MST.ESM_MST_IDX      = EPR.ESM_PRD_MST_IDX
+                   AND EPR.PRD_MST_CD       = PRD.PRD_MST_CD
+                   AND EPR.OPT_DTL_IDX      = OPT.OPT_DTL_IDX(+)             
+                   AND EPR.ESM_PRD_MST_IDX  = #ESM_MST_IDX#
+                   <if test="ESM_PRD_PCH_IDX != null and ESM_PRD_PCH_IDX == -1">
+                   AND EPR.ESM_PRD_PCH_IDX  = #{ESM_PRD_PCH_IDX}
+                   </if>
+                   <if test="ESM_PRD_PCH_IDX == null or ESM_PRD_PCH_IDX != -1">
+                   AND EPR.ESM_PRD_PCH_IDX  <![CDATA[ <> ]]> -1
+                   </if>
+                 ORDER BY ESM_PRD_PCH_IDX DESC, ESM_PRD_IDX ASC
+            ) S1
+    </select>
+    
+    <select id="selectMyEstimateReplyList" parameterType="hashMap" resultType="hashMap">
+        /* pcMyEstimate.selectMyEstimateReplyList */
+        
+        SELECT ESM_REP_IDX
+             , ESM_MST_IDX
+             , ESM_REP_GBN
+             , ESM_REP_CTS
+             , ESM_REP_REG_DT
+             , ESM_REP_REG_ID
+             , CASE 
+                WHEN ESM_REP_REG_DT >= TO_CHAR(SYSDATE + 2, 'YYYYMMDD') THEN 'Y'
+                    ELSE 'N'
+               END NEW_MARK
+             , TO_CHAR(TO_DATE(ESM_REP_REG_DT,'yyyymmddhh24miss'),'yyyy.mm.dd') AS EXP_RPL_REG_DT_CHAR         
+          FROM T_ESM_REP
+         WHERE ESM_MST_IDX = #{ESM_MST_IDX}
+         ORDER BY ESM_REP_IDX DESC   
+    </select>
+    
+    <insert id="insertMyEstimateComment" parameterType="hashMap">
+        /* pcMyEstimate.insertMyEstimateComment */
+        
+        INSERT 
+          INTO T_ESM_REP    (     ESM_REP_IDX
+                                , ESM_MST_IDX
+                                , ESM_REP_GBN
+                                , ESM_REP_CTS
+                                , ESM_REP_REG_DT
+                                , ESM_REP_REG_ID
+                                , ESM_REP_REG_IP
+                            )
+        VALUES              (     SEQ_ESM_REP_IDX.NEXTVAL
+                                , #{ESM_MST_IDX}
+                                , 'M'
+                                , #{ESM_REP_CTS}
+                                , TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS')
+                                , #{MEM_MST_MEM_ID}
+                                , #{remote_addr}
+                            )
+    </insert>
+    
+    <update id="updateMyEstimateChoiceAjax" parameterType="hashMap">
+        /* pcMyEstimate.updateMyEstimateChoiceAjax */
+        
+        UPDATE T_ESM_PCH
+           SET ESM_PCH_MEM_BUY_YN   = 'Y'
+         WHERE ESM_PCH_MST_CD       = #{ESM_PCH_MST_CD}
+           AND ESM_PCH_IDX          = #{ESM_PCH_MST_IDX}         
+    </update>
+            
+</mapper>
+

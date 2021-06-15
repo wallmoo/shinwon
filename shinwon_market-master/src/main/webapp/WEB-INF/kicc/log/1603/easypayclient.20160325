@@ -1,0 +1,4 @@
+[11:12:28] [T0002729kuOnLQqTeCH] START:mall_id=[T0002729]+tr_cd=[00101000]+order_no=[2016032501817]
+[11:12:28] [T0002729kuOnLQqTeCH] DATA:pay_data=common=tot_amt=50011currency=00client_ip=127.0.0.1escrow_yn=Ncomplex_yn=Ncli_ver=N8vacct=vacct_txtype=10vacct_amt=50011bank_cd=003expire_date=20160328expire_time=235959cash_yn=0order_data=order_no=2016032501817user_phone2=01072530937product_nm=일렉트로닉스ANCC702testproduct_amt=50011
+[11:12:28] [T0002729kuOnLQqTeCH] RESULT:res_cd=0000res_msg=계좌 채번 정상cno=16032511094723514325order_no=2016032501817amount=50011tran_date=20160325110947bank_cd=003bank_nm=기업은행account_no=T8201366697793deposit_nm=epasscniexpire_date=20160328235959escrow_yn=Ncomplex_yn=Nstat_cd=TS07stat_msg=입금대기pay_type=22memb_id=T0002729memb_gubun=2bk_pay_yn=N
+[11:12:28] [T0002729kuOnLQqTeCH] ENDED :mall_id=[T0002729]+tr_cd=[00101000]+order_no=[2016032501817]

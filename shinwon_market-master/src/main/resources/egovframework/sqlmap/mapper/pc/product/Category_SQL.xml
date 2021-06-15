@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="PcCategoryProduct">
+    <!-- 하위 상품 카테고리 리스트 조회 -->
+    <select id="selectSubCategoryProductList" parameterType="hashMap" resultType="hashMap">
+        /* PcCategoryProduct.selectSubCategoryProductList */
+        SELECT
+            PRD_CTG_IDX
+            , PRD_CTG_NM
+            , PRD_CTG_USE_YN
+        FROM
+            T_PRD_CTG
+        WHERE
+            PRD_CTG_UP_IDX = #{PRD_CTG_IDX}
+        AND
+        	PRD_CTG_DEL_YN != 'Y'
+            <if test="useYn != 'all'">
+                AND PRD_CTG_USE_YN = 'Y' 
+            </if>
+            <if test="PRD_CTG_ENV != null and PRD_CTG_ENV != ''">
+                AND PRD_CTG_ENV = #{PRD_CTG_ENV}
+            </if>
+            <if test="PRD_CTG_BRAND_CD != null and PRD_CTG_BRAND_CD != ''">
+                AND PRD_CTG_BRAND_CD = #{PRD_CTG_BRAND_CD}
+            </if>
+        ORDER BY PRD_CTG_SORT ASC
+    </select>
+    <select id="selectCategoryByIdx" parameterType="hashMap" resultType="hashMap">
+    	SELECT 
+    		PRD_CTG_IDX,
+    		PRD_CTG_NM,
+    		PRD_CTG_USE_YN,
+    		PRD_CTG_UP_IDX,
+    		PRD_CTG_TOP_IDX
+    	FROM
+    		T_PRD_CTG
+		WHERE
+            PRD_CTG_IDX = #{PRD_CTG_IDX}
+          AND
+            PRD_CTG_USE_YN = 'Y'
+    </select>
+    
+    <select id="selectCategoryChildrenByIdx" parameterType="hashMap" resultType="hashMap">
+    	SELECT 
+    		PRD_CTG_IDX,
+    		PRD_CTG_NM,
+    		PRD_CTG_USE_YN,
+    		PRD_CTG_UP_IDX,
+    		PRD_CTG_TOP_IDX
+    	FROM
+    		T_PRD_CTG
+		WHERE
+            PRD_CTG_UP_IDX = #{PRD_CTG_IDX}
+          AND
+            PRD_CTG_USE_YN = 'Y'
+    </select>
+    
+    <update id="updateCategoryReadCount" parameterType="HashMap">
+	    UPDATE T_PRD_CTG
+		SET PRD_CTG_CUR_CNT = NVL(PRD_CTG_CUR_CNT, 0) + 1, PRD_CTG_RED_CNT = NVL(PRD_CTG_RED_CNT, 0) + 1
+		WHERE PRD_CTG_IDX =  #{PRD_CTG_IDX}
+    </update>
+</mapper>

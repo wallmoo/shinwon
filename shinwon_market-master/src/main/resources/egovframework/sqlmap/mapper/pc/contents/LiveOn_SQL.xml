@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="PcLiveOn">
+
+    <!-- 라이브온 상품 개수 -->
+    <select id="selectLiveOnProductListCount" parameterType="hashMap" resultType="integer">
+        /* PcLiveOn.selectLiveOnProductListCount */
+        SELECT 
+            COUNT(PM.PRD_MST_CD)
+        FROM 
+            T_PRD_MST PM
+        WHERE 
+            PM.PRD_MST_LIVE_ON_YN = 'Y'
+            AND FN_GET_PRODUCT_STATUS(PM.PRD_MST_CD) = 'true'
+            AND PRD_MST_LIVE_ON_DSP_YN = 'Y'
+            <if test="searchCntMstShopType != null and searchCntMstShopType != ''">
+           AND PRD_MST_CNL_PC_YN = #{searchCntMstShopType}
+           </if>
+           <if test="searchCntMstShopTypeMobile != null and searchCntMstShopTypeMobile != ''">
+           AND PRD_MST_CNL_MB_YN = #{searchCntMstShopTypeMobile}
+           </if>
+    </select>
+    
+    <!-- 라이브온 상품 리스트 -->
+    <select id="selectLiveOnProductList" parameterType="HashMap" resultType="HashMap">
+        /*PcLiveOn.selectLiveOnProductList*/
+        SELECT 
+            S2.*
+             , (
+	           	SELECT tmp02.TAG_MST_TITLE
+	            FROM T_TAG_BND tmp01, T_TAG_MST tmp02 
+	            WHERE tmp01.TAG_BND_ID = PRD_MST_CD
+	            AND tmp01.TAG_BND_TYPE = 'TYPE_PRODUCT'
+	            AND tmp01.TAG_BND_REP = 'Y'
+	            AND tmp01.TAG_MST_ID = tmp02.TAG_MST_ID
+	            AND ROWNUM = 1
+	         ) AS TAG_MST_TITLE
+			, (SELECT BND_MST_BRAND_NM FROM T_BND_MST WHERE BND_MST_IDX = PRD_MST_BRD_IDX ) AS PRD_MST_BRAND_NM
+			, ROUND(((PRD_MST_PRC - PRD_NOW_DST_PRICE) / PRD_MST_PRC) * 100,1) AS PRD_NOW_DST_POINT
+        FROM
+            (SELECT S1.*, ROWNUM AS RNUM 
+              FROM (
+                    SELECT PM.PRD_MST_NM
+                         , PM.PRD_MST_CD
+                         , PM.PRD_MST_URL
+                         , PM.PRD_MST_ORD_CNT
+                         , PM.PRD_MST_REG_DT
+				         , PM.PRD_MST_PRC
+				         , PM.PRD_MST_BRD_IDX
+                         , (SELECT FN_PRODUCT_DETAIL_PRICE(PM.PRD_MST_CD, #{USER_ENV_TYPE},#{MEM_MST_MEM_ID},'N',null) FROM DUAL) AS PRD_NOW_DST_PRICE
+                         
+                       FROM 
+                            T_PRD_MST PM
+                       WHERE
+                           1=1 
+                           AND PM.PRD_MST_LIVE_ON_YN = 'Y'
+                           AND PRD_MST_LIVE_ON_DSP_YN = 'Y'   
+                           AND FN_GET_PRODUCT_STATUS(PM.PRD_MST_CD) = 'true'
+                           <if test="searchCntMstShopType != null and searchCntMstShopType != ''">
+                           AND PRD_MST_CNL_PC_YN = #{searchCntMstShopType}
+                           </if>
+                           <if test="searchCntMstShopTypeMobile != null and searchCntMstShopTypeMobile != ''">
+                           AND PRD_MST_CNL_MB_YN = #{searchCntMstShopTypeMobile}
+                           </if>
+                           
+		                    <if test="orderType != null and orderType != ''">
+		                        <choose>
+		                            <when test="orderType.equals('hit'.toString())">
+		                                ORDER PM.PRD_MST_ORD_CNT DESC --판매량순
+		                            </when>              
+		                            <when test="orderType.equals('new'.toString())">
+		                                ORDER BY PM.PRD_MST_REG_DT DESC , PM.PRD_MST_PRC , PM.PRD_MST_NM ASC --최근 등록순
+		                            </when> 
+		                            <when test="orderType.equals('dwn'.toString())">
+		                                ORDER BY PM.PRD_MST_PRC ASC -- 가격 낮은순
+		                            </when> 
+		                            <when test="orderType.equals('up'.toString())">
+		                                ORDER BY PM.PRD_MST_PRC DESC -- 가격 높은순
+		                            </when>
+		                        </choose>
+		                    </if>
+                    
+                     ) S1
+               ) S2 
+             <if test="startNum != null and startNum != '' and endNum != null and endNum != ''">
+	            WHERE 
+	                S2.RNUM BETWEEN #{startNum} AND #{endNum}
+	        </if>
+			        
+    
+    </select>
+
+</mapper>
